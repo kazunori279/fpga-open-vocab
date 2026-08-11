@@ -1,3 +1,14 @@
+# These four were inherited from the monorepo root this project used to live
+# under, and stopped applying the moment it became its own repository. Nothing
+# announced that: `git status` simply started offering to commit schematic.pdf.
+.DS_Store
+__pycache__/
+.venv/
+# Not ours to redistribute. schematic.pdf is the Forgix board's, and
+# docs/article/ holds a publisher's author guidelines. Both stay local; the
+# README says where schematic.pdf comes from.
+*.pdf
+
 # Build outputs
 firmware/build*/
 rtl/build/
