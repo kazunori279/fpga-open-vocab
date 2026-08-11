@@ -117,8 +117,10 @@ It exists because the first README split silently broke 151 anchors.
 ## Layout
 
 ```
-2026-0729-forgix-clip/
+fpga-open-vocab/
 ├── README.md          # this file
+├── LICENSE            # Apache-2.0
+├── .github/workflows/ #   pages.yml — publishes slides/ to GitHub Pages
 ├── ab.sh              # one A/B scene experiment, from two phrases
 ├── pyproject.toml     # host tooling deps (uv sync / uv run)
 ├── schematic.pdf      # local only — *.pdf is gitignored; re-fetch from the
@@ -168,7 +170,6 @@ It exists because the first README split silently broke 151 anchors.
 │   ├── score_cue.py   #   score a cue.py run against the boundaries it recorded
 │   ├── score_drift.py #   measure what moves when nothing moves
 │   ├── teacher_swap.py # re-encode a split with SigLIP 2 through a frozen PCA
-│   ├── export_public.sh #  subtree -> the public repo, with the tripwires
 │   └── probe_*.py     #   offline probes, each carrying its results in its
 │                      #     docstring, so a stale one is visibly stale
 └── rtl/               # Trion T8
