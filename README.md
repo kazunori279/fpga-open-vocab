@@ -7,8 +7,8 @@ It is built and it runs. All eight convolution layers execute on the FPGA tile, 
 ```
 ArduCam SPI ──▶ RP2354A ──3-bit on-board link──▶ Trion T8 ──▶ RGB LED / USB serial
                    │                                 │
-              1.4 MB int8 weights               int8 MAC array
-              in 2 MB stacked flash             8 MACs × 140 MHz
+              768 KB int4 weights               int8 MAC array
+              in 2 MB stacked flash             16 MACs × 140 MHz
 ```
 
 ---
@@ -16,7 +16,7 @@ ArduCam SPI ──▶ RP2354A ──3-bit on-board link──▶ Trion T8 ──
 ## What it does
 
 1. **Once per query, on the host.** You type a phrase. The host runs the teacher's real text tower and sends the resulting **512-d embedding** to the board over USB. The text side never runs on the device.
-2. **Once per frame, on the board.** A 128 × 128 × 3 image comes off the camera. A 1.40 M-parameter int8 CNN — distilled to imitate the teacher's *image* tower — runs eight 3 × 3 convolution stages over it.
+2. **Once per frame, on the board.** A 128 × 128 × 3 image comes off the camera. A 1.40 M-parameter int4 CNN — distilled to imitate the teacher's *image* tower — runs eight 3 × 3 convolution stages over it.
 3. **The MCU cuts each layer into blocks and feeds the FPGA.** The tile holds 2,048 int32 accumulators and a 2 KB slice of input, so a frame becomes 174 blocks, 1,856 passes, 6,264 transactions across a link that is **3 bits out and 1 bit back**. The MCU is also the tile's only clock.
 4. **The MCU finishes what the tile does not do** — requantize, scatter, and after the eighth layer an average pool and one 256 → 512 linear. That is the image's own embedding, in the same space as step 1's.
 5. **The board decides.** Cosine against each query, standardized against the background *this room* reads at, then split into a presence axis and a state axis, both learned by being **shown** the scenes rather than given a threshold. The answer comes out on the RGB LED and on the serial log.
@@ -41,8 +41,9 @@ uv run host/demo.py --bitstream rtl/bitstreams/m11/gemm_top_wide.hex \
                     "cup" "person" "book" "laptop"
 ```
 
-The model itself is in the tree: `model/runs/so400m-full-a05/export/` holds 994 KB
-of int4 weights, the test vector the firmware checks itself against, and the
+The model itself is in the tree: `model/runs/so400m-full-a05/export/` holds a
+780,720-byte blob — 768 KB of int4 weights and their headers — the test vector
+the firmware checks itself against, and the
 `export.json` that names the embedding space they belong to. It is the one thing
 committed under the otherwise-gitignored `model/runs/`, because without it none of
 the above builds. The board prints the blob's crc32 at boot; if that disagrees
@@ -67,9 +68,9 @@ harness, and rebuilding the model — are in [`docs/building.md`](docs/building.
 | **bit-exactness** | 512 of 512 embedding floats identical to `firmware/encoder.c` |
 | **speedup** | **11.33×** the same model on the MCU alone (`encoder_fast`, 3,359 ms, measured in the same boot) |
 | **clocks** | 280 MHz sys / 140 MHz link, bit-exact there |
-| **model** | 1.40 M int8 parameters, 159 MMAC, distilled from SigLIP 2 SO400M through a frozen PCA to 512-d |
+| **model** | 1.40 M int4 parameters in 768 KB, 159 MMAC, distilled from SigLIP 2 SO400M through a frozen PCA to 512-d |
 | **retention** | 91% of the queries the teacher itself gets right, at int4 |
-| **fabric** | 2,461 LE (33%), 8/8 multipliers, **21 of 24 memory blocks** — memory is what runs out, not logic |
+| **fabric** | **6,265 of 7,384 LE (85%)**, 8/8 multipliers, **21 of 24 memory blocks** — it started at 33% with memory the only thing running out; three milestones of arithmetic later both are nearly full |
 | **link** | 26.4 MB/s forward measured, 8.9 MB/s back, and it cannot be widened either way |
 | **decision rule** | 120/120 held out on the board at M21, against 90/180 for ranking the same frames |
 
@@ -174,10 +175,10 @@ fpga-open-vocab/
 │   └── probe_*.py     #   offline probes, each carrying its results in its
 │                      #     docstring, so a stale one is visibly stale
 ├── slides/            # the conference deck, published to Pages from here
-│   ├── index.html     #   English; index.ja.html is the same 38 slides in
+│   ├── index.html     #   English; index.ja.html is the same 39 slides in
 │   └── index.ja.html  #     Japanese. Hand-kept in step — nothing checks them
 └── rtl/               # Trion T8
-    ├── gemm_tile.v    #   8 int8 MACs, accumulator banks, weight buffer, FSM
+    ├── gemm_tile.v    #   16 int8 MACs/clk, accumulator banks, weight buffer, FSM
     ├── im2col_feed.v  #   strip buffer + address generator + zero injection
     ├── gemm_link.v    #   command framing, preamble + CRC on the return path
     ├── gemm_top*.v    #   config A and config C tops, with their .sdc and .isf

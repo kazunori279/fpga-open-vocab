@@ -3,10 +3,10 @@
 [`index.html`](index.html) is a self-contained 50-minute talk about this project:
 what CLIP is, what the board is, how the encoder was split between an MCU and an
 FPGA, how the frame went from 3,359 ms to 304 ms, and how a 512-d embedding
-becomes an answer on an LED. 38 slides, eight sections, aimed at a general
+becomes an answer on an LED. 39 slides, eight sections, aimed at a general
 technical audience — each domain is taught from scratch before the deep-dive.
 
-[`index.ja.html`](index.ja.html) is the same 38 slides in Japanese. It is a
+[`index.ja.html`](index.ja.html) is the same 39 slides in Japanese. It is a
 translation, not a fork: the structure, the SVGs and every number are the same,
 and a link in the top-right corner of each deck switches to the other one. The
 type is set a few points smaller with the negative tracking relaxed, because

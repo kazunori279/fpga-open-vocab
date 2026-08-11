@@ -110,7 +110,7 @@ This section is the feasibility pass that chose the architecture above, kept in 
 | T8 logic | 7,384 LE, **8 × 18×18 multipliers** |
 | T8 on-chip RAM | **123 Kbit = 15.4 KB** |
 | RP2354A SRAM | 520 KB |
-| Weight storage | **2 MB stacked flash** today. Budget: 1.42 MB weights + 173 KB T8 bitstream + ~60 KB firmware = **1.65 MB of 2.10 MB**. U1's 2 MB of PSRAM is fitted but accidental and untested by the vendor, so it is not headroom we can count on ([#1](#verify-before-building)). Budget against flash alone |
+| Weight storage | **2 MB stacked flash** today. Budget after M14 halved the weight width: 768 KB int4 weights + 173 KB T8 bitstream + ~60 KB firmware = **1.00 MB of 2.10 MB** (it was 1.65 MB at int8). U1's 2 MB of PSRAM is fitted but accidental and untested by the vendor, so it is not headroom we can count on ([#1](#verify-before-building)). Budget against flash alone |
 | RP2354A GPIO | 30 total, **6 on the header**, 13 unbonded |
 | MCU↔FPGA link | **3 contiguous bits** (GPIO1–3) + 1 flag |
 

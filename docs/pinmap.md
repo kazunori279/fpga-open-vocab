@@ -286,8 +286,9 @@ scope on SCLK and SD1 at the package. README open question #10 is closed as
 bounded and reported upstream.
 
 **So the weight store today is the RP2354A's 2 MB stacked flash.** Budget:
-1.42 MB int8 weights + 173 KB T8 bitstream + ~60 KB firmware = 1.65 MB of
-2.10 MB, so the ~1.5 M-parameter model fits with roughly 25 % headroom. U1 would
+768 KB int4 weights + 173 KB T8 bitstream + ~60 KB firmware = 1.00 MB of
+2.10 MB, so the ~1.5 M-parameter model fits with better than 50 % headroom. (At
+int8 it was 1.42 MB of weights and 1.65 MB of 2.10 MB; M14 halved the width.) U1 would
 sit behind the same QMI and so would add no bandwidth; what it adds is 2 MB of
 **writeable** space, which is what the model needs to grow past that budget.
 

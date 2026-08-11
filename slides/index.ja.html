@@ -282,7 +282,7 @@
 <section class="slide">
   <div style="margin-top:186px;">
     <h1 class="cover">fpga-open-vocab：言葉で指定すれば、<br>50ドルのボードが見つける</h1>
-    <div class="cover-sub">蒸留したCLIP系の画像エンコーダを、小さなFPGAの上で。int8パラメータ140万、
+    <div class="cover-sub">蒸留したCLIP系の画像エンコーダを、小さなFPGAの上で。パラメータ140万をint4の768 KBに収め、
     8つの畳み込み層すべてをファブリックに載せ、1フレーム304 ms、しかもプレーンCのリファレンスとビット単位で一致します。</div>
     <div class="cover-by">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.22-6.82-5.97 6.82H1.66l7.73-8.83L1.24 2.25h6.83l4.71 6.23zm-1.16 17.52h1.83L7.08 4.13H5.12z"/></svg>
@@ -356,7 +356,7 @@
       <p><b>画像クエリのアプライアンス</b>です。何かに向けて
       <span class="em">「笑っている人」</span>と打つと、答えが返ってきます。</p>
       <ul class="dots">
-        <li><b>蒸留したCLIP系の画像エンコーダ</b>を実行。int8パラメータ140万、1フレームあたり159 MMAC</li>
+        <li><b>蒸留したCLIP系の画像エンコーダ</b>を実行。int4パラメータ140万、1フレームあたり159 MMAC</li>
         <li>載せているのは<b>約50ドルのForgixボード</b>。<b>RP2354A</b> MCUの隣に <b>Efinix Trion T8</b> FPGA</li>
         <li><b>8つの畳み込み層すべてをファブリックで実行</b>。入力はライブのカメラ映像</li>
         <li><b>1フレーム304 ms</b>、しかも<b>ビット単位で一致</b> — 埋め込み512個すべてがプレーンCのリファレンスと同一</li>
@@ -390,7 +390,7 @@
           <text x="230" y="132" font-size="15" fill="#174ea6" text-anchor="middle" font-weight="700">RP2354A</text>
           <text x="230" y="152" font-size="11.5" fill="#5f6368" text-anchor="middle">2 × Cortex-M33</text>
           <text x="230" y="170" font-size="11.5" fill="#5f6368" text-anchor="middle">520 KB SRAM</text>
-          <text x="230" y="196" font-size="11.5" fill="#5f6368" text-anchor="middle">int8重み 1.42 MB を</text>
+          <text x="230" y="196" font-size="11.5" fill="#5f6368" text-anchor="middle">int4重み 768 KB を</text>
           <text x="230" y="212" font-size="11.5" fill="#5f6368" text-anchor="middle">2 MB フラッシュに</text>
           <text x="230" y="240" font-size="11.5" fill="#5f6368" text-anchor="middle">層をブロックに切り分ける</text>
 
@@ -622,7 +622,7 @@
       </svg></div>
       <div class="lbl">なぜこのワークロードに向くのか</div>
       <p>畳み込みとは、独立した<b>int8の積和</b>がずらりと並んだものです。CPUは一度に1〜2個しか処理できませんが、
-      ファブリックは供給が続く限り<b>毎クロック8個</b>こなします。</p>
+      ファブリックは供給が続く限り<b>毎クロック16個</b>こなします。</p>
       <p class="small">しかも決定的です。同じ174ブロックは毎フレーム同じサイクル数で終わる。だからこそ
       「Cリファレンスとビット単位で一致」がテスト可能な主張になります。</p>
     </div>
@@ -637,8 +637,8 @@
       <div class="lbl">T8 は<i>とても</i>小さい</div>
       <p><b>ロジックエレメント7,384個。18×18乗算器8個。5 kbitのブロックが24個 — オンチップメモリは合計15.4 KB。</b>
       ミドルレンジのFPGAならその100倍あります。</p>
-      <p class="small">この設計が使うのは <b>2,461 LE（33%）、乗算器8/8、メモリブロック21/24</b>。
-      先に尽きるのはロジックではなくメモリです。以降のアーキテクチャ上の選択はすべて、この15.4 KBの帰結です。</p>
+      <p class="small">この設計が使うのは <b>6,265 LE（85%）、乗算器8/8、メモリブロック21/24（88%）</b>。
+      出発点はロジック33%で、尽きかけていたのはメモリだけでした。演算を3マイルストーン積んだ今は、どちらもほぼ満杯です。</p>
     </div>
   </div></section>
 
@@ -653,12 +653,12 @@
         <rect x="10" y="10" width="8" height="8" rx="1.5" fill="#4285f4" opacity=".5"/>
         <line x1="2" y1="11" x2="5" y2="11" stroke="#4285f4" stroke-width="2"/><line x1="2" y1="17" x2="5" y2="17" stroke="#4285f4" stroke-width="2"/>
         <line x1="23" y1="11" x2="26" y2="11" stroke="#4285f4" stroke-width="2"/><line x1="23" y1="17" x2="26" y2="17" stroke="#4285f4" stroke-width="2"/>
-      </svg>MCU</td><td>RP2354A — Cortex-M33 × 2、SRAM 520 KB、<b>積層フラッシュ 2 MB</b></td><td>フラッシュに<b>int8重み1.42 MB + ビットストリーム173 KB</b>が入ります。すべて常駐で、ストリーミングはしません</td></tr>
+      </svg>MCU</td><td>RP2354A — Cortex-M33 × 2、SRAM 520 KB、<b>積層フラッシュ 2 MB</b></td><td>フラッシュに<b>int4重み768 KB + ビットストリーム173 KB</b>が入ります。すべて常駐で、ストリーミングはしません</td></tr>
       <tr><td><svg class="ric" width="26" height="26" viewBox="0 0 28 28" fill="none">
         <rect x="4" y="4" width="20" height="20" rx="3" stroke="#188038" stroke-width="2.2"/>
         <line x1="14" y1="4" x2="14" y2="24" stroke="#188038" stroke-width="1.4"/>
         <line x1="4" y1="14" x2="24" y2="14" stroke="#188038" stroke-width="1.4"/>
-      </svg>FPGA</td><td>Efinix Trion T8F49 — 7,384 LE、ハード乗算器8個、BRAM 15.4 KB</td><td>使用は2,461 LE、<b>乗算器8/8、メモリブロック21/24</b>。効いている制約はメモリです</td></tr>
+      </svg>FPGA</td><td>Efinix Trion T8F49 — 7,384 LE、ハード乗算器8個、BRAM 15.4 KB</td><td>使用は<b>6,265 LE（85%）、乗算器8/8、メモリブロック21/24</b>。どちらもほぼ使い切りです</td></tr>
       <tr><td><svg class="ric" width="26" height="26" viewBox="0 0 28 28" fill="none">
         <path d="M4 9 h20 M4 14 h20 M4 19 h20" stroke="#f9ab00" stroke-width="2.2" stroke-linecap="round"/>
       </svg>リンク</td><td><b>行き3ビット、帰り1ビット。</b>実測で往路26.4 MB/s、復路8.9 MB/s</td><td>ネットリスト上、どこにもこれ以上太い経路を通せません。<i>構造上</i>非対称で、アクセラレータにはむしろ好都合です</td></tr>
@@ -694,7 +694,7 @@
       </svg></div>
       <div class="ot">本物のCLIPをMCUで</div>
       <div class="ou">公開されたままのViT-B/16、8,600万パラメータをCortex-M33に</div>
-      <div class="om">− フラッシュ全体の60倍。トレードオフではなく、不可能</div>
+      <div class="om">− int8で86 MB、対するフラッシュは2 MB。トレードオフではなく、不可能</div>
     </div>
     <div class="opt">
       <div class="oico"><svg width="50" height="44" viewBox="0 0 50 44" fill="none">
@@ -796,8 +796,8 @@
         <circle cx="20" cy="20" r="7" fill="#f9ab00" opacity=".35"/>
       </svg></div>
       <div class="lbl">FPGAタイル</div>
-      <p><b>int32アキュムレータ2,048本、MAC 8個</b>。それにint4の展開と再量子化のエピローグ —
-      これはM15でファブリック側に移しました。</p>
+      <p><b>int32アキュムレータ2,048本、毎クロックMAC 16個</b> — ハード乗算器8個と、M16以降はロジックで
+      組んだ8個。それにint4の展開（M14）と再量子化のエピローグ（M15）。</p>
       <p class="small">モデルは持ちません。オペランドを渡されて総和を返すだけの、
       とても速くてとても小さい内積エンジンです。</p>
     </div>
@@ -859,7 +859,7 @@
         <span class="em">WGT</span>（重み投入）、<span class="em">RUN</span>（計算 — データは一切運ばない）、
         <span class="em">DRAIN</span>（答えの読み出し）</li>
       </ul>
-      <p><b>重みは常駐で、ストリーミングではありません。</b>1.42 MBすべてがMCUのフラッシュにあり、
+      <p><b>重みは常駐で、ストリーミングではありません。</b>768 KBすべてがMCUのフラッシュにあり、
       スケジュールが求めるときに押し出されます。大きなモデルを外部メモリに置く道は、このボードにありません。</p>
       <p class="mut">M15以降、タイルが内部で再量子化するようになり、<code>DRAIN</code> が返すのは
       <b>アキュムレータあたり4バイトではなく1バイト</b>になりました。これで復路が実機で153 ms → 41 msに。</p>
@@ -888,7 +888,7 @@
           <rect x="196" y="206" width="152" height="28" rx="4" stroke="#188038" stroke-width="1.8" fill="#fff"/>
           <text x="272" y="225" font-size="11.5" fill="#5f6368" text-anchor="middle">int32 アキュム 2,048本</text>
           <rect x="52" y="244" width="296" height="26" rx="4" stroke="#188038" stroke-width="1.8" fill="#fff"/>
-          <text x="200" y="262" font-size="11.5" fill="#5f6368" text-anchor="middle">int8 MAC × 8 + 再量子化</text>
+          <text x="200" y="262" font-size="11.5" fill="#5f6368" text-anchor="middle">int8 MAC × 16 + 再量子化</text>
 
           <text x="42" y="308" font-size="11.5" fill="#1a73e8">ACT</text>
           <text x="106" y="308" font-size="11.5" fill="#1a73e8">WGT</text>
@@ -961,9 +961,9 @@
       トランザクション1つ分です。</p>
     </div>
     <div>
-      <div class="lbl" style="font-size:21px;">6つの状態</div>
-      <p style="font-size:17px;"><code>R_HUNT → R_HDR → R_PAY → R_EXEC → R_TX → R_CHK</code>。
-      <code>RUN</code> がいるのは <code>R_EXEC</code> です。ペイロードを一切持たないのに、
+      <div class="lbl" style="font-size:21px;">7つの状態</div>
+      <p style="font-size:17px;"><code>R_HUNT → R_HDR → R_PAY → R_EXEC → R_WAIT → R_TX → R_CHK</code>。
+      <code>R_WAIT</code> は <code>RUN</code> 専用です。ペイロードを一切持たないのに、
       時間はすべてここで消えるコマンドです。</p>
     </div>
     <div>
@@ -1024,7 +1024,7 @@
   <div class="h">はしご</div>
   <div class="hsub">どの行も <code>firmware/encoder.c</code> とビット単位一致。どの「倍」も
   <b>同一ブート内で測り直した</b>MCU単体との比較です。</div>
-  <table class="gt tight" style="margin-top:24px;">
+  <table class="gt tight" style="margin-top:16px;">
     <thead><tr><th style="width:152px;">マイルストーン</th><th>変えたこと</th><th style="width:110px;">フレーム</th><th style="width:90px;">MCU比</th></tr></thead>
     <tbody>
       <tr><td>ベースライン</td><td>生徒をMCU単体で。手で詰めたC、FPGAなし</td><td class="nm">3,359 ms</td><td class="nm">1.00×</td></tr>
@@ -1033,14 +1033,71 @@
       <tr><td>M7e</td><td>重みの組み立てと書き戻しを、ロックフリーリング経由でコア1へ</td><td class="nm">1,292 ms</td><td class="nm">2.71×</td></tr>
       <tr><td>M7f/g</td><td>リングを2本に、ホットパスをXIPフラッシュの外へ、そしてジャンパをはんだ付け</td><td class="nm">975 ms</td><td class="nm">3.54×</td></tr>
       <tr><td>M7h/i</td><td>重みの組み立てをキャッシュ。丸めとクランプをそれぞれ1命令に</td><td class="nm">851 ms</td><td class="nm">3.94×</td></tr>
+      <tr><td>M14</td><td>int4の重み — 線上は1バイトに2個、実行時の設定ビット1本で切り替え</td><td class="nm">798 ms</td><td class="nm">4.32×</td></tr>
       <tr><td>M15</td><td>再量子化をタイル内で — <code>DRAIN</code> が返すのは4バイトではなく1バイト</td><td class="nm">631 ms</td><td class="nm">5.46×</td></tr>
       <tr><td>M16</td><td><code>kx</code> でカーネルタップを2つ組に。チャネルブロックあたり9スイープが6に</td><td class="nm">569 ms</td><td class="nm">6.05×</td></tr>
       <tr class="hl"><td>クロック</td><td><b>RTLの変更は一切なし。</b>150 → 220 → <b>sys 280 MHz / link 140 MHz</b></td><td class="nm"><b>304 ms</b></td><td class="nm"><b>11.33×</b></td></tr>
     </tbody>
   </table>
-  <div class="vnote" style="margin-top:26px;"><b>851 msは、このボードの下限だと言われていました。</b>
+  <div class="vnote" style="margin-top:18px;"><b>851 msは、このボードの下限だと言われていました。</b>
   その根拠は、うち313 msがタイルの計算であり、そのファブリックは「125 MHzで頭打ち」だ、というものでした。
   ところが両方とも動かせた — そして表の中で最大の改善は、設計作業がまったく入っていない行なのです。</div>
+  </section>
+
+<!-- ============ INT4 ============ -->
+<section class="slide">
+  <div class="h">重みのバイト数は半分、それでもビット単位で一致</div>
+  <div class="hsub"><b>パラメータ1,403,744個が767,840バイト。</b>9層のうち7層はニブルで1バイトに2個。
+  <code>conv0</code> とヘッドは8ビットのままなので、比は0.5ではなく0.547です。乗算器はそれを知りません。</div>
+  <div class="cols c3" style="margin-top:24px;">
+    <div>
+      <div class="cico"><svg width="52" height="42" viewBox="0 0 52 42" fill="none">
+        <rect x="4" y="12" width="20" height="18" rx="2.5" stroke="#4285f4" stroke-width="2.2"/>
+        <line x1="14" y1="12" x2="14" y2="30" stroke="#4285f4" stroke-width="1.6"/>
+        <path d="M28 21 h9 M33 17 l4 4 -4 4" stroke="#9aa0a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="40" y="12" width="9" height="18" rx="2.5" stroke="#4285f4" stroke-width="2.2"/>
+      </svg></div>
+      <div class="lbl">ニブルを戻す場所</div>
+      <p><b>乗算器ではなく、書き込みポートで。</b>1バイトに重み2個、<b>下位ニブルが先</b>、
+      <code>wbuf</code> へ入る途中で8ビットに符号拡張します。</p>
+      <p class="small">下位ニブルが先なのは流儀ではなく、バイト <i>b</i> をシャッフルなしでレーン
+      2<i>b</i>/2<i>b</i>+1 に落とすための必然です — タイルはもともと <code>wreg[4*j +: 4]</code>
+      を読んでいます。格納は8ビット幅のままなので、<code>wreg</code> もファンアウトも乗算器の
+      オペランドも<b>M6bのまま</b>。M10が測ったLogic-Level-0の経路は動きません。</p>
+    </div>
+    <div>
+      <div class="cico"><svg width="52" height="42" viewBox="0 0 52 42" fill="none">
+        <circle cx="26" cy="21" r="13" stroke="#188038" stroke-width="2.2"/>
+        <path d="M19 21.5 l5 5 L34 15" stroke="#188038" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg></div>
+      <div class="lbl">積は変わらない</div>
+      <p>同じ10×8のDSP、同じ形、<b>まったく同じ積</b>。<code>tb_gemm</code> のゴールデン値に別系統は
+      要らず、ワイヤフォーマットも動きませんでした。</p>
+      <p class="small"><code>cfg_w4</code> は<b>ブロックごとの実行時入力</b>で、ビットストリームの
+      パラメータではありません — <code>--ends8</code> が <code>conv0</code> を8ビットに固定する一方、
+      <code>frame.c</code> は8つの畳み込みを1つのタイルで走らせるので、両方の幅が同時に生きている
+      必要があるからです。幅はblob（<code>d-&gt;wbits</code>）の性質で、ホストは決めません。</p>
+    </div>
+    <div>
+      <div class="cico"><svg width="52" height="42" viewBox="0 0 52 42" fill="none">
+        <path d="M5 34 h42" stroke="#f9ab00" stroke-width="2" stroke-linecap="round"/>
+        <rect x="9" y="10" width="10" height="22" fill="#f9ab00" opacity=".8"/>
+        <rect x="24" y="21" width="10" height="11" fill="#f9ab00" opacity=".4"/>
+        <path d="M38 16 l7 -7 M45 9 v6 M45 9 h-6" stroke="#188038" stroke-width="2" stroke-linecap="round"/>
+      </svg></div>
+      <div class="lbl">得られたもの</div>
+      <p>1フレームの重みペイロードが <b>2,230,272 → 1,142,784 B</b>。<code>WGT</code> は
+      <b>6.66 → 3.76 Mclk</b>。<code>ACT</code>、<code>RUN</code>、<code>DRAIN</code> は下1桁まで同一で、
+      それが「動いたのは幅だけ」だと言っています。</p>
+      <p class="small"><b>構成Aで121 ms、Cで35 ms</b> — 消しているのはワイヤ上のバイトなので、効くのは
+      細いリンクのほうです。1,087,488バイトに2.90 Mclkは<b>1バイト2.667クロック＝8ビットを3本の
+      データ線でちょうど</b>。取りこぼしはありません。</p>
+    </div>
+  </div>
+  <div class="vnote" style="margin-top:20px;"><b>そして役に立つのは、むしろ「結果が出なかった」半分です。</b>
+  コア1の重み組み立ては、バイト数が倍になっても<b>284 msに対して290 ms</b>。コストは<i>重みの個数</i>に
+  付いていて、バイト数には付いていません — 読むフラッシュは半分、代わりにアンパックが増える、その2つが
+  打ち消し合うのです。</div>
   </section>
 
 <!-- ============ THE CONVERSION LESSON ============ -->
@@ -1138,7 +1195,7 @@
       パスをクローズしています。348ではリンクエラーなしにMCUが固まる。止まるのはファブリックではなくコアです。</p>
       <p class="small">1.30 Vで344、1.25 Vで340、<b>1.20 Vで332</b>、1.15 Vで312までビット単位一致。
       <b>非一致トランザクションはどの電圧でも0件</b>で、上限での失敗はすべてコアが黙るせいです。
-      出荷レートは上限の2段下。</p>
+      320 MHzまで上げた動作点なら1.20 V、上限の2段下で足ります。</p>
     </div>
   </div>
   <div class="vnote" style="margin-top:34px;"><b>これが置き換えた説明は、きれいで、公開済みで、間違っていました。</b>
@@ -1165,7 +1222,7 @@
       <ul class="dots">
         <li><b>0.27はあるフレーズにとっては大きく、別のフレーズには小さい。</b>
         クエリをまたいで共有できるスケールがありません</li>
-        <li><b>この部屋はデータセットではありません。</b>ベンチの5シーン — ホワイトボード、本の表紙、
+        <li><b>この部屋はデータセットではありません。</b>ベンチの5シーン — ホワイトボード、本の表紙と裏表紙、
         ワイングラス、レンズを塞いだ状態 — の<i>すべて</i>で、生のコサインでは <code>laptop</code> が首位でした。
         画角のどこにもノートPCはないのに</li>
         <li><b>机に向けたデバイスはドリフトします。</b>静止した500フレームで、
@@ -1326,7 +1383,7 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
       <div class="vcap">このボードにはPSRAMのフットプリントがあり、しかも<b>手違いで実装されています</b>。
       自分のIDを<b>18ビット時間ずれて</b>返してきて、どのレートでも使えません。
       「重みは外部メモリからストリーミングすればいい」という計画はすべてここで死にます。
-      int8の1.42 MBを2 MBの積層フラッシュに収めなければならない<i>理由</i>がこれです。</div>
+      重みを1つ残らず2 MBの積層フラッシュに収めなければならない<i>理由</i>がこれです。</div>
     </div>
     <div class="vcard">
       <div class="vlbl"><span>ビルドの中のGUI</span><span class="dur">rtl/</span></div>

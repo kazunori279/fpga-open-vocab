@@ -31,8 +31,8 @@ cores, and where each of them lives in the tree.
 | | what it is | its job |
 |---|---|---|
 | **host** | a Mac on the other end of a USB cable | runs the teacher's text half once per query and sends 512 floats down. Never in the per-frame loop |
-| **RP2354A** — *"the MCU"* | 2 × [Arm Cortex-M33](https://developer.arm.com/Processors/Cortex-M33) @ 150 MHz, 520 KB SRAM, 2 MB flash | holds the 1.42 MB int8 model, drives the camera, walks the network layer by layer, and does everything that is not a matrix multiply |
-| **Efinix Trion T8F49** — *"the FPGA"*, *"the T8"* | 7,384 **logic elements** (LE — the unit an FPGA's capacity is counted in), **8** hard 18×18 multipliers, and 15.4 KB of on-chip RAM in 24 five-kilobit **memory blocks**, which everyone calls **BRAM** | one job: multiply int8 matrices, 8 products per clock |
+| **RP2354A** — *"the MCU"* | 2 × [Arm Cortex-M33](https://developer.arm.com/Processors/Cortex-M33) @ 150 MHz, 520 KB SRAM, 2 MB flash | holds the 768 KB int4 model, drives the camera, walks the network layer by layer, and does everything that is not a matrix multiply |
+| **Efinix Trion T8F49** — *"the FPGA"*, *"the T8"* | 7,384 **logic elements** (LE — the unit an FPGA's capacity is counted in), **8** hard 18×18 multipliers, and 15.4 KB of on-chip RAM in 24 five-kilobit **memory blocks**, which everyone calls **BRAM** | one job: multiply int8 matrices, **16 products per clock** — the 8 hard multipliers plus 8 more built out of logic since [M16](milestones.md) |
 
 Both chips sit on one ~$50 board and talk over a **3-bit link**: three data wires and a clock going to the FPGA, **one** wire coming back. That asymmetry shapes every decision below it. This document says **the link** when it means the connection and **the wire** when it means time spent on it — which was 639 of the 851 ms when that split was first measured, and is the reason so much of what follows is about the wire.
 
@@ -94,13 +94,13 @@ flowchart LR
     direction TB
     C0["<b>core 0</b><br/>sequencer, link driver, DMA"]
     C1["<b>core 1</b><br/>strip + weight builds,<br/>DRAIN decode, requantize scatter"]
-    MEM["520 KB SRAM · 2 MB stacked flash<br/>1.42 MB int8 weights + 173 KB bitstream<br/><i>U1 PSRAM fitted by accident, unusable</i>"]
+    MEM["520 KB SRAM · 2 MB stacked flash<br/>768 KB int4 weights + 173 KB bitstream<br/><i>U1 PSRAM fitted by accident, unusable</i>"]
     C0 <-. "two job rings, lock-free" .-> C1
     C0 --- MEM
   end
 
   subgraph T8["Trion T8F49 — 7,384 LE"]
-    TOP["<b>gemm_top</b><br/>8 x 18x18 MAC<br/>2,461 LE · 21/24 BRAM"]
+    TOP["<b>gemm_top</b><br/>16 MAC/clk — 8 x 18x18 + 8 in logic<br/>6,265 LE · 21/24 BRAM"]
   end
 
   LED["RGB LED D1"]
@@ -119,7 +119,7 @@ Both chips are on **one ~$50 board**. The only dataplane between them is the Tri
 Four things about that picture are load-bearing, and each of them was forced rather than chosen:
 
 - **The text tower never runs on the device.** The host encodes the query with the real teacher and pushes 512 floats over USB; on-device prediction is one dot product. The T8 could not hold a transformer and the RP2354A could not run one at any useful rate.
-- **Weights are resident on the MCU side, not streamed.** 1.42 MB of int8 in the 2 MB stacked flash, fetched over **XIP** — execute-in-place, where the CPU reads flash as if it were ordinary memory and a small cache absorbs the difference. U1 (2 MB PSRAM) is fitted but was populated by accident and has never been tested by the vendor — treat it as absent.
+- **Weights are resident on the MCU side, not streamed.** 768 KB of int4 in the 2 MB stacked flash, fetched over **XIP** — execute-in-place, where the CPU reads flash as if it were ordinary memory and a small cache absorbs the difference. U1 (2 MB PSRAM) is fitted but was populated by accident and has never been tested by the vendor — treat it as absent.
 - **The link is 3 bits out and 1 bit back**, and cannot be widened in either direction. That asymmetry is why the FPGA is fed activations and weights and asked for a much smaller answer, rather than used as a coprocessor per operation.
 - **The MCU is the tile's only clock.** There is no oscillator driving `gemm_top` except `LINK_CLK`, so every cycle the tile computes is a cycle core 0 spends toggling a pin. That single fact sets the frame's floor; see below.
 
@@ -184,7 +184,7 @@ Source of truth for all of it is [`../firmware/m9.c`](../firmware/m9.c), which i
 z[i] = (cos[i] − qbg[i]) / bg_spread(i)
 ```
 
-`zscore()`, `m9.c:414-421`. Both terms are learned **in this room**, and that is the substance of the step rather than a refinement of it. COCO's negatives are the wrong background for a device that only ever looks at one place: across five bench scenes — a white board, a book cover, a wine glass, a covered lens — the query `laptop` led every one of them, on the raw cosine, because the mean of COCO's laptop-negatives is taken over fields and food and dogs while every frame this camera has ever taken is an indoor desk in front of a window. The residue is a property of the room, and the room is the only place it can be measured (`m9.c:234-248`).
+`zscore()`, `m9.c:414-421`. Both terms are learned **in this room**, and that is the substance of the step rather than a refinement of it. COCO's negatives are the wrong background for a device that only ever looks at one place: across five bench scenes — a blank whiteboard, a book's back cover, its front cover, a wine glass, a covered lens — the query `laptop` led every one of them, on the raw cosine, because the mean of COCO's laptop-negatives is taken over fields and food and dogs while every frame this camera has ever taken is an indoor desk in front of a window. The residue is a property of the room, and the room is the only place it can be measured (`m9.c:234-248`).
 
 So the board measures it. `bg_update()` (`m9.c:447-460`) keeps a running mean of each query's own cosine, plus a Welford `M2` for its spread, and then does one of two things:
 
@@ -257,7 +257,7 @@ Three executors, and the assignment of work to them is the architecture. Nothing
 |---|---|---|
 | the teacher's text tower | **host** | never in the per-frame loop — one 512-d embedding per *query*, not per frame |
 | quantize the input image | core 0 | once a frame, next to nothing |
-| **the 3 × 3 multiply**, all 159 MMAC | **the tile** | 8 hard multipliers × 75 MHz. This is the only reason the FPGA is on the board |
+| **the 3 × 3 multiply**, all 159 MMAC | **the tile** | 16 MAC a clock — 8 hard multipliers and 8 built from logic — at 140 MHz. This is the only reason the FPGA is on the board |
 | **im2col expansion** | **the tile**, in fabric | a 3 × 3 kernel makes every input byte appear in up to nine columns. Expanding on the MCU and shipping the result spends that 9× on the link, which is the scarcest thing in the system; expanding in fabric spends it on BRAM reads, which are free. See [`im2col_feed`](#inside-gemm_top) |
 | **supplying the tile's clock** | core 0 | `LINK_CLK` is the tile's only oscillator, so every cycle it computes is a cycle core 0 spends toggling a pin. This is the `RUN` command, and it is the single largest item in the frame |
 | driving the link — DMA out, PIO capture in, CRC | core 0 | it owns the peripherals; the CRC is a DMA sniffer rather than a loop |
@@ -418,7 +418,7 @@ Read the bars as totals, not as a timeline. Core 1's 509 ms runs *concurrently* 
 
 **`crc` is the outbound direction only**; the inbound one is inside `decode`. It is not a software loop — it is a third DMA channel snooping a memory-to-nowhere pass over the payload, ~11 µs on the longest one, concurrent with the wire itself. Which combination of (calc mode, output reverse, output invert) on the RP2354A's sniffer reproduces the reflected CRC-32 that `gemm_link.v` implements is **not guessed**: at boot the driver runs every plausible combination over two buffers of different length, neither a multiple of four, and keeps one only if it agrees with the software `gw_crc()` on both. If none does, software stays and the cost is the 268 ms it used to be. `decode` is the mirror: realign the response to a byte boundary, check its CRC, copy the payload out.
 
-**The 127 ms stall is what two job rings did not manage to hide.** [M7f](milestones.md#m7f-1--the-drain-decode-and-what-one-fifo-cost) moved the DRAIN decode to core 1 and the frame fell 57 ms instead of the 157 the decode was worth — **101 ms came back as stall.** Core 1 was only 68% busy, so it was not out of capacity; it was serving in the wrong order. One FIFO put block *b*'s decode and scatter, which nothing is waiting for, in front of block *b+1*'s strip build, which core 0 blocks on ~240 µs later. Hence `W1_HI` (builds) drained ahead of `W1_LO` (decode, scatter), and 127 ms was the residue — **66 ms after M7i**, which halved `W1_LO` by making the epilogue two instructions instead of two calls.
+**The 127 ms stall is what two job rings did not manage to hide.** [M7f](milestones.md#m7f-1--the-drain-decode-and-what-one-fifo-cost) moved the DRAIN decode to core 1 and the frame fell 59 ms instead of the 157 the decode was worth — **101 ms came back as stall.** Core 1 was only 68% busy, so it was not out of capacity; it was serving in the wrong order. One FIFO put block *b*'s decode and scatter, which nothing is waiting for, in front of block *b+1*'s strip build, which core 0 blocks on ~240 µs later. Hence `W1_HI` (builds) drained ahead of `W1_LO` (decode, scatter), and 127 ms was the residue — **66 ms after M7i**, which halved `W1_LO` by making the epilogue two instructions instead of two calls.
 
 **`weight builds` re-lay the weights into the order the tile reads them** — k-major, g-minor, lane-innermost, so the tile's word address is `k*QG + g` and it needs no multiplier. `gb_weights_slow()` stays compiled in as the oracle the fast version has to match. The 292 ms is what is left after M7h's cache absorbed 43% of the passes. **`strips` are the activation side**: `gb_strip()` cuts one pass's window out of the layer's full input tensor into `g->a_len` bytes. That tensor is stored **CHW** — channel-major, all of channel 0's pixels before any of channel 1's — which is why a strip is a contiguous run per channel rather than one rectangle.
 
@@ -514,7 +514,7 @@ Three names in the figure are worth having first. A **lane** is one of the eight
 
 ```mermaid
 flowchart LR
-  subgraph GT["gemm_top — 2,461 LE (33.3%), 1,743 registers, 8/8 multipliers, 21/24 memory blocks"]
+  subgraph GT["gemm_top — 6,265 LE (85%), 5,018 LUTs/adders, 8/8 multipliers, 21/24 memory blocks"]
     direction LR
     LINK["<b>gemm_link</b><br/>SYNC hunt, framing,<br/>CRC-32 both ways,<br/>return preamble"]
     subgraph TL["<b>gemm_tile</b>"]

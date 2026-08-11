@@ -234,8 +234,9 @@ static void enrol_forget(void)
 // The background the scores are actually measured against, learned here.
 //
 // COCO's negatives turned out to be the wrong background for a device that only
-// ever looks at one room. Across five bench scenes - a white board, a book
-// cover, a wine glass, and a covered lens - `laptop` led every single one, and
+// ever looks at one room. Across five bench scenes - a blank whiteboard, a
+// book's back cover, its front cover, a wine glass, and a covered lens -
+// `laptop` led every single one, and
 // it led on the raw cosine, not just after standardising. The reason is not a
 // bug: the mean of COCO's laptop-negatives is taken over fields and food and
 // dogs, while every frame this camera has ever taken is an indoor desk in front
