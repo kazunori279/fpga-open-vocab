@@ -1,0 +1,124 @@
+; M2 link programs for the RP2354A.
+;
+; Pin groups come from three independent PIO registers - out_base, in_base and
+; sideset_base - which is the whole reason this link exists in a usable form.
+; Forgix has exactly three contiguous RP GPIO reaching the FPGA (1, 2, 3), and
+; contiguity is only required *within* a group, so the clock can sit anywhere.
+;
+;   configuration A (link_narrow, no board modification)
+;       sideset_base = GPIO2  -> F3 (CCK)      clock
+;       out_base     = GPIO3  -> F2 (CDI0)     1 data bit
+;       in_base      = GPIO1  <- G3 (SS_N)     1 return bit
+;
+;   configuration C (link_wide, PIN2 <-> PIN17 jumper)
+;       sideset_base = GPIO22 -> B3 (CLK2)     clock, on the GCLK network
+;       out_base     = GPIO1  -> G3, F3, F2    3 data bits
+;       in_base      = GPIO6  <- A4 (NSTATUS)  1 return bit
+;
+; A NOTE ON THE SAMPLE POINT, because it is the thing most likely to be wrong.
+; PIO inputs pass through a 2-flop synchroniser, so `in pins` sees the pin as it
+; was roughly two system clocks before the instruction issues. That is a
+; constant offset, and the host's correlator absorbs constant offsets, so it
+; costs nothing in correctness. What it does mean is that the sample instant
+; cannot be reasoned about from the listing alone - it has to be measured. That
+; is why each width ships in two phasings rather than one:
+;
+;   _x2  two sys cycles per bit. Maximum rate: link_clk = sys_clk / 2.
+;   _x4  four sys cycles per bit, sampling in the low phase. Half the rate, but
+;        roughly a full link period of slack on the return path.
+;
+; Sweep clkdiv within a program to move the rate; switch programs to move the
+; phase. Sweeping both gives the eye scan that M2 actually wants, rather than a
+; single pass/fail at one guessed operating point.
+
+; ---------------------------------------------------------------- narrow, fast
+.program link_narrow_x2
+.side_set 1
+
+.wrap_target
+    out pins, 1     side 0      ; drive data, clock low
+    in  pins, 1     side 1      ; clock rises; sample the return
+.wrap
+
+; -------------------------------------------------------------- narrow, safe
+.program link_narrow_x4
+.side_set 1
+
+.wrap_target
+    out pins, 1     side 0      ; drive data, clock low
+    nop             side 0      ; let it settle
+    in  pins, 1     side 0      ; sample late in the low phase
+    nop             side 1      ; clock rises, and stays high one cycle
+.wrap
+
+; ------------------------------------------------------------------ wide, fast
+.program link_wide_x2
+.side_set 1
+
+.wrap_target
+    out pins, 3     side 0      ; drive three data lines, clock low
+    in  pins, 1     side 1      ; clock rises; sample the return
+.wrap
+
+; ------------------------------------------------------------------ wide, safe
+.program link_wide_x4
+.side_set 1
+
+.wrap_target
+    out pins, 3     side 0
+    nop             side 0
+    in  pins, 1     side 0
+    nop             side 1
+.wrap
+
+% c-sdk {
+#include "hardware/clocks.h"
+
+// Shared setup. `out_base`/`out_count` and `in_base` are the only things that
+// differ between the two board configurations.
+//
+// autopull threshold: 32 for width 1, but 24 for width 3, because 3 does not
+// divide 32 and a mid-word refill would slide the bit alignment every OSR
+// reload. At 24 the host packs eight 3-bit groups per 32-bit word and the top
+// byte of each word is discarded - wasted DMA bandwidth, but DMA is three
+// orders of magnitude away from being the bottleneck here.
+static inline void link_pio_init(PIO pio, uint sm, uint offset,
+                                 const pio_program_t *prog,
+                                 uint clk_pin, uint out_base, uint out_count,
+                                 uint in_pin, float clkdiv)
+{
+    pio_sm_config c = pio_get_default_sm_config();
+    sm_config_set_wrap(&c, offset, offset + prog->length - 1);
+    sm_config_set_sideset(&c, 1, false, false);
+    sm_config_set_sideset_pins(&c, clk_pin);
+    sm_config_set_out_pins(&c, out_base, out_count);
+    sm_config_set_in_pins(&c, in_pin);
+
+    // Shift right, LSB first, both directions: OSR bit 0 lands on out_base, and
+    // the first bit received ends up in ISR bit 0. The RTL, the host packer and
+    // the testbench all agree on that ordering.
+    sm_config_set_out_shift(&c, true, true, out_count == 3 ? 24 : 32);
+    sm_config_set_in_shift(&c, true, true, 32);
+    sm_config_set_clkdiv(&c, clkdiv);
+
+    for (uint i = 0; i < out_count; i++)
+        pio_gpio_init(pio, out_base + i);
+    pio_gpio_init(pio, clk_pin);
+    pio_gpio_init(pio, in_pin);
+
+    // Fast slew and full drive on the clock and data: at sys_clk/2 these edges
+    // are the limiting factor long before the FPGA fabric is.
+    for (uint i = 0; i < out_count; i++) {
+        gpio_set_drive_strength(out_base + i, GPIO_DRIVE_STRENGTH_12MA);
+        gpio_set_slew_rate(out_base + i, GPIO_SLEW_RATE_FAST);
+    }
+    gpio_set_drive_strength(clk_pin, GPIO_DRIVE_STRENGTH_12MA);
+    gpio_set_slew_rate(clk_pin, GPIO_SLEW_RATE_FAST);
+
+    pio_sm_set_consecutive_pindirs(pio, sm, out_base, out_count, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, clk_pin, 1, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, in_pin, 1, false);
+
+    pio_sm_init(pio, sm, offset, &c);
+}
+%}

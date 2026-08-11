@@ -1,0 +1,30 @@
+# Efinity Interface Configuration - probe C (adds the F3/CCK and F2/CDI0 inputs)
+#
+# Device: T8F49, 49-ball WLCSP. Adds the two configuration pins the MCU is
+# actively driving during configuration.
+
+
+# Device setting
+design.set_device_property("1A","VOLTAGE","3.3","IOBANK")
+design.set_device_property("1B","VOLTAGE","3.3","IOBANK")
+design.set_device_property("1C","VOLTAGE","1.1","IOBANK")
+design.set_device_property("2A","VOLTAGE","3.3","IOBANK")
+design.set_device_property("2B","VOLTAGE","3.3","IOBANK")
+
+# Create instance
+design.create_input_gpio("clk_32m")
+design.create_input_gpio("link_clk")
+design.create_input_gpio("link_mosi")
+design.create_output_gpio("link_flag")
+design.create_output_gpio("led_r_n")
+design.create_output_gpio("led_g_n")
+design.create_output_gpio("led_b_n")
+
+# Set resource assignment
+design.assign_pkg_pin("clk_32m","B4")     # Y2, gated by RP GPIO19 (OSC_EN)
+design.assign_pkg_pin("link_clk","F3")    # CCK       <- RP GPIO2
+design.assign_pkg_pin("link_mosi","F2")   # CDI0      <- RP GPIO3
+design.assign_pkg_pin("link_flag","A4")   # NSTATUS   -> RP GPIO6
+design.assign_pkg_pin("led_r_n","E1")     # CDI7  - unused in x1 config
+design.assign_pkg_pin("led_g_n","F1")     # CDI1  - unused in x1 config
+design.assign_pkg_pin("led_b_n","G1")     # CDI5  - unused in x1 config

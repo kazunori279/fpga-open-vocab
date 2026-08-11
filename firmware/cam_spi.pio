@@ -1,0 +1,96 @@
+; M8 camera bus: SPI mode 0 on the RP header's six pins.
+;
+; This is a PIO program and not `hardware_spi` because neither SPI instance can
+; reach the pins the camera is on. The header exposes GPIO 8, 9, 12, 13, 22, 23
+; and nothing else; SPI1's SCK options are GPIO 10/14/26 and its TX options are
+; 11/15/27, all unbonded on this package, and SPI0's RX options are 0/4/16/20,
+; which are PSRAM CS, the FPGA's nRESET, and two more unbonded pins. There is no
+; assignment that works. See the pin budget in docs/milestones.md#m8--camera.
+;
+;   SCK   GPIO8   header PIN0, silk `0`   sideset_base
+;   MISO  GPIO9   header PIN1, silk `1`   in_base
+;   MOSI  GPIO12  header PIN7, silk `7`   out_base
+;   CS    GPIO13  header PIN8, silk `8`   plain SIO, *not* in this program
+;
+; Which of the four sits on which pad is free - out_base, in_base and
+; sideset_base are three independent registers, contiguity is required only
+; within a group, and every group here is one bit wide. So the order was chosen
+; to match the camera cable's wire order and keep the harness from crossing.
+;
+; CS is driven by software on purpose. A burst read holds it low across 32,768
+; bytes, and a per-byte CS would be a different transaction each time - the
+; ArduChip would restart its address phase and return the same byte forever.
+;
+; FOUR CYCLES PER BIT, which is twice what link.pio's fast programs use, and the
+; reason is that here there is no phase to sweep. The link's sample point had to
+; be found by experiment because both ends were ours; this one is fixed by the
+; other end's datasheet. Mode 0 means the slave puts bit N on MISO at the falling
+; edge that opens bit N's cell and holds it until the next falling edge, so a
+; symmetric clock with the sample late in the high phase has a full half-period
+; of margin on each side. Buying that margin costs nothing: the transfer is
+; ~33 ms of an 851 ms frame at 8 MHz, and the ceiling is the camera's, not ours.
+;
+; The 2-flop input synchroniser that link.pio has to reason about is not a factor
+; at this rate. It delays the sampled value by two *system* clocks - 13 ns at
+; 150 MHz - while one PIO cycle here is 31 ns at 8 MHz SPI. The sample lands
+; inside the same high phase it was issued in.
+
+.program cam_spi
+.side_set 1
+
+; MSB first. One bit cell = 4 PIO cycles: low, low, high, high.
+.wrap_target
+    out pins, 1     side 0 [1]  ; MOSI changes on the falling edge, then settles
+    nop             side 1      ; SCK rises; the camera samples MOSI here
+    in  pins, 1     side 1      ; sample MISO late in the high phase
+.wrap
+
+% c-sdk {
+#include "hardware/clocks.h"
+
+// MSB-first in both directions, which is what the ArduChip wants and the
+// opposite of link.pio - so the shift flags below are the ones to check first
+// if a byte comes back bit-reversed rather than merely wrong.
+//
+// With shift-left and a threshold of 8, the OSR emits from bit 31 down, so the
+// byte to send has to be written to the *top* of the word: see cam_xfer() in
+// cam_probe.c. The RP2350's narrow-store replication would let an 8-bit write to
+// the FIFO alias do the same thing implicitly, which is what pico-examples
+// does; spelling it out is a line of shifting against a paragraph of errata.
+static inline void cam_spi_init(PIO pio, uint sm, uint offset,
+                                uint mosi, uint miso, uint sck, float clkdiv)
+{
+    pio_sm_config c = cam_spi_program_get_default_config(offset);
+    sm_config_set_sideset_pins(&c, sck);
+    sm_config_set_out_pins(&c, mosi, 1);
+    sm_config_set_in_pins(&c, miso);
+    sm_config_set_out_shift(&c, false, true, 8);   // shift left, autopull at 8
+    sm_config_set_in_shift(&c, false, true, 8);    // shift left, autopush at 8
+    sm_config_set_clkdiv(&c, clkdiv);
+
+    pio_gpio_init(pio, mosi);
+    pio_gpio_init(pio, sck);
+    pio_gpio_init(pio, miso);
+    gpio_set_input_enabled(miso, true);
+
+    // No 12 mA / fast slew here, unlike the link. That link runs at 75 MHz into
+    // an FPGA on a 3 cm trace; this one runs at 8 MHz down a flying lead, where
+    // sharp edges buy nothing and ring.
+    pio_sm_set_consecutive_pindirs(pio, sm, mosi, 1, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, sck, 1, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, miso, 1, false);
+
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+
+// clkdiv for a requested SCK, given the four cycles per bit above. Returned
+// rather than applied so the caller can print what it actually asked for: the
+// divider has an 8-bit fraction, so 8 MHz from 150 is 4.6875 exactly but most
+// rates are not, and a sweep that reports its nominal rate rather than its real
+// one is a sweep whose failing point cannot be looked up in a datasheet.
+static inline float cam_spi_clkdiv(uint32_t sck_hz)
+{
+    return (float)clock_get_hz(clk_sys) / (4.0f * (float)sck_hz);
+}
+%}

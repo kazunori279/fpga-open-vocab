@@ -1,0 +1,23 @@
+/* Generated from firmware/blobs.S.in by CMake - do not edit.
+ *
+ * .incbin rather than a C array from hex2c.py: weights.bin is 1.4 MB, which as
+ * C source is an 8 MB file and a minute of gcc. This costs nothing and gives
+ * the 16-byte alignment fgx_open() needs to cast the header and descriptors
+ * in place.
+ */
+
+.section .rodata.fgx_blobs, "a"
+
+.balign 16
+.global fgx_weights
+fgx_weights:
+.incbin "@FGX_WEIGHTS@"
+.global fgx_weights_end
+fgx_weights_end:
+
+.balign 16
+.global fgx_testvec
+fgx_testvec:
+.incbin "@FGX_TESTVEC@"
+.global fgx_testvec_end
+fgx_testvec_end:

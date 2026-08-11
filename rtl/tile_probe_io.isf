@@ -1,0 +1,38 @@
+# Efinity Interface Configuration - M10 Stage 0, tile_probe.
+#
+# Device: T8F49, 49-ball WLCSP
+#
+# Three pins, because this design is never loaded onto the board. tile_probe
+# exists to answer one question - what does gemm_tile close at on its own clock -
+# and the pins are there only to stop synthesis from folding the tile away.
+#
+# tile_clk lands on B3 (CLK2 [GCLK]), deliberately *not* on F3 where gemm_top's
+# link_clk goes. Under M10 the tile clock comes off the T8's PLL and therefore
+# rides the global clock network; timing the probe from a general-fabric ball
+# would understate it for a reason that will not exist in the real design. B3 is
+# the ball link_wide_io.isf already uses for exactly this property.
+#
+# There is no PLL here. The headless-PLL question - whether DesignAPI can create
+# one from an ISF, which nothing in this repo has ever done - is a separate
+# experiment with a separate failure mode, and confounding the two would mean a
+# PLL problem reads as a timing answer. pll_probe answers it on its own.
+#
+# See tile_probe.v for why an LFSR drives the tile and why res.csv has to report
+# 8 multipliers and 21 memory blocks for the Fmax to mean anything.
+
+# Device setting
+design.set_device_property("1A","VOLTAGE","3.3","IOBANK")
+design.set_device_property("1B","VOLTAGE","3.3","IOBANK")
+design.set_device_property("1C","VOLTAGE","1.1","IOBANK")
+design.set_device_property("2A","VOLTAGE","3.3","IOBANK")
+design.set_device_property("2B","VOLTAGE","3.3","IOBANK")
+
+# Create instance
+design.create_input_gpio("tile_clk")
+design.create_input_gpio("seed_in")
+design.create_output_gpio("probe_out")
+
+# Set resource assignment
+design.assign_pkg_pin("tile_clk","B3")    # CLK2 [GCLK]
+design.assign_pkg_pin("seed_in","F2")     # CDI0
+design.assign_pkg_pin("probe_out","A4")   # NSTATUS

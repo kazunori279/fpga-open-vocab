@@ -1,0 +1,62 @@
+# Efinity Interface Configuration - M7f gemm_top_wide, configuration C.
+#
+# Device: T8F49, 49-ball WLCSP
+#
+# Pin-for-pin identical to link_wide_io.isf, and deliberately so, for the same
+# reason gemm_top_io.isf mirrors link_narrow_io.isf: M2 measured this exact
+# wiring at 26.81 MB/s over all ten operating points with zero errors, and this
+# design changes what is behind the wires, not which ones they are.
+#
+# Needs the PIN2 <-> PIN17 jumper. That is one wire, from header pad 4 (silk 2,
+# RP2354A GPIO22) to header pad 24 (silk 17, T8 ball B3). Pad number is not
+# silkscreen number on this board - silk 0..12 is pad silk+2, silk 13..23 is pad
+# silk+7 - and silk 17 measures +3.3 V unpowered because every unused T8 GPIO
+# comes up with a weak pull-up, which reads convincingly like a rail and is not
+# one.
+#
+# link_clk lands on B3 (GPIOL_16_CLK2), which IS a global-clock ball - the only
+# one of the four (B3, C3, E4, E6) the RP2354A can reach on this board, and the
+# entire point of the jumper. gemm_top_io.isf has to warn that F3 is general
+# fabric and that clock skew is the number to read before Fmax; here that
+# warning does not apply.
+#
+# Every wire here survives FPGA configuration - none of the 0.1" header GPIO is
+# consumed except PIN2 itself - so GPIO 8/9/12/13 stay free for the camera in
+# M7b. PIN2 was unassigned before the jumper.
+#
+# There is no link_flag. A4 carries return data in this configuration, so the
+# heartbeat has nowhere to go; see the header of gemm_top_wide.v.
+
+# Device setting
+design.set_device_property("1A","VOLTAGE","3.3","IOBANK")
+design.set_device_property("1B","VOLTAGE","3.3","IOBANK")
+design.set_device_property("1C","VOLTAGE","1.1","IOBANK")
+design.set_device_property("2A","VOLTAGE","3.3","IOBANK")
+design.set_device_property("2B","VOLTAGE","3.3","IOBANK")
+
+# Create instance
+design.create_input_gpio("clk_32m")
+design.create_input_gpio("link_clk")
+design.create_input_gpio("link_d0")
+design.create_input_gpio("link_d1")
+design.create_input_gpio("link_d2")
+design.create_output_gpio("link_ret")
+design.create_output_gpio("led_r_n")
+design.create_output_gpio("led_g_n")
+design.create_output_gpio("led_b_n")
+
+# Set resource assignment
+design.assign_pkg_pin("clk_32m","B4")     # Y2, gated by RP GPIO19 (OSC_EN)
+design.assign_pkg_pin("link_clk","B3")    # CLK2 [GCLK] <- PIN17 = jumper = PIN2 = RP GPIO22
+design.assign_pkg_pin("link_d0","G3")     # SS_N        <- RP GPIO1   (PIO out_base)
+design.assign_pkg_pin("link_d1","F3")     # CCK         <- RP GPIO2
+design.assign_pkg_pin("link_d2","F2")     # CDI0        <- RP GPIO3
+design.assign_pkg_pin("link_ret","A4")    # NSTATUS     -> RP GPIO6
+
+# The vendor example has red and blue swapped. The schematic wires E1 = red and
+# G1 = blue (D1 is common-anode, cathodes through R7/R8/R9); plasm_led_io.isf
+# names them the other way round. These assignments follow the schematic, so the
+# colour that lights is the colour in the signal name.
+design.assign_pkg_pin("led_r_n","E1")     # CDI7
+design.assign_pkg_pin("led_g_n","F1")     # CDI1
+design.assign_pkg_pin("led_b_n","G1")     # CDI5

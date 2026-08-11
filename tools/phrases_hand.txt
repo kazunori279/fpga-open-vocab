@@ -1,0 +1,66 @@
+# Candidate wordings for the open-hand / closed-hand bench, for
+# tools/probe_prompts.py. Scene A is the open hand, scene B the closed one, so
+# a line meant to detect the closed hand should come back with a NEGATIVE d.
+#
+# THE HYPOTHESIS THIS LIST IS BUILT AROUND. Three runs now - a book, a glass, a
+# hand - have ended the same way: the absence side ranks correctly across the
+# two scenes but never wins its own, and in the last hand run "a closed hand"
+# fired 0/90 and sat negative in both. SigLIP 2 fixed which way negation points
+# without making the negated thing detectable, and the room calibration gave
+# the positive side an 8x tighter spread while giving the complement nothing.
+#
+# So the move under test is not a better negation. It is to stop asking for
+# one. English has a positive noun for the closed hand - fist - and none of
+# these runs has ever used it. If "a fist" separates the two scenes where "a
+# closed hand" does not, the wall was never about negation reading; it was
+# about asking for the absence of a thing instead of for a thing.
+#
+# Everything else here is a control for that. The synonym block says whether
+# any gain belongs to `fist` specifically or to changing the words at all; the
+# template block says whether TEMPLATES' seven prompts already cover the "a
+# photo of" framing, which they should; the parts block asks whether the
+# separable visual evidence is the fingers rather than the hand.
+
+# --- the shipped pair, as the baseline every row below is read against
+an open hand
+a closed hand
+an open hand / a closed hand / a hand
+a closed hand / an open hand / a hand
+
+# --- the positive noun for the closed state, which is the actual test
+a fist
+a clenched fist
+a fist / an open hand / a hand
+a clenched fist / an open palm / a hand
+
+# --- the positive noun for the open state, its counterpart
+an open palm
+a palm
+an open palm / a fist / a hand
+a palm / a fist / a hand
+
+# --- synonyms, to say whether the gain is `fist` or merely different words
+a spread hand
+an outstretched hand
+a hand with the fingers spread
+a hand with the fingers curled
+a closed hand with the fingers curled in
+
+# --- the parts, in case the fingers carry what the hand does not
+fingers
+five fingers
+splayed fingers
+curled fingers
+knuckles
+
+# --- framing, which TEMPLATES should already be doing; if these beat the bare
+#     forms by much then the ensemble is not doing what teacher.py says it does
+a photo of an open hand
+a photo of a fist
+a close-up of an open hand
+a close-up of a fist
+
+# --- the shared neutral, which should separate the two scenes hardly at all.
+#     If it does separate them, the two banks differ by something other than
+#     the hand and every row above is measuring that instead.
+a hand

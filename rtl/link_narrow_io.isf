@@ -1,0 +1,47 @@
+# Efinity Interface Configuration - M2 configuration A (link_narrow)
+#
+# Device: T8F49, 49-ball WLCSP
+# Uses only the four on-board wires that survive configuration. No board
+# modification required.
+#
+# Syntax follows the vendor plasm_led example's _io.isf, which is the only Efinity
+# ISF this project has seen accepted by the real tool. Everything here is a
+# create_*_gpio / assign_pkg_pin pair on scalar names for that reason.
+#
+# NOT SET HERE, and it matters: link_clk lands on F3 (GPIOL_02_CCK), which is
+# not one of the T8F49's global-clock balls (those are B3, C3, E4, E6). Efinity
+# will route it on general fabric. Fanout is ~11 flops so it should close, but
+# check the clock-skew line in the timing report - it is the reason this
+# configuration is expected to top out below link_wide.
+
+# Device setting
+design.set_device_property("1A","VOLTAGE","3.3","IOBANK")
+design.set_device_property("1B","VOLTAGE","3.3","IOBANK")
+design.set_device_property("1C","VOLTAGE","1.1","IOBANK")
+design.set_device_property("2A","VOLTAGE","3.3","IOBANK")
+design.set_device_property("2B","VOLTAGE","3.3","IOBANK")
+
+# Create instance
+design.create_input_gpio("clk_32m")
+design.create_input_gpio("link_clk")
+design.create_input_gpio("link_mosi")
+design.create_output_gpio("link_miso")
+design.create_output_gpio("link_flag")
+design.create_output_gpio("led_r_n")
+design.create_output_gpio("led_g_n")
+design.create_output_gpio("led_b_n")
+
+# Set resource assignment
+design.assign_pkg_pin("clk_32m","B4")     # Y2, gated by RP GPIO19 (OSC_EN)
+design.assign_pkg_pin("link_clk","F3")    # CCK       <- RP GPIO2
+design.assign_pkg_pin("link_mosi","F2")   # CDI0      <- RP GPIO3
+design.assign_pkg_pin("link_miso","G3")   # SS_N      -> RP GPIO1
+design.assign_pkg_pin("link_flag","A4")   # NSTATUS   -> RP GPIO6
+
+# The vendor example has red and blue swapped. The schematic wires E1 = red and
+# G1 = blue (D1 is common-anode, cathodes through R7/R8/R9); plasm_led_io.isf
+# names them the other way round. These assignments follow the schematic, so the
+# colour that lights is the colour in the signal name.
+design.assign_pkg_pin("led_r_n","E1")     # CDI7
+design.assign_pkg_pin("led_g_n","F1")     # CDI1
+design.assign_pkg_pin("led_b_n","G1")     # CDI5

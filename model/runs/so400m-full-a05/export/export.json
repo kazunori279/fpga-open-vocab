@@ -1,0 +1,12 @@
+{
+  "run": "so400m-full-a05",
+  "teacher": "emb_train2017_SO400M-pca512-a0.5",
+  "spec": "ViT-SO400M-14-SigLIP2:webli",
+  "basis": "emb_train2017_SO400M-pca512-a0.5.basis.npz",
+  "embed_dim": 512,
+  "wbits": 4,
+  "wsearch": true,
+  "ends8": true,
+  "bytes": 780720,
+  "crc32": "0xF368CC6E"
+}

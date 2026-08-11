@@ -1,0 +1,63 @@
+# Publishes the conference deck to GitHub Pages.
+#
+# This file is inert where it lives. The development tree is a subdirectory of a
+# private monorepo, and Actions only reads .github/ at a repository root, so
+# nothing here runs until tools/export_public.sh copies the subtree out to the
+# public repository -- where this path *is* the root. Keeping it in the source
+# tree rather than in the export script means it is reviewed and versioned like
+# everything else, instead of living as a heredoc in a shell script.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Two pushes in quick succession should both deploy, in order. Cancelling the
+# first would leave the site on whichever one happened to win.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # The deck is one self-contained HTML file with exactly one local asset:
+      # it loads ../docs/img/wire.svg by relative path. So slides/ has to stay
+      # one level below the site root and docs/img/ has to travel with it.
+      #
+      # Flattening index.html to the site root would break that figure, and
+      # break it silently -- the <img> carries an onerror handler that hides
+      # itself, so slide 20 would simply render without its timing diagram and
+      # no log anywhere would say why. cp failing loudly here is the check.
+      - name: Assemble _site
+        run: |
+          mkdir -p _site/slides _site/docs/img
+          cp slides/index.html _site/slides/
+          cp docs/img/wire.svg  _site/docs/img/
+          cat > _site/index.html <<'HTML'
+          <!doctype html>
+          <meta charset="utf-8">
+          <title>fpga-open-vocab</title>
+          <meta http-equiv="refresh" content="0; url=slides/">
+          <link rel="canonical" href="slides/">
+          <p><a href="slides/">fpga-open-vocab — describe it, the board spots it</a>
+          HTML
+
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v5

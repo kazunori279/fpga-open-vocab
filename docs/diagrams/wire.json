@@ -1,0 +1,14 @@
+{ "signal": [
+    { "name": "D[2:0]  MCU->T8",
+      "wave": "0=345==2.....0................",
+      "data": ["00", "a5", "5a", "cmd", "len lo", "len hi", "payload (len bytes)"] },
+    { "name": "gemm_link",
+      "wave": "2...3..4.....5.6............7.",
+      "data": ["R_HUNT", "R_HDR", "R_PAY", "R_EXEC", "R_TX", "R_CHK"] },
+    { "name": "RET  T8->MCU",
+      "wave": "0..............9..6.7..8..=.0.",
+      "data": ["3c5ac3a5", "st", "rxcrc", "payload", "txcrc"] }
+  ],
+  "head": { "text": "One gemm_link transaction (configuration C)" },
+  "foot": { "text": "cells are bytes, not clocks" }
+}

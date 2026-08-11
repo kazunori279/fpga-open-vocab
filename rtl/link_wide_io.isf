@@ -1,0 +1,43 @@
+# Efinity Interface Configuration - M2 configuration C (link_wide)
+#
+# Device: T8F49, 49-ball WLCSP
+# Requires ONE jumper on the header: pad PIN2 (RP GPIO22) to pad PIN17 (FPGA B3).
+#
+# That jumper is what makes this configuration worth building. B3 is
+# GPIOL_16_CLK2, the only global-clock ball on this board that reaches anything
+# the RP can drive, and moving the clock there frees GPIO1/2/3 - the only three
+# contiguous RP GPIO in existence on Forgix - to all be data.
+#
+# Syntax follows the vendor plasm_led example's _io.isf.
+
+# Device setting
+design.set_device_property("1A","VOLTAGE","3.3","IOBANK")
+design.set_device_property("1B","VOLTAGE","3.3","IOBANK")
+design.set_device_property("1C","VOLTAGE","1.1","IOBANK")
+design.set_device_property("2A","VOLTAGE","3.3","IOBANK")
+design.set_device_property("2B","VOLTAGE","3.3","IOBANK")
+
+# Create instance
+design.create_input_gpio("clk_32m")
+design.create_input_gpio("link_clk")
+design.create_input_gpio("link_d0")
+design.create_input_gpio("link_d1")
+design.create_input_gpio("link_d2")
+design.create_output_gpio("link_ret")
+design.create_output_gpio("led_r_n")
+design.create_output_gpio("led_g_n")
+design.create_output_gpio("led_b_n")
+
+# Set resource assignment
+design.assign_pkg_pin("clk_32m","B4")     # Y2, gated by RP GPIO19 (OSC_EN)
+design.assign_pkg_pin("link_clk","B3")    # CLK2 [GCLK] <- PIN17 = jumper = PIN2 = RP GPIO22
+design.assign_pkg_pin("link_d0","G3")     # SS_N        <- RP GPIO1   (PIO out_base)
+design.assign_pkg_pin("link_d1","F3")     # CCK         <- RP GPIO2
+design.assign_pkg_pin("link_d2","F2")     # CDI0        <- RP GPIO3
+design.assign_pkg_pin("link_ret","A4")    # NSTATUS     -> RP GPIO6
+
+# See link_narrow_io.isf: these follow the schematic, not the vendor example,
+# which has red and blue swapped.
+design.assign_pkg_pin("led_r_n","E1")     # CDI7
+design.assign_pkg_pin("led_g_n","F1")     # CDI1
+design.assign_pkg_pin("led_b_n","G1")     # CDI5

@@ -1,0 +1,53 @@
+# Build outputs
+firmware/build*/
+rtl/build/
+
+# M4: the COCO corpus, the teacher embedding cache, and training runs. All
+# regenerable from model/*.py, and together tens of gigabytes.
+model/data/
+model/cache/
+
+# ...with one exception: the shipped export. 994 KB of weights.bin, testvec.bin
+# and export.json, and eleven defaults across firmware/CMakeLists.txt,
+# rtl/Makefile, host/demo.py, host/cam.py, the four firmware/test_*.c harnesses
+# and tools/probe_prompts.py all point at this exact path. Without it in the
+# tree a fresh clone cannot build forgix_m5 or run the demo at all, which is a
+# strange thing for the repository of a working appliance.
+#
+# git will not re-include a file whose parent directory is excluded, so every
+# level has to be excluded and re-admitted in turn. That is why one directory
+# costs four lines, and why the run name appears here: it is the same name
+# export.json carries and the board prints a crc32 for.
+model/runs/*
+!model/runs/so400m-full-a05/
+model/runs/so400m-full-a05/*
+!model/runs/so400m-full-a05/export/
+
+# Efinity project scratch — regenerated on every synthesis run.
+# .peri.xml is derived from the matching .isf by rtl/mk_peri.py, so the .isf is
+# the source of truth and this is an artifact.
+rtl/outflow/
+rtl/work_pt/
+rtl/work_syn/
+rtl/work_pnr/
+rtl/*.peri.xml
+rtl/*_import_issue.csv
+rtl/link_narrow.sdc
+rtl/link_wide.sdc
+rtl/RUNPNR_*
+
+# `screen -L` drops this in the cwd. host/mon.py is the supported way to
+# capture a firmware report; see its docstring for why DTR matters.
+screenlog.*
+
+# Third-party, not redistributed. Both come from Adiuvo's developer repo
+# (bitbucket.org/adiuvo-engineering/forgix_public) and both are kept on disk
+# here because you want them before you need them, not after:
+#   vendor/plasm_led/        the known-good example bitstream, plus the Efinity
+#                            pinout reports docs/pinmap.md cites as a source.
+#                            Those reports are Efinity tool output, headed
+#                            "Copyright (C) 2013 - 2025 Efinix Inc."
+#   firmware/vendor/*.uf2    the Forge Loader image, docs/building.md's
+#                            un-bricking path
+vendor/
+firmware/vendor/
