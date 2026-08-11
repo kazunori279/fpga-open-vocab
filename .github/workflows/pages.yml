@@ -1,11 +1,10 @@
 # Publishes the conference deck to GitHub Pages.
 #
-# This file is inert where it lives. The development tree is a subdirectory of a
+# This sat inert for a while. The development tree was a subdirectory of a
 # private monorepo, and Actions only reads .github/ at a repository root, so
-# nothing here runs until tools/export_public.sh copies the subtree out to the
-# public repository -- where this path *is* the root. Keeping it in the source
-# tree rather than in the export script means it is reviewed and versioned like
-# everything else, instead of living as a heredoc in a shell script.
+# nothing here fired until an export script copied the subtree out. This
+# repository is the source of truth now, so this path *is* the root and every
+# push to main deploys.
 name: Pages
 
 on:
@@ -33,19 +32,23 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # The deck is one self-contained HTML file with exactly one local asset:
-      # it loads ../docs/img/wire.svg by relative path. So slides/ has to stay
-      # one level below the site root and docs/img/ has to travel with it.
+      # The deck is a self-contained HTML file with exactly one local asset: it
+      # loads ../docs/img/wire.svg by relative path. So slides/ has to stay one
+      # level below the site root and docs/img/ has to travel with it.
       #
       # Flattening index.html to the site root would break that figure, and
       # break it silently -- the <img> carries an onerror handler that hides
       # itself, so slide 20 would simply render without its timing diagram and
       # no log anywhere would say why. cp failing loudly here is the check.
+      #
+      # index.ja.html is the same deck in Japanese and links to its sibling by
+      # bare filename, so the pair has to ship together or the toggle 404s.
       - name: Assemble _site
         run: |
           mkdir -p _site/slides _site/docs/img
-          cp slides/index.html _site/slides/
-          cp docs/img/wire.svg  _site/docs/img/
+          cp slides/index.html    _site/slides/
+          cp slides/index.ja.html _site/slides/
+          cp docs/img/wire.svg    _site/docs/img/
           cat > _site/index.html <<'HTML'
           <!doctype html>
           <meta charset="utf-8">

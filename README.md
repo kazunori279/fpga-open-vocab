@@ -95,7 +95,8 @@ the frictions, the rejected designs and what they taught are in
 | [`docs/bring-up-log.md`](docs/bring-up-log.md) | dated bench entries, newest first, including several that exist only to record a claim that later turned out to be false |
 | [`docs/pinmap.md`](docs/pinmap.md) | M0's output: the confirmed pin and bank map, extracted from the vendor's KiCad source |
 | [`rtl/README.md`](rtl/README.md) | the Efinity flow, and the four things it does not tell you |
-| [`slides/index.html`](slides/index.html) | a 50-minute conference deck on all of the above — open it in a browser, no build step ([notes](slides/README.md)) |
+| [`slides/index.html`](slides/index.html) | a 50-minute conference deck on all of the above, [published here](https://kazunori279.github.io/fpga-open-vocab/slides/) — or open the file in a browser, no build step ([notes](slides/README.md)) |
+| [`slides/index.ja.html`](slides/index.ja.html) | the same deck [in Japanese](https://kazunori279.github.io/fpga-open-vocab/slides/index.ja.html) — a translation, not a fork; a link in the corner of each deck switches to the other |
 
 `milestones.md` and `bring-up-log.md` are **append-only**: their numbers are what
 was true when that entry closed, and nothing there is edited after the fact.
@@ -172,6 +173,9 @@ fpga-open-vocab/
 │   ├── teacher_swap.py # re-encode a split with SigLIP 2 through a frozen PCA
 │   └── probe_*.py     #   offline probes, each carrying its results in its
 │                      #     docstring, so a stale one is visibly stale
+├── slides/            # the conference deck, published to Pages from here
+│   ├── index.html     #   English; index.ja.html is the same 38 slides in
+│   └── index.ja.html  #     Japanese. Hand-kept in step — nothing checks them
 └── rtl/               # Trion T8
     ├── gemm_tile.v    #   8 int8 MACs, accumulator banks, weight buffer, FSM
     ├── im2col_feed.v  #   strip buffer + address generator + zero injection

@@ -258,6 +258,12 @@
   .thanks .links b { color: #fff; font-weight: 500; }
 
   kbd { font-family: var(--mono); font-size: 11px; border: 1px solid #5f6368; border-radius: 4px; padding: 1px 5px; color: #9aa0a6; }
+
+  /* language toggle — deck chrome, not part of the 1280×720 frame */
+  #lang { position: fixed; right: 18px; top: 12px; z-index: 50; font-size: 12px; }
+  #lang a { color: #9aa0a6; text-decoration: none; border: 1px solid #5f6368;
+            border-radius: 4px; padding: 3px 9px; }
+  #lang a:hover { color: #e8eaed; border-color: #9aa0a6; }
 </style>
 </head>
 <body>
@@ -1485,6 +1491,7 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
 
 </div></div>
 
+<div id="lang"><a href="index.ja.html" hreflang="ja">日本語</a></div>
 <div id="hud">1 / 38</div>
 <div id="help"><kbd>←</kbd> <kbd>→</kbd> navigate &nbsp; <kbd>f</kbd> fullscreen</div>
 

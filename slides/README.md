@@ -6,10 +6,23 @@ FPGA, how the frame went from 3,359 ms to 304 ms, and how a 512-d embedding
 becomes an answer on an LED. 38 slides, eight sections, aimed at a general
 technical audience — each domain is taught from scratch before the deep-dive.
 
-Open it in a browser. There is no build step and no server:
+[`index.ja.html`](index.ja.html) is the same 38 slides in Japanese. It is a
+translation, not a fork: the structure, the SVGs and every number are the same,
+and a link in the top-right corner of each deck switches to the other one. The
+type is set a few points smaller with the negative tracking relaxed, because
+Japanese sets denser than English at the same size.
+
+Both are published to GitHub Pages by [`../.github/workflows/pages.yml`](../.github/workflows/pages.yml)
+on every push to `main`:
+
+- <https://kazunori279.github.io/fpga-open-vocab/slides/>
+- <https://kazunori279.github.io/fpga-open-vocab/slides/index.ja.html>
+
+Or open either in a browser. There is no build step and no server:
 
 ```
 open slides/index.html
+open slides/index.ja.html
 ```
 
 | key | |
@@ -38,6 +51,10 @@ Fonts come from Google Fonts over the network. Offline, the deck falls back to
 the system sans-serif and the layout still holds.
 
 ## Keeping it true
+
+The two decks are edited by hand and nothing checks that they agree. **A number
+changed in one has to be changed in the other**, or the Japanese deck quietly
+becomes a snapshot of an older talk.
 
 Every number in the deck is sourced from
 [`../README.md`](../README.md), [`../docs/architecture.md`](../docs/architecture.md)
