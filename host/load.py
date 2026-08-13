@@ -6,7 +6,7 @@
 
 Accepts Efinity ASCII .hex (one hex byte per line) or raw .bin.
 
-    uv run host/load.py rtl/bitstreams/m11/gemm_top_wide.hex [--port /dev/cu.usbmodemXXXX]
+    uv run host/load.py rtl/bitstreams/m16/gemm_top_wide.hex [--port /dev/cu.usbmodemXXXX]
 
 The END reply carries the real verdict: CDONE and STATUS both high means the
 FPGA accepted the bitstream and entered user mode.

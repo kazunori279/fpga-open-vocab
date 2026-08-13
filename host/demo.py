@@ -5,7 +5,7 @@
 # ///
 """fpga-open-vocab: describe it, the board spots it.
 
-    uv run host/demo.py --bitstream rtl/build/gemm_top_wide_m16.hex \\
+    uv run host/demo.py --bitstream rtl/bitstreams/m16/gemm_top_wide.hex \\
                         "cup" "person" "book" "laptop"
     uv run host/demo.py "an opened book / a closed book / a book"
 
@@ -579,13 +579,15 @@ def main() -> int:
                          f"naming only the opposite state measured worse than "
                          f"naming none at all")
     ap.add_argument("--bitstream", type=Path,
-                    # See the note in host/m6.py. gemm_top_wide.hex is the last
-                    # *untagged* wide build and froze at M14; the shipped
-                    # netlist is the M16 one. m6.py and m7.py were repointed
-                    # when that was found and this file was missed, which is
-                    # its own small lesson about fixing a default in the two
-                    # places you happen to be looking at.
-                    default=Path("rtl/build/gemm_top_wide_m16.hex"),
+                    # See the note in host/m6.py. rtl/build/gemm_top_wide.hex is
+                    # the last *untagged* wide build and froze at M14; the
+                    # shipped netlist is the M16 one. m6.py and m7.py were
+                    # repointed when that was found and this file was missed,
+                    # which is its own small lesson about fixing a default in
+                    # the two places you happen to be looking at - and then all
+                    # four were moved off rtl/build/ entirely, since that
+                    # directory is gitignored and overwritten in place.
+                    default=Path("rtl/bitstreams/m16/gemm_top_wide.hex"),
                     help="either image works: m9 probes the wire and reports "
                          "which configuration it found")
     ap.add_argument("--export", type=Path,

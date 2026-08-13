@@ -2,7 +2,7 @@
 
 **fpga-open-vocab** points a camera at something, you type **"a person smiling"** on the host, and a $50 board answers — by running a distilled [CLIP-style](https://arxiv.org/abs/2103.00020) image encoder on a [Forgix](https://forgix.tech/) board, which pairs an [RP2354A](https://www.raspberrypi.com/products/rp2350/) MCU with an [Efinix Trion T8](https://www.efinixinc.com/products-trion.html) FPGA.
 
-It is built and it runs. All eight convolution layers execute on the FPGA tile, off a live camera, at **304 ms per frame** and **bit-exact** against the plain-C reference — 11.33× the MCU running the same model alone.
+It is built and it runs. All eight convolution layers execute on the FPGA tile, off a live camera, and **bit-exact** against the plain-C reference — at **304 ms per frame**, 11.33× the MCU running the same model alone.
 
 ```
 ArduCam SPI ──▶ RP2354A ──3-bit on-board link──▶ Trion T8 ──▶ RGB LED / USB serial
@@ -37,7 +37,7 @@ picotool reboot -f -u
 picotool load firmware/build/forgix_m9.uf2 -x
 
 # the FPGA has no config flash, so the bitstream goes over USB at every run
-uv run host/demo.py --bitstream rtl/bitstreams/m11/gemm_top_wide.hex \
+uv run host/demo.py --bitstream rtl/bitstreams/m16/gemm_top_wide.hex \
                     "cup" "person" "book" "laptop"
 ```
 
@@ -64,7 +64,7 @@ harness, and rebuilding the model — are in [`docs/building.md`](docs/building.
 
 | | |
 |---|---|
-| **frame time** | **304 ms**, all 8 layers on the tile, from a live camera |
+| **frame time** | **304 ms**, all 8 layers on the tile, at 280/140 on the `m7` harness. The camera appliance now boots to the same operating point and has not been re-benched there yet; every `m9` figure on record is its 569 ms at 150/75 |
 | **bit-exactness** | 512 of 512 embedding floats identical to `firmware/encoder.c` |
 | **speedup** | **11.33×** the same model on the MCU alone (`encoder_fast`, 3,359 ms, measured in the same boot) |
 | **clocks** | 280 MHz sys / 140 MHz link, bit-exact there |

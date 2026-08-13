@@ -469,7 +469,7 @@ Either way the RP's six header pins (GPIO 8, 9, 12, 13, 22, 23) stay free for th
 
 ### Bus rate
 
-Two instructions per bit at a 150 MHz `sys_clk` puts the PIO ceiling at a **75 MHz link clock**:
+Two instructions per bit puts the PIO ceiling at **half `sys_clk`** — a 75 MHz link at the stock 150 MHz, and 140 MHz at the 280 the appliance now boots to. Both columns below are the 150 MHz numbers, which is what every measurement in the table was taken at; double them for the current operating point.
 
 | | Forward (MCU→FPGA) | Return |
 |---|---|---|
@@ -514,7 +514,7 @@ Three names in the figure are worth having first. A **lane** is one of the eight
 
 ```mermaid
 flowchart LR
-  subgraph GT["gemm_top — 6,265 LE (85%), 5,018 LUTs/adders, 8/8 multipliers, 21/24 memory blocks"]
+  subgraph GT["gemm_top — 6,265 LE (85%), 5,018 LUTs/adders, 3,265 registers, 8/8 multipliers, 21/24 memory blocks"]
     direction LR
     LINK["<b>gemm_link</b><br/>SYNC hunt, framing,<br/>CRC-32 both ways,<br/>return preamble"]
     subgraph TL["<b>gemm_tile</b>"]

@@ -4,11 +4,11 @@
 # ///
 """Ship a bitstream to forgix_m7 and tee its report.
 
-    uv run host/m7.py --bitstream rtl/build/gemm_top_m16.hex --out /tmp/m7c.log
+    uv run host/m7.py --bitstream rtl/bitstreams/m16/gemm_top.hex --out /tmp/m7c.log
 
 M7f added a second, optional bitstream:
 
-    uv run host/m7.py --wide rtl/build/gemm_top_wide_m16.hex --out /tmp/m7f.log
+    uv run host/m7.py --wide rtl/bitstreams/m16/gemm_top_wide.hex --out /tmp/m7f.log
 
 which makes one boot run the whole six-rung ladder over one forward data line and
 then over three, through the PIN2 <-> PIN17 jumper. The board asks
@@ -90,11 +90,12 @@ def load_image(path: Path) -> tuple[bytes, str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    # See the note in host/m6.py: gemm_top.hex is the last *untagged* build and
-    # froze at M14. The default is the shipped netlist instead, because a stale
+    # See the note in host/m6.py: anything under rtl/build/ is gitignored and
+    # overwritten in place, and gemm_top.hex there is the last *untagged* build,
+    # frozen at M14. The default is the shipped netlist instead, because a stale
     # bitstream presents as a dead board rather than as a mismatch.
     ap.add_argument("--bitstream", type=Path,
-                    default=Path("rtl/build/gemm_top_m16.hex"))
+                    default=Path("rtl/bitstreams/m16/gemm_top.hex"))
     ap.add_argument("--wide", type=Path, default=None,
                     help="second bitstream for configuration C, sent when the "
                          "board asks; needs the PIN2 <-> PIN17 jumper fitted")

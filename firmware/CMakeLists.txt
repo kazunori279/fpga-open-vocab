@@ -31,6 +31,15 @@ set(BITSTREAM ${BITSTREAM_DEFAULT} CACHE FILEPATH "Efinity .hex or .bin to embed
 set(GP_KPACK "1" CACHE STRING "tile pairs kernel taps on kx: 1 or 0")
 add_compile_definitions(GP_KPACK=${GP_KPACK})
 
+# The m9 appliance's operating point; link_clk is half of it. 280000 is what m6
+# and m7 measured bit-exact, and m9.c explains why it is not yet proven on m9's
+# own path. This is a cache variable rather than an edit to m9.c so that the
+# 150 MHz control can be built without touching source - the two images have to
+# differ in exactly one thing to be worth comparing. m6 and m7 sweep the rate
+# themselves and ignore this.
+set(FGX_SYS_KHZ "280000" CACHE STRING "m9 system clock in kHz; link_clk is half")
+add_compile_definitions(FGX_SYS_KHZ=${FGX_SYS_KHZ})
+
 # Depend on the bitstream only once it exists. Efinity cannot be installed
 # unattended, so "no bitstream yet" is the normal state for this tree and the
 # firmware still has to build: hex2c.py emits an empty placeholder and main.c

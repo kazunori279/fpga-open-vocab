@@ -54,6 +54,7 @@
 #include <string.h>
 
 #include "hardware/clocks.h"
+#include "hardware/vreg.h"
 #include "hardware/watchdog.h"
 #include "pico/bootrom.h"
 #include "pico/stdlib.h"
@@ -1459,9 +1460,83 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
     (void)n;
 }
 
+// ---- the operating point ----------------------------------------------------
+//
+// 150 MHz was never a decision. It is the stock rate m8 came up at and m9
+// inherited from m8; the clock ladder only ever got built into m6 and m7, and
+// those two are where the top of it was measured. 280 MHz system / 140 MHz link
+// is bit-exact there on the same M16 images this file runs - m6 at 2048/2048
+// over three boots, m7 at 304 / 304 / 303 ms a frame over three - and doubling
+// the link is worth most of the gap between 1.8 fps and 3.3 here, because the
+// frame is dominated by weight traffic over the wire.
+//
+// **280 is validated on m6 and m7. It is not yet validated on m9's path.** m9
+// is the only harness that also drives the camera, and while nothing in that
+// path pins the system rate - the PIO SPI divisor is derived from
+// clock_get_hz(clk_sys), and the bit-banged init waits on the microsecond timer
+// - "nothing pins it" is an argument, not a measurement. Build the control with
+// -DFGX_SYS_KHZ=150000 and run the two in one session before believing either.
+//
+// The rail is the one m7 was validated at, not the lowest that works. m6's
+// voltage-floor sweep has 280 bit-exact all the way down at 1.15 V, but that
+// sweep is 4 ms bursts running out of XIP flash and this is a sustained
+// two-core frame; the milestone that recorded the floor says so itself. Buying
+// that margin back is a bench decision with numbers under it, not a default.
+//
+// Voltage up before frequency up, frequency down before voltage down. That
+// ordering is from m7.c and it is not stylistic: under-volting the core does
+// not print an error, it stops the board and costs a power cycle.
+#ifndef FGX_SYS_KHZ
+#define FGX_SYS_KHZ 280000
+#endif
+
+static enum vreg_voltage sys_rail = VREG_VOLTAGE_DEFAULT;
+
+static const char *volt_name(enum vreg_voltage v)
+{
+    switch (v) {
+    case VREG_VOLTAGE_1_10: return "1.10";
+    case VREG_VOLTAGE_1_15: return "1.15";
+    case VREG_VOLTAGE_1_20: return "1.20";
+    case VREG_VOLTAGE_1_25: return "1.25";
+    case VREG_VOLTAGE_1_30: return "1.30";
+    default:                return "?";
+    }
+}
+
+// Returns the rate actually reached, which is not always the one asked for:
+// check_sys_clock_khz() counts the feedback divider down from 320 and some
+// rates have no exact solution. 150000 always does, and is the fallback.
+static uint32_t sys_clock_bring_up(uint32_t khz)
+{
+    const enum vreg_voltage want =
+        khz > 220000 ? VREG_VOLTAGE_1_25 :
+        khz > 150000 ? VREG_VOLTAGE_1_20 :
+                       VREG_VOLTAGE_DEFAULT;
+    if (want > sys_rail) {
+        vreg_set_voltage(want);
+        sleep_ms(10);
+        sys_rail = want;
+    }
+    if (khz != 150000u && set_sys_clock_khz(khz, false)) {
+        sleep_ms(50);
+        return khz;
+    }
+
+    set_sys_clock_khz(150000, true);   // frequency first coming down
+    sleep_ms(50);
+    if (sys_rail != VREG_VOLTAGE_DEFAULT) {
+        vreg_set_voltage(VREG_VOLTAGE_DEFAULT);
+        sleep_ms(10);
+        sys_rail = VREG_VOLTAGE_DEFAULT;
+    }
+    return 150000u;
+}
+
 int main(void)
 {
-    set_sys_clock_khz(150000, true);
+    const uint32_t want_khz = (uint32_t)FGX_SYS_KHZ;
+    const uint32_t sys_khz  = sys_clock_bring_up(want_khz);
     stdio_init_all();
 
     while (!stdio_usb_connected())
@@ -1469,6 +1544,12 @@ int main(void)
     sleep_ms(200);
 
     printf("\n=== M9: fpga-open-vocab - describe it, the board spots it ===\n\n");
+    // Every timing this run prints is a timing at this operating point, so it
+    // goes in the log before anything else does. A frame time with no rate
+    // beside it is not a measurement of anything.
+    printf("clock     : %u MHz system, core %s V%s\n",
+           (unsigned)(sys_khz / 1000u), volt_name(sys_rail),
+           sys_khz == want_khz ? "" : "  (FALLBACK - requested rate refused)");
     wd_report_last();
 
     // Armed HERE, not at the frame loop, and the 2026-08-10 17:58 wedge is why:

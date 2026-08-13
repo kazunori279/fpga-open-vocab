@@ -4,7 +4,7 @@
 # ///
 """Ship a bitstream to forgix_m6 and tee its report.
 
-    uv run host/m6.py --bitstream rtl/build/gemm_top_m16.hex --out /tmp/m6.log
+    uv run host/m6.py --bitstream rtl/bitstreams/m16/gemm_top.hex --out /tmp/m6.log
 
 This is the whole host side of M6c, and it is deliberately thin. Everything that
 could be got wrong twice - the strip layout, the weight order, the golden
@@ -66,14 +66,16 @@ def load_image(path: Path) -> tuple[bytes, str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    # The shipped netlist, not the last untagged build. `build.sh` writes
-    # gemm_top.hex only when TAG is empty, so that name froze at M14 while every
-    # milestone since has built under a tag - and a stale bitstream fails as
-    # *every rate erroring*, which reads exactly like a dead board. Cost a flash
-    # and a full sweep to diagnose once; the crc32 line at the top of the log is
-    # what tells the two apart.
+    # The shipped netlist under rtl/bitstreams/, not anything in rtl/build/.
+    # This default used to name rtl/build/gemm_top.hex, which `build.sh` writes
+    # only when TAG is empty, so the name froze at M14 while every milestone
+    # since built under a tag - and a stale bitstream fails as *every rate
+    # erroring*, which reads exactly like a dead board. Cost a flash and a full
+    # sweep to diagnose once; the crc32 line at the top of the log is what tells
+    # the two apart. rtl/build/ is gitignored and overwritten in place, so a
+    # default pointing into it is only ever as good as the last local synthesis.
     ap.add_argument("--bitstream", type=Path,
-                    default=Path("rtl/build/gemm_top_m16.hex"))
+                    default=Path("rtl/bitstreams/m16/gemm_top.hex"))
     ap.add_argument("--port", default=None)
     ap.add_argument("--out", type=Path, default=Path("/tmp/m6.log"))
     ap.add_argument("--idle", type=float, default=30.0,

@@ -58,6 +58,13 @@ what every current number is measured in**. Both configurations build without a
 bitstream present: `tools/hex2c.py` embeds an empty placeholder and the firmware
 refuses to run the sweep.
 
+Two more cache variables matter:
+
+| | default | |
+|---|---|---|
+| `GP_KPACK` | `1` | must match the bitstream that reaches the FPGA. `1` for `rtl/bitstreams/m16/`, `0` for `m11/` and `m10/`. See `firmware/gemm_plan.h` for why only one of the two mismatches hangs the board |
+| `FGX_SYS_KHZ` | `280000` | `forgix_m9`'s system clock; `link_clk` is half of it. `-DFGX_SYS_KHZ=150000` builds the control image — see the comment above `main()` in `firmware/m9.c` for what is and is not validated at 280 |
+
 One `ninja` produces every on-device harness as its own `.uf2`:
 
 | target | what it is |
@@ -152,7 +159,7 @@ RTL revisions cost no reflash of the MCU.
 
 ```sh
 # the appliance
-uv run host/demo.py --bitstream rtl/bitstreams/m11/gemm_top_wide.hex \
+uv run host/demo.py --bitstream rtl/bitstreams/m16/gemm_top_wide.hex \
                     "cup" "person" "book" "laptop"
 
 # a contrast query: the first phrase AS AGAINST the others
@@ -175,9 +182,9 @@ background hold, `'E'` forces a deferred LED failure to land somewhere visible.
 The other harnesses, each with its own host script:
 
 ```sh
-uv run host/m8.py  --bitstream rtl/bitstreams/m11/gemm_top_wide.hex --out /tmp/m8.log
-uv run host/m7.py  --wide      rtl/bitstreams/m11/gemm_top_wide.hex --out /tmp/m7.log
-uv run host/m6.py  --bitstream rtl/bitstreams/m11/gemm_top.hex      --out /tmp/m6.log
+uv run host/m8.py  --bitstream rtl/bitstreams/m16/gemm_top_wide.hex --out /tmp/m8.log
+uv run host/m7.py  --wide      rtl/bitstreams/m16/gemm_top_wide.hex --out /tmp/m7.log
+uv run host/m6.py  --bitstream rtl/bitstreams/m16/gemm_top.hex      --out /tmp/m6.log
 uv run host/mon.py --out /tmp/m5.log            # anything that just prints
 uv run host/probe.py                            # loader state
 uv run host/load.py <image.hex>                 # bitstream only

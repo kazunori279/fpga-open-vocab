@@ -4,7 +4,7 @@
 # ///
 """Ship a bitstream to forgix_m8 and watch it embed frames until Ctrl-C.
 
-    uv run host/m8.py --bitstream rtl/build/gemm_top_wide_m16.hex --out /tmp/m8c.log
+    uv run host/m8.py --bitstream rtl/bitstreams/m16/gemm_top_wide.hex --out /tmp/m8c.log
 
 host/m7.py with the ladder taken out. Two real differences, both from what M8c
 is rather than from how it is driven:
@@ -121,8 +121,10 @@ def bootsel(port: str) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
+    # See the note in host/m6.py: the shipped netlist, not rtl/build/, which is
+    # gitignored and overwritten by every synthesis run.
     ap.add_argument("--bitstream", type=Path,
-                    default=Path("rtl/build/gemm_top_wide_m16.hex"),
+                    default=Path("rtl/bitstreams/m16/gemm_top_wide.hex"),
                     help="the wide image by default: m8 probes the wire and "
                          "reports which configuration it got, so either works")
     ap.add_argument("--port", default=None)
