@@ -37,8 +37,7 @@ FOUR. Four seeds were rolled per top:
 so s7 beats gemm_top's shipped roll by 0.34 MHz and s2 beats the wide's by
 2.05 -- and neither was ever flashed. This directory ships what the board has
 run, not what the analyser preferred, which is the same rule the m10 and m11
-directories were kept under. If a respin needs the margin, s2 on the wide top is
-where to look first, and it needs its own bench before it is trusted.
+directories were kept under. Issue #4 is where the unflashed margin is tracked.
 
 The wide top's band is the one uncomfortable number in M16: its worst seed is
 51.840 against M15's 53.6, and unlike gemm_top's the band no longer overlaps

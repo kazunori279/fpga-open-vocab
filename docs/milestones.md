@@ -5657,9 +5657,12 @@ the host does not do it** — SIGSTOP on demo.py ran the board through to frame
 the theory that a dead host is what wedges the board. `'S'` had been in the
 banner since M19 and was never in `poll_host`'s list, so it did nothing.
 
-This buys the diagnosis, not the fix. **It has not yet caught one**: the board
-has since vanished from USB three more times with no watchdog report and a fresh
-banner each time, which points at USB enumeration rather than a firmware hang.
+This buys the diagnosis, not the fix. **It had not caught one as of this
+milestone**: the board vanished from USB three more times with no watchdog
+report and a fresh banner each time, which points at USB enumeration rather than
+a firmware hang. That thread continues in
+[#2](https://github.com/kazunori279/fpga-open-vocab/issues/2), where the host
+turns out to have been reading a port the rebooted board no longer had.
 
 ---
 
@@ -5945,10 +5948,10 @@ other one is now also true.
 
 - **`picotool load -x` left the board in BOOTSEL with `Program Information:
   none`.** `load` followed by `reboot` flashed and ran the same UF2 without
-  complaint. Adjacent to the open hang (#92) and not chased here, along with the
-  earlier finding that `ft_recv_bitstream()` (`firmware/frame.c:224-240`) has no
-  `'B'` handler, so a board idling at "waiting for a bitstream" cannot be put
-  into BOOTSEL by `demo.py --bootsel` at all.
+  complaint. That, and the earlier finding that `ft_recv_bitstream()`
+  (`firmware/frame.c:224-240`) has no `'B'` handler — so a board idling at
+  "waiting for a bitstream" cannot be put into BOOTSEL by `demo.py --bootsel` at
+  all — are [#3](https://github.com/kazunori279/fpga-open-vocab/issues/3).
 - `FGX_ENROL_N` in `firmware/m9.c` and `ENROL_FRAMES` in `host/cue.py` are
   mirrored constants, which is a trap. It is a **visible** one: the board prints
   `(N frames)` on every enrol line and the sidecar records what the host assumed.

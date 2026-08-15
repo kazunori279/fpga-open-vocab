@@ -1470,12 +1470,11 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
 // the link is worth most of the gap between 1.8 fps and 3.3 here, because the
 // frame is dominated by weight traffic over the wire.
 //
-// **280 is validated on m6 and m7. It is not yet validated on m9's path.** m9
-// is the only harness that also drives the camera, and while nothing in that
-// path pins the system rate - the PIO SPI divisor is derived from
-// clock_get_hz(clk_sys), and the bit-banged init waits on the microsecond timer
-// - "nothing pins it" is an argument, not a measurement. Build the control with
-// -DFGX_SYS_KHZ=150000 and run the two in one session before believing either.
+// **280 is validated on m6 and m7. It is not yet validated on m9's path** -
+// issue #1. m9 is the only harness that also drives the camera, and while
+// nothing in that path pins the system rate - the PIO SPI divisor is derived
+// from clock_get_hz(clk_sys), and the bit-banged init waits on the microsecond
+// timer - "nothing pins it" is an argument, not a measurement.
 //
 // The rail is the one m7 was validated at, not the lowest that works. m6's
 // voltage-floor sweep has 280 bit-exact all the way down at 1.15 V, but that

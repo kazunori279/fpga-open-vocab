@@ -63,7 +63,7 @@ Two more cache variables matter:
 | | default | |
 |---|---|---|
 | `GP_KPACK` | `1` | must match the bitstream that reaches the FPGA. `1` for `rtl/bitstreams/m16/`, `0` for `m11/` and `m10/`. See `firmware/gemm_plan.h` for why only one of the two mismatches hangs the board |
-| `FGX_SYS_KHZ` | `280000` | `forgix_m9`'s system clock; `link_clk` is half of it. `-DFGX_SYS_KHZ=150000` builds the control image — see the comment above `main()` in `firmware/m9.c` for what is and is not validated at 280 |
+| `FGX_SYS_KHZ` | `280000` | `forgix_m9`'s system clock; `link_clk` is half of it. `-DFGX_SYS_KHZ=150000` builds the 150 MHz control image. The comment above `main()` in `firmware/m9.c` has the reasoning for both the rate and the rail |
 
 One `ninja` produces every on-device harness as its own `.uf2`:
 
@@ -77,7 +77,7 @@ One `ninja` produces every on-device harness as its own `.uf2`:
 | `forgix_m2` | the link sweep: LFSR, offset correlator, error rate per clock |
 | `forgix_cam_probe` | the camera alone, dumping a frame down the CDC |
 | `forgix_psram_probe` | the raw `0x9F` read from U1. Kept for the record; U1 is unusable |
-| `forgix_diag` | the wedge locator. **Currently unbuildable** — it wants `rtl/build/probe_a.hex`, which is gitignored |
+| `forgix_diag` | the wedge locator. **Currently unbuildable** — it wants `rtl/build/probe_a.hex`, which is gitignored ([#5](https://github.com/kazunori279/fpga-open-vocab/issues/5)) |
 
 ## Building the fabric
 

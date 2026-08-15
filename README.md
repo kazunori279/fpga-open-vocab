@@ -64,7 +64,7 @@ harness, and rebuilding the model — are in [`docs/building.md`](docs/building.
 
 | | |
 |---|---|
-| **frame time** | **304 ms**, all 8 layers on the tile, at 280/140 on the `m7` harness. The camera appliance now boots to the same operating point and has not been re-benched there yet; every `m9` figure on record is its 569 ms at 150/75 |
+| **frame time** | **304 ms**, all 8 layers on the tile, at 280/140 on the `m7` harness. The camera appliance boots to the same operating point; its own figure there is [#1](https://github.com/kazunori279/fpga-open-vocab/issues/1) |
 | **bit-exactness** | 512 of 512 embedding floats identical to `firmware/encoder.c` |
 | **speedup** | **11.33×** the same model on the MCU alone (`encoder_fast`, 3,359 ms, measured in the same boot) |
 | **clocks** | 280 MHz sys / 140 MHz link, bit-exact there |
@@ -79,6 +79,10 @@ clean enough to be worth using) and **M4** (can a model small enough to fit stil
 tell the queries apart). What is left is not speed — it is the decision rule, and
 one honest gap in it: the presence stage's *benefit* has never been measured,
 because it has never fired on a bench.
+
+**Open work is in [issues](https://github.com/kazunori279/fpga-open-vocab/issues)**,
+labelled `P0`/`P1`/`P2`. The docs here record what was measured; what is still owed
+is tracked there.
 
 The milestone-by-milestone record is [`docs/milestones.md`](docs/milestones.md);
 the frictions, the rejected designs and what they taught are in
