@@ -621,6 +621,22 @@ def main() -> int:
     proc.wait()
     if bars is not None:
         bars.release()
+
+    # demo.py exits 3 when the board wedged and its watchdog rebooted it. That
+    # is not a short run, it is a DIFFERENT run: the reboot forgot the frozen
+    # background, so every frame after it was scored against a baseline this
+    # side knows nothing about, and the cues below point at scene boundaries the
+    # board stopped honouring partway through. The segments are still written -
+    # they are the only record of where the operator was told to move, and the
+    # frames before the wedge are real - but they are written marked, because a
+    # sidecar that cannot say this is one that lets a wedge become an accuracy.
+    void = proc.returncode == 3
+    if void:
+        bar = "=" * 60
+        print(f"\n{bar}\n>>> VOID: the board wedged mid-run and rebooted.\n"
+              f">>> The boundaries below are recorded, the measurement is not.\n"
+              f">>> Re-run it; the hang line above says where the board was.\n"
+              f"{bar}", flush=True)
     if open_seg is not None and scores:
         segments.append((open_seg[0], open_seg[1], max(scores) + 1))
 
@@ -643,6 +659,10 @@ def main() -> int:
         f"baseline {args.baseline}, bg-tau {args.bg_tau}\n"
         f"# demo.py {' '.join(extra) if extra else '(no extra flags)'}\n"
         f"# log {args.out}\n"
+        + ("# VOID the board wedged mid-run and its watchdog rebooted it, so "
+           "the background froze twice and these boundaries outlived the run "
+           "they describe. tools/score_cue.py refuses this unless forced.\n"
+           if void else "")
         # A run where the board learned from some of its own frames is not the
         # same run as one where it did not, and a scorer that cannot tell will
         # quietly report training accuracy. The frames are here so it can. The

@@ -128,6 +128,15 @@ def load(log):
             m = re.match(r"#\s*enrol-window\s+(\d+)", line)
             if m:
                 window = int(m.group(1))
+            # host/cue.py stamps this when demo.py reported a watchdog reboot.
+            # Refused rather than warned about: a warning above a table of
+            # numbers loses to the table every time, and the numbers from a run
+            # whose background froze twice are not weak evidence, they are
+            # evidence of a different experiment.
+            if line.startswith("# VOID"):
+                sys.exit(f"{sidecar} is marked VOID: {line[7:].strip()}\n"
+                         f"Re-run the bench. To look at it anyway, delete that "
+                         f"line - deliberately, and knowing the above.")
             continue
         a, b, name = line.split("\t")
         cues.append((int(a), int(b), name.strip()))

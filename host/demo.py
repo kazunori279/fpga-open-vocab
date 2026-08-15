@@ -97,6 +97,15 @@ to get right rather than two.
 `--ask` re-sends a set to a *running* board, which is what makes this
 demonstrable rather than a screenshot: type a new comma-separated list at any
 time and the winner changes without a reflash.
+
+**A wedge is followed rather than reported as silence** (exit 3). m9's watchdog
+reboots a stuck board and the next boot names the stage it stuck in; that reboot
+re-enumerates the CDC device, so this end now goes and finds the board again
+instead of sitting out its `--idle` against a port that no longer exists. The
+run is void either way - the reboot forgets the frozen background - but it ends
+with the one sentence that says why. Exit 2 is the other half of that fork and
+is now a positive result too: the port was still there, so the board is stuck
+somewhere that is feeding the watchdog. See REOPEN_S.
 """
 
 import argparse
@@ -116,7 +125,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "model"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from board import RP2350_VID, pick_port  # noqa: E402  (after the path insert)
+from board import (RP2350_VID, RECOVER, find_port,  # noqa: E402
+                   pick_port, ports as bus_ports)
 
 MAGIC_B = b"FGXB"
 MAGIC_Q = b"FGXQ"
@@ -140,6 +150,45 @@ MAGIC_Q = b"FGXQ"
 # host can still block for one frame's time on a single write; that is fine, and
 # it is not a deadlock, because the board is not blocked while it happens.
 CHUNK = 512
+
+# THE HANG REPORT WAS ALWAYS PRINTED TO A PORT THIS END NO LONGER HELD.
+#
+# m9's watchdog (firmware/m9.c:661) reboots a wedged board after 8 s, and the
+# next boot prints one line naming the stage and the frame it stopped in. That
+# is the whole of M20b, and it worked; none of the wedges since has produced
+# the line here, and the reason is this end rather than that one. The reboot
+# re-enumerates the CDC device, macOS tears the old /dev/cu.usbmodem* down and
+# builds the next one out of a fresh location id, and the read then fails on a
+# descriptor that names nothing. pump() used to return "" for that - the same
+# answer it gives for a board with nothing to say - so the run sat out its whole
+# --idle against a port that no longer existed, called it a stall, and exited.
+# The board printed its one useful sentence to nobody.
+#
+# Nothing on the device needs changing for this: m9.c:1466 waits on
+# stdio_usb_connected() *before* wd_report_last(), with the watchdog disarmed,
+# so a rebooted board holds the line until a host raises DTR. There is no race
+# here to lose - only a reader that has to still be attached.
+#
+# So both waits are generous. 8 s of watchdog plus enumeration is the thing
+# being waited for, and the cost of overshooting is seconds on a run that is
+# already void.
+REOPEN_S = 45.0
+HANG_REPORT_S = 30.0
+
+# How long the board may say nothing before this end stops waiting to be told
+# the port died and goes and looks.
+#
+# The reboot is *usually* delivered as an exception - pyserial raises on a read
+# from a descriptor whose device has gone - but "usually" is not a word to hang
+# eight unexplained wedges on. macOS can keep the /dev node alive across the
+# re-enumeration for long enough that the read simply times out instead, and
+# then a fix that waits for an exception waits for one that never comes.
+#
+# 10 s against m9's 8 s watchdog and a ~304 ms frame: a working board never goes
+# a tenth of this quiet, and a wedged one has already rebooted by the time this
+# fires. The check itself is a USB enumeration walk, not a read, so it costs
+# nothing and cannot be lied to by a stale descriptor.
+QUIET_PROBE_S = 10.0
 
 # Both mirror firmware/m9.c. A mismatch is caught on the device - it checks the
 # length against nq and dim before accepting anything - but it is caught much
@@ -795,20 +844,68 @@ def main() -> int:
         # reads a line that scrolls past during the start-up wait.
         transcript: list[str] = []
 
-        def pump() -> str:
-            try:
-                chunk = s.read(4096)
-            except (OSError, serial.SerialException):
-                return ""
-            if not chunk:
-                return ""
-            text = chunk.decode("utf-8", "replace")
+        # Set by follow_reboot(), read by the frame loop and by the summary.
+        # The run is over the moment this is true - the board has forgotten its
+        # frozen background - so it ends the loop rather than resuming it.
+        rebooted = False
+
+        def emit(text: str) -> str:
             sys.stdout.write(text)
             sys.stdout.flush()
             log.write(text)
             log.flush()
             transcript.append(text)
             return text
+
+        # A vanished port is followed, not absorbed. See REOPEN_S's comment for
+        # why this is the difference between eight wedges with no cause and a
+        # wedge with an address.
+        #
+        # The board is identified by VID on the way back, never by the name it
+        # had before: the whole event is macOS renaming the node, so the old
+        # path is precisely the wrong thing to reopen. board.find_port() is the
+        # one answer, and it declines to guess when two RP2350s are on the bus.
+        def follow_reboot() -> str:
+            nonlocal s, port, rebooted
+            rebooted = True
+            emit(f"\n[host] {port} vanished mid-run. That is what m9's watchdog "
+                 f"reboot looks like from this end; the board should come back "
+                 f"in a few seconds and say why. Following it.\n")
+            try:
+                s.close()
+            except (OSError, serial.SerialException):
+                pass
+            deadline = time.monotonic() + REOPEN_S
+            while time.monotonic() < deadline:
+                time.sleep(0.5)
+                found = find_port()
+                if found is None:
+                    continue
+                try:
+                    fresh = serial.Serial(found, 115200, timeout=0.5,
+                                          write_timeout=10)
+                except (OSError, serial.SerialException):
+                    continue          # enumerated, not yet openable
+                # DTR is what the board is waiting on, so raising it is not
+                # housekeeping - it is the thing that releases the report.
+                fresh.dtr = True
+                s, port = fresh, found
+                emit(f"[host] reattached on {port}, DTR raised.\n")
+                return ""
+            emit(f"[host] nothing with VID {RP2350_VID} came back within "
+                 f"{REOPEN_S:.0f}s, so the board is not enumerating at all and "
+                 f"the watchdog did not get it either.\n"
+                 f"[host] {RECOVER}\n")
+            return ""
+
+        def pump() -> str:
+            try:
+                chunk = s.read(4096)
+            except (OSError, serial.SerialException):
+                return follow_reboot()
+            if not chunk:
+                return ""
+            return emit(chunk.decode("utf-8", "replace"))
 
         def drain() -> str:
             # pump() waits out the whole 0.5 s read timeout when the board has
@@ -945,7 +1042,21 @@ def main() -> int:
                     continue
 
                 text = pump()
+                if rebooted:
+                    break
                 if not text:
+                    # Quiet is two states wearing one face, and telling them
+                    # apart IS the diagnosis: the port gone means the watchdog
+                    # fired and the report is already on its way, the port still
+                    # there means whatever the board is stuck in is feeding the
+                    # watchdog - which is a far shorter list of places than "the
+                    # frame loop". Asked of the bus about this exact node, not
+                    # via find_port(), which declines to answer at all when a
+                    # second RP2350 is on the desk - and that desk exists.
+                    if (time.monotonic() - last > QUIET_PROBE_S
+                            and port not in [p.device for p in bus_ports()]):
+                        follow_reboot()
+                        break
                     continue
                 last = time.monotonic()
                 carry += text
@@ -1036,16 +1147,46 @@ def main() -> int:
                   "it here rather than by waiting is the point of the timeout. "
                   "Replug USB.)", file=sys.stderr)
 
+        # THE ONLY REASON THIS RUN IS STILL RUNNING. The measurement is gone -
+        # the reboot forgot the frozen background, and resuming would restart
+        # the baseline around whatever is in shot now and produce a number that
+        # looks like a run. So this collects one line and stops.
+        hang = ""
+        if rebooted:
+            # Waited out against the report's LAST line and not its first. The
+            # `hang :` line is 120 characters and the CDC delivers 64 at a time,
+            # so a chunk boundary lands inside it about half the time, and a
+            # search that stops the moment the first line matches quotes half a
+            # stage name and calls it the answer. The closing sentence is the
+            # only thing that says the block arrived whole. It is quoted from
+            # firmware/m9.c:709 - if that wording changes, this waits out
+            # HANG_REPORT_S and then prints whatever did arrive, which is the
+            # failure this should have.
+            until = time.monotonic() + HANG_REPORT_S
+            while (time.monotonic() < until
+                   and "what survives is this line." not in "".join(transcript)):
+                pump()
+            found = re.search(r"^hang\s+:[^\r\n]*(?:\r?\n[ \t]{2,}[^\r\n]*)*",
+                              "".join(transcript), re.M)
+            hang = found.group(0).replace("\r", "") if found else ""
+
         # Leave the board in BOOTSEL, for m8.py's reason: m9 never stops on its
         # own, so "the script finished" and "the board is still looping" are the
         # same state, and the next thing anybody does is flash it.
-        try:
-            s.write(b"B")
-            s.flush()
-            time.sleep(0.6)
-            pump()
-        except (OSError, serial.SerialException):
-            pass
+        #
+        # Not after a reboot, though. A board that has just rebooted is already
+        # stopped, at the bitstream prompt, one demo.py away from another run -
+        # and BOOTSEL would throw that away and demand a reflash to get back to
+        # exactly where it is standing. The next thing anybody does here is
+        # re-run, not flash.
+        if not rebooted:
+            try:
+                s.write(b"B")
+                s.flush()
+                time.sleep(0.6)
+                pump()
+            except (OSError, serial.SerialException):
+                pass
 
     print(f"\nsaved     : {args.out}  ({frames} frame lines, {sets} query "
           f"set{'' if sets == 1 else 's'})", file=sys.stderr)
@@ -1063,8 +1204,28 @@ def main() -> int:
         print("(the board rejected the query set - see the reason above)",
               file=sys.stderr)
         return 1
+    if rebooted:
+        if hang:
+            print(f"\nThe board wedged and its watchdog rebooted it. It says "
+                  f"where:\n\n{hang}\n\nThe run is void - the frozen background "
+                  f"went with the reboot - but the board is back at the "
+                  f"bitstream prompt, so re-running this is all it takes.",
+                  file=sys.stderr)
+            return 3
+        print(f"\n(the board vanished and came back, which is a watchdog "
+              f"reboot, but it never printed the `hang :` line that names the "
+              f"stage. Either the reboot was not the watchdog's - a brown-out "
+              f"or a USB re-enumeration on its own would look identical from "
+              f"here - or this end reattached and the board is still waiting "
+              f"on something. The log has whatever it did say.)",
+              file=sys.stderr)
+        return 3
     if stalled:
-        print(f"(nothing printed for {args.idle:.0f} s - the loop stalled)",
+        print(f"(nothing printed for {args.idle:.0f} s - the loop stalled. "
+              f"NOTE the port never went away, so the board is still "
+              f"enumerated and its watchdog did NOT reboot it: whatever it is "
+              f"stuck in is feeding the watchdog, which is a much smaller list "
+              f"than 'somewhere in the frame loop'.)",
               file=sys.stderr)
         return 2
     if not frames:
