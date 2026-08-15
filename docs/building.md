@@ -87,7 +87,7 @@ One `ninja` produces every on-device harness as its own `.uf2`:
 | `forgix_m2` | the link sweep: LFSR, offset correlator, error rate per clock |
 | `forgix_cam_probe` | the camera alone, dumping a frame down the CDC |
 | `forgix_psram_probe` | the raw `0x9F` read from U1. Kept for the record; U1 is unusable |
-| `forgix_diag` | the wedge locator. **Currently unbuildable** — it wants `rtl/build/probe_a.hex`, which is gitignored ([#5](https://github.com/kazunori279/fpga-open-vocab/issues/5)) |
+| `forgix_diag` | the wedge locator: the config ladder, one rung per reused pin. Its four images are Efinity output and are not committed, so a rung with no image is **skipped at run time** rather than failing the build ([#5](https://github.com/kazunori279/fpga-open-vocab/issues/5)) — `cmake` says which ones are missing, and `rtl/build.sh` makes the `probe_*` ones |
 
 ## Building the fabric
 

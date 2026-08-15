@@ -135,10 +135,15 @@ pico_add_extra_outputs(forgix_m2)
 #
 # None of the four are committed. Three are rtl/build/ outputs, and plasm_led.hex
 # is the vendor's, from the developer repo linked in the README - Efinity build
-# products are Efinix tool output and this repo does not redistribute them. So
-# this target is the one thing here a fresh clone cannot make: ninja fails on the
-# missing DEPENDS rather than skipping it, which is worth knowing before you
-# type `ninja` with no target.
+# products are Efinix tool output and this repo does not redistribute them.
+#
+# So each one gets the same treatment the main bitstream gets above (#5): a path
+# that does not exist is left out of DEPENDS, hex2c.py embeds an empty array, and
+# diag.c prints "skipped (image missing from the build)" for that rung. Listing a
+# missing file in DEPENDS instead stops ninja before it compiles a line - which
+# made `ninja` with no target fail on every clean checkout, and made the one tool
+# for the problem that has cost the most bench time the one tool nobody could
+# build. A diagnostic with three of four rungs is worth more than a build error.
 set(DIAG_IMAGES
     vendor:${CMAKE_CURRENT_LIST_DIR}/../vendor/plasm_led/plasm_led.hex
     probe_a:${CMAKE_CURRENT_LIST_DIR}/../rtl/build/probe_a.hex
@@ -146,18 +151,34 @@ set(DIAG_IMAGES
     probe_c:${CMAKE_CURRENT_LIST_DIR}/../rtl/build/probe_c.hex)
 
 set(DIAG_SOURCES "")
+set(DIAG_MISSING "")
 foreach(entry IN LISTS DIAG_IMAGES)
     string(REGEX MATCH "^[^:]+" sym ${entry})
     string(REGEX REPLACE "^[^:]+:" "" path ${entry})
+    set(deps ${CMAKE_CURRENT_LIST_DIR}/../tools/hex2c.py)
+    if(EXISTS ${path})
+        list(APPEND deps ${path})
+    else()
+        list(APPEND DIAG_MISSING ${sym})
+    endif()
     add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${sym}.c
         COMMAND uv run ${CMAKE_CURRENT_LIST_DIR}/../tools/hex2c.py
                 ${path} ${CMAKE_CURRENT_BINARY_DIR}/${sym}.c --symbol ${sym}
-        DEPENDS ${CMAKE_CURRENT_LIST_DIR}/../tools/hex2c.py ${path}
+        DEPENDS ${deps}
         COMMENT "Embedding ${sym} <- ${path}"
         VERBATIM)
     list(APPEND DIAG_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/${sym}.c)
 endforeach()
+
+# Said once, at configure time, because a ladder quietly missing its control rung
+# is a diagnostic that answers a different question than the one it was asked.
+if(DIAG_MISSING)
+    string(REPLACE ";" " " diag_missing_str "${DIAG_MISSING}")
+    message(STATUS "forgix_diag: no image for ${diag_missing_str} - "
+                   "those rungs will be skipped at run time. rtl/build.sh makes "
+                   "the probe_* ones; plasm_led.hex is the vendor's.")
+endif()
 
 # --- forgix_m5 -------------------------------------------------------------
 # M5: the int8 student encoder, timed on the MCU. Weights and golden vectors are

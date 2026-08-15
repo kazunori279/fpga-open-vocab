@@ -190,8 +190,16 @@ int main(void)
 
     const struct attempt ladder[] = {
         {"vendor plasm_led",       vendor,  vendor_len,  "none (control)"},
+        // len is size_t, so the subtraction has to be guarded rather than left
+        // to the "skipped" check below: with no vendor image linked in,
+        // 0 - VENDOR_HEADER_BYTES is not a small number, it is SIZE_MAX-ish, and
+        // this rung would clock four gigabytes of nothing into the FPGA instead
+        // of being skipped. Reachable since #5 made a missing image a placeholder
+        // rather than a build error.
         {"vendor, header stripped",
-         vendor + VENDOR_HEADER_BYTES, vendor_len - VENDOR_HEADER_BYTES, "none"},
+         vendor + VENDOR_HEADER_BYTES,
+         vendor_len > VENDOR_HEADER_BYTES ? vendor_len - VENDOR_HEADER_BYTES : 0,
+         "none"},
         {"probe_a  LEDs only",     probe_a, probe_a_len, "none"},
         {"probe_b  + A4",          probe_b, probe_b_len, "NSTATUS"},
         {"probe_c  + F3,F2",       probe_c, probe_c_len, "NSTATUS CCK CDI0"},
