@@ -734,6 +734,12 @@ def main() -> int:
     ap.add_argument("--fault", type=int, default=0, metavar="N",
                     help="after N frames, provoke a link fault so D1 shows its "
                          "fault display for six seconds, then clears")
+    ap.add_argument("--cam-fault", type=int, default=0, metavar="N",
+                    help="after N frames, stall the camera bus on purpose, so "
+                         "issue #8's deadline fires and costs one frame instead "
+                         "of the board. The real trigger appears twice in five "
+                         "runs and never on demand, so this is how the recovery "
+                         "gets watched")
     ap.add_argument("--enrol", action="append", default=[], metavar="FRAME:KEY",
                     help="M21. At the board's frame FRAME, press KEY - '0' for "
                          "the empty scene, '1'..'6' for the Nth class query. "
@@ -1125,6 +1131,13 @@ def main() -> int:
                     # and the person checking it is looking at the board.
                     if args.fault and frames == args.fault:
                         s.write(b"E")
+                        s.flush()
+                    # And the camera's. One keystroke, one lost frame: the board
+                    # arms the stall for the next transfer, prints where the
+                    # state machine stopped, resyncs and carries on - so unlike
+                    # 'E' there is nothing to clear and nothing to wait out.
+                    if args.cam_fault and frames == args.cam_fault:
+                        s.write(b"C")
                         s.flush()
                     # Up to the "(cos", not the first space: m9.c prints
                     # `MATCH <name> (cos 0.037)` and a name has spaces in it

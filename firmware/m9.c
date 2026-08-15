@@ -1072,6 +1072,7 @@ static int poll_host(uint32_t dim, uint32_t us)
         // Nothing measured the spread toggle on the board; that is now possible.
         if (c == 'S' || c == 's') return 'S';
         if (c == 'W' || c == 'w') return 'W';
+        if (c == 'C' || c == 'c') return 'C';
         if (c == 'N' || c == 'n') return 'N';
         // M21's enrolment keys. Digits miss all four of F, G, X and Q, which is
         // the constraint the note above exists to enforce.
@@ -1702,7 +1703,8 @@ int main(void)
            "'H' to freeze/unfreeze the background,\n"
            "            'S' to switch the spread between this room's and "
            "COCO's, 'W' to hang on purpose and see\n"
-           "            the watchdog name the stage,\n"
+           "            the watchdog name the stage, 'C' to stall the camera "
+           "bus on purpose and see it cost one frame,\n"
            "            'N' to forget it and learn it again from now. 'P' and "
            "'V' together describe the same frame.\n",
            (unsigned)ft_nconv());
@@ -1947,6 +1949,21 @@ int main(void)
                    (unsigned)FGX_WD_MS, (unsigned)n);
             stdio_flush();
             for (;;) tight_loop_contents();
+        }
+        // The camera-bus twin of 'W', and the opposite outcome on purpose: 'W'
+        // proves the watchdog names a stage, this proves the stage no longer
+        // needs naming. Issue #8's hang was cam_xfer() spinning on a byte that
+        // never arrived; the loop is bounded now, so this should cost one frame
+        // and a diagnostic line rather than the run.
+        if (c == 'C') {
+            printf("\ncamera    : stalling the bus on purpose on the next "
+                   "transfer. Expect a `camera bus stalled` line, then\n"
+                   "            `no usable frame off the camera` for frame %u, "
+                   "then frame %u as if nothing happened.\n",
+                   (unsigned)n, (unsigned)(n + 1));
+            stdio_flush();
+            ft_cam_fault_inject();
+            continue;
         }
         if (c == 'Q' || c == 'q') {
             // A rejected set leaves the old one resident and running, which is

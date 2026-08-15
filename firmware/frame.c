@@ -1098,6 +1098,8 @@ void ft_cap_stats(int mean[3], uint32_t *expose_us, uint32_t *read_us)
     if (read_us)   *read_us   = cap_read_us;
 }
 
+void ft_cam_fault_inject(void) { cam_bus_fault_inject(); }
+
 // Returns ft_frame() on success and NULL to mean "use the flash vector". Prints
 // its own verdict either way, because a silent fallback is how a camera that
 // stopped answering turns into six perfectly good rows about the wrong input.

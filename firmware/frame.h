@@ -220,4 +220,11 @@ const void *ft_capture(float in_scale);
 // NULL.
 void ft_cap_stats(int mean[3], uint32_t *expose_us, uint32_t *read_us);
 
+// Arm a one-shot stall on the camera bus, so the next ft_capture() takes the
+// failure path on purpose and returns NULL. See cam.h: the deadline this
+// provokes guards issue #8, whose real trigger appears twice in five runs and
+// never when asked. Behind ft_ rather than called directly because m9 reaches
+// the camera through this header and nothing else.
+void ft_cam_fault_inject(void);
+
 #endif // FRAME_H

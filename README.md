@@ -64,7 +64,7 @@ harness, and rebuilding the model — are in [`docs/building.md`](docs/building.
 
 | | |
 |---|---|
-| **frame time** | **304 ms**, all 8 layers on the tile, at 280/140 on the `m7` harness. The camera appliance boots to the same operating point; its own figure there is [#1](https://github.com/kazunori279/fpga-open-vocab/issues/1) |
+| **frame time** | **304 ms** of inference, all 8 layers on the tile, at 280/140 on the `m7` harness — and **454 ms end to end** on the camera appliance at the same operating point, every clean run agreeing to the digit. The 150 ms between them is 52 ms of camera, which does not scale with the clock, and ~98 ms of work `m7` does not do: the queries, the z-scoring, the decision rule and a CDC line per frame. Closing it is [#10](https://github.com/kazunori279/fpga-open-vocab/issues/10) |
 | **bit-exactness** | 512 of 512 embedding floats identical to `firmware/encoder.c` |
 | **speedup** | **11.33×** the same model on the MCU alone (`encoder_fast`, 3,359 ms, measured in the same boot) |
 | **clocks** | 280 MHz sys / 140 MHz link, bit-exact there |

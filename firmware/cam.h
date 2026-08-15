@@ -13,6 +13,15 @@
 // which is what ArduCAM's own cameraTakePicture() does (ArducamCamera.c:431-447)
 // and which reads like tidiness. It is not.
 //
+// EVERY WAIT IN HERE IS BOUNDED, and one of them was not until issue #8. The
+// PIO transfer loop had no exit but the bytes arriving, so a byte that never
+// came back spun the core until the 8 s watchdog rebooted the board - twice, at
+// 280/140, and only ever there. It now gives up after 2 ms of no progress,
+// prints where and what the state machine was doing, resyncs the shift register
+// and poisons the rest of the capture so the bounded loops above it do not
+// rediscover the same fault twenty thousand times. The cost of a dropped byte
+// is one frame. What causes the dropped byte is still open.
+//
 // Pins - SCK GPIO8, MISO GPIO9, MOSI GPIO12, CS GPIO13 - are on the RP header
 // and disjoint from the link's (GPIO1/2/3/6, or 22 in configuration C), so the
 // camera and the FPGA coexist with no arbitration. The PIO *instance* is the
@@ -133,6 +142,14 @@ float cam_bus_mhz(void);
 
 void    cam_write_reg(uint8_t addr, uint8_t val);
 uint8_t cam_read_reg(uint8_t addr);
+
+// Arm a one-shot stall on the next transfer, in the same spirit as m9's 'W' and
+// 'E': the deadline above guards a failure that appears twice in five runs and
+// never on demand, and a recovery path that cannot be provoked is a recovery
+// path nobody has watched work. This stops the state machine mid-transfer, which
+// is what a dropped byte looks like from the loop's side - it fires once and the
+// resync puts the bus back, so the run continues rather than ending.
+void cam_bus_fault_inject(void);
 
 // The sensor runs its own I2C to the die behind the ArduChip, and every
 // configuration write is asynchronous to us. Bounded rather than a bare while:

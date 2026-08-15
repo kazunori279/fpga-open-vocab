@@ -16,6 +16,14 @@ static uint     cam_off;
 static bool     bus_pio;      // false = bit-bang
 static float    bus_div;
 
+// Sticky, cleared at the top of cam_capture(). A stalled transfer leaves the
+// state machine mid-byte and the ArduChip mid-transaction, so everything after
+// it on this bus is meaningless - and, worse, expensive: cam_wait_idle() would
+// otherwise spend 20,000 register reads discovering the same stall twenty
+// thousand times, which is how a 2 ms fault becomes a watchdog reboot. Once set,
+// cam_xfer() returns without touching the wire and the bounded loops give up.
+static bool     bus_fault;
+
 static void cs_high(void) { gpio_put(CAM_PIN_CS, 1); }
 static void cs_low(void)  { gpio_put(CAM_PIN_CS, 0); }
 
@@ -59,28 +67,97 @@ float cam_bus_mhz(void)
     return (float)clock_get_hz(clk_sys) / (4.0f * bus_div) / 1e6f;
 }
 
+// A transfer that makes no progress for this long has stopped, not slowed. The
+// state machine emits a byte every 500 ns at the 16 MHz the burst runs at and
+// every 1 us at the 8 MHz the register writes run at, so this is two to four
+// thousand bytes' worth of nothing happening. There is no legitimate pause here:
+// the ArduChip is a shift register with a FIFO behind it and neither of them
+// waits on anything. Anything that trips this is a fault.
+#define CAM_XFER_STALL_US 2000u
+
+// Put the state machine back where cam_bus_pio() found it. Bailing out of a
+// transfer leaves the OSR half-consumed and the ISR half-filled, and a shift
+// register that is one bit out stays one bit out forever - so the recovery is
+// not optional decoration. pio_sm_init() inside cam_spi_init() disables, clears
+// both FIFOs, restarts the clock divider and sets the PC back to the top.
+static void cam_bus_resync(void)
+{
+    if (!bus_pio) return;
+    pio_sm_set_enabled(cam_pio, cam_sm, false);
+    cam_spi_init(cam_pio, cam_sm, cam_off,
+                 CAM_PIN_MOSI, CAM_PIN_MISO, CAM_PIN_SCK, bus_div);
+}
+
 // Full duplex, MSB first. `rx` may be NULL. Neither implementation touches CS -
 // see the note in cam_spi.pio about why a burst read cannot afford it.
-static void cam_xfer(const uint8_t *tx, uint8_t *rx, size_t n)
+//
+// BOUNDED, for the same reason cam_wait_idle() and the CAP_DONE poll are, and
+// this is the one that was not. `while (ri < n)` has no exit but n bytes coming
+// back, so one byte that never arrives spun the core until the 8 s watchdog took
+// the board - and it did, twice, at 280/140 (issue #8). A dropped byte should
+// cost one frame. cam_capture() returns 0, ft_capture() returns NULL, and m9
+// prints "no usable frame off the camera" and takes the next one: that path
+// already existed and was unreachable because the driver died before it.
+static bool inject_stall;
+
+void cam_bus_fault_inject(void) { inject_stall = true; }
+
+static bool cam_xfer(const uint8_t *tx, uint8_t *rx, size_t n)
 {
+    if (bus_fault) return false;
+
     if (bus_pio) {
+        // Stopping the state machine starves the RX FIFO while the TX side
+        // keeps accepting four more words, which is exactly the shape of a byte
+        // that never comes back. Armed by 'C' on m9's console; see cam.h.
+        if (inject_stall) {
+            inject_stall = false;
+            pio_sm_set_enabled(cam_pio, cam_sm, false);
+        }
         // Kept pipelined rather than put-then-get per byte. The FIFOs are four
         // deep each way, and at 8 MHz a byte is 1 us against maybe 30 ns of loop,
         // so serializing would cost only a few percent - but the burst is 32,768
         // bytes and a few percent of the one transfer that scales with the frame
         // is worth eight lines.
         size_t ti = 0, ri = 0;
+        uint64_t idle_since = 0;
         while (ri < n) {
+            bool moved = false;
             if (ti < n && !pio_sm_is_tx_fifo_full(cam_pio, cam_sm)) {
                 // Byte at bits 31:24: shift-left OSR, threshold 8.
                 pio_sm_put(cam_pio, cam_sm, (uint32_t)tx[ti] << 24);
                 ti++;
+                moved = true;
             }
             if (!pio_sm_is_rx_fifo_empty(cam_pio, cam_sm)) {
                 uint8_t b = (uint8_t)pio_sm_get(cam_pio, cam_sm);
                 if (rx) rx[ri] = b;
                 ri++;
+                moved = true;
             }
+            // The clock is only read when nothing moved, so the deadline costs
+            // the healthy burst nothing at all rather than a timer read per
+            // byte. It also bounds the *stall* rather than the transfer, which
+            // is the thing that actually fails and the thing that needs no
+            // arithmetic about how long 32,768 bytes ought to take.
+            if (moved) { idle_since = 0; continue; }
+            uint64_t now = time_us_64();
+            if (!idle_since) { idle_since = now; continue; }
+            if (now - idle_since < CAM_XFER_STALL_US) continue;
+
+            // Everything a diagnosis needs, because the trigger is still open
+            // (#8): which direction stopped - ti == n with ri short means bytes
+            // went out and did not come back - and whether the state machine is
+            // even running. Print before the resync; it clears all of it.
+            printf("  !! camera bus stalled %u us at byte %u of %u, %u sent\n"
+                   "     pio pc=%u fstat=%08x fdebug=%08x sck=%.1f MHz\n",
+                   (unsigned)(now - idle_since), (unsigned)ri, (unsigned)n,
+                   (unsigned)ti, (unsigned)pio_sm_get_pc(cam_pio, cam_sm),
+                   (unsigned)cam_pio->fstat, (unsigned)cam_pio->fdebug,
+                   (double)cam_bus_mhz());
+            bus_fault = true;
+            cam_bus_resync();
+            return false;
         }
     } else {
         for (size_t i = 0; i < n; i++) {
@@ -96,6 +173,7 @@ static void cam_xfer(const uint8_t *tx, uint8_t *rx, size_t n)
             if (rx) rx[i] = v;
         }
     }
+    return true;
 }
 
 void cam_write_reg(uint8_t addr, uint8_t val)
@@ -124,6 +202,9 @@ bool cam_wait_idle(const char *what)
     for (int i = 0; i < 20000; i++) {
         if ((cam_read_reg(CAM_REG_SENSOR_STATE) & 0x03) == CAM_REG_SENSOR_STATE_IDLE)
             return true;
+        // A stalled bus cannot answer this question, and asking it 20,000 more
+        // times is 2 s of not answering it.
+        if (bus_fault) return false;
         sleep_us(100);
     }
     printf("  !! sensor never went idle after %s\n", what);
@@ -175,6 +256,10 @@ uint32_t cam_capture(const cam_recipe_t *r, uint8_t mode, uint8_t fmt,
     cam_time_t discard;
     if (!t) t = &discard;
 
+    // One capture is the unit of recovery: the bus was resynced when the fault
+    // was raised, so this one starts clean and gets to fail on its own merits.
+    bus_fault = false;
+
     uint64_t t0 = time_us_64();
     // The guard cam.h's header comment is about. Not tidiness.
     if (r->rewrite || fmt != last_fmt) {
@@ -199,6 +284,7 @@ uint32_t cam_capture(const cam_recipe_t *r, uint8_t mode, uint8_t fmt,
     bool done = false;
     for (int i = 0; i < 30000 && !done; i++) {
         done = (cam_read_reg(ARDUCHIP_TRIG) & CAP_DONE_MASK) != 0;
+        if (bus_fault) return 0;   // 3 s of polling a bus that has stopped
         if (!done) sleep_us(100);
     }
     uint64_t t2 = time_us_64();
@@ -228,6 +314,9 @@ uint32_t cam_capture(const cam_recipe_t *r, uint8_t mode, uint8_t fmt,
     }
     cs_high();
     uint64_t t4 = time_us_64();
+    // A short burst is a torn frame, not a frame. The first stalled chunk
+    // short-circuits the rest, so this costs one deadline and not 128 of them.
+    if (bus_fault) return 0;
 
     t->setup_us  = (uint32_t)(t1 - t0);
     t->expose_us = (uint32_t)(t2 - t1);

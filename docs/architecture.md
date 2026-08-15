@@ -51,6 +51,8 @@ Both chips sit on one ~$50 board and talk over a **3-bit link**: three data wire
 
 **Steps 2 through 10 all run on the board, and steps 3 through 9 are the 304 ms.** Step 1 runs on the host, once per *query* rather than once per frame; step 2 is an ArduCam Mega 3MP over SPI, fitted since M8b and required — `m9.c:1592` refuses to start the demo without one; step 10 is a handful of dot products and some arithmetic on six numbers.
 
+**The appliance's own frame is 454 ms**, and the split above is where the other 150 ms lives. 304 ms is steps 3–9 measured on `m7`, which starts from a test vector and stops at an embedding. Step 2 costs **52 ms** — 37 of exposure and 16 of burst read — and is the only part of the frame that does not scale with the system clock, because both are the camera's own rates rather than `clk_sys`. The remaining ~98 ms is step 10 plus what a demo does that a harness does not: hold a background, standardize against it, and print a line per frame down the CDC. Splitting that 98 ms properly is [#10](https://github.com/kazunori279/fpga-open-vocab/issues/10), which is also the issue for closing it.
+
 ---
 
 ## The board, as actually wired
@@ -80,7 +82,7 @@ One idea recurs below and is worth having up front. The T8 has no configuration 
 ---
 
 
-Everything below describes the system that exists and has been measured, in configuration C, as of 2026-08-03. **A frame took 851 ms then and takes 304 ms now** — M16, the two clock audits and M17 all landed after this section was written, and the *shape* is what they left alone. The structure below is current; every absolute millisecond in it is the 2026-08-03 measurement and is labelled where it appears, because re-deriving the per-actor split at 280/140 needs a profiling run that has not been done. Where the two disagree, [Status](history.md#status-and-roadmap) is right. The frame is bit-exact against the plain-C reference in every **mode** tested — a mode being one selectable code path inside a single firmware binary, six of them today, so that any two of them can be compared in the same boot rather than across a reflash. How it got there is in [`milestones.md`](milestones.md); this section is only the shape it ended up.
+Everything below describes the system that exists and has been measured, in configuration C, as of 2026-08-03. **An inference frame took 851 ms then and takes 304 ms now** — M16, the two clock audits and M17 all landed after this section was written, and the *shape* is what they left alone. The structure below is current; every absolute millisecond in it is the 2026-08-03 measurement and is labelled where it appears, because re-deriving the per-actor split at 280/140 needs a profiling run that has not been done ([#10](https://github.com/kazunori279/fpga-open-vocab/issues/10)). Where the two disagree, [Status](history.md#status-and-roadmap) is right. The frame is bit-exact against the plain-C reference in every **mode** tested — a mode being one selectable code path inside a single firmware binary, six of them today, so that any two of them can be compared in the same boot rather than across a reflash. How it got there is in [`milestones.md`](milestones.md); this section is only the shape it ended up.
 
 
 ## The shape of the thing
