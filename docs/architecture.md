@@ -308,7 +308,7 @@ One cut at 0.50 was M20's failure in a new costume: it shut on 19 frames of `an 
 
 **The bench is an instrument, and that is part of the design.** `host/cue.py` speaks the scene changes aloud on a fixed schedule and records which frame each cue landed on into a `.cues` sidecar; `tools/score_cue.py` scores the run against it, counting only from the frame the rule actually went live. Every number in this section came out of that pair, which is why they are held-out percentages rather than impressions.
 
-**One honest gap.** The presence stage's *cost* is measured — 0/26 on the empty desk, and it costs nothing on the classes — but its **benefit is not**, because it has never fired on a bench: the only empty scene in `cue.py`'s schedule runs before the rule engages. Replaying that baseline against the run's own references says it would have held (0/30 called present, worst case), but a stage whose cost is measured and whose benefit is inferred is half a result. Task #96.
+**One honest gap.** The presence stage's *cost* is measured — 0/26 on the empty desk, and it costs nothing on the classes — but its **benefit is not**, because it has never fired on a bench: the only empty scene in `cue.py`'s schedule runs before the rule engages. Replaying that baseline against the run's own references says it would have held (0/30 called present, worst case), but a stage whose cost is measured and whose benefit is inferred is half a result. [#15](https://github.com/kazunori279/fpga-open-vocab/issues/15) has what it would take: the empty scene has to be *revisited* after the last class is enrolled, because `cue.py` only ever schedules it first and `score_cue.py` drops that segment as the one the reference was taken from.
 
 ## Who runs what
 
