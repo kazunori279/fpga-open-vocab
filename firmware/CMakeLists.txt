@@ -35,7 +35,15 @@ add_compile_definitions(GP_KPACK=${GP_KPACK})
 # on m9's own path rather than inherited from m6 and m7: the 2026-08-15 sweep
 # ran 280, 300, 320, 332 and 340 on the appliance, and 320 is where the useful
 # part of that curve ends. 332 measures the same 420 ms and sits one step from
-# 340, where the link stops answering entirely. This is a cache variable rather
+# 340, where the link stops answering entirely.
+#
+# THAT SWEEP IS NOW WORTH RE-RUNNING. 332 tied 320 only because both sat in one
+# cell of the sensor's ~34 ms grid, and issue #10 has since taken the sensor out
+# of the frame: what is left is 346 ms of encode that scales exactly with 1/f,
+# so the ~13 ms 332 was always worth should now be visible. It has not been
+# measured, and until it is, 320 is what ships.
+#
+# This is a cache variable rather
 # than an edit to m9.c so that the 150 MHz control can be built without touching
 # source - the two images have to differ in exactly one thing to be worth
 # comparing. m6 and m7 sweep the rate themselves and ignore this.

@@ -228,13 +228,17 @@ uint32_t ft_cap_wait_us(void);
 
 // Overlap the next capture with the caller's own work. Off by default.
 //
-// WHAT THIS IS FOR. The appliance frame does not scale with the system clock -
-// the inference does, exactly, but the frame lands on a grid about one sensor
-// period wide, so 332 MHz measures the same 420 ms as 320 (issue #10). The
-// suspect is ft_capture() standing still while the sensor finishes a frame on
+// WHAT THIS IS FOR. The appliance frame did not scale with the system clock -
+// the inference did, exactly, but the frame landed on a grid about one sensor
+// period wide, so 332 MHz measured the same 420 ms as 320 (issue #10). The
+// suspect was ft_capture() standing still while the sensor finished a frame on
 // its own boundary. With this on, ft_capture() triggers the *next* capture
 // before it returns, so that boundary is reached underneath the caller's
 // compute and the collect that follows finds CAP_DONE already asserted.
+//
+// IT WAS THE SENSOR. Back to back on one boot, one build and one scene, by m9's
+// wall clock: 429 ms serial against 372 overlapped, the encode 346 ms in both
+// and the burst 16 ms in both. What moved is a 56 ms wait that becomes 0.
 //
 // It costs no memory: the frame waits in the ArduChip's FIFO, not in the arena.
 //

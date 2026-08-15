@@ -2,7 +2,7 @@
 
 **fpga-open-vocab** points a camera at something, you type **"a person smiling"** on the host, and a $50 board answers — by running a distilled [CLIP-style](https://arxiv.org/abs/2103.00020) image encoder on a [Forgix](https://forgix.tech/) board, which pairs an [RP2354A](https://www.raspberrypi.com/products/rp2350/) MCU with an [Efinix Trion T8](https://www.efinixinc.com/products-trion.html) FPGA.
 
-It is built and it runs. All eight convolution layers execute on the FPGA tile, off a live camera, and **bit-exact** against the plain-C reference — a whole camera frame in **420 ms**, of which **350 ms** is the encoder. Against the MCU running the same model alone, at the same clock, the tile is **11.33×** faster.
+It is built and it runs. All eight convolution layers execute on the FPGA tile, off a live camera, and **bit-exact** against the plain-C reference — a whole camera frame in **363 ms**, of which **346 ms** is the encoder. Against the MCU running the same model alone, at the same clock, the tile is **11.33×** faster.
 
 ```
 ArduCam SPI ──▶ RP2354A ──3-bit on-board link──▶ Trion T8 ──▶ RGB LED / USB serial
@@ -64,7 +64,7 @@ harness, and rebuilding the model — are in [`docs/building.md`](docs/building.
 
 | | |
 |---|---|
-| **frame time** | **420 ms end to end** on the camera appliance at 320/160 — 603 of 603 frames across three runs, every run agreeing to the digit. The inference inside it is **350 ms**, and it scales exactly with the clock; the rest is the camera, the queries, the z-scoring and a CDC line per frame. The appliance frame *steps* rather than scaling, in units of about one sensor frame, which is why 332 MHz measures the same 420 — see [#10](https://github.com/kazunori279/fpga-open-vocab/issues/10). The `m7` harness, which runs no camera and answers no queries, is **304 ms** at 280/140 |
+| **frame time** | **363 ms end to end** on the camera appliance at 320/160, and **373 ms** by an independent wall clock on the board — 300 of 300 frames in one run. The encoder inside it is **346 ms** and scales exactly with the clock; the rest is a 16 ms burst read off the camera plus the queries, the z-scoring and a CDC line per frame. It was 429 ms until [#10](https://github.com/kazunori279/fpga-open-vocab/issues/10) overlapped the capture with the compute: the frame used to *step* in units of one sensor frame rather than scale, so 332 MHz measured the same 420 as 320. The `m7` harness, which runs no camera and answers no queries, is **304 ms** at 280/140 |
 | **bit-exactness** | 512 of 512 embedding floats identical to `firmware/encoder.c` |
 | **speedup** | **11.33×** the same model on the MCU alone (`encoder_fast`, 3,359 ms, measured in the same boot) |
 | **clocks** | **320 MHz sys / 160 MHz link** on the appliance, core 1.25 V, bit-exact there. 340 is not a higher setting to try: the link stops answering, twice, deterministically |

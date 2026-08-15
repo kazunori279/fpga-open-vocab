@@ -747,7 +747,9 @@ def main() -> int:
                          "between overlapped with the compute and serial. "
                          "Repeatable, and the board boots overlapped, so "
                          "`--overlap 40` gives 40 frames overlapped then the "
-                         "rest serial - the baseline the 420 ms figure was")
+                         "rest serial - which is what the appliance did until "
+                         "2026-08-15, and measures 429 ms by the board's clock "
+                         "against 372 overlapped")
     ap.add_argument("--enrol", action="append", default=[], metavar="FRAME:KEY",
                     help="M21. At the board's frame FRAME, press KEY - '0' for "
                          "the empty scene, '1'..'6' for the Nth class query. "

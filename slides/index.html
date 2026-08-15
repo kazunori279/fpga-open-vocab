@@ -275,7 +275,7 @@
   <div style="margin-top:186px;">
     <h1 class="cover">fpga-open-vocab: describe it,<br>and a $50 board spots it</h1>
     <div class="cover-sub">A distilled CLIP-style image encoder running on a tiny FPGA — 1.40 M parameters in 768 KB of
-    int4, all eight convolution layers in the fabric, 420 ms per camera frame, and bit-exact against the plain-C reference.</div>
+    int4, all eight convolution layers in the fabric, 363 ms per camera frame, and bit-exact against the plain-C reference.</div>
     <div class="cover-by">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.22-6.82-5.97 6.82H1.66l7.73-8.83L1.24 2.25h6.83l4.71 6.23zm-1.16 17.52h1.83L7.08 4.13H5.12z"/></svg>
       <a href="https://x.com/kazunori_279" target="_blank" rel="noopener">@kazunori_279</a>
@@ -351,7 +351,7 @@
         <li>Runs a <b>distilled CLIP-style image encoder</b> — 1.40 M int4 parameters, 159 MMAC per frame</li>
         <li>On a <b>~$50 Forgix board</b>: an <b>RP2354A</b> MCU beside an <b>Efinix Trion T8</b> FPGA</li>
         <li>All <b>eight convolution layers execute in the fabric</b>, off a live camera</li>
-        <li><b>420 ms per camera frame</b> — <b>350 ms</b> of it the encoder — and <b>bit-exact</b>: 512 of 512 embedding floats identical to the plain-C reference</li>
+        <li><b>363 ms per camera frame</b> — <b>346 ms</b> of it the encoder — and <b>bit-exact</b>: 512 of 512 embedding floats identical to the plain-C reference</li>
         <li><b>11.33×</b> the same model on the MCU alone, measured in the same boot</li>
       </ul>
       <p class="mut">No cloud, no GPU, no network. The answer comes out on an RGB LED,
@@ -734,7 +734,7 @@
       </svg></div>
       <div class="ot">Student, MCU + FPGA tile</div>
       <div class="ou">MCU cuts each layer into blocks; the fabric does the multiplies</div>
-      <div class="op">+ <b>350 ms of inference, 11.33×</b>, all 8 layers in fabric, bit-exact 512/512</div>
+      <div class="op">+ <b>346 ms of inference, 11.33×</b>, all 8 layers in fabric, bit-exact 512/512</div>
     </div>
   </div>
   <div class="lbar">
@@ -1050,7 +1050,9 @@
   claim rested on 313 ms of it being the tile computing against a fabric that "caps at 125 MHz". Both
   halves turned out to be moveable — and the single largest win in the table is the one with no
   design work in it. <b>Every row is the <code>m7</code> harness, which runs no camera</b>; the
-  appliance ships at <b>320 MHz / 160 MHz</b> today and its camera frame is <b>420 ms</b>.</div>
+  appliance ships at <b>320 MHz / 160 MHz</b> today and its camera frame is <b>363 ms</b> — and the
+  last 56 ms of that came off by overlapping the capture with the compute, not by clocking anything
+  faster.</div>
   </section>
 
 <!-- ============ INT4 ============ -->
