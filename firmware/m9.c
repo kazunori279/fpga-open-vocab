@@ -1490,6 +1490,18 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
 #define FGX_SYS_KHZ 280000
 #endif
 
+// 0 = the ladder below decides. A number is a bench override, in millivolts,
+// and it goes through the same "voltage up before frequency up" path rather
+// than around it - an override that skipped the ordering would be a way of
+// browning out the core from a build flag.
+#ifndef FGX_CORE_MV
+#define FGX_CORE_MV 0
+#endif
+#if FGX_CORE_MV != 0 && FGX_CORE_MV != 1100 && FGX_CORE_MV != 1150 && \
+    FGX_CORE_MV != 1200 && FGX_CORE_MV != 1250 && FGX_CORE_MV != 1300
+#error "FGX_CORE_MV must be 0, 1100, 1150, 1200, 1250 or 1300"
+#endif
+
 static enum vreg_voltage sys_rail = VREG_VOLTAGE_DEFAULT;
 
 static const char *volt_name(enum vreg_voltage v)
@@ -1510,9 +1522,21 @@ static const char *volt_name(enum vreg_voltage v)
 static uint32_t sys_clock_bring_up(uint32_t khz)
 {
     const enum vreg_voltage want =
+#if   FGX_CORE_MV == 1300
+        VREG_VOLTAGE_1_30;
+#elif FGX_CORE_MV == 1250
+        VREG_VOLTAGE_1_25;
+#elif FGX_CORE_MV == 1200
+        VREG_VOLTAGE_1_20;
+#elif FGX_CORE_MV == 1150
+        VREG_VOLTAGE_1_15;
+#elif FGX_CORE_MV == 1100
+        VREG_VOLTAGE_1_10;
+#else
         khz > 220000 ? VREG_VOLTAGE_1_25 :
         khz > 150000 ? VREG_VOLTAGE_1_20 :
                        VREG_VOLTAGE_DEFAULT;
+#endif
     if (want > sys_rail) {
         vreg_set_voltage(want);
         sleep_ms(10);
@@ -1535,8 +1559,21 @@ static uint32_t sys_clock_bring_up(uint32_t khz)
 
 int main(void)
 {
-    const uint32_t want_khz = (uint32_t)FGX_SYS_KHZ;
-    const uint32_t sys_khz  = sys_clock_bring_up(want_khz);
+    // USB FIRST, THEN THE CLOCK, AND THE ORDER IS A RECOVERY PATH.
+    //
+    // This used to raise the clock before stdio_init_all(), which is fine right
+    // up until the operating point does not work: 320 MHz at 1.15 V wedges the
+    // core, and a board that wedges before USB exists cannot be told to enter
+    // BOOTSEL, cannot be re-flashed, and comes back only on the PRG-GND strap -
+    // i.e. on somebody's hands and a cable. That happened on 2026-08-15, from a
+    // one-line build flag, and it is the failure the rail sweep exists to find,
+    // so finding it must not cost the board.
+    //
+    // Bringing USB up first costs one enumeration at the stock rate and buys a
+    // window - the grace below - in which `picotool reboot -f -u` always works,
+    // whatever the point that follows does. m7 has raised the clock with USB
+    // already up on every rung of its ladder since M7a, so the ordering itself
+    // is not new here; only the reason is.
     stdio_init_all();
 
     while (!stdio_usb_connected())
@@ -1544,11 +1581,24 @@ int main(void)
     sleep_ms(200);
 
     printf("\n=== M9: fpga-open-vocab - describe it, the board spots it ===\n\n");
+
+    // The grace. Long enough for a host that is watching to get a reset request
+    // in, short enough to be invisible against a two-minute run - and it is the
+    // last moment this binary is guaranteed to be alive, so it says so.
+    const uint32_t want_khz = (uint32_t)FGX_SYS_KHZ;
+    printf("clock     : %u MHz requested; BOOTSEL is reachable for 1.5 s\n",
+           (unsigned)(want_khz / 1000u));
+    stdio_flush();
+    sleep_ms(1500);
+
+    const uint32_t sys_khz = sys_clock_bring_up(want_khz);
+
     // Every timing this run prints is a timing at this operating point, so it
     // goes in the log before anything else does. A frame time with no rate
     // beside it is not a measurement of anything.
-    printf("clock     : %u MHz system, core %s V%s\n",
+    printf("clock     : %u MHz system, core %s V%s%s\n",
            (unsigned)(sys_khz / 1000u), volt_name(sys_rail),
+           FGX_CORE_MV ? "  (rail pinned by the build, not by the rate)" : "",
            sys_khz == want_khz ? "" : "  (FALLBACK - requested rate refused)");
     wd_report_last();
 

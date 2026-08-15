@@ -40,6 +40,19 @@ add_compile_definitions(GP_KPACK=${GP_KPACK})
 set(FGX_SYS_KHZ "280000" CACHE STRING "m9 system clock in kHz; link_clk is half")
 add_compile_definitions(FGX_SYS_KHZ=${FGX_SYS_KHZ})
 
+# And the rail that operating point runs on, in millivolts. 0 means "derive it
+# from the rate", which is what ships and what m9.c's ladder does. A number
+# overrides that ladder, and exists for one question: the ladder's thresholds
+# were set generously so the MCU would not become the confound in a measurement
+# about the Trion, and nobody had measured what the appliance actually needs.
+# Answering that takes two builds differing in the rail alone - the same
+# argument FGX_SYS_KHZ is a cache variable for. Values: 1100 1150 1200 1250
+# 1300, and m9.c rejects anything else at compile time rather than picking a
+# neighbour. There is no way to go above 1300: vreg_disable_voltage_limit() is
+# never called here.
+set(FGX_CORE_MV "0" CACHE STRING "m9 core rail in mV; 0 derives it from the rate")
+add_compile_definitions(FGX_CORE_MV=${FGX_CORE_MV})
+
 # Depend on the bitstream only once it exists. Efinity cannot be installed
 # unattended, so "no bitstream yet" is the normal state for this tree and the
 # firmware still has to build: hex2c.py emits an empty placeholder and main.c
