@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include "hardware/watchdog.h"
+#include "pico/bootrom.h"
 #include "pico/stdlib.h"
 
 #include "cam.h"
@@ -221,11 +222,44 @@ bool ft_recv_exact(uint8_t *p, size_t n)
 // and a clean sweep must not then hang forever waiting for one. So the first
 // call blocks (nothing below it can happen without a bitstream) and the second
 // gives up and reports configuration A alone.
+//
+// ISSUE #3: 'B' WORKS HERE NOW, AND THE GUARD IS WHY IT DID NOT BEFORE.
+//
+// This loop owns stdin for as long as it waits, and until 2026-08-15 it swallowed
+// every byte that was not the magic - so the one prompt a board sits at after any
+// host-side abort was the one prompt whose 'B' hotkey did nothing, and the
+// recovery from the most common wedge was a uhubctl at the wall. The 1200-baud
+// DTR touch did work (the pico-sdk answers that in the line-coding callback, in
+// interrupt context, without this loop's help), which is why host/bootsel.py
+// could get out of it and `demo.py --bootsel` could not until it learned the
+// same trick.
+//
+// The reason a 'B' handler is not a one-liner, and it takes two guards.
+//
+//   1. 'B' IS THE LAST BYTE OF THE MAGIC. Reboot on a bare 'B' and no bitstream
+//      ever lands again. So it is only a hotkey when the three bytes in front of
+//      it are not "FGX", which is exactly the test `w` is already keeping.
+//
+//   2. A HOTKEY IS A LONE BYTE; A STREAM IS NOT. Guard 1 alone would be a
+//      regression, because this prompt is also where a board lands after a
+//      watchdog reboot - possibly mid-way through a host that is streaming a
+//      query set at it. 512 floats of IEEE-754 contain a 0x42 sooner or later,
+//      and turning "the run restarted" into "the board is in BOOTSEL and needs a
+//      reflash" would be a worse failure than the one being fixed. So the byte
+//      has to arrive after FT_HOTKEY_QUIET_US of silence: CDC delivers a stream
+//      in 64-byte packets a millisecond apart, and a human or a host pressing 'B'
+//      has always just opened the port.
+//
+// Inside the bitstream itself there is no window at all - by then this loop has
+// returned and ft_recv_exact() owns stdin.
+#define FT_HOTKEY_QUIET_US 100000u
+
 size_t ft_recv_bitstream(int hunt_s)
 {
     uint8_t hdr[8];
 
     uint32_t w = 0;
+    uint64_t prev_us = 0;
     for (int quiet = 0;;) {
         int c = getchar_timeout_us(1000000);
         if (c == PICO_ERROR_TIMEOUT) {
@@ -235,6 +269,21 @@ size_t ft_recv_bitstream(int hunt_s)
             continue;
         }
         quiet = 0;
+        const uint64_t now = time_us_64();
+        const bool alone = now - prev_us >= FT_HOTKEY_QUIET_US;
+        prev_us = now;
+        if ((c == 'B' || c == 'b') && alone &&
+            (w & 0x00ffffffu) != 0x00464758u) {
+            printf("\nbootsel\n"); stdio_flush();
+            // Asked for, so not a hang - m9.c's frame loop clears the same
+            // register for the same reason on its own 'B'. Without this the
+            // next boot reads a stage tag left over from this life and prints
+            // a `hang :` line about a reboot somebody requested, which is a
+            // lie in exactly the ledger #9 is trying to keep straight.
+            watchdog_hw->scratch[0] = 0;
+            sleep_ms(50);
+            reset_usb_boot(0, 0);
+        }
         w = (w << 8) | (uint8_t)c;
         if (w == 0x46475842u) break;      // "FGXB"
     }
@@ -1288,6 +1337,9 @@ uint32_t ft_cap_age_us(void)
 }
 
 void ft_cam_fault_inject(void) { cam_bus_fault_inject(); }
+
+uint32_t ft_cam_gap_us(bool clear) { return cam_bus_gap_max_us(clear); }
+uint32_t ft_cam_stall_us(void)     { return CAM_XFER_STALL_US; }
 
 // Returns ft_frame() on success and NULL to mean "use the flash vector". Prints
 // its own verdict either way, because a silent fallback is how a camera that

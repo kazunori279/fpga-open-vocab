@@ -151,6 +151,30 @@ uint8_t cam_read_reg(uint8_t addr);
 // resync puts the bus back, so the run continues rather than ending.
 void cam_bus_fault_inject(void);
 
+// A transfer that makes no progress for this long has stopped, not slowed. The
+// state machine emits a byte every 500 ns at the 16 MHz the burst runs at and
+// every 1 us at the 8 MHz the register writes run at, so this is two to four
+// thousand bytes' worth of nothing happening. There is no legitimate pause here:
+// the ArduChip is a shift register with a FIFO behind it and neither of them
+// waits on anything. Anything that trips this is a fault.
+//
+// Public because it is the denominator of the figure below, and a margin quoted
+// without the deadline it is a margin against is not a figure.
+#define CAM_XFER_STALL_US 2000u
+
+// THE LARGEST GAP THE BUS WENT WITHOUT MOVING A BYTE, in microseconds, and it is
+// #12's missing measurement. The deadline in cam_xfer() fires at 2,000 us, and
+// until this existed nobody could say whether a healthy burst runs at 50 us from
+// that cliff or at 1,900 - i.e. whether the dropped byte at 280/140 is a margin
+// that the faster clock erodes or a cliff it falls off. The loop already reads
+// the clock on every iteration where nothing moved, so the maximum costs a
+// compare and no timer traffic at all.
+//
+// It is a *high-water mark since the last clear*, not a per-transfer number: one
+// frame is a register write, a CAP_DONE poll and 129 cam_xfer() calls, and the
+// interesting question is about the worst of them, not the last.
+uint32_t cam_bus_gap_max_us(bool clear);
+
 // The sensor runs its own I2C to the die behind the ArduChip, and every
 // configuration write is asynchronous to us. Bounded rather than a bare while:
 // an unpopulated or miswired bus reads 0x00 or 0xff forever.

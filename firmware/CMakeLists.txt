@@ -297,7 +297,11 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
         ${CMAKE_CURRENT_BINARY_DIR}/blobs.S)
 
     target_include_directories(forgix_m7 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
-    target_compile_definitions(forgix_m7 PRIVATE GW_PICO=1)
+    # The stdout timeout for the same reason forgix_m9 pins it - see the block
+    # there. m7 publishes ms/frame too, so a printf that can stand still for half
+    # a second behind a slow reader is the same hazard to the same numbers.
+    target_compile_definitions(forgix_m7 PRIVATE GW_PICO=1
+        PICO_STDIO_USB_STDOUT_TIMEOUT_US=50000)
     pico_generate_pio_header(forgix_m7 ${CMAKE_CURRENT_LIST_DIR}/link.pio)
     pico_generate_pio_header(forgix_m7 ${CMAKE_CURRENT_LIST_DIR}/cam_spi.pio)
     target_link_libraries(forgix_m7
@@ -365,7 +369,27 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
         ${CMAKE_CURRENT_BINARY_DIR}/blobs.S)
 
     target_include_directories(forgix_m9 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
-    target_compile_definitions(forgix_m9 PRIVATE GW_PICO=1)
+    # PICO_STDIO_USB_STDOUT_TIMEOUT_US IS PINNED, NOT INHERITED (#9).
+    #
+    # Issue #9 asks whether a board that is off the bus and still looping is
+    # writing into a pipe that drops or a pipe that blocks - i.e. whether the
+    # disappearance is cosmetic or a hang waiting to happen. The answer is in the
+    # SDK: stdio_usb_out_chars() leaves its loop the instant
+    # stdio_usb_connected() goes false, so an unmounted board prints at full
+    # speed into nothing and this timeout never applies. It applies to the other
+    # case only - a host that stays attached and stops reading - where the SDK
+    # default of 500,000 us means one printf can stand still for half a second.
+    # A frame is ~290 ms, so that default is long enough to distort the only
+    # numbers this binary exists to produce.
+    #
+    # 50 ms instead. It is ~600x what a 90-byte frame line needs at 12 Mbit/s
+    # with macOS polling every millisecond, so a healthy run never reaches it,
+    # and it bounds the damage a stalled reader can do to one sixth of a frame.
+    # What it costs when it does fire is the rest of that one write - a truncated
+    # line in the log - which is the correct trade against a frame time that
+    # silently became a measurement of the host.
+    target_compile_definitions(forgix_m9 PRIVATE GW_PICO=1
+        PICO_STDIO_USB_STDOUT_TIMEOUT_US=50000)
     pico_generate_pio_header(forgix_m9 ${CMAKE_CURRENT_LIST_DIR}/link.pio)
     pico_generate_pio_header(forgix_m9 ${CMAKE_CURRENT_LIST_DIR}/cam_spi.pio)
     target_link_libraries(forgix_m9

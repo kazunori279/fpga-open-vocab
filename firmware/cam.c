@@ -67,14 +67,6 @@ float cam_bus_mhz(void)
     return (float)clock_get_hz(clk_sys) / (4.0f * bus_div) / 1e6f;
 }
 
-// A transfer that makes no progress for this long has stopped, not slowed. The
-// state machine emits a byte every 500 ns at the 16 MHz the burst runs at and
-// every 1 us at the 8 MHz the register writes run at, so this is two to four
-// thousand bytes' worth of nothing happening. There is no legitimate pause here:
-// the ArduChip is a shift register with a FIFO behind it and neither of them
-// waits on anything. Anything that trips this is a fault.
-#define CAM_XFER_STALL_US 2000u
-
 // Put the state machine back where cam_bus_pio() found it. Bailing out of a
 // transfer leaves the OSR half-consumed and the ISR half-filled, and a shift
 // register that is one bit out stays one bit out forever - so the recovery is
@@ -102,11 +94,43 @@ static bool inject_stall;
 
 void cam_bus_fault_inject(void) { inject_stall = true; }
 
+// #12's high-water mark. See cam.h; the arithmetic sits inside the deadline
+// check below, where the clock has already been read.
+static uint32_t gap_max_us;
+
+uint32_t cam_bus_gap_max_us(bool clear)
+{
+    const uint32_t g = gap_max_us;
+    if (clear) gap_max_us = 0;
+    return g;
+}
+
+// Where in the whole burst this transfer starts, so a stall can be reported as a
+// byte offset into the frame rather than into a 256-byte chunk nobody can place.
+// Set by cam_collect(); a register access leaves it at CAM_OFF_REG, which prints
+// as "a register access" instead of a meaningless zero.
+#define CAM_OFF_REG 0xffffffffu
+static uint32_t burst_off = CAM_OFF_REG, burst_len;
+
+// FDEBUG IS STICKY AND NOBODY WAS CLEARING IT, which is why the fdebug in #12's
+// only captured stall says nothing: the bits latch on the first stall after boot
+// and stay latched, so by frame 200 every one of them is set by the ordinary
+// starvation of a software-fed FIFO. Cleared per transfer, the same field
+// answers the question it was printed for - TXSTALL means *this* transfer ran
+// the state machine dry (our end stopped feeding), RXSTALL means it filled the
+// RX FIFO and stalled (our end stopped draining), and neither means the state
+// machine was still clocking and the camera stopped answering.
+static inline void fdebug_clear(void)
+{
+    cam_pio->fdebug = 0x01010101u << cam_sm;
+}
+
 static bool cam_xfer(const uint8_t *tx, uint8_t *rx, size_t n)
 {
     if (bus_fault) return false;
 
     if (bus_pio) {
+        fdebug_clear();
         // Stopping the state machine starves the RX FIFO while the TX side
         // keeps accepting four more words, which is exactly the shape of a byte
         // that never comes back. Armed by 'C' on m9's console; see cam.h.
@@ -121,6 +145,12 @@ static bool cam_xfer(const uint8_t *tx, uint8_t *rx, size_t n)
         // is worth eight lines.
         size_t ti = 0, ri = 0;
         uint64_t idle_since = 0;
+        // gap_max_us is "the worst gap that was NOT a fault", and this is what
+        // makes that true: a transfer on its way to the deadline walks the
+        // counter up through 1,999 us first, so a single stall - injected or
+        // real - would otherwise overwrite the margin with the deadline and the
+        // figure would say nothing. The fault path below puts this back.
+        const uint32_t gap_entry = gap_max_us;
         while (ri < n) {
             bool moved = false;
             if (ti < n && !pio_sm_is_tx_fifo_full(cam_pio, cam_sm)) {
@@ -143,18 +173,37 @@ static bool cam_xfer(const uint8_t *tx, uint8_t *rx, size_t n)
             if (moved) { idle_since = 0; continue; }
             uint64_t now = time_us_64();
             if (!idle_since) { idle_since = now; continue; }
-            if (now - idle_since < CAM_XFER_STALL_US) continue;
+            const uint32_t gap = (uint32_t)(now - idle_since);
+            // #12. Free here and nowhere else: `now` has already been paid for.
+            if (gap > gap_max_us) gap_max_us = gap;
+            if (gap < CAM_XFER_STALL_US) continue;
 
             // Everything a diagnosis needs, because the trigger is still open
-            // (#8): which direction stopped - ti == n with ri short means bytes
+            // (#12): which direction stopped - ti == n with ri short means bytes
             // went out and did not come back - and whether the state machine is
             // even running. Print before the resync; it clears all of it.
-            printf("  !! camera bus stalled %u us at byte %u of %u, %u sent\n"
-                   "     pio pc=%u fstat=%08x fdebug=%08x sck=%.1f MHz\n",
-                   (unsigned)(now - idle_since), (unsigned)ri, (unsigned)n,
-                   (unsigned)ti, (unsigned)pio_sm_get_pc(cam_pio, cam_sm),
-                   (unsigned)cam_pio->fstat, (unsigned)cam_pio->fdebug,
-                   (double)cam_bus_mhz());
+            //
+            // The three stall bits are the discriminator #12 has been asking
+            // for, and they are only worth reading because fdebug_clear() runs
+            // at the top of every transfer. See the note there.
+            const uint32_t fd = cam_pio->fdebug;
+            const bool txstall = (fd >> (24 + cam_sm)) & 1u;
+            const bool rxstall = (fd >> cam_sm) & 1u;
+            printf("  !! camera bus stalled %u us at byte %u of %u, %u sent",
+                   (unsigned)gap, (unsigned)ri, (unsigned)n, (unsigned)ti);
+            if (burst_off == CAM_OFF_REG) printf("  (a register access)\n");
+            else printf("  (byte %u of the %u-byte burst)\n",
+                        (unsigned)(burst_off + ri), (unsigned)burst_len);
+            printf("     pio pc=%u fstat=%08x fdebug=%08x sck=%.1f MHz\n"
+                   "     %s\n",
+                   (unsigned)pio_sm_get_pc(cam_pio, cam_sm),
+                   (unsigned)cam_pio->fstat, (unsigned)fd,
+                   (double)cam_bus_mhz(),
+                   txstall ? "TXSTALL: this end stopped feeding the state machine"
+                   : rxstall ? "RXSTALL: this end stopped draining it"
+                   : "neither TXSTALL nor RXSTALL: the state machine was still "
+                     "clocking and the byte did not come back");
+            gap_max_us = gap_entry;
             bus_fault = true;
             cam_bus_resync();
             return false;
@@ -338,11 +387,14 @@ uint32_t cam_collect(uint8_t *dst, uint32_t cap, cam_time_t *t)
     const uint8_t cmd[2] = { BURST_FIFO_READ, 0x00 };
     cam_xfer(cmd, NULL, 2);
     static uint8_t zeros[256];
+    burst_len = len;
     for (uint32_t off = 0; off < len; off += sizeof zeros) {
         uint32_t n = len - off;
         if (n > sizeof zeros) n = sizeof zeros;
+        burst_off = off;
         cam_xfer(zeros, dst + off, n);
     }
+    burst_off = CAM_OFF_REG;
     cs_high();
     uint64_t t4 = time_us_64();
     // A short burst is a torn frame, not a frame. The first stalled chunk

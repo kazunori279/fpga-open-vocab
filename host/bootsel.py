@@ -9,13 +9,21 @@ THERE ARE TWO WEDGES AND THEY NEED DIFFERENT TOOLS. Both were hit in one
 session, which is the only reason this file knows the difference.
 
   soft - the board is at the bitstream prompt printing a dot a second. It looks
-         dead because it is waiting for a host that has not spoken, and
-         ft_recv_bitstream() swallows stdin while it waits, so the 'B' hotkey
-         that every other prompt honours is eaten here and `picotool reboot -u`
-         reports success while nothing happens. The 1200-baud DTR touch works:
-         the pico-sdk handles it in the USB line-coding callback, in interrupt
-         context, so it does not need the application loop to be sane.
-         m7.py --bootsel has done this since M7h; this is the general version.
+         dead because it is waiting for a host that has not spoken.
+         `picotool reboot -u` reports success while nothing happens; the
+         1200-baud DTR touch works, because the pico-sdk handles it in the USB
+         line-coding callback, in interrupt context, so it does not need the
+         application loop to be sane. m7.py --bootsel has done this since M7h;
+         this is the general version.
+
+         'B' ALSO WORKS HERE NOW (issue #3, 2026-08-15). It did not until then:
+         ft_recv_bitstream() swallowed stdin while it waited, so the one prompt
+         a board lands at after any host-side abort was the one prompt whose
+         hotkey was eaten. Fixed in firmware/frame.c, behind two guards - 'B' is
+         the last byte of the "FGXB" magic, and a byte arriving inside a stream
+         is data rather than a keypress. The order below does not change: 'B'
+         then the touch, and the touch stays because it is the path that works
+         on a board flashed before the fix.
 
   hard - the board is SILENT. Still enumerated, still a /dev/cu.usbmodem*, but
          not one byte comes out and neither 'B' nor the touch lands, because the
@@ -65,6 +73,11 @@ RP2350_VID = "2E8A"
 RP2350_PID = "0009"
 BOOTSEL_VOL = Path("/Volumes/RP2350")
 
+# Set once from --hub. A global rather than a parameter because every path that
+# can end in a power cycle - the fallback in to_bootsel(), the retry in flash() -
+# would otherwise have to carry it, and none of them has any other opinion.
+HUB_OVERRIDE: str | None = None
+
 
 def find_port() -> str | None:
     hits = [p for p in list_ports.comports()
@@ -76,7 +89,13 @@ def find_port() -> str | None:
 
 
 def find_hub_port() -> tuple[str, str] | None:
-    """Locate the board in uhubctl's tree as (hub, port), or None."""
+    """Locate the board in uhubctl's tree as (hub, port), or None.
+
+    Matched on the VID alone. It used to want `2e8a:0009`, the application's
+    PID, which meant the one tool for a board in BOOTSEL could not find a board
+    in BOOTSEL - it enumerates as `2e8a:000f` - so `--power-cycle` answered "no
+    power-switchable port found" for a board sitting right there on port 1.
+    """
     try:
         out = subprocess.run(["uhubctl"], capture_output=True, text=True,
                              timeout=20).stdout
@@ -89,16 +108,32 @@ def find_hub_port() -> tuple[str, str] | None:
             hub = m.group(1)
             continue
         m = re.match(r"\s*Port (\d+):", line)
-        if m and hub and f"{RP2350_VID.lower()}:{RP2350_PID}" in line.lower():
+        if m and hub and f"{RP2350_VID.lower()}:" in line.lower():
             return hub, m.group(1)
     return None
 
 
-def power_cycle() -> bool:
-    loc = find_hub_port()
+def power_cycle(where: str | None = None) -> bool:
+    where = where or HUB_OVERRIDE
+    # AND THE CASE THAT NEEDS THIS MOST IS THE ONE WHERE THE BOARD IS NOT IN THE
+    # TREE AT ALL. Issue #9's outage ends with nothing on the port - uhubctl
+    # shows `power` and no `connect` - so there is nothing to search for, and
+    # the only tool that can bring it back cannot find where it went. --hub
+    # HUB:PORT is that answer, and it is worth writing on the wall of whatever
+    # desk this board lives on: here it is `--hub 2-1:1`.
+    if where:
+        hub, _, port = where.partition(":")
+        loc: tuple[str, str] | None = (hub, port) if port else None
+        if loc is None:
+            print(f"  --hub wants HUB:PORT, not {where!r}", file=sys.stderr)
+            return False
+    else:
+        loc = find_hub_port()
     if loc is None:
         print("  no power-switchable port found for the board (is uhubctl "
-              "installed, and does the hub report ppps?)", file=sys.stderr)
+              "installed, and does the hub report ppps?). If the board has "
+              "left the bus entirely there is nothing to find: pass --hub "
+              "HUB:PORT.", file=sys.stderr)
         return False
     hub, port = loc
     print(f"  power-cycling hub {hub} port {port}")
@@ -176,6 +211,60 @@ def to_bootsel(port: str | None, budget: float = 40.0) -> bool:
     return False
 
 
+def flash(image: Path) -> bool:
+    """Write the image and prove it landed, power-cycling once if it did not.
+
+    THE WRITE CAN DO NOTHING AND SAY NOTHING. Twice in one session `picotool
+    load` returned 0 after 2.5 s - a 2.1 MB image takes ~15 s - and left the
+    board in BOOTSEL with `Program Information: none`. Both times the BOOTSEL
+    had been entered from an odd state (a `reset_usb_boot()` with a download in
+    flight), and both times a VBUS cycle followed by the same command wrote in
+    14.8 s and verified. A silent no-op flash is the worst outcome available
+    here: the board comes back running the OLD image, so the next run measures
+    the previous build and nothing says so.
+
+    So: verify always, and treat a failed verify as a retry rather than an
+    error, because the retry is the thing that works. This is also why the
+    command is `load` and not `load -x` - issue #3 records `-x` leaving the
+    board in BOOTSEL with no program - and why the reboot is explicit.
+    """
+    for attempt in (1, 2):
+        t0 = time.monotonic()
+        try:
+            r = subprocess.run(["picotool", "load", "-f", str(image)],
+                               capture_output=True, text=True, timeout=300)
+        except FileNotFoundError:
+            print("  no picotool; falling back to the mass-storage copy")
+            r = subprocess.run(["cp", "-X", str(image),
+                                str(BOOTSEL_VOL / image.name)],
+                               capture_output=True, text=True, timeout=180)
+            print(f"  wrote in {time.monotonic() - t0:.1f} s (unverified - the "
+                  f"copy path cannot check itself)")
+            return r.returncode == 0
+        if r.returncode != 0:
+            print(f"FAIL - flash failed: {(r.stderr or r.stdout).strip()}",
+                  file=sys.stderr)
+            return False
+        secs = time.monotonic() - t0
+        v = subprocess.run(["picotool", "verify", str(image)],
+                           capture_output=True, text=True, timeout=300)
+        if v.returncode == 0:
+            print(f"  wrote in {secs:.1f} s, verified")
+            subprocess.run(["picotool", "reboot"], capture_output=True,
+                           timeout=30)
+            return True
+        print(f"  wrote in {secs:.1f} s and the readback DID NOT MATCH - the "
+              f"board is still running the old image")
+        if attempt == 2:
+            print("FAIL - two writes, neither verified. This one needs hands.",
+                  file=sys.stderr)
+            return False
+        print("  power-cycling and writing again")
+        if not power_cycle() or not to_bootsel(find_port()):
+            return False
+    return False
+
+
 def wait_cdc(timeout: float = 25.0) -> str | None:
     t0 = time.monotonic()
     while time.monotonic() - t0 < timeout:
@@ -195,7 +284,14 @@ def main() -> int:
                     help="cut VBUS first instead of trying the wire")
     ap.add_argument("--run", action="store_true",
                     help="leave the board in the application, not BOOTSEL")
+    ap.add_argument("--hub", metavar="HUB:PORT",
+                    help="where the board is plugged in, for when it has left "
+                         "the bus and cannot be found by VID - on this desk, "
+                         "2-1:1. `uhubctl` with no arguments lists them")
     args = ap.parse_args()
+
+    global HUB_OVERRIDE
+    HUB_OVERRIDE = args.hub
 
     if args.power_cycle:
         print("power cycle requested")
@@ -225,9 +321,9 @@ def main() -> int:
         # confused ten minutes.
         #
         # picotool speaks PICOBOOT to the USB interface directly, so no
-        # filesystem is involved and none of the above can happen. -x starts the
-        # application afterwards, which the copy path only does as a side effect
-        # of the volume ejecting.
+        # filesystem is involved and none of the above can happen. flash()
+        # below reboots into the application explicitly, which the copy path
+        # only does as a side effect of the volume ejecting.
         #
         # The copy is kept as a fallback for a host with no picotool. Not a bare
         # `cp`: plain `cp` to a FAT volume with no xattr support writes the file
@@ -237,20 +333,8 @@ def main() -> int:
         # choice and fails with EPERM under a sandboxed interpreter that cp(1)
         # is not subject to.
         print(f"flashing {args.flash.name} ({args.flash.stat().st_size} B) ...")
-        t0 = time.monotonic()
-        try:
-            r = subprocess.run(["picotool", "load", "-x", str(args.flash)],
-                               capture_output=True, text=True, timeout=300)
-        except FileNotFoundError:
-            print("  no picotool; falling back to the mass-storage copy")
-            r = subprocess.run(["cp", "-X", str(args.flash),
-                                str(BOOTSEL_VOL / args.flash.name)],
-                               capture_output=True, text=True, timeout=180)
-        if r.returncode != 0:
-            print(f"FAIL - flash failed: {(r.stderr or r.stdout).strip()}",
-                  file=sys.stderr)
+        if not flash(args.flash):
             return 1
-        print(f"  wrote in {time.monotonic() - t0:.1f} s")
     elif args.run:
         subprocess.run(["picotool", "reboot"], capture_output=True, timeout=30)
 

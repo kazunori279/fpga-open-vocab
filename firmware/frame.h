@@ -297,4 +297,10 @@ bool ft_cap_is_eager(void);
 // the camera through this header and nothing else.
 void ft_cam_fault_inject(void);
 
+// The worst gap the camera bus went without moving a byte since the last clear,
+// and the deadline it is a margin against, both in microseconds - #12's missing
+// measurement. See cam.h. Behind ft_ for the same reason the line above is.
+uint32_t ft_cam_gap_us(bool clear);
+uint32_t ft_cam_stall_us(void);
+
 #endif // FRAME_H

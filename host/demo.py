@@ -175,6 +175,15 @@ CHUNK = 512
 REOPEN_S = 45.0
 HANG_REPORT_S = 30.0
 
+
+class BoardGone(Exception):
+    """The board left the bus and did not come back inside REOPEN_S.
+
+    Raised by follow_reboot() once it has printed why. Nothing below it can do
+    anything over a port that no longer exists, so this ends the run there
+    rather than letting the next write turn a diagnosed failure into a
+    traceback."""
+
 # How long the board may say nothing before this end stops waiting to be told
 # the port died and goes and looks.
 #
@@ -740,6 +749,18 @@ def main() -> int:
                          "of the board. The real trigger appears twice in five "
                          "runs and never on demand, so this is how the recovery "
                          "gets watched")
+    ap.add_argument("--usb-drop", type=int, default=0, metavar="N",
+                    help="issue #9. After N frames, press 'U': the board drops "
+                         "its USB pull-up on purpose, so the outage this script "
+                         "keeps meeting by accident can be watched on demand. "
+                         "The board should re-attach itself after ~2 s and say "
+                         "how long it was gone")
+    ap.add_argument("--usb-drop-hard", type=int, default=0, metavar="N",
+                    help="issue #9, the half that does not recover: press 'I' "
+                         "instead, which also suppresses the board's own "
+                         "re-attach, so it has to escalate to the deliberate "
+                         "reboot at 30 s. The next banner should name the "
+                         "reason as `usb :` rather than as a hang")
     ap.add_argument("--overlap", action="append", type=int, default=[],
                     metavar="N",
                     help="issue #10. At the board's frame N, press 'O': close "
@@ -878,6 +899,11 @@ def main() -> int:
         # reads a line that scrolls past during the start-up wait.
         transcript: list[str] = []
 
+        # Set when follow_reboot() gave up: the port is closed and every step
+        # below that talks to the board has to be skipped, but the frames that
+        # did arrive are still worth summarising.
+        gone = False
+
         # Set by follow_reboot(), read by the frame loop and by the summary.
         # The run is over the moment this is true - the board has forgotten its
         # frozen background - so it ends the loop rather than resuming it.
@@ -930,7 +956,14 @@ def main() -> int:
                  f"{REOPEN_S:.0f}s, so the board is not enumerating at all and "
                  f"the watchdog did not get it either.\n"
                  f"[host] {RECOVER}\n")
-            return ""
+            # AND STOP, because `s` is closed and everything after this point
+            # writes to it. Returning "" used to let the caller carry on into
+            # the next send(), which then died on PortNotOpenError - a traceback
+            # in place of the two lines above, which are the ones that say what
+            # actually happened. The message is already printed; this only ends
+            # the run at the point where the board did.
+            raise BoardGone
+
 
         def pump() -> str:
             try:
@@ -989,9 +1022,31 @@ def main() -> int:
         # absent this costs 173 KB into a void and the *next* await_line says so
         # with a message that fits what actually happened.
         if not await_line("waiting for a bitstream", "", secs=10.0):
-            print(f"\n(no banner in 10s - it was probably printed "
-                  f"before this end opened the port, which stdio_usb drops. "
-                  f"Sending the bitstream anyway.)", file=sys.stderr)
+            # UNLESS THE BOARD IS ALREADY RUNNING, which is a different thing
+            # and used to be catastrophic. m9 never stops on its own, so a run
+            # that ended without the 'B' below - Ctrl-C, a crash, a killed
+            # terminal - leaves the board in its frame loop, and the next
+            # demo.py would then push 173 KB of bitstream into poll_host(). The
+            # first 0x42 in it reads as 'B' and the board goes to BOOTSEL
+            # mid-download, which from here looks exactly like issue #9: a port
+            # that vanished and did not come back. It cost a bench session. The
+            # firmware side is fixed (m9.c's quiet-time guard), and this is the
+            # other half: a running board gets 'R' and starts a clean run.
+            if re.search(r"^frame\s+\d+", "".join(transcript), re.M):
+                print("\n(the board is still in the frame loop from an earlier "
+                      "run - pressing 'R' to restart it rather than sending a "
+                      "bitstream into a running loop.)", file=sys.stderr)
+                s.write(b"R")
+                s.flush()
+                if not await_line("waiting for a bitstream",
+                                  "the board was mid-run, took 'R', and never "
+                                  "came back to the bitstream prompt",
+                                  secs=30.0):
+                    return 1
+            else:
+                print(f"\n(no banner in 10s - it was probably printed "
+                      f"before this end opened the port, which stdio_usb drops. "
+                      f"Sending the bitstream anyway.)", file=sys.stderr)
         send(MAGIC_B, image)
 
         if not await_line("waiting for a query set",
@@ -1167,6 +1222,17 @@ def main() -> int:
                     if args.cam_fault and frames == args.cam_fault:
                         s.write(b"C")
                         s.flush()
+                    # And issue #9's, which is the one that takes this end with
+                    # it: after the keystroke the port goes away, so the branch
+                    # below that follows a vanished board by VID is part of the
+                    # test rather than an error path. Flush before the port dies
+                    # or the byte can still be sitting in the driver.
+                    if args.usb_drop and frames == args.usb_drop:
+                        s.write(b"U")
+                        s.flush()
+                    if args.usb_drop_hard and frames == args.usb_drop_hard:
+                        s.write(b"I")
+                        s.flush()
                     # Issue #10's A/B. Repeatable, and the board prints the
                     # window it just closed, so `--overlap 30 --overlap 60`
                     # reads out as three windows on one scene under one lamp -
@@ -1197,6 +1263,8 @@ def main() -> int:
                 stalled = True
         except KeyboardInterrupt:
             interrupted = True
+        except BoardGone:
+            gone = True
         except serial.SerialTimeoutException:
             interrupted = True
             print("\n(the board stopped accepting bytes for 10 s mid-send. "
@@ -1209,7 +1277,7 @@ def main() -> int:
         # the baseline around whatever is in shot now and produce a number that
         # looks like a run. So this collects one line and stops.
         hang = ""
-        if rebooted:
+        if rebooted and not gone:
             # Waited out against the report's LAST line and not its first. The
             # `hang :` line is 120 characters and the CDC delivers 64 at a time,
             # so a chunk boundary lands inside it about half the time, and a
@@ -1284,6 +1352,45 @@ def main() -> int:
                   f"bitstream prompt, so re-running this is all it takes.",
                   file=sys.stderr)
             return 3
+        if gone:
+            print(f"\n(the board left the bus and never came back - see the "
+                  f"[host] lines above. {args.frames and 'The run is void. ' or ''}"
+                  f"That is issue #9's shape, but a board that is still gone "
+                  f"cannot be asked which of its two exits it took, so recover "
+                  f"it first and read the next banner: `usb :` means it saw the "
+                  f"outage and rebooted itself, no banner at all means the "
+                  f"reboot never got it back on the bus.)", file=sys.stderr)
+            return 3
+        # The other half of #9, and the other end of the same event: the board
+        # was gone long enough that it rebooted itself on purpose, and the
+        # banner after the reboot names that as the reason. Matched on the
+        # board's own line rather than inferred here, for wd_report_last()'s
+        # reason - a deliberate reboot must not read as a hang.
+        why = re.search(r"^usb\s+: the last run rebooted[^\r\n]*"
+                        r"(?:\r?\n[ \t]{2,}[^\r\n]*)*", text, re.M)
+        if why:
+            asked = bool(args.usb_drop_hard)
+            print(f"\n({'as asked: ' if asked else ''}the board rebooted itself "
+                  f"because the bus stopped answering, and said so:\n\n"
+                  f"{why.group(0).replace(chr(13), '')}\n\n"
+                  f"The run is void either way - the frozen background went "
+                  f"with the reboot.)", file=sys.stderr)
+            return 0 if asked else 3
+        # Issue #9's outage, and the board now says so itself: it stayed in the
+        # loop the whole time and named the frames the log is missing. That is a
+        # different event from a reboot and it used to read as the paragraph
+        # below, which guesses. Requested with --usb-drop it is a pass; arriving
+        # on its own it is still the open fault, so it still ends non-zero.
+        back = [ln for ln in text.splitlines() if "usb       : back after" in ln]
+        if back:
+            asked = bool(args.usb_drop or args.usb_drop_hard)
+            print(f"\n({'as asked: ' if asked else ''}the board went off the "
+                  f"bus and brought itself back, without rebooting and without "
+                  f"leaving the loop.\n {back[-1].strip()}\n"
+                  f"{'' if asked else 'That is issue #9 happening on its own. '}"
+                  f"The frames inside that window were computed and their "
+                  f"lines are gone.)", file=sys.stderr)
+            return 0 if asked else 3
         print(f"\n(the board vanished and came back, which is a watchdog "
               f"reboot, but it never printed the `hang :` line that names the "
               f"stage. Either the reboot was not the watchdog's - a brown-out "
@@ -1309,4 +1416,9 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except BoardGone:
+        # Raised during start-up, before the frame loop's own handler exists.
+        # follow_reboot() has already printed the why and the uhubctl line.
+        sys.exit(3)

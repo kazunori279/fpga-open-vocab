@@ -54,10 +54,13 @@
 #include <string.h>
 
 #include "hardware/clocks.h"
+#include "hardware/structs/powman.h" // chip_reset, for the reason the watchdog cannot give
+#include "hardware/structs/usb.h"   // sof_rd, and the pull-up bit the sim drops
 #include "hardware/vreg.h"
 #include "hardware/watchdog.h"
 #include "pico/bootrom.h"
 #include "pico/stdlib.h"
+#include "tusb.h"        // tud_mounted / tud_suspended, for the #9 watch below
 
 #include "cam_dump.h"    // the BEGIN/END frame format, shared with host/cam.py
 #include "encoder.h"
@@ -669,6 +672,13 @@ enum {
     FGX_ST_BITSTREAM, FGX_ST_FPGA, FGX_ST_MODEL, FGX_ST_REFERENCE,
     FGX_ST_LINK, FGX_ST_CAMERA, FGX_ST_QWAIT, FGX_ST_N
 };
+
+// Not a stage: a reason. usb_watch() below reboots deliberately after the bus
+// has been gone long enough to be unrecoverable, and that must not come back
+// wearing a hang's clothes - the loop was never stuck, and saying it was would
+// point the next reader at the wrong thing. Kept out of the enum so
+// FGX_ST_N stays "how many stages there are".
+#define FGX_ST_USBGONE 0x100u
 static const char *const fgx_stage[FGX_ST_N] = {
     "ft_capture - the camera",
     "encode - the 8 convs over the link, then pool and head",
@@ -694,6 +704,77 @@ static inline void wd_stage(uint32_t s, uint32_t frame)
     watchdog_update();
 }
 
+// ---------------------------------------------------------------------------
+// AND A REASON THE WATCHDOG CANNOT GIVE.
+//
+// wd_report_last() below only speaks when watchdog_caused_reboot() is true. A
+// 280 MHz soak on 2026-08-15 found a third shape at frame 273: the board left
+// the bus, came back with a fresh banner, and printed neither `hang :` nor
+// `usb :`. Nothing above the firmware rebooted it, so something below it did,
+// and from the log that was indistinguishable from a hand on the cable.
+//
+// POWMAN_CHIP_RESET's HAD_* bits name it. They are read-only and they
+// accumulate - the HAD_POR from the morning's first power-up is still set an
+// hour later - so the register alone cannot say what happened on THIS boot.
+// Keep a copy in watchdog scratch[2] (free; the SDK's own reboot path uses
+// 4..7) and report the difference. Losing the copy is itself an answer: the
+// scratch survives a watchdog reboot and does not survive the always-on domain
+// going away, so an untagged scratch means power, not software.
+#define FGX_RS_TAG  0x52530000u          // 'RS', same trick as FGX_WD_TAG
+#define FGX_RS_MASK 0x1fff0000u          // every HAD_* bit, and nothing else
+
+static void reset_report(void)
+{
+    static const struct { uint32_t bit; const char *what; } had[] = {
+        { POWMAN_CHIP_RESET_HAD_POR_BITS,
+          "power-on reset - the supply arrived" },
+        { POWMAN_CHIP_RESET_HAD_BOR_BITS,
+          "BROWN-OUT - the supply sagged past the detector" },
+        { POWMAN_CHIP_RESET_HAD_GLITCH_DETECT_BITS,
+          "GLITCH DETECT - a fast step on the supply" },
+        { POWMAN_CHIP_RESET_HAD_RUN_LOW_BITS,
+          "the RUN pin was pulled low" },
+        { POWMAN_CHIP_RESET_HAD_DP_RESET_REQ_BITS,
+          "a reset request from the debug port" },
+        { POWMAN_CHIP_RESET_HAD_RESCUE_BITS,
+          "a rescue reset from the debugger" },
+        { POWMAN_CHIP_RESET_HAD_HZD_SYS_RESET_REQ_BITS,
+          "a system reset from the hazard debugger" },
+        { POWMAN_CHIP_RESET_HAD_SWCORE_PD_BITS,
+          "a switched-core powerdown" },
+        { POWMAN_CHIP_RESET_HAD_WATCHDOG_RESET_PSM_BITS,
+          "the watchdog, resetting the power-on state machine" },
+        { POWMAN_CHIP_RESET_HAD_WATCHDOG_RESET_SWCORE_BITS,
+          "the watchdog, resetting the switched core" },
+        { POWMAN_CHIP_RESET_HAD_WATCHDOG_RESET_POWMAN_BITS,
+          "the watchdog, resetting the power manager" },
+        { POWMAN_CHIP_RESET_HAD_WATCHDOG_RESET_POWMAN_ASYNC_BITS,
+          "the watchdog, resetting the power manager asynchronously" },
+    };
+
+    const uint32_t now  = powman_hw->chip_reset & FGX_RS_MASK;
+    const uint32_t prev = watchdog_hw->scratch[2];
+    const bool     kept = (prev & 0xffff0000u) == FGX_RS_TAG;
+    const uint32_t was  = kept ? (prev & 0xffffu) << 16 : 0u;
+    watchdog_hw->scratch[2] = FGX_RS_TAG | (now >> 16);
+
+    // What is new since the last banner. On a plain 'R' or a watchdog reboot
+    // this is usually empty, because those reset the core without touching
+    // powman, and an empty set is a fact worth printing next to a reboot.
+    const uint32_t fresh = now & ~was;
+
+    printf("reset     : chip_reset %08x%s\n", (unsigned)now,
+           kept ? "" : "  (scratch was cold - the always-on domain went away, "
+                       "so this is power, not software)");
+    for (size_t i = 0; i < count_of(had); i++)
+        if (fresh & had[i].bit)
+            printf("            new this boot: %s\n", had[i].what);
+    if (kept && !fresh)
+        printf("            nothing new since the last banner - whatever reset "
+               "the core left powman alone.\n");
+    stdio_flush();
+}
+
 // Called once, before anything is armed. Reads what the last life left behind
 // and then clears it, so a later intentional reboot ('R') does not come back
 // wearing a hang's clothes.
@@ -705,6 +786,16 @@ static void wd_report_last(void)
     if (!watchdog_caused_reboot() || (s & 0xffff0000u) != FGX_WD_TAG)
         return;
     const uint32_t k = s & 0xffffu;
+    if (k == FGX_ST_USBGONE) {
+        printf("usb       : the last run rebooted itself at frame %u because this "
+               "port stopped answering.\n"
+               "            The loop was fine - see issue #9 - and the reboot is "
+               "how the board got back\n"
+               "            on the bus. That run's background and scores are "
+               "gone.\n", (unsigned)f);
+        stdio_flush();
+        return;
+    }
     printf("hang      : the last run stopped for %u ms at frame %u, inside %s\n"
            "            The watchdog rebooted it. That run's background and "
            "scores are gone;\n"
@@ -712,6 +803,238 @@ static void wd_report_last(void)
            (unsigned)FGX_WD_MS, (unsigned)f,
            k < FGX_ST_N ? fgx_stage[k] : "an unknown stage");
     stdio_flush();
+}
+
+// ---------------------------------------------------------------------------
+// ISSUE #9. THE BOARD DROPS OFF USB AND KEEPS COMPUTING, AND UNTIL NOW THAT WAS
+// SOMETHING THE HOST INFERRED AFTERWARDS FROM A LOG THAT RESUMED.
+//
+// The event: at 150/75 and at 280/140, roughly once in nine runs, the port
+// vanishes mid-run and nothing with VID 2E8A comes back. It is not a hang - the
+// next attach found the loop at frame 244 having left at 71, same enrolment,
+// same background, no banner - and it is not the watchdog, which never fired.
+// The two cores are fine; the USB device has stopped being on the bus.
+//
+// WHAT THIS DOES ABOUT IT, in the order it does it.
+//
+// 1. SAY IT HAPPENED, AND ASK THE BUS RATHER THAN THE STACK. tud_mounted() is
+//    the device's own view of whether the host has it configured, and it is the
+//    one signal that separates this fault from the ordinary case of an operator
+//    closing the terminal - that drops DTR, so stdio_usb_connected() goes false
+//    while the device stays mounted.
+//
+//    IT IS ALSO NOT ENOUGH, WHICH THE FIRST BUILD OF THIS WATCH PROVED BY
+//    MISSING TWO OUTAGES IN A ROW. Both times the board vanished from the host
+//    (`uhubctl` showed the port powered with nothing connected), stayed gone
+//    past the 30 s giveup, and never rebooted itself - so the watch never fired
+//    at all, which means tud_mounted() was still true. TinyUSB only learns of a
+//    detach from an interrupt, and nothing here delivered one: the D+ pull-up
+//    stopped being presented while the stack went on believing it was mounted.
+//
+//    So the liveness test is the bus itself. usb_hw->sof_rd is the frame number
+//    of the last start-of-frame packet the SIE saw, and a host that has this
+//    device on an enabled, unsuspended port sends one every millisecond,
+//    unconditionally, whatever either end thinks. If that number stops moving
+//    for FGX_USB_SOF_MS the bus is gone, mounted or not - and the case where it
+//    is gone WHILE mounted is exactly the fault above, and the one the kick in
+//    step 2 can actually fix, since writing the pull-up bit again is all it
+//    takes. Every outage longer than FGX_USB_QUIET_MS is counted and, when the
+//    bus returns, printed with the frames it spanned and which of the two
+//    shapes it had. That line is the direct evidence the issue had to
+//    reconstruct.
+//
+// 2. TRY TO COME BACK BY ITSELF. Toggling the pull-up (tud_disconnect() then
+//    tud_connect()) is a fresh attach as far as the host is concerned, and
+//    host/demo.py has re-resolved by VID rather than by path since 43801dd - so
+//    a board that re-enumerates inside the host's 45 s window rejoins a run that
+//    is still going, background and enrolment intact. Two attempts, at 2 s and
+//    at 8 s, because the first one may land while the host is still tearing the
+//    old device down.
+//
+// 3. FAILING THAT, REBOOT - deliberately, and saying so. After
+//    FGX_USB_GIVEUP_MS the run is unrecoverable anyway (nothing printed in it
+//    reached anyone) and the choice is between a board computing invisibly until
+//    somebody notices and a board that is back on the bus in a few seconds.
+//    wd_report_last() prints FGX_ST_USBGONE as a reason, not as a hang.
+//
+// 4. WHILE IT IS DOWN, BE VISIBLE. D1 alternates hard red and off once a frame,
+//    which is the heartbeat the issue asked for: at ~3 frames/s it is an
+//    unmistakable blink across the room, it runs over the link rather than over
+//    USB, and it proves the loop is turning without anyone having to infer it
+//    from a log that resumes later.
+//
+// WHAT IT DELIBERATELY DOES NOT DO: act on tud_suspended(). A host that suspends
+// the bus is a laptop with its lid shut, and yanking the pull-up at it would be
+// a device that wakes the machine up. The state is reported and nothing else -
+// and it is also the one legitimate reason for the SOFs above to stop, so a
+// suspended bus is held to be alive rather than counted as an outage.
+//
+// AND THE QUESTION THE ISSUE ASKED ABOUT stdio_usb: it is cosmetic, not a future
+// hang. stdio_usb_out_chars() breaks out of its loop the moment
+// stdio_usb_connected() is false, so a board off the bus prints at full speed
+// into nothing - which is why the frame counter ran from 71 to 244. The only
+// blocking case is a host that stays attached and stops draining, and that is
+// bounded by PICO_STDIO_USB_STDOUT_TIMEOUT_US, which CMakeLists.txt now pins
+// rather than inheriting. m9's 'W' note above records the same result from the
+// other direction: SIGSTOP on demo.py did not stop the board.
+#define FGX_USB_QUIET_MS     500u   // shorter than this is a blink, not an event
+#define FGX_USB_KICK_MS     2000u
+#define FGX_USB_KICK2_MS    8000u
+#define FGX_USB_GIVEUP_MS  30000u
+// A thousand SOFs' worth of silence, sampled once a frame at ~330 ms. The frame
+// number is 11 bits and wraps every 2,048 ms, so a sample that happens to read
+// the same value twice is possible; three in a row without a single change is
+// not, unless the packets really have stopped.
+#define FGX_USB_SOF_MS      1000u
+
+static uint32_t usb_drops;      // outages this run
+static uint32_t usb_kicks;      // re-attaches issued
+static uint32_t usb_gone_ms;    // total time off the bus
+
+// THE ESCALATION ABOVE IS ONLY WORTH ANYTHING IF IT HAS BEEN SEEN TO RUN, and a
+// real outage is a poor test rig: it happens once every few hundred frames, it
+// takes the log with it, and when it does happen there is no way to tell "the
+// board rebooted itself and the host still could not see it" from "the reboot
+// never fired". 'U' and 'I' remove that ambiguity by dropping the pull-up on
+// purpose, which is the same thing the bus sees in a real outage.
+//
+//   'U' - the recoverable half. The watcher should notice, blink D1, re-attach
+//         at 2 s, and print the `back after ~2000 ms` line.
+//   'I' - the unrecoverable half: the reconnect in the kick is suppressed, so
+//         the watcher has to walk all the way to the deliberate reboot at 30 s
+//         and the next banner has to name it as `usb :` and not as a hang.
+//
+// AND THE PULL-UP IS DROPPED BEHIND TinyUSB'S BACK, with a write to SIE_CTRL
+// rather than through tud_disconnect(), because that is the fault this is
+// standing in for. A tud_disconnect() sim tests a detach the stack knows about,
+// which is the easy case and not the one that has been happening: two outages
+// in this session left the stack still believing it was mounted, which is why
+// the SOF test above exists. Dropping the bit directly reproduces that exactly -
+// the host loses the device, tud_mounted() stays true, and only sof_rd notices.
+//
+// Both miss F, G, X and Q, per poll_host()'s rule. `usb_sim_hard` does not need
+// clearing: the only exit from it is the reboot, which clears it by resetting.
+static volatile bool usb_sim_hard;
+
+static void usb_sim_drop(bool hard)
+{
+    usb_sim_hard = hard;
+    hw_clear_bits(&usb_hw->sie_ctrl, USB_SIE_CTRL_PULLUP_EN_BITS);
+}
+
+// Is the bus answering? Not "does the stack think so" - see step 1 above.
+//
+// `silent` is the interesting half of the answer: true means the SOFs stopped
+// while TinyUSB still had the device mounted, which is the fault shape #9 keeps
+// producing and the one a pull-up rewrite can fix. It is a file static rather
+// than an out-parameter because the reporting path wants it two calls later.
+static bool usb_silent;
+
+static bool usb_alive(uint64_t now)
+{
+    static uint32_t last_sof;
+    static uint64_t sof_at;
+
+    const uint32_t sof = usb_hw->sof_rd & 0x7ffu;
+    if (!sof_at || sof != last_sof) {
+        last_sof = sof;
+        sof_at   = now;
+    }
+    if (!tud_mounted()) { usb_silent = false; return false; }
+    // A suspended bus has no SOFs by definition and is not an outage.
+    if (tud_suspended()) { sof_at = now; usb_silent = false; return true; }
+    if (now - sof_at < (uint64_t)FGX_USB_SOF_MS * 1000u) {
+        usb_silent = false;
+        return true;
+    }
+    usb_silent = true;
+    return false;
+}
+
+static void usb_watch(uint32_t frame)
+{
+    static uint64_t down_at;    // when the bus went away; 0 means it is up
+    static uint32_t from_frame;
+    static int      kicked;
+    static bool     blink;
+    static bool     pend;       // an outage measured but not yet reportable
+    static uint32_t pend_ms, pend_from, pend_at;
+    static bool     pend_silent, was_silent;
+
+    const uint64_t now = time_us_64();
+    const bool mounted = usb_alive(now);
+
+    if (mounted) {
+        if (down_at) {
+            const uint32_t ms = (uint32_t)((now - down_at) / 1000u);
+            down_at = 0;
+            kicked  = 0;
+            blink   = false;
+            if (ms >= FGX_USB_QUIET_MS) {
+                usb_drops++;
+                usb_gone_ms += ms;
+                // HELD, NOT PRINTED, and the first run of this code is why:
+                // the report went out the instant the device was mounted and
+                // never reached the log, because enumeration is not a reader.
+                // stdio_usb throws away anything written before the host opens
+                // the port and raises DTR, so the one line that explains the
+                // gap in the log was the one line the gap swallowed.
+                pend        = true;
+                pend_ms     = ms;
+                pend_from   = from_frame;
+                pend_at     = frame;
+                pend_silent = was_silent;
+            }
+        }
+        if (pend && tud_cdc_connected()) {
+            pend = false;
+            printf("\nusb       : back after %u ms off the bus - gone at frame "
+                   "%u, here at frame %u.\n"
+                   "            %s\n"
+                   "            The loop never stopped; everything it printed "
+                   "in that window is lost. Issue #9.\n"
+                   "            %u re-attach%s issued, %u outage%s this run.\n",
+                   (unsigned)pend_ms, (unsigned)pend_from, (unsigned)pend_at,
+                   pend_silent
+                     ? "The stack still had it MOUNTED and the SOFs had "
+                       "stopped, so only sof_rd saw this one."
+                     : "The device was detached, which TinyUSB reported "
+                       "itself.",
+                   (unsigned)usb_kicks, usb_kicks == 1 ? "" : "es",
+                   (unsigned)usb_drops, usb_drops == 1 ? "" : "s");
+            stdio_flush();
+        }
+        return;
+    }
+
+    if (!down_at) {
+        down_at    = now;
+        from_frame = frame;
+        kicked     = 0;
+        blink      = false;
+        was_silent = usb_silent;
+        return;
+    }
+
+    blink = !blink;
+    gh_led(blink ? 255u : 0u, 0u);
+
+    const uint32_t ms = (uint32_t)((now - down_at) / 1000u);
+    if ((kicked == 0 && ms >= FGX_USB_KICK_MS) ||
+        (kicked == 1 && ms >= FGX_USB_KICK2_MS)) {
+        kicked++;
+        usb_kicks++;
+        tud_disconnect();
+        busy_wait_ms(120);
+        if (!usb_sim_hard) tud_connect();
+        return;
+    }
+    if (ms >= FGX_USB_GIVEUP_MS) {
+        watchdog_hw->scratch[0] = FGX_WD_TAG | FGX_ST_USBGONE;
+        watchdog_hw->scratch[1] = frame;
+        watchdog_reboot(0, 0, 0);
+        for (;;) tight_loop_contents();
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1024,10 +1347,11 @@ static bool recv_queries(uint32_t dim)
     return true;
 }
 
-// Drain whatever the host has sent and say what it was. 'B' and 'R' stay single
-// characters because neither can appear in the magic, so they cost one compare
-// and keep working while a download is not in progress. THAT CONSTRAINT IS LOAD
-// BEARING - see the note on 'E' below for what it costs to break it.
+// Drain whatever the host has sent and say what it was. Every hotkey is a single
+// character that cannot appear in the magic, so it costs one compare and keeps
+// working while a download is not in progress. THAT CONSTRAINT IS LOAD BEARING -
+// see the note on 'E' below for what it costs to break it, and the note above
+// poll_host() itself for the five keys that need a second condition as well.
 //
 // `w` is static on purpose. A 12 KB write arrives as USB packets, and a poll can
 // land with two bytes of "FGXQ" in the buffer and two still in flight; a local
@@ -1054,15 +1378,41 @@ static bool recv_queries(uint32_t dim)
 // the query prompt forever while the host pushes 12 KB into a buffer nobody
 // drains. Any new hotkey has to miss all four of F, G, X and Q - which is what
 // the note at the top of this comment is there to prevent forgetting.
+//
+// AND FIVE OF THEM NOW NEED MORE THAN A COMPARE, which cost a bench session to
+// learn: a board already in the loop was sent a 173 KB bitstream, because the
+// host had restarted and the board had not, and somewhere in the first packets
+// of it was a 0x42. 'B'. The board went to BOOTSEL mid-download and looked, from
+// the host end, exactly like issue #9 - a port that vanished and never came
+// back. It was not #9; it was a hotkey test reading data as a keypress.
+//
+// So the five keys that END THE RUN - 'B' to the bootloader, 'R' to a reboot,
+// 'W' to a deliberate hang, 'U' and 'I' off the bus - are only hotkeys when the
+// byte ARRIVED ALONE. Everything else keeps costing one compare: 'P', 'V', 'O',
+// 'D', the digits and the rest are recoverable, and some of them are sent in
+// pairs on purpose (demo.py writes "PV" as one write), so a quiet-time rule
+// there would break a working thing to guard against nothing. This is
+// frame.c's FT_HOTKEY_QUIET_US argument, one prompt further on.
+#define FGX_HOTKEY_QUIET_US 100000u
+
 static int poll_host(uint32_t dim, uint32_t us)
 {
     static uint32_t w = 0;
+    static uint64_t prev_us = 0;
 
     for (int i = 0; i < 512; i++) {
         const int c = getchar_timeout_us(us);
         if (c == PICO_ERROR_TIMEOUT) return 0;
-        if (c == 'B' || c == 'b') return 'B';
-        if (c == 'R' || c == 'r') return 'R';
+        const uint64_t now = time_us_64();
+        const bool alone = now - prev_us >= FGX_HOTKEY_QUIET_US;
+        prev_us = now;
+        if (alone) {
+            if (c == 'B' || c == 'b') return 'B';
+            if (c == 'R' || c == 'r') return 'R';
+            if (c == 'W' || c == 'w') return 'W';
+            if (c == 'U' || c == 'u') return 'U';
+            if (c == 'I' || c == 'i') return 'I';
+        }
         if (c == 'P' || c == 'p') return 'P';
         if (c == 'V' || c == 'v') return 'V';
         if (c == 'E' || c == 'e') return 'E';
@@ -1072,7 +1422,9 @@ static int poll_host(uint32_t dim, uint32_t us)
         // byte fell through to the "FGXQ" shift register and was discarded.
         // Nothing measured the spread toggle on the board; that is now possible.
         if (c == 'S' || c == 's') return 'S';
-        if (c == 'W' || c == 'w') return 'W';
+        // 'C' stays a bare compare with 'W', 'U' and 'I' above it: a stalled
+        // camera bus costs one frame by design, so a stray 0x43 costs a
+        // diagnostic line rather than the run.
         if (c == 'C' || c == 'c') return 'C';
         if (c == 'N' || c == 'n') return 'N';
         // #10's toggle. 'O' for overlap, and it misses all four of F, G, X and
@@ -1693,6 +2045,7 @@ int main(void)
            (unsigned)(sys_khz / 1000u), volt_name(sys_rail),
            FGX_CORE_MV ? "  (rail pinned by the build, not by the rate)" : "",
            sys_khz == want_khz ? "" : "  (FALLBACK - requested rate refused)");
+    reset_report();
     wd_report_last();
 
     // Armed HERE, not at the frame loop, and the 2026-08-10 17:58 wedge is why:
@@ -1863,6 +2216,8 @@ int main(void)
            "COCO's, 'W' to hang on purpose and see\n"
            "            the watchdog name the stage, 'C' to stall the camera "
            "bus on purpose and see it cost one frame,\n"
+           "            'U' to drop off USB on purpose and watch it come back, "
+           "'I' to drop off and refuse to,\n"
            "            'N' to forget it and learn it again from now. 'P' and "
            "'V' together describe the same frame.\n"
            "            'O' closes the timing window, prints it and flips the "
@@ -1915,6 +2270,11 @@ int main(void)
     bool want_emb = false;
 
     for (;;) {
+        // #9, and at the top so it also runs on the two `continue` paths below:
+        // a board that drops off the bus while its camera is failing is exactly
+        // the run that needs the watch most.
+        usb_watch(n);
+
         wd_stage(FGX_ST_CAPTURE, n);
         if (!ft_capture(m.hdr->in_scale)) {
             printf("frame %5u : no usable frame off the camera\n", (unsigned)n);
@@ -2223,6 +2583,26 @@ int main(void)
             ft_cam_fault_inject();
             continue;
         }
+        // #9's twin of 'C', one layer out: the camera bus and the USB bus are
+        // the two things this loop depends on and cannot see inside, and both
+        // now have a key that breaks them on purpose. Print first - after the
+        // pull-up goes the host hears nothing, so the last line the log holds
+        // has to be the one that says what is about to happen.
+        if (c == 'U' || c == 'I') {
+            const bool hard = (c == 'I');
+            printf("\nusb       : dropping off the bus on purpose%s.\n"
+                   "            %s\n",
+                   hard ? " and refusing to come back" : "",
+                   hard ? "Expect ~30 s of silence, then a reboot and a banner "
+                          "whose `usb :` line names frame "
+                        : "Expect ~2 s of silence, D1 blinking red, then a "
+                          "re-attach and a `back after` line.");
+            if (hard) printf("            %u. If the banner says `hang :` "
+                             "instead, the reason tag is wrong.\n", (unsigned)n);
+            stdio_flush();
+            usb_sim_drop(hard);
+            continue;
+        }
         if (c == 'Q' || c == 'q') {
             // A rejected set leaves the old one resident and running, which is
             // the right failure: the board keeps answering the last question it
@@ -2276,6 +2656,23 @@ int main(void)
                         sum_age_us, overlap, "            ");
             printf("            last frame mean RGB %d %d %d\n",
                    mean[0], mean[1], mean[2]);
+            // #12 and #9, both of which are about things that happen twice in
+            // five runs and are therefore only ever seen in a summary.
+            //
+            // The camera figure is the margin, not a fault count: the deadline
+            // in cam_xfer() fires at 2,000 us, so this says how close the worst
+            // gap in the whole run came to it. A run that reads 60 us and a run
+            // that reads 1,900 us both look identical frame by frame and mean
+            // completely different things about #12.
+            printf("            camera bus: worst gap %u us against the %u us "
+                   "deadline (#12)\n"
+                   "            usb: %u outage%s, %u ms off the bus, %u "
+                   "re-attach%s (#9)\n",
+                   (unsigned)ft_cam_gap_us(false),
+                   (unsigned)ft_cam_stall_us(),
+                   (unsigned)usb_drops, usb_drops == 1 ? "" : "s",
+                   (unsigned)usb_gone_ms,
+                   (unsigned)usb_kicks, usb_kicks == 1 ? "" : "es");
             stdio_flush();
             sleep_ms(50);
             watchdog_hw->scratch[0] = 0;   // asked for, so not a hang
