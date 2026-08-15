@@ -275,7 +275,7 @@
   <div style="margin-top:186px;">
     <h1 class="cover">fpga-open-vocab: describe it,<br>and a $50 board spots it</h1>
     <div class="cover-sub">A distilled CLIP-style image encoder running on a tiny FPGA — 1.40 M parameters in 768 KB of
-    int4, all eight convolution layers in the fabric, 304 ms per frame, and bit-exact against the plain-C reference.</div>
+    int4, all eight convolution layers in the fabric, 420 ms per camera frame, and bit-exact against the plain-C reference.</div>
     <div class="cover-by">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.22-6.82-5.97 6.82H1.66l7.73-8.83L1.24 2.25h6.83l4.71 6.23zm-1.16 17.52h1.83L7.08 4.13H5.12z"/></svg>
       <a href="https://x.com/kazunori_279" target="_blank" rel="noopener">@kazunori_279</a>
@@ -351,7 +351,7 @@
         <li>Runs a <b>distilled CLIP-style image encoder</b> — 1.40 M int4 parameters, 159 MMAC per frame</li>
         <li>On a <b>~$50 Forgix board</b>: an <b>RP2354A</b> MCU beside an <b>Efinix Trion T8</b> FPGA</li>
         <li>All <b>eight convolution layers execute in the fabric</b>, off a live camera</li>
-        <li><b>304 ms per frame</b>, and <b>bit-exact</b> — 512 of 512 embedding floats identical to the plain-C reference</li>
+        <li><b>420 ms per camera frame</b> — <b>350 ms</b> of it the encoder — and <b>bit-exact</b>: 512 of 512 embedding floats identical to the plain-C reference</li>
         <li><b>11.33×</b> the same model on the MCU alone, measured in the same boot</li>
       </ul>
       <p class="mut">No cloud, no GPU, no network. The answer comes out on an RGB LED,
@@ -663,7 +663,7 @@
       <tr><td><svg class="ric" width="26" height="26" viewBox="0 0 28 28" fill="none">
         <circle cx="14" cy="14" r="10" stroke="#4285f4" stroke-width="2.2"/>
         <path d="M14 8 v6 l4.5 3" stroke="#4285f4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>Clocks</td><td><b>280 MHz sys / 140 MHz link</b>, bit-exact there</td><td><code>link_clk = sys_clk / 2</code> is hard-tied, and <b>the MCU is the tile's only clock</b> — one knob moves everything</td></tr>
+      </svg>Clocks</td><td><b>320 MHz sys / 160 MHz link</b>, bit-exact there. 340 is not a higher setting to try — the link stops answering</td><td><code>link_clk = sys_clk / 2</code> is hard-tied, and <b>the MCU is the tile's only clock</b> — one knob moves everything</td></tr>
       <tr><td><svg class="ric" width="26" height="26" viewBox="0 0 28 28" fill="none">
         <rect x="3" y="8" width="22" height="15" rx="3" stroke="#d93025" stroke-width="2.2"/>
         <circle cx="14" cy="15.5" r="4.5" stroke="#d93025" stroke-width="2.2"/>

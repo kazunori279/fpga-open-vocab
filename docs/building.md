@@ -63,7 +63,7 @@ Two more cache variables matter:
 | | default | |
 |---|---|---|
 | `GP_KPACK` | `1` | must match the bitstream that reaches the FPGA. `1` for `rtl/bitstreams/m16/`, `0` for `m11/` and `m10/`. See `firmware/gemm_plan.h` for why only one of the two mismatches hangs the board |
-| `FGX_SYS_KHZ` | `280000` | `forgix_m9`'s system clock; `link_clk` is half of it. `-DFGX_SYS_KHZ=150000` builds the 150 MHz control image. The comment above `main()` in `firmware/m9.c` has the reasoning for both the rate and the rail |
+| `FGX_SYS_KHZ` | `320000` | `forgix_m9`'s system clock; `link_clk` is half of it. `-DFGX_SYS_KHZ=150000` builds the 150 MHz control image. The comment above `main()` in `firmware/m9.c` has the reasoning for both the rate and the rail |
 | `FGX_CORE_MV` | `0` | `forgix_m9`'s core rail in mV, `0` meaning "derive it from the rate". `1100`/`1150`/`1200`/`1250`/`1300` pin it instead, and anything else is a compile error. **A rail too low for the rate wedges the board silently** — see below |
 
 **A bad operating point used to cost the strap, and now costs 1.5 seconds.**

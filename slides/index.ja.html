@@ -283,7 +283,7 @@
   <div style="margin-top:186px;">
     <h1 class="cover">fpga-open-vocab：言葉で指定すれば、<br>50ドルのボードが見つける</h1>
     <div class="cover-sub">蒸留したCLIP系の画像エンコーダを、小さなFPGAの上で。パラメータ140万をint4の768 KBに収め、
-    8つの畳み込み層すべてをファブリックに載せ、1フレーム304 ms、しかもプレーンCのリファレンスとビット単位で一致します。</div>
+    8つの畳み込み層すべてをファブリックに載せ、カメラ1フレーム420 ms、しかもプレーンCのリファレンスとビット単位で一致します。</div>
     <div class="cover-by">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.22-6.82-5.97 6.82H1.66l7.73-8.83L1.24 2.25h6.83l4.71 6.23zm-1.16 17.52h1.83L7.08 4.13H5.12z"/></svg>
       <a href="https://x.com/kazunori_279" target="_blank" rel="noopener">@kazunori_279</a>
@@ -359,7 +359,7 @@
         <li><b>蒸留したCLIP系の画像エンコーダ</b>を実行。int4パラメータ140万、1フレームあたり159 MMAC</li>
         <li>載せているのは<b>約50ドルのForgixボード</b>。<b>RP2354A</b> MCUの隣に <b>Efinix Trion T8</b> FPGA</li>
         <li><b>8つの畳み込み層すべてをファブリックで実行</b>。入力はライブのカメラ映像</li>
-        <li><b>1フレーム304 ms</b>、しかも<b>ビット単位で一致</b> — 埋め込み512個すべてがプレーンCのリファレンスと同一</li>
+        <li><b>カメラ1フレーム420 ms</b>、うち<b>350 ms</b>がエンコーダ。しかも<b>ビット単位で一致</b> — 埋め込み512個すべてがプレーンCのリファレンスと同一</li>
         <li>同じモデルをMCU単体で回した場合の<b>11.33倍</b>。同一ブート内で計測</li>
       </ul>
       <p class="mut">クラウドなし、GPUなし、ネットワークなし。答えはRGB LEDに出るので、
@@ -665,7 +665,7 @@
       <tr><td><svg class="ric" width="26" height="26" viewBox="0 0 28 28" fill="none">
         <circle cx="14" cy="14" r="10" stroke="#4285f4" stroke-width="2.2"/>
         <path d="M14 8 v6 l4.5 3" stroke="#4285f4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>クロック</td><td><b>sys 280 MHz / link 140 MHz</b>。そこでビット単位一致</td><td><code>link_clk = sys_clk / 2</code> は固定配線。しかも<b>タイルのクロック源はMCUだけ</b> — つまみは1つで全部が動きます</td></tr>
+      </svg>クロック</td><td><b>sys 320 MHz / link 160 MHz</b>。そこでビット単位一致。340はもう一段上ではなく、リンクが応答しなくなる</td><td><code>link_clk = sys_clk / 2</code> は固定配線。しかも<b>タイルのクロック源はMCUだけ</b> — つまみは1つで全部が動きます</td></tr>
       <tr><td><svg class="ric" width="26" height="26" viewBox="0 0 28 28" fill="none">
         <rect x="3" y="8" width="22" height="15" rx="3" stroke="#d93025" stroke-width="2.2"/>
         <circle cx="14" cy="15.5" r="4.5" stroke="#d93025" stroke-width="2.2"/>

@@ -1467,27 +1467,43 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
 // inherited from m8; the clock ladder only ever got built into m6 and m7, and
 // those two are where the top of it was measured. 280 MHz system / 140 MHz link
 // is bit-exact there on the same M16 images this file runs - m6 at 2048/2048
-// over three boots, m7 at 304 / 304 / 303 ms a frame over three - and doubling
-// the link is worth most of the gap between 1.8 fps and 3.3 here, because the
-// frame is dominated by weight traffic over the wire.
+// over three boots, m7 at 304 / 304 / 303 ms a frame over three - and the wire
+// is what the clock buys, because the frame is dominated by weight traffic over
+// it. On this path that was 802 ms at 150 and is 420 at 320: 1.25 fps to 2.38.
 //
-// **280 is validated on m6 and m7. It is not yet validated on m9's path** -
-// issue #1. m9 is the only harness that also drives the camera, and while
-// nothing in that path pins the system rate - the PIO SPI divisor is derived
-// from clock_get_hz(clk_sys), and the bit-banged init waits on the microsecond
-// timer - "nothing pins it" is an argument, not a measurement.
+// **320, NOT 280, AND THE DIFFERENCE WAS MEASURED HERE.** m6 and m7 validated
+// 280; issue #1 then ran 280, 300, 320, 332 and 340 on this path, with the
+// camera, and the answer is not the one the other two harnesses imply:
 //
-// The rail is the one m7 was validated at, not the lowest that works. m6's
-// voltage-floor sweep has 280 bit-exact all the way down at 1.15 V, but that
-// sweep is 4 ms bursts running out of XIP flash and this is a sustained
-// two-core frame; the milestone that recorded the floor says so itself. Buying
-// that margin back is a bench decision with numbers under it, not a default.
+//   280 -> 454 ms      300 -> 455 ms      320 -> 420      332 -> 420
+//   340 -> the link never answers, at three data lines or at one, twice
+//
+// The inference frame scales perfectly with the clock - the probe reads 400,
+// 374, 350, 338 ms against 400 x 280/f - and the appliance frame does not. It
+// steps. 280 and 300 share a number, 320 and 332 share the next one down, and
+// the step is 34 ms, which is about one frame of a ~29 fps sensor. The camera
+// finishes when the camera finishes, so anything that gets faster inside one of
+// those cells buys exactly nothing. See #10: that is why the road to 300 ms is
+// overlapping the capture, not raising the clock.
+//
+// So 320 is where the curve stops paying. 332 costs 12 MHz for 0 ms and puts
+// the next step at 340, where the link is dead - and M17's "340 is bit-exact at
+// 1.25 V" is an m6 result that does not transfer here, which is itself worth
+// remembering before quoting a rate one harness measured at another.
+//
+// The rail stays at what the ladder gives 320, which is 1.25 V. The sweep found
+// 320 clean at 1.20 as well, and 280 clean all the way down to 1.15 - but 320
+// *wedges* at 1.15, so 1.20 is one step from the cliff and 1.25 is two, for the
+// same 420 ms. Margin is the only thing the extra 0.05 V is being bought with
+// and the only thing it is being bought for. -DFGX_CORE_MV=1200 is there if a
+// power budget ever wants that step back.
 //
 // Voltage up before frequency up, frequency down before voltage down. That
 // ordering is from m7.c and it is not stylistic: under-volting the core does
-// not print an error, it stops the board and costs a power cycle.
+// not print an error, it stops the board - and see main(), which now brings USB
+// up first so that when it does, the board can still be re-flashed.
 #ifndef FGX_SYS_KHZ
-#define FGX_SYS_KHZ 280000
+#define FGX_SYS_KHZ 320000
 #endif
 
 // 0 = the ladder below decides. A number is a bench override, in millivolts,

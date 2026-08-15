@@ -49,9 +49,11 @@ Both chips sit on one ~$50 board and talk over a **3-bit link**: three data wire
 9. **After the eighth layer**, still on the MCU: average-pool the 4 × 4 × 256 output down to 256 numbers and put them through one 256 → 512 linear layer. That is the image's own 512-d embedding, in the same space as step 1's — un-normalized, deliberately; step 10 does that in float.
 10. **Decide.** Cosine similarity against each of up to six query vectors, standardized against the background this room reads at, split into a presence axis and a state axis, and reported on the RGB LED. That last step is a subsystem rather than a threshold; it is [its own section](#from-the-embedding-to-an-answer) below.
 
-**Steps 2 through 10 all run on the board, and steps 3 through 9 are the 304 ms.** Step 1 runs on the host, once per *query* rather than once per frame; step 2 is an ArduCam Mega 3MP over SPI, fitted since M8b and required — `m9.c:1592` refuses to start the demo without one; step 10 is a handful of dot products and some arithmetic on six numbers.
+**Steps 2 through 10 all run on the board, and steps 3 through 9 are the inference.** Step 1 runs on the host, once per *query* rather than once per frame; step 2 is an ArduCam Mega 3MP over SPI, fitted since M8b and required — `m9.c:1592` refuses to start the demo without one; step 10 is a handful of dot products and some arithmetic on six numbers.
 
-**The appliance's own frame is 454 ms**, and the split above is where the other 150 ms lives. 304 ms is steps 3–9 measured on `m7`, which starts from a test vector and stops at an embedding. Step 2 costs **52 ms** — 37 of exposure and 16 of burst read — and is the only part of the frame that does not scale with the system clock, because both are the camera's own rates rather than `clk_sys`. The remaining ~98 ms is step 10 plus what a demo does that a harness does not: hold a background, standardize against it, and print a line per frame down the CDC. Splitting that 98 ms properly is [#10](https://github.com/kazunori279/fpga-open-vocab/issues/10), which is also the issue for closing it.
+**The appliance's own frame is 420 ms at 320/160**, of which steps 3–9 are **350 ms** — the board measures that itself, at boot, by running the whole test vector over the wire before the camera starts. Step 2 costs **52 ms**, 37 of exposure and 16 of burst read, neither of which is a `clk_sys` rate. The rest is step 10 plus what a demo does that a harness does not: hold a background, standardize against it, and print a line per frame down the CDC.
+
+**Those numbers do not add up to 420, and the reason is the camera's clock, not rounding.** Across 280, 300, 320 and 332 MHz the inference is 400 / 374 / 350 / 338 ms — perfect 1/f — while the whole frame is 454 / 455 / **420** / 420. It lands on a grid about 34 ms wide, which is one frame of a ~29 fps sensor: `cam_capture()` triggers and then waits for CAP_DONE, and the sensor finishes on its own boundary. Anything that gets faster inside one cell of that grid buys nothing at all. So the way to a faster appliance is to overlap the capture with the compute rather than to raise the clock — [#10](https://github.com/kazunori279/fpga-open-vocab/issues/10).
 
 ---
 
@@ -82,7 +84,7 @@ One idea recurs below and is worth having up front. The T8 has no configuration 
 ---
 
 
-Everything below describes the system that exists and has been measured, in configuration C, as of 2026-08-03. **An inference frame took 851 ms then and takes 304 ms now** — M16, the two clock audits and M17 all landed after this section was written, and the *shape* is what they left alone. The structure below is current; every absolute millisecond in it is the 2026-08-03 measurement and is labelled where it appears, because re-deriving the per-actor split at 280/140 needs a profiling run that has not been done ([#10](https://github.com/kazunori279/fpga-open-vocab/issues/10)). Where the two disagree, [Status](history.md#status-and-roadmap) is right. The frame is bit-exact against the plain-C reference in every **mode** tested — a mode being one selectable code path inside a single firmware binary, six of them today, so that any two of them can be compared in the same boot rather than across a reflash. How it got there is in [`milestones.md`](milestones.md); this section is only the shape it ended up.
+Everything below describes the system that exists and has been measured, in configuration C, as of 2026-08-03. **An inference frame took 851 ms then and takes 350 ms now** — M16, the two clock audits, M17 and the move to 320 MHz all landed after this section was written, and the *shape* is what they left alone. The structure below is current; every absolute millisecond in it is the 2026-08-03 measurement and is labelled where it appears, because re-deriving the per-actor split at the shipped 320/160 needs a profiling run that has not been done ([#10](https://github.com/kazunori279/fpga-open-vocab/issues/10)). Where the two disagree, [Status](history.md#status-and-roadmap) is right. The frame is bit-exact against the plain-C reference in every **mode** tested — a mode being one selectable code path inside a single firmware binary, six of them today, so that any two of them can be compared in the same boot rather than across a reflash. How it got there is in [`milestones.md`](milestones.md); this section is only the shape it ended up.
 
 
 ## The shape of the thing
@@ -259,7 +261,7 @@ Three executors, and the assignment of work to them is the architecture. Nothing
 |---|---|---|
 | the teacher's text tower | **host** | never in the per-frame loop — one 512-d embedding per *query*, not per frame |
 | quantize the input image | core 0 | once a frame, next to nothing |
-| **the 3 × 3 multiply**, all 159 MMAC | **the tile** | 16 MAC a clock — 8 hard multipliers and 8 built from logic — at 140 MHz. This is the only reason the FPGA is on the board |
+| **the 3 × 3 multiply**, all 159 MMAC | **the tile** | 16 MAC a clock — 8 hard multipliers and 8 built from logic — at 160 MHz. This is the only reason the FPGA is on the board |
 | **im2col expansion** | **the tile**, in fabric | a 3 × 3 kernel makes every input byte appear in up to nine columns. Expanding on the MCU and shipping the result spends that 9× on the link, which is the scarcest thing in the system; expanding in fabric spends it on BRAM reads, which are free. See [`im2col_feed`](#inside-gemm_top) |
 | **supplying the tile's clock** | core 0 | `LINK_CLK` is the tile's only oscillator, so every cycle it computes is a cycle core 0 spends toggling a pin. This is the `RUN` command, and it is the single largest item in the frame |
 | driving the link — DMA out, PIO capture in, CRC | core 0 | it owns the peripherals; the CRC is a DMA sniffer rather than a loop |
@@ -366,7 +368,7 @@ Three things about that order are the whole design, and each is measured elsewhe
 
 ## One frame, 851 ms — *the 2026-08-03 split*
 
-Same frame, priced. The bars are named after the four commands above. **This is the 851 ms frame, kept because it is the only per-actor breakdown that has been measured.** The frame is 304 ms now; `RUN` alone is 118 rather than 313, so the proportions below overstate the tile and understate everything that did not scale with the clock. Read it for which actor waits on which, not for the numbers.
+Same frame, priced. The bars are named after the four commands above. **This is the 851 ms frame, kept because it is the only per-actor breakdown that has been measured.** The inference frame is 350 ms now; `RUN` alone measured 118 rather than 313 at 280 MHz, and the clock has gone up again since, so the proportions below overstate the tile and understate everything that did not scale with the clock. Read it for which actor waits on which, not for the numbers.
 
 ```mermaid
 gantt
@@ -471,7 +473,7 @@ Either way the RP's six header pins (GPIO 8, 9, 12, 13, 22, 23) stay free for th
 
 ### Bus rate
 
-Two instructions per bit puts the PIO ceiling at **half `sys_clk`** — a 75 MHz link at the stock 150 MHz, and 140 MHz at the 280 the appliance now boots to. Both columns below are the 150 MHz numbers, which is what every measurement in the table was taken at; double them for the current operating point.
+Two instructions per bit puts the PIO ceiling at **half `sys_clk`** — a 75 MHz link at the stock 150 MHz, and 160 MHz at the 320 the appliance now boots to. Both columns below are the 150 MHz numbers, which is what every measurement in the table was taken at; scale them by 320/150 for the current operating point.
 
 | | Forward (MCU→FPGA) | Return |
 |---|---|---|
