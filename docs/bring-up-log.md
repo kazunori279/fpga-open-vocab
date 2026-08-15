@@ -11,6 +11,117 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-16 — the outage happens with the instruments on, and the reboot turns out not to be the recovery
+
+**A 3,000-frame soak at 280/140 lost the board at frame 1,987, and for the first
+time the desk could say what the board did about it.** 1,988 frames, all good,
+about eleven minutes, and then the port went. `demo.py` followed it and gave up
+after 45 s with nothing on VID 2E8A. `uhubctl` read `Port 1: 0100 power` —
+power, enable and connect gone, so as far as the hub is concerned nothing is
+pulling D+ up.
+
+**D1 was dark, and that is the measurement.** The LED is written over the link
+every frame and holds its last value if the loop stops mid-frame; at 1,987 it
+was at full brightness on a `MATCH`. Dark is therefore not a frozen loop, it is
+no loop — so the 30 s escalation fired, the board rebooted itself, came up, and
+sat in the wait for `stdio_usb_connected()` that precedes the clock. **The
+deliberate reboot happened and the bus still did not come back.** That is new,
+and it is the opposite of what [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9)'s
+escalation was written to assume: rebooting is not a recovery for this shape,
+because `stdio_init_all()` re-asserts the pull-up on the way up and the hub
+still saw nothing. `uhubctl -l 2-1 -p 1 -a cycle` brought it back on the first
+try, and it enumerated as the application with the old image still running.
+
+**Two readings survive that, and this run cannot separate them.** Either
+something on the board leaves the USB block in a state a chip reset does not
+clear, or **the hub port latched and only cutting VBUS cleared it** — in which
+case the fault is at this end of the cable and the issue has been named after
+the wrong participant for three weeks. Everything seen is consistent with both.
+The cheap test is a different hub, and it is worth doing before any more board
+work.
+
+**The instrument has a hole in it, and finding that is worth as much as the
+event.** The reason line only exists if USB comes back: the stage, the frame and
+the `POWMAN_CHIP_RESET` copy all live in watchdog scratch, and scratch does not
+survive the power cycle that is the only known recovery. So *an outage that ends
+in `uhubctl` is unattributable by construction* — the board knew why, and the
+knowing died with the 5 V. Last words in a flash sector are the fix, and that is
+now the next thing on #9.
+
+Two smaller things the same run settled. **A cold scratch is not proof of power
+loss**: `picotool reboot` came back cold with nothing wrong at all, because the
+bootrom clears it too, so the banner now says "power, or the bootrom" rather
+than claiming the stronger thing. And the camera-bus margin
+([#12](https://github.com/kazunori279/fpga-open-vocab/issues/12)) is printed
+only in the `stopped :` summary, which means **the runs most worth measuring —
+the ones that end in a fault — are exactly the runs that never print it.**
+
+### 2026-08-15 — three faults that only ever happened when nobody was watching
+
+**None of #3, #9 or #12 left evidence, and that was the thing they had in
+common.** A run that dropped off USB left a log that stopped; a byte lost on the
+camera bus left a frame that was wrong; and a board parked at the bitstream
+prompt could not be sent to BOOTSEL at all, so recovery was a strap at the desk.
+All three were fixed the same way: make the fault happen on purpose, and make
+the board the thing that reports it.
+
+**[#3](https://github.com/kazunori279/fpga-open-vocab/issues/3): the one prompt
+a host-side abort always lands on was the one prompt whose hotkey was eaten.**
+`ft_recv_bitstream()` swallowed stdin while it waited for the `FGXB` magic.
+`'B'` reaches BOOTSEL from there in **1.2 s** now, behind two guards — `'B'` is
+the last byte of the magic, and a byte arriving inside a stream is data. 4,096
+bitstream bytes carrying 16 × `0x42` leave the board at the prompt, checked.
+
+**Writing that guard caught its own twin.** `m9`'s frame loop had no such rule,
+so a re-run that pushed 173 KB into a board still looping from the previous run
+sent it to BOOTSEL mid-download on a `0x42` in the data — and at the host that
+is indistinguishable from #9. Every hotkey that costs a run (`B R W U I`) now
+needs 100 ms of quiet either side. **The fault we spent the day building
+instruments for, we also manufactured ourselves, twice, before lunch.**
+
+**`picotool load` reports success without writing.** Twice in one session: the
+progress bar ran to 100%, nothing printed wrong, the flash stayed at `0xff` and
+`Program Information` read `none`. **`verify` is the check and `load` will not
+tell you** — and timing is a hint, not the check: a real write of the 2.1 MB
+image takes 15–22 s, the silent no-op took 2.5. A second and third `load` failed
+the same way; `uhubctl -l 2-1 -p 1 -a cycle -d 3` then wrote and verified first
+try. `host/bootsel.py --flash` does that loop now so the next person does not
+have to know it.
+
+**#12 has a number for the first time: 15 µs of worst camera-bus gap against a
+2,000 µs deadline over 101 frames at 320/160, and 16 µs over 152 at 280/140.**
+That is a margin, not a fault count, and it is the same margin at both rates —
+125× clear — so whatever drops the byte on the fast side, it is not the bus
+gradually running out of time, which is the hypothesis the issue leads with.
+
+**#9: `tud_mounted()` lies.** Two of the three real outages this session left
+TinyUSB certain the board was still attached while the hub showed no connect, so
+a watcher built on the stack's own opinion could never have fired. The watch is
+`usb_hw->sof_rd` now — the host numbers every frame, the counter is 11 bits and
+wraps in 2,048 ms, so three identical samples at ~330 ms apart cannot happen
+unless the packets have stopped. The board re-attaches itself in ~2.8 s and says
+which frames went with it; after 30 s it reboots deliberately and the next
+banner names that as a reason rather than as a hang. `'U'` and `'I'` make both
+halves happen on demand, which is how they were checked rather than hoped for.
+
+**And the report was correct and invisible before it was correct and useful.**
+The first version printed at `tud_mounted()` — before the host raises DTR, which
+is exactly when `stdio_usb` discards writes. It never reached a single log.
+
+### 2026-08-01 – 2026-08-14 — where this log's gap went
+
+**M14 through M21, the two clock audits, the three benches and the voltage-floor
+sweep are not here.** They were written up in
+[`milestones.md`](milestones.md) as they happened, and the frictions in
+[`history.md`](history.md); this file was not being kept during that fortnight.
+
+**No backfill was written, deliberately.** Reconstructing dated entries from
+those write-ups would mean composing "what the board did on the bench that day"
+out of a document that was not taking notes that day — which is the kind of
+entry the append-only rule at the top exists to keep out. A pointer that is
+honest about the gap is worth more than fourteen days of plausible diary.
+[#6](https://github.com/kazunori279/fpga-open-vocab/issues/6).
+
 ### 2026-07-31 — M10 closed on a timing report, for 32 ms
 
 **A milestone died twice in one day, and the second death cost five container

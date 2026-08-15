@@ -763,9 +763,16 @@ static void reset_report(void)
     // powman, and an empty set is a fact worth printing next to a reboot.
     const uint32_t fresh = now & ~was;
 
+    // "Cold" is weaker evidence than it first looked, and saying so is the
+    // point of the line. A watchdog reboot keeps the copy - verified, a
+    // deliberate FGX_ST_USBGONE reboot reads "nothing new" - but a BOOTSEL
+    // round trip does not: `picotool reboot` came back cold on 2026-08-16 with
+    // nothing wrong at all. So a cold scratch narrows this to "power, or the
+    // bootrom", and only the caller knows whether anybody typed picotool.
     printf("reset     : chip_reset %08x%s\n", (unsigned)now,
-           kept ? "" : "  (scratch was cold - the always-on domain went away, "
-                       "so this is power, not software)");
+           kept ? "" : "  (scratch was cold: either the always-on domain went "
+                       "away - power, a brown-out - or this boot came through "
+                       "the bootrom, which clears it too)");
     for (size_t i = 0; i < count_of(had); i++)
         if (fresh & had[i].bit)
             printf("            new this boot: %s\n", had[i].what);

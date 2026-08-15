@@ -112,6 +112,19 @@ had rebooted it — and the banner now prints `POWMAN_CHIP_RESET`'s `HAD_*` bits
 against a copy kept in watchdog scratch, which separates a brown-out or a supply
 glitch from a watchdog reboot instead of leaving them indistinguishable.
 
+**And the first real outage the instruments were on for said the escalation is
+not a recovery** (2026-08-16, frame 1,987 of a 3,000-frame soak). D1 went dark,
+which the LED only does if the loop stopped rather than froze, so the reboot
+fired — and the hub still read `power` with no `connect` until `uhubctl` cut
+VBUS. Either something on the board survives a chip reset in the USB block, or
+**the hub port latched and the fault is at the desk's end of the cable**;
+nothing measured so far separates those, and a different hub is the cheap test.
+The same event exposed the limit of the reporting: stage, frame and the
+`CHIP_RESET` copy all live in watchdog scratch, and scratch does not survive the
+power cycle that is the only known recovery — so an outage that ends in
+`uhubctl` cannot be attributed at all. Last words in flash are what would fix
+that.
+
 ---
 
 ## The board, as actually wired
