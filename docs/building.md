@@ -128,17 +128,27 @@ description of it.
 
 ```sh
 picotool reboot -f -u                              # into BOOTSEL, over USB
-picotool load firmware/build/forgix_m9.uf2 -x      # write and run
+picotool load   firmware/build/forgix_m9.uf2       # write
+picotool verify firmware/build/forgix_m9.uf2       # and check it landed
+picotool reboot                                    # then run it
 ```
 
+`load -x` runs it for you and is fine once you trust the write; the three-step
+form is here because the trust is the thing that was misplaced.
+
 Use **Homebrew's `picotool`**, not the SDK's, which is built without USB
-support. Three things about this are load-bearing:
+support. Four things about this are load-bearing:
 
 - **Never copy the `.uf2` to `/Volumes/RP2350`.** That is what hangs.
-- **A real write takes ~22 s.** Check `picotool info` afterwards: a fast
-  "success" wrote nothing.
-- `picotool load -x` can leave the board sitting in BOOTSEL with a flash that
-  looks empty. If that happens, load again.
+- **`picotool load` reports success without writing.** It runs its progress
+  bar to 100%, prints nothing wrong, and leaves the flash at `0xff` — twice in
+  one session on 2026-08-15. **`picotool verify` is the check**, and it is a
+  separate command because `load` will not tell you.
+- **Timing is a hint, not the check.** A real write has taken 15–22 s; the
+  silent no-op took 2.5 s. Believe `verify`, not the stopwatch.
+- **When it happens, power-cycle — do not load again.** A second and third
+  `load` failed the same way; `uhubctl -l 2-1 -p 1 -a cycle -d 3` fixed it,
+  and the next load wrote and verified.
 
 `uv run host/bootsel.py` automates the recovery path and will power-cycle the
 hub if asked (`--power-cycle`), which is the hammer. Fallbacks in order, if USB
