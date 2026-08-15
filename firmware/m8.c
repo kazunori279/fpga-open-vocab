@@ -239,6 +239,10 @@ int main(void)
     // The rung, set once. See the header comment.
     ft_set_mode(true, true, true, true, true);
     ft_set_sweep(false);
+    // With m9, and for m9's reason - see the long note there. Changed here too
+    // because m8 exists to be m9 without the queries, and an m8 running a
+    // different engine mode is not a baseline for anything.
+    ft_set_rq(true);
 
     // --- check 1: the reference ---------------------------------------------
     // On the flash test vector rather than on a camera frame, deliberately: it

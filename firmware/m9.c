@@ -1758,6 +1758,21 @@ int main(void)
 
     ft_set_mode(true, true, true, true, true);
     ft_set_sweep(false);
+    // M15's epilogue, and #14 (2) found it switched off. Nothing argued for
+    // that: the appliance was simply never moved over when M15 shipped, and
+    // because the only breakdown in the tree predated M15 the cost never showed
+    // up anywhere. m7's ladder at 320/160, one boot, six modes, both link
+    // configurations, all bit-exact: 349 ms with the tile draining int32 and
+    // 270 ms with it draining codes. DRAIN is 72 ms of the frame and becomes 19,
+    // the wire carries 10.244 MB instead of 13.259, and the decode that core 1
+    // was doing behind it drops from 66 ms to 17.
+    //
+    // Safe by construction rather than by assertion: probe() below runs the
+    // whole test vector through the tile in this mode and refuses to start the
+    // demo unless all 512 embedding floats match encoder_fast. The accumulator
+    // sweep that guards the MAC array is unaffected - see ft_set_rq(), a sweep
+    // pass overrides this back to int32.
+    ft_set_rq(true);
 
     // --- check 1: the reference ---------------------------------------------
     wd_stage(FGX_ST_REFERENCE, 0);

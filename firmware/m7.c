@@ -894,8 +894,24 @@ int main(void)
                 // maximum and it is the only rung sitting there. So the ladder
                 // is not monotonic in sys_clk, and a rung being faster than a
                 // failing one is not a contradiction.
+                // 320000 is on top for issue #14, and it is the one rung here
+                // that needs no sweep to justify: it is the rate the appliance
+                // *ships* at. m9 has been bit-exact at 320/160 for hundreds of
+                // frames a run since M16, so a ladder that stopped at 280 was
+                // measuring a rate nothing runs at any more - and #14 (2) needs
+                // the per-actor split at the shipped rate, because the only
+                // breakdown in the tree is the 851 ms frame from 2026-08-03, at
+                // 8 MACs and a 75 MHz link, none of which is still true.
+                //
+                // 300000 sits below it because m9's own clock sweep ran it -
+                // 374 ms of inference against 350 at 320 - so if 320 somehow
+                // fails here the next rung is still a rate with a history.
+                //
+                // NOT 332000, deliberately. The ladder stops at the first rung
+                // that is bit-exact, so a 332 on top would answer #13 and cost
+                // us the 320 row that #14 (2) is here for. #13 is its own run.
                 static const uint32_t C_KHZ[] = {
-                    280000, 240000, 220000, 200000, 176000,
+                    320000, 300000, 280000, 240000, 220000, 200000, 176000,
                     150000, 130000, 110000, 90000,
                 };
                 const int NC = (int)(sizeof C_KHZ / sizeof C_KHZ[0]);
