@@ -1570,6 +1570,14 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
   const slides = [...document.querySelectorAll('.slide')];
   const hud = document.getElementById('hud');
   const frame = document.getElementById('frame');
+  // The other deck's link. Both decks hold the same 39 slides in the same
+  // order, so the fragment means the same thing in either one - but the href
+  // is written without it, and a bare filename drops the fragment rather than
+  // keeping it, so switching language on slide 27 used to land on slide 1.
+  // Rewritten on every show() instead of on click, so it is right whether the
+  // link is clicked, middle-clicked, or copied out of the status bar.
+  const lang = document.querySelector('#lang a');
+  const langHref = lang && lang.getAttribute('href').split('#')[0];
   let cur = Math.min(Math.max((parseInt(location.hash.slice(1), 10) || 1) - 1, 0), slides.length - 1);
 
   function show(i) {
@@ -1577,6 +1585,7 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
     slides.forEach((s, j) => s.classList.toggle('active', j === cur));
     hud.textContent = (cur + 1) + ' / ' + slides.length;
     history.replaceState(null, '', '#' + (cur + 1));
+    if (lang) lang.href = langHref + '#' + (cur + 1);
     slides.forEach((s, j) => {
       const n = s.querySelector('.pageno');
       if (n) n.textContent = j + 1;
