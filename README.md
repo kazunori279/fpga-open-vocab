@@ -74,6 +74,7 @@ harness, and rebuilding the model — are in [`docs/building.md`](docs/building.
 | **fabric** | **6,265 of 7,384 LE (85%)**, 8/8 multipliers, **21 of 24 memory blocks** — it started at 33% with memory the only thing running out; three milestones of arithmetic later both are nearly full |
 | **link** | 26.4 MB/s forward measured, 8.9 MB/s back, and it cannot be widened either way |
 | **decision rule** | 120/120 held out on the board at M21, against 90/180 for ranking the same frames |
+| **the flaky two** | both now measured rather than guessed at. The camera bus's **worst gap is 16 µs against a 2,000 µs deadline** over 152 frames at 280/140, and 15 µs over 101 at 320/160 — the same at both rates, 125× clear, so [#12](https://github.com/kazunori279/fpga-open-vocab/issues/12) is not the fast side running out of time. A USB outage is now caught **by the board** off `sof_rd` rather than inferred by the host from a log that stopped: it re-attaches itself in ~2.8 s, says which frames it lost, and reboots deliberately at 30 s. `'U'` and `'I'` make both halves happen on demand, which is how they were checked. [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9) is still open, and it now has a third shape in it: a reset from underneath the firmware, which the banner separates from a watchdog reboot by diffing `POWMAN_CHIP_RESET` |
 
 Two GO/NO-GO gates were passed on the way: **M2** (is the on-board link fast and
 clean enough to be worth using) and **M4** (can a model small enough to fit still

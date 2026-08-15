@@ -95,6 +95,23 @@ Where the remaining 270 ms goes, at 320/160, config C, whole frame: the wire is 
 
 **332 is bit-exact and it is not what ships.** `m7` passes all six modes of both link configurations at 332/166 and `m9` ran 151 of 151 good, so this is a margin decision rather than a measurement: 332 buys 3.4% and sits 8 MHz below 340, where the link stops answering entirely and deterministically. [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9) (the board drops off USB) and [#12](https://github.com/kazunori279/fpga-open-vocab/issues/12) (a byte lost on the camera bus at 280/140 and never at 150/75) are both open, both are unexplained flakiness on the fast side, and one 320 run in this very session dropped off USB. 10 ms does not buy out a margin those two have not finished asking about.
 
+**What those two have said since (2026-08-15).** Both now leave evidence instead
+of a gap in a log. The camera bus keeps a worst-gap high-water mark, and the
+number is a margin rather than a fault count: **16 µs against the 2,000 µs
+deadline over 152 frames at 280/140**, and 15 µs over 101 frames at 320/160.
+Whatever #12 is, it is not the bus gradually running out of time on the fast
+side — the two rates measure the same, and 125× clear. USB is now watched from
+the board rather than inferred by the host afterwards: `usb_hw->sof_rd` going
+still for a second counts as an outage even when TinyUSB still believes it is
+mounted, which is what the two real outages in this session looked like. The
+board re-attaches itself, prints how long it was gone and which frames it lost,
+and after 30 s of no bus it reboots deliberately and says so in the next banner.
+A **third shape** turned up while doing it — a run that vanished and came back
+with a fresh banner, no `hang :` and no `usb :`, so nothing above the firmware
+had rebooted it — and the banner now prints `POWMAN_CHIP_RESET`'s `HAD_*` bits
+against a copy kept in watchdog scratch, which separates a brown-out or a supply
+glitch from a watchdog reboot instead of leaving them indistinguishable.
+
 ---
 
 ## The board, as actually wired

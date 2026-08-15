@@ -160,12 +160,32 @@ support. Four things about this are load-bearing:
   `load` failed the same way; `uhubctl -l 2-1 -p 1 -a cycle -d 3` fixed it,
   and the next load wrote and verified.
 
-`uv run host/bootsel.py` automates the recovery path and will power-cycle the
-hub if asked (`--power-cycle`), which is the hammer. Fallbacks in order, if USB
-will not do it: the **`PRG`–`GND` strap** on the short bottom edge while
-plugging USB in — *not* the silkscreen `17`/`18` pads on the long row, which go
-to FPGA balls B3/B7 — then SWD via the J2 pogo pads (Tag-Connect TC2030-IDC-NL).
-The 1200-baud CDC touch is wired but does not fire.
+`uv run host/bootsel.py` automates all of that:
+
+```sh
+uv run host/bootsel.py --flash firmware/build-280/forgix_m9.uf2   # nudge, write, verify, run
+uv run host/bootsel.py --power-cycle --hub 2-1:1                  # the hammer
+```
+
+`--flash` does the write the way the four rules above say to: `load -f` then
+`verify`, and on a mismatch it says the board is still running the old image,
+power-cycles the hub, puts it back in BOOTSEL and writes again. Two attempts,
+and it prints the wall time of each because the 2.5 s no-op is recognisable.
+`--power-cycle` cuts VBUS instead of trying the wire. `--hub HUB:PORT` names
+the hub port by hand — needed exactly when the board has left the bus and
+cannot be found by VID, which is issue [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9)'s
+worst case; on this desk it is `2-1:1`, and `uhubctl` with no arguments lists
+them.
+
+Fallbacks in order, if USB will not do it: the **`PRG`–`GND` strap** on the
+short bottom edge while plugging USB in — *not* the silkscreen `17`/`18` pads
+on the long row, which go to FPGA balls B3/B7 — then SWD via the J2 pogo pads
+(Tag-Connect TC2030-IDC-NL). Neither has been needed since 2026-08-15: `'B'`
+at the console reaches BOOTSEL from the bitstream prompt in 1.2 s now that
+[#3](https://github.com/kazunori279/fpga-open-vocab/issues/3) is fixed, and
+that is the nudge `bootsel.py` sends first. The 1200-baud CDC touch goes out
+right behind it and has never been isolated as the thing that fired; it stays
+because it is the path that works on a board flashed before the fix.
 Adiuvo's `forge_fpga_loader.uf2`, from the
 [developer repo](https://bitbucket.org/adiuvo-engineering/forgix_public),
 restores the vendor loader the same way. It is not in this tree — fetch it
@@ -202,6 +222,18 @@ background hold, `'E'` forces a deferred LED failure to land somewhere visible.
 serial; `'D'` does the same and flips the trigger between late on the schedule
 and back at the collect, which is issue #14's A/B. `demo.py` presses both on a
 given frame with `--overlap N` and `--eager N`.
+
+Three more make faults happen on purpose, because all three are things that
+show up twice in five runs and never when watched. `'U'` drops the USB pull-up
+behind TinyUSB's back — the board notices, re-attaches itself in about 2.8 s
+and prints which frames it lost. `'I'` does the same and refuses to re-attach,
+so the watcher has to escalate to its deliberate reboot at 30 s and the next
+banner names the reason as `usb :` rather than as a hang. `demo.py` presses
+them with `--usb-drop N` and `--usb-drop-hard N`, and follows the board across
+the reboot either way. `--cam-fault N` stalls the camera bus for issue #8's
+deadline. Every hotkey that costs a run — `B R W U I` — is now ignored unless
+it arrives alone, 100 ms clear of any other byte, so a `0x42` inside a
+bitstream cannot send the board to BOOTSEL mid-download.
 
 The other harnesses, each with its own host script:
 
