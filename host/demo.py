@@ -1179,12 +1179,27 @@ def main() -> int:
         # and BOOTSEL would throw that away and demand a reflash to get back to
         # exactly where it is standing. The next thing anybody does here is
         # re-run, not flash.
+        #
+        # The 'B' is answered before it is obeyed: m9.c:1991 prints the
+        # `stopped :` block - the frames, the good count, and the only
+        # ms/frame figure a run ever produces - flushes, waits 50 ms and then
+        # detaches into BOOTSEL. Sleeping 0.6 s and pumping once afterwards
+        # read a port that had already gone, so that line was lost on every
+        # run that ended normally; and pump()'s OSError path is
+        # follow_reboot(), which then spent REOPEN_S looking for a board this
+        # end had just asked to leave, and voided the measurement it had
+        # finished taking. Read what arrives, and let the detach end the loop
+        # rather than chase it - this departure is the one we asked for.
         if not rebooted:
             try:
                 s.write(b"B")
                 s.flush()
-                time.sleep(0.6)
-                pump()
+                until = time.monotonic() + 1.0
+                while time.monotonic() < until:
+                    if s.in_waiting:
+                        emit(s.read(s.in_waiting).decode("utf-8", "replace"))
+                    else:
+                        time.sleep(0.02)
             except (OSError, serial.SerialException):
                 pass
 
