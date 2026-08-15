@@ -778,6 +778,14 @@ uint32_t ft_us_build_wgt_frame(void) { return us_build_wgt_frame; }
 uint32_t ft_us_scatter(void)     { return us_scatter; }
 uint32_t ft_sweep_blocks(void)   { return sweep_blocks; }
 
+// #14's two hooks into the frame path, declared here and defined with the rest
+// of the capture code far below. The definitions stay down there deliberately:
+// when to arm the sensor is a capture question, and the layer loop should be
+// able to ask it without also owning the answer. These are the only two points
+// at which it is asked.
+static void cap_maybe_arm(uint32_t layers_done);
+static void cap_close_frame(uint32_t head_us);
+
 const char *ft_init(const fgx_model_t *m)
 {
     mdl     = m;
@@ -1018,6 +1026,12 @@ ft_err_t ft_layer(uint32_t i, const void *src, void *dst)
     us_build_frame += us_build;
     us_build_wgt_frame += us_build_wgt;
 
+    // #14. The last thing in the layer, after the barrier, so the question is
+    // asked at the same point the previous frame measured its answer. The policy
+    // itself lives with the capture code below - this is only where it has to be
+    // consulted.
+    cap_maybe_arm(i + 1u);
+
     r.link = e;
     return r;
 }
@@ -1026,7 +1040,12 @@ void ft_pool_head(const float *src, float *embed)
 {
     const uint64_t th = time_us_64();
     fgx_pool_head(mdl, src, pool_codes, embed);
-    frame_us += (uint32_t)(time_us_64() - th);
+    const uint32_t head_us = (uint32_t)(time_us_64() - th);
+    frame_us += head_us;
+
+    // The backstop arm, and this frame's timings for the next one to schedule
+    // against. Both below, for the same reason cap_maybe_arm() is.
+    cap_close_frame(head_us);
 }
 
 // ---------------------------------------------------------------------------
@@ -1075,6 +1094,59 @@ static uint32_t cap_expose_us, cap_read_us, cap_wait_us;
 static bool cap_pipeline;
 static bool cap_armed;
 
+// ---------------------------------------------------------------------------
+// WHEN to arm, which is a different question from whether. Issue #14.
+//
+// The first version of this armed the moment it collected, and that is the
+// wrong end of the compute. The next collect is a whole encode away and the
+// sensor only needs its exposure and one frame boundary - 56 ms, measured - so
+// arming early bought nothing and made the frame ~290 ms staler than it had to
+// be. Photon-to-LED roughly doubled when the overlap landed and most of that
+// was avoidable.
+//
+// So the trigger is issued LATE: at the end of whichever ft_layer() leaves less
+// than `cap_lead_us` of encode still to run, with the end of ft_pool_head() as
+// the backstop. The sensor still reaches its boundary underneath the compute,
+// and the frame is as fresh as the lead is small.
+//
+// THE LEAD CANNOT BE A CONSTANT, because it is mostly exposure and exposure is
+// the room's to decide. A dark room lengthens it and a fixed lead would put the
+// wait straight back. cam.h already reports what the wait actually was, so this
+// is a feedback loop rather than a guess: a wait that appears raises the lead at
+// once, and a run of frames without one lets it decay. Raise fast, decay slow -
+// the cost of too small a lead is throughput, and the cost of too large a lead
+// is only freshness.
+#define FT_LEAD_START_US   90000u
+#define FT_LEAD_MIN_US     30000u
+#define FT_LEAD_MAX_US    250000u
+#define FT_LEAD_STEP_US     5000u
+#define FT_LEAD_CALM          8u   // frames without a wait before the lead decays
+
+static uint32_t cap_lead_us = FT_LEAD_START_US;
+static uint32_t cap_calm;
+
+// The previous frame's suffix sums: cap_tail_us[k] is how long everything from
+// layer k onwards took, the head included. Measured rather than modelled,
+// because the layers are nowhere near equal - conv7 alone is 192 of the 1,856
+// passes - so "arm two layers from the end" would mean something different at
+// every rate. Only valid once a whole frame has been through; until then the
+// backstop does the work.
+static uint32_t cap_tail_us[FT_MAX_LAYERS + 1];
+static bool     cap_sched;
+
+// When the frame currently in hand was triggered, so its age can be read at the
+// moment the caller acts on it. This is the number issue #14 exists to move, and
+// nothing measured it before.
+static uint64_t cap_trig_at;
+
+// The behaviour #14 replaced, kept switchable so the replacement can be shown to
+// have worked rather than argued to have. Off by default; nothing but a bench
+// A/B should turn it on.
+static bool cap_eager;
+
+void ft_cap_eager(bool on) { cap_eager = on; }
+bool ft_cap_is_eager(void) { return cap_eager; }
+
 void ft_pipeline(bool on)
 {
     cap_pipeline = on;
@@ -1082,6 +1154,51 @@ void ft_pipeline(bool on)
     // already in flight and simply does not re-arm. Dropping the frame instead
     // would leave the ArduChip holding a full FIFO that the next trigger has to
     // clear, which is the one state cam.h's blanking note says to stay out of.
+}
+
+// Idempotent, and cheap enough to sit inside the frame path: with
+// CAM_RECIPE_VENDOR's rewrite=false and settle_ms=0, a repeat capture's trigger
+// is three register writes and no sleep. The guarded format and resolution
+// writes only fire if something actually changed, which mid-frame it has not.
+//
+// It touches no memory the caller owns - the pixels are on the camera - so it is
+// safe between two layers that are ping-ponging the arena and the scratch.
+static void cap_arm(void)
+{
+    if (!cap_pipeline || cap_armed) return;
+    cap_armed = cam_trigger(&CAM_RECIPE_VENDOR, cam_mode,
+                            CAM_IMAGE_PIX_FMT_RGB565, NULL);
+}
+
+// Called at the end of every ft_layer(), with the number of layers now behind
+// us. cap_tail_us[layers_done] is what the previous frame had left to run from
+// exactly here; when that drops under the lead, this is the latest layer
+// boundary that still hides the sensor behind the compute.
+static void cap_maybe_arm(uint32_t layers_done)
+{
+    if (!cap_sched || layers_done > FT_MAX_LAYERS) return;
+    if (cap_tail_us[layers_done] <= cap_lead_us) cap_arm();
+}
+
+// Called at the end of ft_pool_head(), which is the end of the encode.
+static void cap_close_frame(uint32_t head_us)
+{
+    // The backstop, and on the first pipelined frame the only thing that arms at
+    // all. Arming here is never wrong - it is the freshest position there is -
+    // it is only sometimes late, and a late trigger costs a wait that the lead's
+    // feedback then corrects. Correctness does not depend on the schedule; only
+    // the frame time does.
+    cap_arm();
+
+    // And this frame's suffix sums, for the next one. Written after the arm so a
+    // frame that faulted part way through - and therefore never reached here -
+    // leaves the previous, complete schedule in place rather than a truncated
+    // one that would arm far too early.
+    const uint32_t n = nconv_ < FT_MAX_LAYERS ? nconv_ : FT_MAX_LAYERS;
+    cap_tail_us[n] = head_us;
+    for (uint32_t k = n; k-- > 0; )
+        cap_tail_us[k] = cap_tail_us[k + 1u] + st_[k].us;
+    cap_sched = true;
 }
 
 // One frame, at whatever rate the bus is already running, into ft_frame(). No
@@ -1104,19 +1221,44 @@ const void *ft_capture(float in_scale)
                               CAM_IMAGE_PIX_FMT_RGB565, arena, FT_ARENA_MAX, &t);
     }
 
-    // RE-ARM HERE, BEFORE THE CHECKS AND BEFORE THE CONVERT. This one line is
-    // the whole optimization: from here until the next call, the sensor is
-    // exposing underneath the caller's compute instead of after it. It is safe
-    // this early because the pixels are on the camera, not in the arena - the
-    // trigger is three register writes and touches no memory the caller owns.
+    // Not re-armed here, except on request. Moving the trigger off this line is
+    // issue #14's whole change: it now goes out near the end of the caller's
+    // compute instead of at the start of it, so it is ft_layer() and
+    // ft_pool_head() that arm. Nothing here is a fallback either - a caller that
+    // never runs a layer simply captures serially, which is what cam_probe.c and
+    // the exposure ramp want anyway.
     //
-    // Unconditional on the outcome above, deliberately. A frame that arrived
-    // torn or blank is still a frame the loop will want a successor to, and
-    // skipping the re-arm on failure would put the *next* call back on the slow
-    // path as well - one bad frame costing two.
-    if (cap_pipeline)
-        cap_armed = cam_trigger(&CAM_RECIPE_VENDOR, cam_mode,
-                                CAM_IMAGE_PIX_FMT_RGB565, NULL);
+    // ft_cap_eager() puts it back, and exists only so the two can be measured
+    // against each other on one boot and one scene. Arming twice is harmless -
+    // cap_arm() is idempotent and the schedule below will find it already armed -
+    // so this is genuinely "the old code plus the new code", not a second path.
+    //
+    // ORDER MATTERS, and getting it wrong made the old behaviour look 130 ms
+    // FRESHER than the new one on the first run of this A/B. cam_last_trig_us()
+    // is "the last trigger issued", so it has to be read while that is still the
+    // one that exposed the pixels in hand. Arm first and it is the next frame's,
+    // and the age comes out a whole frame short - which is exactly the frame the
+    // eager arm costs, so the error hid inside the thing being measured.
+    cap_trig_at = cam_last_trig_us();
+
+    if (cap_eager) cap_arm();
+
+    // The lead, corrected by what the last frame actually cost. Raise on the
+    // evidence of a single wait, because one wait means the trigger was late and
+    // every frame after it will be late the same way; decay only on a run of
+    // clean ones, because a lead that oscillates would show up as a frame time
+    // that will not settle.
+    if (cap_pipeline) {
+        if (t.wait_us > 3000u) {
+            const uint32_t want = cap_lead_us + t.wait_us + FT_LEAD_STEP_US;
+            cap_lead_us = want > FT_LEAD_MAX_US ? FT_LEAD_MAX_US : want;
+            cap_calm = 0;
+        } else if (t.wait_us < 1000u && ++cap_calm >= FT_LEAD_CALM) {
+            cap_calm = 0;
+            cap_lead_us = cap_lead_us > FT_LEAD_MIN_US + FT_LEAD_STEP_US
+                        ? cap_lead_us - FT_LEAD_STEP_US : FT_LEAD_MIN_US;
+        }
+    }
 
     cap_expose_us = t.expose_us;
     cap_read_us   = t.read_us;
@@ -1137,6 +1279,13 @@ void ft_cap_stats(int mean[3], uint32_t *expose_us, uint32_t *read_us)
 }
 
 uint32_t ft_cap_wait_us(void) { return cap_wait_us; }
+uint32_t ft_cap_lead_us(void) { return cap_lead_us; }
+
+uint32_t ft_cap_age_us(void)
+{
+    if (!cap_trig_at) return 0;
+    return (uint32_t)(time_us_64() - cap_trig_at);
+}
 
 void ft_cam_fault_inject(void) { cam_bus_fault_inject(); }
 

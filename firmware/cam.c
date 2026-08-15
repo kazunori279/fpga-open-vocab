@@ -255,6 +255,12 @@ static int last_fmt = -1, last_mode = -1;
 // a trigger is a caller bug rather than a camera fault, so it says so.
 static uint64_t trig_us;
 
+// The same instant, kept after cam_collect() has consumed it - so a caller that
+// wants to know how old the frame in its hands is can still ask. Never cleared,
+// because "the last trigger issued" is always a meaningful answer and "nothing
+// in flight" is trig_us's job to say, not this one's.
+static uint64_t last_trig_us;
+
 bool cam_trigger(const cam_recipe_t *r, uint8_t mode, uint8_t fmt, cam_time_t *t)
 {
     cam_time_t discard;
@@ -288,9 +294,11 @@ bool cam_trigger(const cam_recipe_t *r, uint8_t mode, uint8_t fmt, cam_time_t *t
     if (bus_fault) return false;
 
     t->setup_us = (uint32_t)(t1 - t0);
-    trig_us = t1;
+    trig_us = last_trig_us = t1;
     return true;
 }
+
+uint64_t cam_last_trig_us(void) { return last_trig_us; }
 
 uint32_t cam_collect(uint8_t *dst, uint32_t cap, cam_time_t *t)
 {

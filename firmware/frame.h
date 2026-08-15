@@ -242,15 +242,39 @@ uint32_t ft_cap_wait_us(void);
 //
 // It costs no memory: the frame waits in the ArduChip's FIFO, not in the arena.
 //
-// IT COSTS LATENCY, AND THAT IS THE REAL TRADE. A frame is now exposed one
-// whole compute before it is used, so photon-to-answer roughly doubles while
-// frames per second go up. For an appliance whose output is an LED that is the
-// right way round, but it is a choice and not a free win.
+// IT COSTS LATENCY, AND MOST OF THAT COST WAS AVOIDABLE. The first version
+// armed the moment it collected, which put the trigger a whole compute ahead of
+// the frame that used it and doubled photon-to-LED for no gain: the sensor only
+// needs its exposure and one frame boundary, and the rest of that window was
+// the frame simply going stale. Issue #14 moved the trigger to the *end* of the
+// compute instead - see frame.c - so the wait stays at 0 and the frame is as
+// fresh as the lead is small. What remains is a real trade and not a bug: a
+// frame is still exposed slightly before it is used.
 //
-// Turn it on after ft_acquire() and leave it on; ft_cap_wait_us() is how you
-// tell whether it is working, and a wait that stays high means the frame time
-// was never the sensor's boundary and #10 needs a different answer.
+// Turn it on after ft_acquire() and leave it on. ft_cap_wait_us() says whether
+// the overlap is working, ft_cap_age_us() says what it costs, and a wait that
+// stays high means the frame time was never the sensor's boundary and #10 needs
+// a different answer.
 void ft_pipeline(bool on);
+
+// How old the frame in hand is: the time since the trigger that exposed it, read
+// at the moment the caller asks. Photon-to-answer, near enough - the exposure is
+// inside it - and the number issue #14 exists to move. Nothing measured it
+// before, which is how the first overlap shipped having doubled it.
+uint32_t ft_cap_age_us(void);
+
+// The lead the arming schedule is currently running with: how much compute it
+// tries to leave after the trigger. It moves on its own, so a report that quotes
+// the age wants this beside it to say whether the loop has settled.
+uint32_t ft_cap_lead_us(void);
+
+// Put the trigger back where it was before #14 - immediately after the collect,
+// a whole encode ahead of where it is needed. This exists to be measured against
+// and for no other reason: "the frame got fresher" is a claim about a number,
+// and the only honest before is one taken on the same boot and the same scene as
+// the after. Off at reset; m9's 'D' is the only caller.
+void ft_cap_eager(bool on);
+bool ft_cap_is_eager(void);
 
 // Arm a one-shot stall on the camera bus, so the next ft_capture() takes the
 // failure path on purpose and returns NULL. See cam.h: the deadline this

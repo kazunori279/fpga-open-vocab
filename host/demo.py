@@ -750,6 +750,15 @@ def main() -> int:
                          "rest serial - which is what the appliance did until "
                          "2026-08-15, and measures 429 ms by the board's clock "
                          "against 372 overlapped")
+    ap.add_argument("--eager", action="append", type=int, default=[],
+                    metavar="N",
+                    help="issue #14. At the board's frame N, press 'D': close "
+                         "the timing window, print it, and flip the trigger "
+                         "between late on the schedule and back at the collect, "
+                         "which is where it sat before #14. Repeatable, and the "
+                         "board boots on the schedule, so `--eager 60` gives 60 "
+                         "fresh-frame frames then the rest stale. Only the "
+                         "shutter-to-LED line should move")
     ap.add_argument("--enrol", action="append", default=[], metavar="FRAME:KEY",
                     help="M21. At the board's frame FRAME, press KEY - '0' for "
                          "the empty scene, '1'..'6' for the Nth class query. "
@@ -787,7 +796,10 @@ def main() -> int:
     # reason --enrol is: the run is the expensive thing.
     if any(k < 1 for k in args.overlap):
         raise SystemExit("--overlap wants a frame number of 1 or more")
+    if any(k < 1 for k in args.eager):
+        raise SystemExit("--eager wants a frame number of 1 or more")
     overlap_at = set(args.overlap)
+    eager_at = set(args.eager)
     # The gates occupy slots like anything else, and counting only --queries
     # here would push the overflow onto the board, which rejects the whole set
     # after a minute of teacher loading rather than before it.
@@ -1163,6 +1175,13 @@ def main() -> int:
                     # a wait on a sensor that does not care what we are doing.
                     if frames in overlap_at:
                         s.write(b"O")
+                        s.flush()
+                    # Issue #14's, one level down and read the same way. Both on
+                    # the same frame is allowed and means "flip both", which is
+                    # a window nobody can attribute - so don't, and the schedule
+                    # that generates these should keep them apart.
+                    if frames in eager_at:
+                        s.write(b"D")
                         s.flush()
                     # Up to the "(cos", not the first space: m9.c prints
                     # `MATCH <name> (cos 0.037)` and a name has spaces in it

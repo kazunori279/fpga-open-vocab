@@ -1082,6 +1082,10 @@ static int poll_host(uint32_t dim, uint32_t us)
         // sum of its named parts, and two builds cannot answer it, because the
         // baseline and the overlap would then differ in more than the overlap.
         if (c == 'O' || c == 'o') return 'O';
+        // #14's, for the same argument one level down: 'O' asks whether to
+        // overlap at all and 'D' asks where inside the overlap the trigger
+        // belongs. Both are one-boot questions.
+        if (c == 'D' || c == 'd') return 'D';
         // M21's enrolment keys. Digits miss all four of F, G, X and Q, which is
         // the constraint the note above exists to enforce.
         if (c >= '0' && c <= '0' + (int)FGX_MAX_Q) return c;
@@ -1109,7 +1113,8 @@ static int poll_host(uint32_t dim, uint32_t us)
 // `lead` carries its own punctuation, since one caller is a labelled line and
 // the other is a continuation of one.
 static void report_cost(uint32_t k, uint64_t us, uint64_t enc,
-                        uint64_t wait, uint64_t wall, const char *lead)
+                        uint64_t wait, uint64_t wall, uint64_t age,
+                        bool overlap, const char *lead)
 {
     printf("%s%u frames timed, %u ms/frame mean (capture included)\n",
            lead, (unsigned)k, k ? (unsigned)(us / k / 1000u) : 0u);
@@ -1119,6 +1124,22 @@ static void report_cost(uint32_t k, uint64_t us, uint64_t enc,
            k ? (unsigned)(wait / k / 1000u) : 0u,
            k ? (unsigned)((us - enc - wait) / k / 1000u) : 0u,
            k > 1 ? (unsigned)(wall / (k - 1) / 1000u) : 0u);
+    // #14, and it is a third line rather than a column because it is a third
+    // *quantity*: the two above are throughput and this is latency. Under the
+    // overlap they move in opposite directions, so a report that showed only one
+    // of them would make either change look free.
+    // The lead only describes where the trigger went if the schedule is the
+    // thing issuing it. Under 'D' it is still being adapted and still printable,
+    // and printing it there would read as an explanation of an age it had no
+    // hand in - so say what actually happened instead.
+    printf("            %u ms shutter to LED, ", k ? (unsigned)(age / k / 1000u) : 0u);
+    if (!overlap)
+        printf("triggering inline\n");   // serial: nothing arms anything
+    else if (ft_cap_is_eager())
+        printf("arming at the collect\n");
+    else
+        printf("arming with %u ms of compute left\n",
+               (unsigned)(ft_cap_lead_us() / 1000u));
 }
 
 // ---------------------------------------------------------------------------
@@ -1809,7 +1830,9 @@ int main(void)
            "            'N' to forget it and learn it again from now. 'P' and "
            "'V' together describe the same frame.\n"
            "            'O' closes the timing window, prints it and flips the "
-           "capture between overlapped and serial.\n",
+           "capture between overlapped and serial;\n"
+           "            'D' does the same and flips the trigger between late "
+           "and at-the-collect, which is #14's A/B.\n",
            (unsigned)ft_nconv());
     printf("            scores are z against this room's background, ranked; "
            "'*' means over its threshold.\n");
@@ -1849,6 +1872,7 @@ int main(void)
     // one boot mean anything.
     uint32_t timed = 0;
     uint64_t sum_us = 0, sum_wall_us = 0, sum_wait_us = 0, sum_enc_us = 0;
+    uint64_t sum_age_us = 0;
     uint64_t last_acc_us = 0;
     bool said_sticky = false, said_pinned = false, want_pic = false;
     bool want_emb = false;
@@ -1950,6 +1974,14 @@ int main(void)
             score[i] = (float)cosine(emb[cur], qvec[i], dim);
         report(nq, score, n);
 
+        // #14. Here and not earlier: report() is where the LED changes, so this
+        // is the instant the answer becomes visible and the only honest place to
+        // ask how old the photons behind it are. Everything else in this loop
+        // measures throughput; this is the one number that measures latency, and
+        // the two move in opposite directions under the overlap - which is
+        // exactly why the overlap needed it and shipped without it.
+        sum_age_us += ft_cap_age_us();
+
         // The liveness check M8c had to learn the hard way. Two consecutive
         // frames off a live sensor are never bit-identical - there is always
         // noise - so a cosine of exactly 1.0 means the tile is being handed the
@@ -2044,7 +2076,7 @@ int main(void)
         // window is quoted over tens of frames and not over the boundary.
         if (c == 'O') {
             report_cost(timed, sum_us, sum_enc_us, sum_wait_us, sum_wall_us,
-                        "\noverlap   : ");
+                        sum_age_us, overlap, "\noverlap   : ");
             overlap = !overlap;
             ft_pipeline(overlap);
             printf("            capture is now %s the compute. Counters "
@@ -2052,7 +2084,29 @@ int main(void)
                    overlap ? "OVERLAPPED with" : "SERIAL with",
                    (unsigned)(n + 1));
             timed = 0;
-            sum_us = sum_enc_us = sum_wait_us = sum_wall_us = 0;
+            sum_us = sum_enc_us = sum_wait_us = sum_wall_us = sum_age_us = 0;
+            last_acc_us = 0;
+            stdio_flush();
+            continue;
+        }
+        // #14, and the same shape as 'O' for the same reason: the only before
+        // worth quoting is one taken on this boot and this scene. It moves the
+        // trigger back to where it sat before the schedule existed, which changes
+        // the age and should change nothing else - the frame time is the same
+        // work either way, and if it is not, the schedule is costing throughput
+        // and that is the finding.
+        if (c == 'D') {
+            report_cost(timed, sum_us, sum_enc_us, sum_wait_us, sum_wall_us,
+                        sum_age_us, overlap, "\nre-arm    : ");
+            const bool eager = !ft_cap_is_eager();
+            ft_cap_eager(eager);
+            printf("            the trigger now goes out %s. Counters zeroed; "
+                   "the next window starts at frame %u.\n",
+                   eager ? "AT THE COLLECT, an encode early (pre-#14)"
+                         : "LATE, on the schedule (#14)",
+                   (unsigned)(n + 1));
+            timed = 0;
+            sum_us = sum_enc_us = sum_wait_us = sum_wall_us = sum_age_us = 0;
             last_acc_us = 0;
             stdio_flush();
             continue;
@@ -2182,7 +2236,7 @@ int main(void)
             // independently and includes everything none of the three names.
             // This is the window since the last 'O', not necessarily the run.
             report_cost(timed, sum_us, sum_enc_us, sum_wait_us, sum_wall_us,
-                        "            ");
+                        sum_age_us, overlap, "            ");
             printf("            last frame mean RGB %d %d %d\n",
                    mean[0], mean[1], mean[2]);
             stdio_flush();

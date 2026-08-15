@@ -238,6 +238,13 @@ bool cam_trigger(const cam_recipe_t *r, uint8_t mode, uint8_t fmt,
 // Fills `t`'s wait_us, expose_us and read_us; leaves setup_us to the trigger.
 uint32_t cam_collect(uint8_t *dst, uint32_t cap, cam_time_t *t);
 
+// When the last cam_trigger() fired, on time_us_64()'s clock. Survives the
+// cam_collect() that consumes the capture, so the answer to "how old is the
+// frame I am holding" is a subtraction rather than a second set of counters -
+// and once the trigger moves around inside the caller's compute (frame.c's
+// ft_pipeline), that age stops being derivable from anything else.
+uint64_t cam_last_trig_us(void);
+
 // --- reading a frame without looking at it ---------------------------------
 
 // Is the frame a single repeated 16-bit value? That is the blanking fault's
