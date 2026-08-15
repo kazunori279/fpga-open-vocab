@@ -198,6 +198,10 @@ last week's student is the failure that catches.
 At the board's console: `'0'`..`'6'` enrol the empty scene and each class,
 `'N'` forgets the room and the enrolment and learns them again, `'H'` toggles
 background hold, `'E'` forces a deferred LED failure to land somewhere visible.
+`'O'` closes the timing window and flips the capture between overlapped and
+serial; `'D'` does the same and flips the trigger between late on the schedule
+and back at the collect, which is issue #14's A/B. `demo.py` presses both on a
+given frame with `--overlap N` and `--eager N`.
 
 The other harnesses, each with its own host script:
 

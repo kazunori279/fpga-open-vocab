@@ -59,12 +59,17 @@ Both chips sit on one ~$50 board and talk over a **3-bit link**: three data wire
 
 So [#10](https://github.com/kazunori279/fpga-open-vocab/issues/10) overlapped the capture with the compute instead. `cam_capture()` splits into `cam_trigger()` and `cam_collect()`, and `ft_capture()` triggers the *next* frame before returning, so the sensor reaches its boundary underneath the encoder and the collect finds CAP_DONE already asserted. Measured back to back on one boot, one build and one scene — `m9`'s `'O'` key flips it at runtime, because two builds would differ in more than the overlap:
 
-| by the clock | encode | waiting for the sensor | burst | frame |
-|---|---|---|---|---|
-| serial | 346 ms | 56 ms | 16 ms | **429 ms** |
-| overlapped | 346 ms | 0 ms | 16 ms | **373 ms** |
+| by the clock | encode | waiting for the sensor | burst | frame | shutter to LED |
+|---|---|---|---|---|---|
+| serial | 346 ms | 55 ms | 16 ms | **429 ms** | 435 ms |
+| overlapped, trigger at the collect | 346 ms | 0 ms | 16 ms | **373 ms** | 725 ms |
+| overlapped, trigger late | 346 ms | 0 ms | 16 ms | **373 ms** | 494 ms |
 
-It costs no memory — the frame waits in the ArduChip's own FIFO rather than in the 132 KB pool — and it costs latency: a frame is exposed one whole compute before it is used, so photon-to-LED roughly doubles while frames per second go up. For an appliance whose output is an LED that is the right way round, but it is a trade and not a free win.
+It costs no memory — the frame waits in the ArduChip's own FIFO rather than in the 132 KB pool — and it costs latency, which is the fourth column and was not measured until [#14](https://github.com/kazunori279/fpga-open-vocab/issues/14) added it. The first overlap armed the camera the instant it collected, a whole encode before the pixels were needed: 56 ms of frame time bought at 290 ms of staleness. Nothing in the tree reported freshness, so that price never appeared anywhere.
+
+**The trigger now goes out late instead.** `frame.c` keeps the previous frame's per-layer timings and arms at the end of whichever layer leaves less than a *lead* of compute still to run. The lead cannot be a constant — it is mostly exposure, and exposure is the room's to decide — so it is a feedback loop off the wait `cam.h` already measures: raise it on a single wait, decay it after eight clean frames. In a lit room it settles around 95 ms and in a dim one around 128 ms.
+
+Same throughput to the millisecond, 231 ms fresher. What is left of the trade is 59 ms, and that is the exposure itself.
 
 ---
 

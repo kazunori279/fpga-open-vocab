@@ -248,8 +248,10 @@ uint32_t ft_cap_wait_us(void);
 // needs its exposure and one frame boundary, and the rest of that window was
 // the frame simply going stale. Issue #14 moved the trigger to the *end* of the
 // compute instead - see frame.c - so the wait stays at 0 and the frame is as
-// fresh as the lead is small. What remains is a real trade and not a bug: a
-// frame is still exposed slightly before it is used.
+// fresh as the lead is small. Measured the same way, on one boot and one scene
+// with m9's 'D': 725 ms old arming at the collect, 494 ms arming late, 435 ms
+// serial, and 373 ms/frame in both overlapped windows. What remains is a real
+// trade and not a bug: 59 ms, which is the exposure.
 //
 // Turn it on after ft_acquire() and leave it on. ft_cap_wait_us() says whether
 // the overlap is working, ft_cap_age_us() says what it costs, and a wait that

@@ -1860,7 +1860,8 @@ int main(void)
     // From here to the end of the run, and not before: ft_acquire()'s exposure
     // ramp wants each capture to be one self-contained thing. See frame.h - the
     // sensor now exposes underneath encode() instead of in front of it, which
-    // costs no memory and roughly doubles photon-to-LED latency.
+    // costs no memory and, since #14 put the trigger at the end of the compute
+    // rather than the start, 59 ms of freshness rather than 290.
     bool overlap = true;
     ft_pipeline(overlap);
 
