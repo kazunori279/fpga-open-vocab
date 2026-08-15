@@ -37,11 +37,28 @@ add_compile_definitions(GP_KPACK=${GP_KPACK})
 # part of that curve ends. 332 measures the same 420 ms and sits one step from
 # 340, where the link stops answering entirely.
 #
-# THAT SWEEP IS NOW WORTH RE-RUNNING. 332 tied 320 only because both sat in one
-# cell of the sensor's ~34 ms grid, and issue #10 has since taken the sensor out
-# of the frame: what is left is 265 ms of encode that scales exactly with 1/f,
-# so the ~13 ms 332 was always worth should now be visible. It has not been
-# measured, and until it is, 320 is what ships.
+# THAT SWEEP WAS RE-RUN (#13), AND 332 IS REAL - AND STILL NOT SHIPPED. 332
+# tied 320 only because both sat in one cell of the sensor's ~34 ms grid, and
+# #10 took the sensor out of the frame. Four rates, 150 frames each, one build
+# per rate differing in this variable alone, by the board's own clock:
+#
+#   280/140  encode 303   frame 331   shutter to LED 414
+#   300/150         283         310                  403
+#   320/160         265         291                  377   <- ships
+#   332/166         256         281                  379
+#
+# encode x f is 84,840 / 84,900 / 84,800 / 84,992 - 1/f to within 0.2%, and the
+# whole frame now tracks it too, with ~10 ms of LED-and-CDC that does not scale.
+# 332 is worth 10 ms and it is bit-exact: m7 passes all six modes of both link
+# configurations at 332/166, and m9 ran 151 of 151 good.
+#
+# It is still not what ships, and that is a margin decision rather than a
+# measurement. 332 buys 3.4% and sits 8 MHz below 340, where the link stops
+# answering entirely and deterministically. #9 (the board drops off USB) and
+# #12 (a byte lost on the camera bus at 280/140 and never at 150/75) are both
+# open and both are unexplained flakiness on the fast side; one 320 run in the
+# #13 session dropped off USB as well. 10 ms is not worth spending the margin
+# those two issues have not finished asking about.
 #
 # This is a cache variable rather
 # than an edit to m9.c so that the 150 MHz control can be built without touching

@@ -1547,6 +1547,27 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
 // 1.25 V" is an m6 result that does not transfer here, which is itself worth
 // remembering before quoting a rate one harness measured at another.
 //
+// **"332 COSTS 12 MHz FOR 0 ms" WAS THE GRID TALKING, AND #13 RE-RAN IT.** With
+// the capture overlapped there is no grid to hide inside, and the same four
+// rates - 150 frames each, one image per rate differing in FGX_SYS_KHZ alone -
+// read by the board's own wall clock:
+//
+//   280 -> 331 ms      300 -> 310 ms      320 -> 291      332 -> 281
+//
+// encode x f is 84,840 / 84,900 / 84,800 / 84,992, so the encode is 1/f to
+// within 0.2% and the frame now tracks it, with ~10 ms of LED and CDC that
+// scales with nothing. 332 is worth a real 10 ms and it is bit-exact - m7
+// passes all six modes of both link configurations at 332/166, m9 ran 151 of
+// 151 good.
+//
+// IT STILL DOES NOT SHIP, AND THAT IS NOW A DECISION RATHER THAN A TIE. 10 ms
+// is 3.4%, and spending it puts the operating point 8 MHz below a rate where
+// the link stops answering deterministically, while #9 (the board drops off
+// USB) and #12 (a byte lost on the camera bus at 280/140 and never at 150/75)
+// are both open and both are unexplained flakiness on the fast side. One 320
+// run in the #13 session dropped off USB. Nothing here forbids 332; the cache
+// variable builds it in one line if the margin question ever closes.
+//
 // The rail stays at what the ladder gives 320, which is 1.25 V. The sweep found
 // 320 clean at 1.20 as well, and 280 clean all the way down to 1.15 - but 320
 // *wedges* at 1.15, so 1.20 is one step from the cliff and 1.25 is two, for the

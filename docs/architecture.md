@@ -82,6 +82,19 @@ On the appliance that is **373 → 293 ms** by the clock and **464 → 390 ms** 
 
 Where the remaining 270 ms goes, at 320/160, config C, whole frame: the wire is 202 ms elapsed and 10.244 MB in 6,295 transactions, of which `RUN` **103 ms**, `WGT` 42, `ACT` 35, `DRAIN` 19, `NOP` 1, `CFG` 1; staging 27 ms, locate 26, decode 5, CRC 2. Core 1 is busy 149 ms and core 0 stalls 5. **`RUN` is 38% of the frame and it is the only actor that is arithmetic** — everything else is moving bytes to feed it.
 
+**And with the grid gone, the clock sweep that chose 320 was worth re-running.** It had rejected 332 for measuring the same 420 ms as 320, which is exactly the tie the grid manufactures. Four rates, 150 frames each, one image per rate differing in `FGX_SYS_KHZ` alone ([#13](https://github.com/kazunori279/fpga-open-vocab/issues/13)):
+
+| sys / link | encode | frame by the clock | shutter to LED |
+|---|---|---|---|
+| 280 / 140 | 303 ms | 331 ms | 414 ms |
+| 300 / 150 | 283 ms | 310 ms | 403 ms |
+| **320 / 160** | **265 ms** | **291 ms** | **377 ms** |
+| 332 / 166 | 256 ms | 281 ms | 379 ms |
+
+`encode × f` is 84,840 / 84,900 / 84,800 / 84,992 — **1/f to within 0.2%** — and the whole frame now tracks it as well, with about 10 ms of LED and CDC line that does not scale with anything. The old sweep's 454 / 455 / 420 / 420 was the sensor, from end to end.
+
+**332 is bit-exact and it is not what ships.** `m7` passes all six modes of both link configurations at 332/166 and `m9` ran 151 of 151 good, so this is a margin decision rather than a measurement: 332 buys 3.4% and sits 8 MHz below 340, where the link stops answering entirely and deterministically. [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9) (the board drops off USB) and [#12](https://github.com/kazunori279/fpga-open-vocab/issues/12) (a byte lost on the camera bus at 280/140 and never at 150/75) are both open, both are unexplained flakiness on the fast side, and one 320 run in this very session dropped off USB. 10 ms does not buy out a margin those two have not finished asking about.
+
 ---
 
 ## The board, as actually wired

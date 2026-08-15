@@ -253,6 +253,12 @@ uint32_t ft_cap_wait_us(void);
 // serial, and 373 ms/frame in both overlapped windows. What remains is a real
 // trade and not a bug: 59 ms, which is the exposure.
 //
+// The grid this removed is also what made 332 MHz tie 320 at 420 ms. #13
+// re-ran that sweep with the sensor out of the frame and the tie is gone:
+// 331 / 310 / 291 / 281 ms by the clock at 280 / 300 / 320 / 332. 320 still
+// ships - see the note above m9.c's main() for why 10 ms does not buy out the
+// margin.
+//
 // Those figures are at the 346 ms encode the appliance had at the time. #14
 // then found ft_set_rq() switched off in m9 - see the note at its ft_set_mode()
 // call - which took the encode to 265 ms and the age with it: 293 ms/frame by

@@ -907,9 +907,21 @@ int main(void)
                 // 374 ms of inference against 350 at 320 - so if 320 somehow
                 // fails here the next rung is still a rate with a history.
                 //
-                // NOT 332000, deliberately. The ladder stops at the first rung
-                // that is bit-exact, so a 332 on top would answer #13 and cost
-                // us the 320 row that #14 (2) is here for. #13 is its own run.
+                // 332000 IS ABSENT ON PURPOSE, AND IT HAS BEEN MEASURED. The
+                // ladder stops at the first bit-exact rung, so a 332 on top
+                // would make every future m7 run report a rate the appliance
+                // does not ship at - which is the mistake the 320 rung was
+                // added to fix, one rung higher up. #13 put it on top for one
+                // boot on 2026-08-15 and took it off again. That boot:
+                //
+                //   config C at 332/166, rq: 384 -> 345 -> 274 -> 273 -> 260
+                //   -> 260 ms/frame, all 8 layers bit-exact in all six modes of
+                //   both link configurations, 512/512 embedding floats exact.
+                //
+                // So 332 works and is worth 10 ms of appliance frame, and 320
+                // is still what ships - see the note above m9.c's main() for
+                // the margin argument, which is a decision and not a tie. Put
+                // 332000 back on top for a boot if that decision reopens.
                 static const uint32_t C_KHZ[] = {
                     320000, 300000, 280000, 240000, 220000, 200000, 176000,
                     150000, 130000, 110000, 90000,
