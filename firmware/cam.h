@@ -172,9 +172,18 @@ extern const cam_recipe_t CAM_RECIPE_VENDOR;
 
 typedef struct {
     uint32_t setup_us;    // the register writes, 0 when the mode is unchanged
-    uint32_t expose_us;   // trigger to CAP_DONE
+    uint32_t expose_us;   // trigger to CAP_DONE. See below: not a cost when the
+                          // trigger was issued before the caller went away
+    uint32_t wait_us;     // time actually spent blocked in the CAP_DONE poll
     uint32_t read_us;     // the burst
 } cam_time_t;
+
+// EXPOSE_US IS AN ELAPSED TIME AND WAIT_US IS A COST, and they are the same
+// number only when nothing happens in between. cam_capture() polls CAP_DONE
+// immediately after triggering, so there they are equal - which is why the
+// accounting that used expose_us was right for as long as the capture was
+// serial. Split the two calls and expose_us spans whatever the caller did
+// meanwhile, so anything summing a frame's cost wants wait_us.
 
 // ArducamCamera.c:316 cameraBegin(), minus the model dispatch. The reset is what
 // makes a run repeatable across soft resets of the RP: the camera keeps its
@@ -200,6 +209,34 @@ void cam_image_defaults(void);
 // the mismatch. `mode` is the already-legacy-resolved resolution code.
 uint32_t cam_capture(const cam_recipe_t *r, uint8_t mode, uint8_t fmt,
                      uint8_t *dst, uint32_t cap, cam_time_t *t);
+
+// --- the same capture, as two calls -----------------------------------------
+//
+// THE ARDUCHIP HAS ITS OWN FRAME FIFO, AND THE SERIAL VERSION ABOVE WASTES IT.
+// cam_capture() triggers, blocks until CAP_DONE, then reads - so the sensor's
+// exposure and its frame boundary are dead time for whatever the caller was
+// going to do with the pixels. Trigger early instead and that whole wait
+// happens underneath the caller's own work; the pixels sit in the ArduChip
+// until someone comes for them, which is what the FIFO is for.
+//
+// This costs no memory here and none in the caller. The frame lives on the
+// camera, not on the RP, until cam_collect() moves it - which matters on a part
+// where frame.c has to explain every buffer it owns.
+//
+// cam_capture() is these two back to back and keeps its exact old behaviour,
+// so cam_probe.c and ft_acquire()'s exposure ramp are untouched.
+//
+// ONE CAPTURE IS STILL ONE UNIT OF RECOVERY (#8), it just spans two calls now.
+// cam_trigger() clears the sticky bus fault and cam_collect() does not, so a
+// stall anywhere in a capture poisons the rest of *that* capture and the next
+// trigger starts clean. A failed collect abandons the frame in the FIFO; the
+// next trigger's FIFO_CLEAR_ID discards it.
+bool cam_trigger(const cam_recipe_t *r, uint8_t mode, uint8_t fmt,
+                 cam_time_t *t);
+
+// Reads the frame a cam_trigger() started. Returns what cam_capture() returns.
+// Fills `t`'s wait_us, expose_us and read_us; leaves setup_us to the trigger.
+uint32_t cam_collect(uint8_t *dst, uint32_t cap, cam_time_t *t);
 
 // --- reading a frame without looking at it ---------------------------------
 

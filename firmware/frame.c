@@ -1066,7 +1066,23 @@ void ft_pool_head(const float *src, float *embed)
 static uint8_t  cam_mode;
 static uint32_t cap_len;
 static int      cap_mean[3];
-static uint32_t cap_expose_us, cap_read_us;
+static uint32_t cap_expose_us, cap_read_us, cap_wait_us;
+
+// Off by default, and every existing caller depends on that. cam_probe.c's
+// matrix and ft_acquire()'s exposure ramp both want a capture to be one
+// self-contained thing they can time and repeat; a trigger left armed behind
+// either of them would be collected by whoever ran next.
+static bool cap_pipeline;
+static bool cap_armed;
+
+void ft_pipeline(bool on)
+{
+    cap_pipeline = on;
+    // Turning it off does not disarm: the next ft_capture() collects what is
+    // already in flight and simply does not re-arm. Dropping the frame instead
+    // would leave the ArduChip holding a full FIFO that the next trigger has to
+    // clear, which is the one state cam.h's blanking note says to stay out of.
+}
 
 // One frame, at whatever rate the bus is already running, into ft_frame(). No
 // printing and no fallback: m8 calls this once per loop iteration and a bad
@@ -1078,11 +1094,33 @@ static uint32_t cap_expose_us, cap_read_us;
 const void *ft_capture(float in_scale)
 {
     const uint32_t want = FT_FRAME_W * FT_FRAME_H * 2u;
-    cam_time_t t;
-    cap_len = cam_capture(&CAM_RECIPE_VENDOR, cam_mode, CAM_IMAGE_PIX_FMT_RGB565,
-                          arena, FT_ARENA_MAX, &t);
+    cam_time_t t = { 0, 0, 0, 0 };
+
+    if (cap_armed) {
+        cap_armed = false;
+        cap_len = cam_collect(arena, FT_ARENA_MAX, &t);
+    } else {
+        cap_len = cam_capture(&CAM_RECIPE_VENDOR, cam_mode,
+                              CAM_IMAGE_PIX_FMT_RGB565, arena, FT_ARENA_MAX, &t);
+    }
+
+    // RE-ARM HERE, BEFORE THE CHECKS AND BEFORE THE CONVERT. This one line is
+    // the whole optimization: from here until the next call, the sensor is
+    // exposing underneath the caller's compute instead of after it. It is safe
+    // this early because the pixels are on the camera, not in the arena - the
+    // trigger is three register writes and touches no memory the caller owns.
+    //
+    // Unconditional on the outcome above, deliberately. A frame that arrived
+    // torn or blank is still a frame the loop will want a successor to, and
+    // skipping the re-arm on failure would put the *next* call back on the slow
+    // path as well - one bad frame costing two.
+    if (cap_pipeline)
+        cap_armed = cam_trigger(&CAM_RECIPE_VENDOR, cam_mode,
+                                CAM_IMAGE_PIX_FMT_RGB565, NULL);
+
     cap_expose_us = t.expose_us;
     cap_read_us   = t.read_us;
+    cap_wait_us   = t.wait_us;
     if (cap_len != want || cam_frame_is_constant(arena, cap_len)) return NULL;
 
     cam_frame_means(arena, cap_len, cap_mean);
@@ -1097,6 +1135,8 @@ void ft_cap_stats(int mean[3], uint32_t *expose_us, uint32_t *read_us)
     if (expose_us) *expose_us = cap_expose_us;
     if (read_us)   *read_us   = cap_read_us;
 }
+
+uint32_t ft_cap_wait_us(void) { return cap_wait_us; }
 
 void ft_cam_fault_inject(void) { cam_bus_fault_inject(); }
 

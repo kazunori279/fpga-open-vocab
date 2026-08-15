@@ -220,6 +220,34 @@ const void *ft_capture(float in_scale);
 // NULL.
 void ft_cap_stats(int mean[3], uint32_t *expose_us, uint32_t *read_us);
 
+// How long the last ft_capture() actually stood still waiting for CAP_DONE, as
+// against how long the exposure took. WHATEVER IS ADDING UP A FRAME'S COST
+// WANTS THIS ONE, not expose_us - see cam.h, and see ft_pipeline() for why they
+// stopped being the same number.
+uint32_t ft_cap_wait_us(void);
+
+// Overlap the next capture with the caller's own work. Off by default.
+//
+// WHAT THIS IS FOR. The appliance frame does not scale with the system clock -
+// the inference does, exactly, but the frame lands on a grid about one sensor
+// period wide, so 332 MHz measures the same 420 ms as 320 (issue #10). The
+// suspect is ft_capture() standing still while the sensor finishes a frame on
+// its own boundary. With this on, ft_capture() triggers the *next* capture
+// before it returns, so that boundary is reached underneath the caller's
+// compute and the collect that follows finds CAP_DONE already asserted.
+//
+// It costs no memory: the frame waits in the ArduChip's FIFO, not in the arena.
+//
+// IT COSTS LATENCY, AND THAT IS THE REAL TRADE. A frame is now exposed one
+// whole compute before it is used, so photon-to-answer roughly doubles while
+// frames per second go up. For an appliance whose output is an LED that is the
+// right way round, but it is a choice and not a free win.
+//
+// Turn it on after ft_acquire() and leave it on; ft_cap_wait_us() is how you
+// tell whether it is working, and a wait that stays high means the frame time
+// was never the sensor's boundary and #10 needs a different answer.
+void ft_pipeline(bool on);
+
 // Arm a one-shot stall on the camera bus, so the next ft_capture() takes the
 // failure path on purpose and returns NULL. See cam.h: the deadline this
 // provokes guards issue #8, whose real trigger appears twice in five runs and

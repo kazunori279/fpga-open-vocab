@@ -740,6 +740,14 @@ def main() -> int:
                          "of the board. The real trigger appears twice in five "
                          "runs and never on demand, so this is how the recovery "
                          "gets watched")
+    ap.add_argument("--overlap", action="append", type=int, default=[],
+                    metavar="N",
+                    help="issue #10. At the board's frame N, press 'O': close "
+                         "the timing window, print it, and flip the capture "
+                         "between overlapped with the compute and serial. "
+                         "Repeatable, and the board boots overlapped, so "
+                         "`--overlap 40` gives 40 frames overlapped then the "
+                         "rest serial - the baseline the 420 ms figure was")
     ap.add_argument("--enrol", action="append", default=[], metavar="FRAME:KEY",
                     help="M21. At the board's frame FRAME, press KEY - '0' for "
                          "the empty scene, '1'..'6' for the Nth class query. "
@@ -772,6 +780,12 @@ def main() -> int:
                              f"0..{MAX_Q}, e.g. --enrol=125:1")
         enrol.append((int(frame), key))
     enrol.sort()
+    # A set, so a repeated frame is one keystroke and not two - two would flip
+    # the overlap back and leave a window nobody asked for. Checked here for the
+    # reason --enrol is: the run is the expensive thing.
+    if any(k < 1 for k in args.overlap):
+        raise SystemExit("--overlap wants a frame number of 1 or more")
+    overlap_at = set(args.overlap)
     # The gates occupy slots like anything else, and counting only --queries
     # here would push the overflow onto the board, which rejects the whole set
     # after a minute of teacher loading rather than before it.
@@ -1138,6 +1152,15 @@ def main() -> int:
                     # 'E' there is nothing to clear and nothing to wait out.
                     if args.cam_fault and frames == args.cam_fault:
                         s.write(b"C")
+                        s.flush()
+                    # Issue #10's A/B. Repeatable, and the board prints the
+                    # window it just closed, so `--overlap 30 --overlap 60`
+                    # reads out as three windows on one scene under one lamp -
+                    # which is the only way the comparison is worth anything,
+                    # since the encode is the same either way and what moves is
+                    # a wait on a sensor that does not care what we are doing.
+                    if frames in overlap_at:
+                        s.write(b"O")
                         s.flush()
                     # Up to the "(cos", not the first space: m9.c prints
                     # `MATCH <name> (cos 0.037)` and a name has spaces in it

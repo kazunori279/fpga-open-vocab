@@ -1037,7 +1037,8 @@ static bool recv_queries(uint32_t dim)
 //
 // Returns 0 for nothing, 'B', 'R', 'P' for "dump the next frame", 'E' to
 // provoke D1's fault display, 'H' to toggle the background between frozen and
-// tracking, 'N' to re-learn it from now, 'Q' for a query set accepted, or 'q'
+// tracking, 'N' to re-learn it from now, 'O' to overlap the capture with the
+// compute, 'Q' for a query set accepted, or 'q'
 // for one rejected. `us` is the per-byte wait: 0 in the frame loop, where this
 // must not block, and a second during the initial hunt, where there is nothing
 // else to do.
@@ -1074,6 +1075,13 @@ static int poll_host(uint32_t dim, uint32_t us)
         if (c == 'W' || c == 'w') return 'W';
         if (c == 'C' || c == 'c') return 'C';
         if (c == 'N' || c == 'n') return 'N';
+        // #10's toggle. 'O' for overlap, and it misses all four of F, G, X and
+        // Q. A hotkey rather than a build flag for M5b's reason - see frame.h -
+        // and here that reason is not a nicety: the question 'O' answers is
+        // whether overlapping the capture makes the *frame* shorter or only the
+        // sum of its named parts, and two builds cannot answer it, because the
+        // baseline and the overlap would then differ in more than the overlap.
+        if (c == 'O' || c == 'o') return 'O';
         // M21's enrolment keys. Digits miss all four of F, G, X and Q, which is
         // the constraint the note above exists to enforce.
         if (c >= '0' && c <= '0' + (int)FGX_MAX_Q) return c;
@@ -1084,6 +1092,33 @@ static int poll_host(uint32_t dim, uint32_t us)
         }
     }
     return 0;
+}
+
+// ---------------------------------------------------------------------------
+// What a frame cost, over a window of `k` timed frames. Two lines, and they are
+// two measurements of the same thing rather than a figure and its breakdown:
+// `us` is a sum of parts and `wall` is a clock, and the reason both are printed
+// is that only their agreement makes either one trustworthy (see the note at the
+// accumulators). Factored out because 'O' closes a window mid-run and the final
+// summary closes the last one, and a second copy would be a second thing to keep
+// in step - which is how the four bitstream defaults drifted apart.
+//
+// `wall` divides by k-1, not k: it accumulates *intervals* between arrivals, and
+// n points bound n-1 of them.
+//
+// `lead` carries its own punctuation, since one caller is a labelled line and
+// the other is a continuation of one.
+static void report_cost(uint32_t k, uint64_t us, uint64_t enc,
+                        uint64_t wait, uint64_t wall, const char *lead)
+{
+    printf("%s%u frames timed, %u ms/frame mean (capture included)\n",
+           lead, (unsigned)k, k ? (unsigned)(us / k / 1000u) : 0u);
+    printf("            %u ms encode + %u ms waiting for the sensor + "
+           "%u ms burst; %u ms/frame by the clock\n",
+           k ? (unsigned)(enc / k / 1000u) : 0u,
+           k ? (unsigned)(wait / k / 1000u) : 0u,
+           k ? (unsigned)((us - enc - wait) / k / 1000u) : 0u,
+           k > 1 ? (unsigned)(wall / (k - 1) / 1000u) : 0u);
 }
 
 // ---------------------------------------------------------------------------
@@ -1772,7 +1807,9 @@ int main(void)
            "            the watchdog name the stage, 'C' to stall the camera "
            "bus on purpose and see it cost one frame,\n"
            "            'N' to forget it and learn it again from now. 'P' and "
-           "'V' together describe the same frame.\n",
+           "'V' together describe the same frame.\n"
+           "            'O' closes the timing window, prints it and flips the "
+           "capture between overlapped and serial.\n",
            (unsigned)ft_nconv());
     printf("            scores are z against this room's background, ranked; "
            "'*' means over its threshold.\n");
@@ -1797,8 +1834,22 @@ int main(void)
 
     wd_stage(FGX_ST_CAPTURE, 0);
 
+    // From here to the end of the run, and not before: ft_acquire()'s exposure
+    // ramp wants each capture to be one self-contained thing. See frame.h - the
+    // sensor now exposes underneath encode() instead of in front of it, which
+    // costs no memory and roughly doubles photon-to-LED latency.
+    bool overlap = true;
+    ft_pipeline(overlap);
+
     uint32_t n = 0, cur = 0, good = 0, pinned = 0;
-    uint64_t sum_us = 0;
+    // `timed` and not `good`: a dropped frame does not reach the accumulators
+    // but its 200 ms does land in the wall clock, so dividing the sums by `good`
+    // and the wall by `good - 1` was quietly comparing two different windows.
+    // 'O' zeroes all five together, which is what makes a back-to-back A/B in
+    // one boot mean anything.
+    uint32_t timed = 0;
+    uint64_t sum_us = 0, sum_wall_us = 0, sum_wait_us = 0, sum_enc_us = 0;
+    uint64_t last_acc_us = 0;
     bool said_sticky = false, said_pinned = false, want_pic = false;
     bool want_emb = false;
 
@@ -1866,7 +1917,32 @@ int main(void)
             stdio_flush();
         }
 
-        sum_us += ft_frame_us() + exp_us + rd_us;
+        // wait_us, not exp_us. They were the same number for as long as the
+        // capture was serial - the poll started the instant the trigger did -
+        // and cam.h explains why they stop being the same once the trigger is
+        // issued a compute early. exp_us is now an elapsed time that spans
+        // encode(); adding it to encode() would count the same 350 ms twice.
+        const uint32_t wait_us = ft_cap_wait_us();
+        sum_us      += ft_frame_us() + wait_us + rd_us;
+        sum_enc_us  += ft_frame_us();
+        sum_wait_us += wait_us;
+        timed++;
+
+        // THE FRAME IS NOW TIMED TWICE, AND THAT IS THE POINT. Every ms/frame
+        // figure this project has ever published is `sum_us` - a sum of three
+        // measured parts, never a clock - and a sum of parts is precisely the
+        // thing an overlap can flatter by moving work out of the parts instead
+        // of out of the frame. So: the interval between successive arrivals
+        // here, which is one whole trip round the loop including the host poll
+        // and everything the parts do not name. It is deliberately not reset by
+        // the `continue` paths above, so a dropped frame's 200 ms and a 'P'
+        // snapshot's extra capture both land in it and inflate it - honest, and
+        // the reason to read it beside sum_us rather than instead of it.
+        {
+            const uint64_t now = time_us_64();
+            if (last_acc_us) sum_wall_us += now - last_acc_us;
+            last_acc_us = now;
+        }
 
         wd_stage(FGX_ST_SCORE, n);
         float score[FGX_MAX_Q];
@@ -1953,6 +2029,31 @@ int main(void)
                        "%u, so COCO's is still in use",
                        (unsigned)bg_n, (unsigned)FGX_BG_SD_MIN_N);
             printf("\n");
+            stdio_flush();
+            continue;
+        }
+        // #10. Close the window that was running, print it, flip the overlap and
+        // start a fresh one - so a run can be read as "these N frames serial,
+        // then these N overlapped", on one boot, one build and one scene.
+        //
+        // THE RE-ARMED CAPTURE SURVIVES THE FLIP. Turning overlap off does not
+        // discard a frame already in the ArduChip's FIFO: the next ft_capture()
+        // still collects it, and only the one after that goes back to
+        // trigger-then-wait. So the first frame of a serial window is fast and
+        // the number is a frame per window too generous - which is why the
+        // window is quoted over tens of frames and not over the boundary.
+        if (c == 'O') {
+            report_cost(timed, sum_us, sum_enc_us, sum_wait_us, sum_wall_us,
+                        "\noverlap   : ");
+            overlap = !overlap;
+            ft_pipeline(overlap);
+            printf("            capture is now %s the compute. Counters "
+                   "zeroed; the next window starts at frame %u.\n",
+                   overlap ? "OVERLAPPED with" : "SERIAL with",
+                   (unsigned)(n + 1));
+            timed = 0;
+            sum_us = sum_enc_us = sum_wait_us = sum_wall_us = 0;
+            last_acc_us = 0;
             stdio_flush();
             continue;
         }
@@ -2071,11 +2172,17 @@ int main(void)
         if (c == 'B' || c == 'R') {
             int mean[3];
             ft_cap_stats(mean, NULL, NULL);
-            printf("\nstopped   : %u frames, %u good, %u ms/frame mean "
-                   "(capture included), configuration %s\n",
+            printf("\nstopped   : %u frames, %u good, capture %s the compute, "
+                   "configuration %s\n",
                    (unsigned)n, (unsigned)good,
-                   good ? (unsigned)(sum_us / good / 1000u) : 0u,
+                   overlap ? "overlapped with" : "serial with",
                    w == 3 ? "C" : "A");
+            // The split #10 asked for, and the wall clock that keeps it honest.
+            // encode + wait + read is sum_us by construction; wall is measured
+            // independently and includes everything none of the three names.
+            // This is the window since the last 'O', not necessarily the run.
+            report_cost(timed, sum_us, sum_enc_us, sum_wait_us, sum_wall_us,
+                        "            ");
             printf("            last frame mean RGB %d %d %d\n",
                    mean[0], mean[1], mean[2]);
             stdio_flush();

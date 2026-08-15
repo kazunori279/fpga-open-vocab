@@ -250,8 +250,12 @@ const cam_recipe_t CAM_RECIPE_VENDOR = { "vendor", false, false, 0 };
 // "unknown", which is the honest state after a reset or a cam_begin().
 static int last_fmt = -1, last_mode = -1;
 
-uint32_t cam_capture(const cam_recipe_t *r, uint8_t mode, uint8_t fmt,
-                     uint8_t *dst, uint32_t cap, cam_time_t *t)
+// When the outstanding trigger was issued, so cam_collect() can still report
+// expose_us across the gap. Zero means nothing is in flight; collecting without
+// a trigger is a caller bug rather than a camera fault, so it says so.
+static uint64_t trig_us;
+
+bool cam_trigger(const cam_recipe_t *r, uint8_t mode, uint8_t fmt, cam_time_t *t)
 {
     cam_time_t discard;
     if (!t) t = &discard;
@@ -264,12 +268,12 @@ uint32_t cam_capture(const cam_recipe_t *r, uint8_t mode, uint8_t fmt,
     // The guard cam.h's header comment is about. Not tidiness.
     if (r->rewrite || fmt != last_fmt) {
         cam_write_reg(CAM_REG_FORMAT, fmt);
-        if (!cam_wait_idle("format")) return 0;
+        if (!cam_wait_idle("format")) return false;
         last_fmt = fmt;
     }
     if (r->rewrite || mode != last_mode) {
         cam_write_reg(CAM_REG_CAPTURE_RESOLUTION, CAM_SET_CAPTURE_MODE | mode);
-        if (!cam_wait_idle("resolution")) return 0;
+        if (!cam_wait_idle("resolution")) return false;
         last_mode = mode;
     }
     if (r->settle_ms) sleep_ms(r->settle_ms);
@@ -278,9 +282,28 @@ uint32_t cam_capture(const cam_recipe_t *r, uint8_t mode, uint8_t fmt,
     if (r->flush) cam_write_reg(ARDUCHIP_FIFO_2, FIFO_CLEAR_MASK);
     cam_write_reg(ARDUCHIP_FIFO, FIFO_CLEAR_ID_MASK);
     cam_write_reg(ARDUCHIP_FIFO, FIFO_START_MASK);
+    // The three writes above are the whole trigger, and a bus that stalled
+    // during them did not arm anything. Saying so here is what keeps the next
+    // cam_collect() from waiting 3 s for a capture nobody started.
+    if (bus_fault) return false;
+
+    t->setup_us = (uint32_t)(t1 - t0);
+    trig_us = t1;
+    return true;
+}
+
+uint32_t cam_collect(uint8_t *dst, uint32_t cap, cam_time_t *t)
+{
+    cam_time_t discard;
+    if (!t) t = &discard;
+
+    if (!trig_us) { printf("  !! collect with no capture in flight\n"); return 0; }
+    const uint64_t t1 = trig_us;
+    trig_us = 0;
 
     // Bounded for the same reason cam_wait_idle() is. A camera that never
     // asserts CAP_DONE is a result, not a reason to stop printing.
+    const uint64_t tw = time_us_64();
     bool done = false;
     for (int i = 0; i < 30000 && !done; i++) {
         done = (cam_read_reg(ARDUCHIP_TRIG) & CAP_DONE_MASK) != 0;
@@ -318,10 +341,23 @@ uint32_t cam_capture(const cam_recipe_t *r, uint8_t mode, uint8_t fmt,
     // short-circuits the rest, so this costs one deadline and not 128 of them.
     if (bus_fault) return 0;
 
-    t->setup_us  = (uint32_t)(t1 - t0);
+    // Two different questions, and cam.h says why the answers diverge: t2 - t1
+    // is how long the sensor and its frame boundary took, t2 - tw is how much of
+    // that this caller stood still for.
     t->expose_us = (uint32_t)(t2 - t1);
+    t->wait_us   = (uint32_t)(t2 - tw);
     t->read_us   = (uint32_t)(t4 - t3);
     return len;
+}
+
+uint32_t cam_capture(const cam_recipe_t *r, uint8_t mode, uint8_t fmt,
+                     uint8_t *dst, uint32_t cap, cam_time_t *t)
+{
+    cam_time_t discard;
+    if (!t) t = &discard;
+    t->setup_us = t->expose_us = t->wait_us = t->read_us = 0;
+    if (!cam_trigger(r, mode, fmt, t)) return 0;
+    return cam_collect(dst, cap, t);
 }
 
 bool cam_frame_is_constant(const uint8_t *p, uint32_t len)
