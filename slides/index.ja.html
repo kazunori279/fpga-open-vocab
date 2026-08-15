@@ -283,7 +283,7 @@
   <div style="margin-top:186px;">
     <h1 class="cover">fpga-open-vocab：言葉で指定すれば、<br>50ドルのボードが見つける</h1>
     <div class="cover-sub">蒸留したCLIP系の画像エンコーダを、小さなFPGAの上で。パラメータ140万をint4の768 KBに収め、
-    8つの畳み込み層すべてをファブリックに載せ、カメラ1フレーム363 ms、しかもプレーンCのリファレンスとビット単位で一致します。</div>
+    8つの畳み込み層すべてをファブリックに載せ、カメラ1フレーム282 ms、しかもプレーンCのリファレンスとビット単位で一致します。</div>
     <div class="cover-by">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.22-6.82-5.97 6.82H1.66l7.73-8.83L1.24 2.25h6.83l4.71 6.23zm-1.16 17.52h1.83L7.08 4.13H5.12z"/></svg>
       <a href="https://x.com/kazunori_279" target="_blank" rel="noopener">@kazunori_279</a>
@@ -304,7 +304,7 @@
       <li><span class="num">01</span><span class="txt">fpga-open-vocab とは</span><span class="min">4分</span></li>
       <li><span class="num">02</span><span class="txt">技術スタック</span><span class="min">12分</span></li>
       <li><span class="num">03</span><span class="txt">アーキテクチャ詳細</span><span class="min">11分</span></li>
-      <li><span class="num">04</span><span class="txt">3,359 ms &rarr; 304 ms</span><span class="min">7分</span></li>
+      <li><span class="num">04</span><span class="txt">3,359 ms &rarr; 270 ms</span><span class="min">7分</span></li>
       <li><span class="num">05</span><span class="txt">512個の実数から答えへ</span><span class="min">7分</span></li>
       <li><span class="num">06</span><span class="txt">つまずきと学び</span><span class="min">5分</span></li>
       <li><span class="num">07</span><span class="txt">まとめ + Q&amp;A</span><span class="min">2分</span></li>
@@ -359,8 +359,8 @@
         <li><b>蒸留したCLIP系の画像エンコーダ</b>を実行。int4パラメータ140万、1フレームあたり159 MMAC</li>
         <li>載せているのは<b>約50ドルのForgixボード</b>。<b>RP2354A</b> MCUの隣に <b>Efinix Trion T8</b> FPGA</li>
         <li><b>8つの畳み込み層すべてをファブリックで実行</b>。入力はライブのカメラ映像</li>
-        <li><b>カメラ1フレーム363 ms</b>、うち<b>346 ms</b>がエンコーダ。しかも<b>ビット単位で一致</b> — 埋め込み512個すべてがプレーンCのリファレンスと同一</li>
-        <li>同じモデルをMCU単体で回した場合の<b>11.33倍</b>。同一ブート内で計測</li>
+        <li><b>カメラ1フレーム282 ms</b>、うち<b>265 ms</b>がエンコーダ。しかも<b>ビット単位で一致</b> — 埋め込み512個すべてがプレーンCのリファレンスと同一</li>
+        <li>同じモデルをMCU単体で回した場合の<b>5.97倍</b>。同一ブート内、しかも同じ320 MHzで計測</li>
       </ul>
       <p class="mut">クラウドなし、GPUなし、ネットワークなし。答えはRGB LEDに出るので、
       動き始めたらノートPCは抜いてしまえます。</p>
@@ -724,7 +724,7 @@
       <div class="ot">蒸留した生徒、MCUのみ</div>
       <div class="ou">int8パラメータ140万、手で詰めたC、FPGAは使わない</div>
       <div class="op">+ 動くし、ビット単位で一致。すべての数字を測る、正直なベースライン</div>
-      <div class="om">− <b>1フレーム3,359 ms。</b>秒間0.3フレームはアプライアンスとは呼べません</div>
+      <div class="om">− アプライアンスと同じ320 MHzで<b>1フレーム1,583 ms</b>。秒間0.6フレームはアプライアンスとは呼べません</div>
     </div>
     <div class="opt hl">
       <div class="badge">採用</div>
@@ -736,7 +736,7 @@
       </svg></div>
       <div class="ot">生徒、MCU + FPGAタイル</div>
       <div class="ou">MCUが各層をブロックに切り、ファブリックが掛け算を担当</div>
-      <div class="op">+ <b>推論346 ms、11.33倍</b>。8層すべてファブリック、512/512でビット一致</div>
+      <div class="op">+ <b>推論265 ms、同一クロックで5.97倍</b>。8層すべてファブリック、512/512でビット一致</div>
     </div>
   </div>
   <div class="lbar">
@@ -977,44 +977,47 @@
 <!-- ============ WHERE THE MILLISECONDS GO ============ -->
 <section class="slide">
   <div class="h">ミリ秒はどこへ消えるのか</div>
-  <div class="hsub">851 ms時点の、唯一測れた主体別内訳です。読むべきは<i>誰が誰を待っているか</i>。
-  フレームは今304 msで、<code>RUN</code> だけでも 313 → 118。</div>
+  <div class="hsub">アプライアンスが実際に走る <b>sys 320 MHz / link 160 MHz</b>、270 msフレームでの主体別内訳です。
+  読むべきは<i>誰が誰を待っているか</i>。演算そのものは <code>RUN</code> の行だけで、
+  残りはすべてそこにバイトを運ぶための時間です。</div>
   <div class="bars" style="margin-top:44px;">
     <div class="bar">
       <div class="bl">コア0 — 線、経過時間<small>他のすべてはこの中に隠れる</small></div>
       <div class="track"><div class="fill f-blue" style="width:100%"></div></div>
-      <div class="pv">639</div>
+      <div class="pv">202</div>
     </div>
     <div class="bar">
       <div class="bl" style="padding-left:26px; color:#5f6368;">…うちタイルの計算<small>RUN — データは運ばず、サイクルだけ</small></div>
-      <div class="track"><div class="fill f-yellow" style="width:49%"></div></div>
-      <div class="pv" style="font-size:22px; color:#5f6368;">313</div>
+      <div class="track"><div class="fill f-yellow" style="width:51%"></div></div>
+      <div class="pv" style="font-size:22px; color:#5f6368;">103</div>
     </div>
     <div class="bar">
       <div class="bl">コア0 — 準備・アドレス計算・CRC・デコード<small>トランザクションの合間。重ねられない</small></div>
-      <div class="track"><div class="fill f-red" style="width:17.4%"></div></div>
-      <div class="pv">111</div>
+      <div class="track"><div class="fill f-red" style="width:29.7%"></div></div>
+      <div class="pv">60</div>
     </div>
     <div class="bar">
       <div class="bl">コア0 — コア1待ちのストール<small>コア1のうち、隠れ<i>きらなかった</i>分</small></div>
-      <div class="track"><div class="fill f-red" style="width:10.3%"></div></div>
-      <div class="pv">66</div>
+      <div class="track"><div class="fill f-red" style="width:2.5%"></div></div>
+      <div class="pv">5</div>
     </div>
     <div class="bar">
       <div class="bl">コア1 — ビジー<small>重みの組み立て、ストリップ、DRAINのデコード、書き戻し</small></div>
-      <div class="track"><div class="fill f-green" style="width:79.7%"></div></div>
-      <div class="pv">509</div>
+      <div class="track"><div class="fill f-green" style="width:73.8%"></div></div>
+      <div class="pv">149</div>
     </div>
   </div>
   <div class="vnote" style="margin-top:34px;">これは<b>主体ごとの合計であって、タイムラインではありません</b>。
-  コア1の509 msは、コア0の線639 msと<i>並行して</i>走ります。2つ目のコアの意味はまさにそこで、66 msは
-  隠れきらなかった分。コア0の合計816と実測851の35 ms差は、どの窓にも入らない層ごとの足場です。</div>
+  コア1の149 msは、コア0の線202 msと<i>並行して</i>走ります。2つ目のコアの意味はまさにそこで、隠れきらなかったのは5 msだけ。
+  コア0の合計は267、実測270です。<b>この図は以前、2026-08-03の851 msフレームを載せていました</b> — MAC 8個、リンク75 MHzの時代で、
+  主体別内訳がそれしか存在しなかったからです。出荷レートで測り直したことが、タイル側がコードを返せるようになって3マイルストーン経っても
+  アプライアンスがint32のアキュムレータを吸い出し続けていた事実を暴きました。<b>1行で349 → 270 ms</b>。</div>
   </section>
 
 <!-- ============ SECTION 04 · OPTIMIZATION ============ -->
 <section class="slide divider">
   <div class="num">04</div>
-  <div class="name">3,359 ms &rarr; 304 ms</div>
+  <div class="name">3,359 ms &rarr; 270 ms</div>
   <div class="kick">同じフレームを速くするだけの11マイルストーン。そして、そのすべてを同一ブート内の対照と
   突き合わせて測ったことから出てきた、2つのルール。</div>
 </section>
@@ -1036,15 +1039,17 @@
       <tr><td>M14</td><td>int4の重み — 線上は1バイトに2個、実行時の設定ビット1本で切り替え</td><td class="nm">798 ms</td><td class="nm">4.32×</td></tr>
       <tr><td>M15</td><td>再量子化をタイル内で — <code>DRAIN</code> が返すのは4バイトではなく1バイト</td><td class="nm">631 ms</td><td class="nm">5.46×</td></tr>
       <tr><td>M16</td><td><code>kx</code> でカーネルタップを2つ組に。チャネルブロックあたり9スイープが6に</td><td class="nm">569 ms</td><td class="nm">6.05×</td></tr>
-      <tr class="hl"><td>クロック</td><td><b>RTLの変更は一切なし。</b>150 → 220 → <b>sys 280 MHz / link 140 MHz</b></td><td class="nm"><b>304 ms</b></td><td class="nm"><b>11.33×</b></td></tr>
+      <tr class="hl"><td>クロック</td><td><b>RTLの変更は一切なし。</b>150 → 220 → 280 → <b>sys 320 MHz / link 160 MHz</b></td><td class="nm"><b>270 ms</b></td><td class="nm"><b>12.76×</b></td></tr>
     </tbody>
   </table>
   <div class="vnote" style="margin-top:18px;"><b>851 msは、このボードの下限だと言われていました。</b>
   その根拠は、うち313 msがタイルの計算であり、そのファブリックは「125 MHzで頭打ち」だ、というものでした。
   ところが両方とも動かせた — そして表の中で最大の改善は、設計作業がまったく入っていない行なのです。
-  <b>なおこの表はすべてカメラを回さない <code>m7</code> ハーネスの数字</b>で、アプライアンスは現在
-  <b>320 MHz / 160 MHz</b>、カメラ1フレームは<b>363 ms</b>です。しかもその最後の56 msは、
-  クロックを上げたのではなく、キャプチャを計算とオーバーラップさせて削りました。</div>
+  <b>なおこの表はすべてカメラを回さない <code>m7</code> ハーネスの数字</b>で、倍率はどれも同一ブート内の
+  <code>encoder_fast</code> 比です。ただし<b>最終行だけはクロックが揃っていません</b> — <code>m7</code> はMCUの
+  ベースラインを起動時の150 MHzで測り、そこからラダーを上げていくためです。<i>同一クロック</i>で見たアプライアンスは5.97倍。
+  カメラ1フレームは現在<b>282 ms</b>で、うち56 msはキャプチャを計算とオーバーラップさせて、
+  さらに80 msは誰も気づいていなかったM15のエピローグを有効にして削りました。</div>
   </section>
 
 <!-- ============ INT4 ============ -->

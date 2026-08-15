@@ -39,7 +39,7 @@ add_compile_definitions(GP_KPACK=${GP_KPACK})
 #
 # THAT SWEEP IS NOW WORTH RE-RUNNING. 332 tied 320 only because both sat in one
 # cell of the sensor's ~34 ms grid, and issue #10 has since taken the sensor out
-# of the frame: what is left is 346 ms of encode that scales exactly with 1/f,
+# of the frame: what is left is 265 ms of encode that scales exactly with 1/f,
 # so the ~13 ms 332 was always worth should now be visible. It has not been
 # measured, and until it is, 320 is what ships.
 #

@@ -83,7 +83,7 @@ One `ninja` produces every on-device harness as its own `.uf2`:
 | `forgix_m8` | capture → encode → embed, forever, with no queries |
 | `forgix_m7` | the full-frame inference harness: modes, profiling, clock ladder |
 | `forgix_m6` | one tile block over the link, against golden accumulators |
-| `forgix_m5` / `forgix_m5b` | the MCU-alone encoder and its `SMLAD` twin — the 11.33× baseline |
+| `forgix_m5` / `forgix_m5b` | the MCU-alone encoder and its `SMLAD` twin — the baseline every speedup is measured against |
 | `forgix_m2` | the link sweep: LFSR, offset correlator, error rate per clock |
 | `forgix_cam_probe` | the camera alone, dumping a frame down the CDC |
 | `forgix_psram_probe` | the raw `0x9F` read from U1. Kept for the record; U1 is unusable |

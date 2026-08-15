@@ -51,9 +51,9 @@ Both chips sit on one ~$50 board and talk over a **3-bit link**: three data wire
 
 **Steps 2 through 10 all run on the board, and steps 3 through 9 are the inference.** Step 1 runs on the host, once per *query* rather than once per frame; step 2 is an ArduCam Mega 3MP over SPI, fitted since M8b and required — `m9.c:1592` refuses to start the demo without one; step 10 is a handful of dot products and some arithmetic on six numbers.
 
-**The appliance's own frame is 363 ms at 320/160**, of which steps 3–9 are **346 ms** and step 2's burst read is **16 ms**. Step 2's *exposure* costs nothing, which is the point of the paragraph below. The rest is step 10 plus what a demo does that a harness does not: hold a background, standardize against it, and print a line per frame down the CDC.
+**The appliance's own frame is 282 ms at 320/160**, of which steps 3–9 are **265 ms** and step 2's burst read is **16 ms**. Step 2's *exposure* costs nothing, which is the point of the paragraph below. The rest is step 10 plus what a demo does that a harness does not: hold a background, standardize against it, and print a line per frame down the CDC.
 
-**That is a sum of measured parts, and the board also times the frame with a clock: 373 ms.** Every ms/frame this project published before 2026-08-15 was the sum alone, and a sum of parts is exactly the thing an overlap can flatter by moving work out of the parts instead of out of the frame — so `m9` now accumulates the interval between successive frames as well and prints both. The 10 ms between them is step 10, the LED and the CDC line: real, and named by neither of the three parts.
+**That is a sum of measured parts, and the board also times the frame with a clock: 293 ms.** Every ms/frame this project published before 2026-08-15 was the sum alone, and a sum of parts is exactly the thing an overlap can flatter by moving work out of the parts instead of out of the frame — so `m9` now accumulates the interval between successive frames as well and prints both. The 11 ms between them is step 10, the LED and the CDC line: real, and named by neither of the three parts.
 
 **The frame used to be 420 ms, and what removed the difference was not the clock.** Across 280, 300, 320 and 332 MHz the inference is 400 / 374 / 350 / 338 ms — perfect 1/f — while the whole frame was 454 / 455 / 420 / 420. It landed on a grid about 34 ms wide, one frame of a ~29 fps sensor: `cam_capture()` triggered and then stood still until CAP_DONE, and the sensor finished on its own boundary. Anything that got faster inside one cell of that grid bought nothing at all.
 
@@ -69,7 +69,18 @@ It costs no memory — the frame waits in the ArduChip's own FIFO rather than in
 
 **The trigger now goes out late instead.** `frame.c` keeps the previous frame's per-layer timings and arms at the end of whichever layer leaves less than a *lead* of compute still to run. The lead cannot be a constant — it is mostly exposure, and exposure is the room's to decide — so it is a feedback loop off the wait `cam.h` already measures: raise it on a single wait, decay it after eight clean frames. In a lit room it settles around 95 ms and in a dim one around 128 ms.
 
-Same throughput to the millisecond, 231 ms fresher. What is left of the trade is 59 ms, and that is the exposure itself.
+Same throughput to the millisecond, 231 ms fresher. What is left of the trade is 59 ms, and that is the exposure itself. Those three rows were measured at the 346 ms encode the appliance had at the time; the paragraph below then took the encode itself apart, and the shipped latency is now **390 ms**.
+
+**Then the split that [#14](https://github.com/kazunori279/fpga-open-vocab/issues/14) asked for found a line that was never switched on.** There was no per-actor breakdown of the encode at the rate the appliance ships at — the only one in the tree is M7i's 851 ms frame, at 8 MACs and a 75 MHz link. Putting 320000 on top of `m7`'s clock ladder produced one, because `m7` rung 5 is byte-identical to `m9`'s engine mode and `m7` already prints every actor. It also produced the finding: `ft_set_rq()` — M15's **tile-side requantize epilogue**, where the tile rounds and clamps each accumulator itself and `DRAIN` returns one byte instead of four — was called in `m7.c` and nowhere else. `m8` and `m9` had been draining int32 since M15 shipped. Nothing argued for it; the appliance was simply never moved over, and with no breakdown at the shipped rate the cost never surfaced anywhere. One boot of `m7`, configuration C at 320/160, bit-exact both ways:
+
+| | frame | `DRAIN` | bytes on the wire | decode behind core 0 | core 1 busy |
+|---|---|---|---|---|---|
+| int32 accumulators | 349 ms | 72 ms | 13.259 MB | 66 ms | 225 ms (65%) |
+| codes (`ft_set_rq`) | **270 ms** | **19 ms** | **10.244 MB** | **17 ms** | **149 ms (55%)** |
+
+On the appliance that is **373 → 293 ms** by the clock and **464 → 390 ms** shutter to LED, from one line. It is safe by construction rather than by assertion: `probe()` runs the whole test vector through the tile in this mode at start-up and refuses to run the demo unless all 512 embedding floats match `encoder_fast` — 512/512, in 269 ms. The accumulator sweep that guards the MAC array is unaffected, since a sweep pass overrides the mode back to int32.
+
+Where the remaining 270 ms goes, at 320/160, config C, whole frame: the wire is 202 ms elapsed and 10.244 MB in 6,295 transactions, of which `RUN` **103 ms**, `WGT` 42, `ACT` 35, `DRAIN` 19, `NOP` 1, `CFG` 1; staging 27 ms, locate 26, decode 5, CRC 2. Core 1 is busy 149 ms and core 0 stalls 5. **`RUN` is 38% of the frame and it is the only actor that is arithmetic** — everything else is moving bytes to feed it.
 
 ---
 
@@ -652,7 +663,7 @@ A plain tree of the repo is in [the README](../README.md#layout). This is the ot
 | file | why it matters |
 |---|---|
 | **`firmware/encoder.c`** | **THE REFERENCE.** The int8 encoder in plain C, bit-exact against numpy on the host and on silicon. Everything else in the project — `encoder_fast.c`, the RTL, the board — is *defined* as agreeing with it. **Do not tune it.** |
-| `firmware/encoder_fast.c` | the same arithmetic as tiled im2col + blocked GEMM with an `SMLAD` inner loop: 7.4× `encoder.c`, byte-identical to it, and the MCU-alone baseline the 11.33× speedup is measured against |
+| `firmware/encoder_fast.c` | the same arithmetic as tiled im2col + blocked GEMM with an `SMLAD` inner loop: 7.4× `encoder.c`, byte-identical to it, and the MCU-alone baseline every speedup here is measured against — in the same boot, and in `m9`'s case at the same clock |
 | `firmware/encoder.h` | `fgx_requant()` / `fgx_code()` live here, so the firmware and the reference share **one** epilogue rather than two that have to be kept equal |
 | `firmware/dsp_shim.h` | the ACLE intrinsics emulated from the ARM ARM, so the `SMLAD` path is provable on a laptop before anyone walks to the bench |
 | `firmware/gemm_block.c` | what one tile block looks like in host memory — strip, weight stream, golden accumulators. Linked by **both** the firmware and `gen_gemm_vec.c`, so `tb_gemm` checks the RTL against the code the MCU actually runs. `gb_weights_slow()` stays compiled in as the **oracle** the fast permutation is checked against: a wrong permutation is a plausible-looking tensor. Its `GB_HOT` macro sits behind a `GW_PICO` guard for the same reason: **this file must still build with a bare `cc`** (`gemm_block.c:12`), or the laptop-side half of the check goes away |

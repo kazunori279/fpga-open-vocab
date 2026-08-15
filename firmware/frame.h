@@ -253,6 +253,12 @@ uint32_t ft_cap_wait_us(void);
 // serial, and 373 ms/frame in both overlapped windows. What remains is a real
 // trade and not a bug: 59 ms, which is the exposure.
 //
+// Those figures are at the 346 ms encode the appliance had at the time. #14
+// then found ft_set_rq() switched off in m9 - see the note at its ft_set_mode()
+// call - which took the encode to 265 ms and the age with it: 293 ms/frame by
+// the clock, 390 ms shutter to LED. The lead follows on its own, since it is a
+// feedback loop off the wait and not a fraction of the compute.
+//
 // Turn it on after ft_acquire() and leave it on. ft_cap_wait_us() says whether
 // the overlap is working, ft_cap_age_us() says what it costs, and a wait that
 // stays high means the frame time was never the sensor's boundary and #10 needs

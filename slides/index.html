@@ -275,7 +275,7 @@
   <div style="margin-top:186px;">
     <h1 class="cover">fpga-open-vocab: describe it,<br>and a $50 board spots it</h1>
     <div class="cover-sub">A distilled CLIP-style image encoder running on a tiny FPGA — 1.40 M parameters in 768 KB of
-    int4, all eight convolution layers in the fabric, 363 ms per camera frame, and bit-exact against the plain-C reference.</div>
+    int4, all eight convolution layers in the fabric, 282 ms per camera frame, and bit-exact against the plain-C reference.</div>
     <div class="cover-by">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.22-6.82-5.97 6.82H1.66l7.73-8.83L1.24 2.25h6.83l4.71 6.23zm-1.16 17.52h1.83L7.08 4.13H5.12z"/></svg>
       <a href="https://x.com/kazunori_279" target="_blank" rel="noopener">@kazunori_279</a>
@@ -296,7 +296,7 @@
       <li><span class="num">01</span><span class="txt">What is fpga-open-vocab</span><span class="min">4 min</span></li>
       <li><span class="num">02</span><span class="txt">The technology stack</span><span class="min">12 min</span></li>
       <li><span class="num">03</span><span class="txt">Architecture deep-dive</span><span class="min">11 min</span></li>
-      <li><span class="num">04</span><span class="txt">3,359 ms &rarr; 304 ms</span><span class="min">7 min</span></li>
+      <li><span class="num">04</span><span class="txt">3,359 ms &rarr; 270 ms</span><span class="min">7 min</span></li>
       <li><span class="num">05</span><span class="txt">From 512 floats to an answer</span><span class="min">7 min</span></li>
       <li><span class="num">06</span><span class="txt">Frictions &amp; learnings</span><span class="min">5 min</span></li>
       <li><span class="num">07</span><span class="txt">Wrap-up + Q&amp;A</span><span class="min">2 min</span></li>
@@ -351,8 +351,8 @@
         <li>Runs a <b>distilled CLIP-style image encoder</b> — 1.40 M int4 parameters, 159 MMAC per frame</li>
         <li>On a <b>~$50 Forgix board</b>: an <b>RP2354A</b> MCU beside an <b>Efinix Trion T8</b> FPGA</li>
         <li>All <b>eight convolution layers execute in the fabric</b>, off a live camera</li>
-        <li><b>363 ms per camera frame</b> — <b>346 ms</b> of it the encoder — and <b>bit-exact</b>: 512 of 512 embedding floats identical to the plain-C reference</li>
-        <li><b>11.33×</b> the same model on the MCU alone, measured in the same boot</li>
+        <li><b>282 ms per camera frame</b> — <b>265 ms</b> of it the encoder — and <b>bit-exact</b>: 512 of 512 embedding floats identical to the plain-C reference</li>
+        <li><b>5.97×</b> the same model on the MCU alone — both measured in one boot, both at 320 MHz</li>
       </ul>
       <p class="mut">No cloud, no GPU, no network. The answer comes out on an RGB LED,
       so the laptop can be unplugged once it is running.</p>
@@ -722,7 +722,7 @@
       <div class="ot">Distilled student, MCU only</div>
       <div class="ou">1.40 M params, hand-tuned C, no FPGA involved</div>
       <div class="op">+ Works, bit-exact, and is the honest baseline every number is measured against</div>
-      <div class="om">− <b>3,359 ms per frame.</b> A third of a frame per second is not an appliance</div>
+      <div class="om">− <b>1,583 ms per frame</b> at the 320 MHz the appliance ships at. Two thirds of a frame per second is not an appliance</div>
     </div>
     <div class="opt hl">
       <div class="badge">SHIPPED</div>
@@ -734,7 +734,7 @@
       </svg></div>
       <div class="ot">Student, MCU + FPGA tile</div>
       <div class="ou">MCU cuts each layer into blocks; the fabric does the multiplies</div>
-      <div class="op">+ <b>346 ms of inference, 11.33×</b>, all 8 layers in fabric, bit-exact 512/512</div>
+      <div class="op">+ <b>265 ms of inference, 5.97×</b> at the same clock, all 8 layers in fabric, bit-exact 512/512</div>
     </div>
   </div>
   <div class="lbar">
@@ -981,46 +981,49 @@
 <!-- ============ WHERE THE MILLISECONDS GO ============ -->
 <section class="slide">
   <div class="h">Where the milliseconds go</div>
-  <div class="hsub">The only per-actor breakdown that has ever been measured, taken at the 851 ms
-  frame. Read it for <i>which actor waits on which</i> — the frame is 304 ms now, and
-  <code>RUN</code> alone fell 313 → 118.</div>
+  <div class="hsub">The per-actor breakdown at the rate the appliance ships at — <b>320 MHz sys /
+  160 MHz link</b>, a 270 ms frame. Read it for <i>which actor waits on which</i>: <code>RUN</code>
+  is the only row that is arithmetic, and everything else is moving bytes to feed it.</div>
   <div class="bars" style="margin-top:44px;">
     <div class="bar">
       <div class="bl">core 0 — the wire, elapsed<small>everything else hides in here</small></div>
       <div class="track"><div class="fill f-blue" style="width:100%"></div></div>
-      <div class="pv">639</div>
+      <div class="pv">202</div>
     </div>
     <div class="bar">
       <div class="bl" style="padding-left:26px; color:#5f6368;">…of which the tile computing<small>RUN — carries no data, just cycles</small></div>
-      <div class="track"><div class="fill f-yellow" style="width:49%"></div></div>
-      <div class="pv" style="font-size:22px; color:#5f6368;">313</div>
+      <div class="track"><div class="fill f-yellow" style="width:51%"></div></div>
+      <div class="pv" style="font-size:22px; color:#5f6368;">103</div>
     </div>
     <div class="bar">
       <div class="bl">core 0 — stage, locate, crc, decode<small>between transactions; cannot overlap</small></div>
-      <div class="track"><div class="fill f-red" style="width:17.4%"></div></div>
-      <div class="pv">111</div>
+      <div class="track"><div class="fill f-red" style="width:29.7%"></div></div>
+      <div class="pv">60</div>
     </div>
     <div class="bar">
       <div class="bl">core 0 — stalled on core 1<small>the part of core 1 that did <i>not</i> fit</small></div>
-      <div class="track"><div class="fill f-red" style="width:10.3%"></div></div>
-      <div class="pv">66</div>
+      <div class="track"><div class="fill f-red" style="width:2.5%"></div></div>
+      <div class="pv">5</div>
     </div>
     <div class="bar">
       <div class="bl">core 1 — busy<small>weight builds, strips, DRAIN decode, scatter</small></div>
-      <div class="track"><div class="fill f-green" style="width:79.7%"></div></div>
-      <div class="pv">509</div>
+      <div class="track"><div class="fill f-green" style="width:73.8%"></div></div>
+      <div class="pv">149</div>
     </div>
   </div>
   <div class="vnote" style="margin-top:34px;">These are <b>totals per actor, not a timeline</b>.
-  Core 1's 509 ms runs <i>concurrently</i> with core 0's 639 ms of wire — that is the entire point of
-  having a second core, and the 66 ms of stall is the part that did not fit. The four core-0 rows sum
-  to 816 against 851 measured; the 35 ms gap is per-layer scaffolding outside every profiling window.</div>
+  Core 1's 149 ms runs <i>concurrently</i> with core 0's 202 ms of wire — that is the entire point of
+  having a second core, and the 5 ms of stall is all that did not fit. The core-0 rows sum to 267
+  against 270 measured. <b>This chart used to show the 851 ms frame of 2026-08-03</b>, at 8 MACs and
+  a 75 MHz link, because that was the only breakdown anyone had ever taken. Asking for it again at
+  the shipped rate is what found the appliance still draining int32 accumulators three milestones
+  after the tile learned to drain codes: <b>349 → 270 ms, from one line</b>.</div>
   </section>
 
 <!-- ============ SECTION 04 · OPTIMIZATION ============ -->
 <section class="slide divider">
   <div class="num">04</div>
-  <div class="name">3,359 ms &rarr; 304 ms</div>
+  <div class="name">3,359 ms &rarr; 270 ms</div>
   <div class="kick">Eleven milestones of making the same frame faster — and the two rules that came
   out of measuring every one of them against a control in the same boot.</div>
 </section>
@@ -1043,16 +1046,18 @@
       <tr><td>M14</td><td>int4 weights — two per byte on the wire, one runtime config bit</td><td class="nm">798 ms</td><td class="nm">4.32×</td></tr>
       <tr><td>M15</td><td>Requantize inside the tile — <code>DRAIN</code> returns 1 byte, not 4</td><td class="nm">631 ms</td><td class="nm">5.46×</td></tr>
       <tr><td>M16</td><td>Pair kernel taps on <code>kx</code>: nine sweeps per channel block become six</td><td class="nm">569 ms</td><td class="nm">6.05×</td></tr>
-      <tr class="hl"><td>the clock</td><td><b>No RTL at all.</b> 150 → 220 → <b>280 MHz sys / 140 MHz link</b></td><td class="nm"><b>304 ms</b></td><td class="nm"><b>11.33×</b></td></tr>
+      <tr class="hl"><td>the clock</td><td><b>No RTL at all.</b> 150 → 220 → 280 → <b>320 MHz sys / 160 MHz link</b></td><td class="nm"><b>270 ms</b></td><td class="nm"><b>12.76×</b></td></tr>
     </tbody>
   </table>
   <div class="vnote" style="margin-top:26px;"><b>851 ms was called the floor for this board.</b> The
   claim rested on 313 ms of it being the tile computing against a fabric that "caps at 125 MHz". Both
   halves turned out to be moveable — and the single largest win in the table is the one with no
-  design work in it. <b>Every row is the <code>m7</code> harness, which runs no camera</b>; the
-  appliance ships at <b>320 MHz / 160 MHz</b> today and its camera frame is <b>363 ms</b> — and the
-  last 56 ms of that came off by overlapping the capture with the compute, not by clocking anything
-  faster.</div>
+  design work in it. <b>Every row is the <code>m7</code> harness, which runs no camera</b>, and every
+  ratio is against <code>encoder_fast</code> measured in the same boot — but <b>the last row is not
+  one clock</b>: <code>m7</code> takes its MCU baseline at its 150 MHz boot rate and then runs the
+  ladder up. At <i>one</i> clock the appliance is 5.97×. Its camera frame is <b>282 ms</b> today —
+  the last 56 ms of that came off by overlapping the capture with the compute, and 80 more by
+  switching on the M15 epilogue nobody had noticed was off.</div>
   </section>
 
 <!-- ============ INT4 ============ -->
