@@ -734,7 +734,7 @@
       </svg></div>
       <div class="ot">Student, MCU + FPGA tile</div>
       <div class="ou">MCU cuts each layer into blocks; the fabric does the multiplies</div>
-      <div class="op">+ <b>304 ms/frame, 11.33×</b>, all 8 layers in fabric, bit-exact 512/512</div>
+      <div class="op">+ <b>350 ms of inference, 11.33×</b>, all 8 layers in fabric, bit-exact 512/512</div>
     </div>
   </div>
   <div class="lbar">
@@ -1049,7 +1049,8 @@
   <div class="vnote" style="margin-top:26px;"><b>851 ms was called the floor for this board.</b> The
   claim rested on 313 ms of it being the tile computing against a fabric that "caps at 125 MHz". Both
   halves turned out to be moveable — and the single largest win in the table is the one with no
-  design work in it.</div>
+  design work in it. <b>Every row is the <code>m7</code> harness, which runs no camera</b>; the
+  appliance ships at <b>320 MHz / 160 MHz</b> today and its camera frame is <b>420 ms</b>.</div>
   </section>
 
 <!-- ============ INT4 ============ -->
@@ -1208,7 +1209,9 @@
       signed-off Fmax</b> — and 348 hangs the MCU with no link error, so it is the core, not the fabric.</p>
       <p class="small">Bit-exact to 344 at 1.30 V, 340 at 1.25, <b>332 at 1.20</b>, 312 at 1.15.
       <b>Not one non-exact transaction at any rail</b> — every failure up there is the core going
-      quiet. An elevated 320 MHz operating point would need 1.20 V, two steps under the cap.</p>
+      quiet. <b>This is an <code>m6</code> sweep, and it does not transfer</b> — the appliance ships
+      <b>320 MHz at 1.25 V</b>, wedges unrecoverably at 1.15, and its link is dead at the 340 this
+      table calls bit-exact.</p>
     </div>
   </div>
   <div class="vnote" style="margin-top:34px;"><b>The story this replaced was clean, published, and
