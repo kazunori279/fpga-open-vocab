@@ -91,7 +91,7 @@ Where the remaining 270 ms goes, at 320/160, config C, whole frame: the wire is 
 | **320 / 160** | **265 ms** | **291 ms** | **377 ms** |
 | 332 / 166 | 256 ms | 281 ms | 379 ms |
 
-`encode × f` is 84,840 / 84,900 / 84,800 / 84,992 — **1/f to within 0.2%** — and the whole frame now tracks it as well, with about 10 ms of LED and CDC line that does not scale with anything. The old sweep's 454 / 455 / 420 / 420 was the sensor, from end to end.
+`encode × f` is 84,840 / 84,900 / 84,800 / 84,992 — **1/f to within 0.2%** — and the whole frame now tracks it as well, with about 10 ms of LED and CDC line that does not scale with anything. The old sweep's 454 / 455 / 420 / 420 was the sensor, from end to end. (The 320 row here is this sweep's own 150-frame run, so it reads 291 against the 293 of the 300-frame soak quoted above — the same rate measured twice, two frames apart.)
 
 **332 is bit-exact and it is not what ships.** `m7` passes all six modes of both link configurations at 332/166 and `m9` ran 151 of 151 good, so this is a margin decision rather than a measurement: 332 buys 3.4% and sits 8 MHz below 340, where the link stops answering entirely and deterministically. [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9) (the board drops off USB) and [#12](https://github.com/kazunori279/fpga-open-vocab/issues/12) (a byte lost on the camera bus at 280/140 and never at 150/75) are both open, both are unexplained flakiness on the fast side, and one 320 run in this very session dropped off USB. 10 ms does not buy out a margin those two have not finished asking about.
 
