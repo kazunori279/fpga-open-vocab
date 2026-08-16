@@ -84,10 +84,13 @@ All five print `usb: 0 outages, 0 ms off the bus, 0 re-attaches`.
 **What this does not close.** [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9)
 was filed for a board that *keeps computing* while off the bus — frame 71 to 244
 with no banner and no counter reset — and that shape is a live firmware in a
-dead pipe, not a dead core. It was seen again on the way to this fix, at 150 MHz
-frame 49: the pull-up dropped for about a second, the board came back on its own
-with no banner, and the run continued from the board's side. The QSPI wedge
-explains the outages that end in `uhubctl`; it does not explain that one.
+dead pipe, not a dead core. A wedged QSPI bus cannot produce it: it stops the
+core, so there is nothing left to keep counting. Nothing with that signature
+turned up today either — the one 1-second pull-up drop in the 150 MHz runs came
+back with a full banner and a counter reset, which is what `demo.py`'s own `'R'`
+restart looks like, not a fault. The QSPI wedge explains the outages that end in
+`uhubctl`; #9's original event is still unexplained, and the desk can now run
+long enough to hunt it.
 
 **The two instruments are the durable part.** `host/usb_watch.py` polls the hub
 port every second and logs transitions, which is the only record that survives
