@@ -32,11 +32,18 @@ session, which is the only reason this file knows the difference.
 
 WHICH IS POSSIBLE HERE, WHICH WAS THE SURPRISE. The Apple internal hub on this
 Mac reports `ppps` - per-port power switching - so uhubctl can drop VBUS on the
-board's port alone and leave the Digilent cable on the neighbouring port up:
+board's port alone and leave whatever is on the neighbouring port up:
 
     hub 2-1 [05ac:800b Apple USB2 Hub, 2 ports, ppps]
       Port 1: [2e8a:0009]                      <- Forgix
-      Port 2: [0403:6010 Digilent USB Device]
+      Port 2: whatever else is on the desk
+
+AND THIS IS THE ONLY PLACE ON THIS MAC WHERE THAT IS TRUE. `hub 2-1` is the
+Mac mini's internal 2-port USB2 hub, in front of both front-panel connectors;
+every other port belongs to a root port that uhubctl cannot switch. Moving the
+board to a rear port to get it away from a noisy neighbour would therefore
+trade the neighbour for the recovery, which is a bad trade - move the neighbour
+instead. `host/usb_watch.py` logs this port's status for the same reason.
 
 That is a real power cycle, so the T8 comes back UNCONFIGURED - every host
 script re-sends the bitstream anyway, so this costs nothing but the download.
@@ -119,8 +126,10 @@ def power_cycle(where: str | None = None) -> bool:
     # TREE AT ALL. Issue #9's outage ends with nothing on the port - uhubctl
     # shows `power` and no `connect` - so there is nothing to search for, and
     # the only tool that can bring it back cannot find where it went. --hub
-    # HUB:PORT is that answer, and it is worth writing on the wall of whatever
-    # desk this board lives on: here it is `--hub 2-1:1`.
+    # HUB:PORT is that answer. Do not write the number on the wall, though:
+    # this desk read `2-1:1` until 2026-08-16 and reads `2-1:2` since, because
+    # a neighbour was unplugged. Take the port showing `power` with no
+    # `connect`, or ask board.note_where() while the board is still there.
     if where:
         hub, _, port = where.partition(":")
         loc: tuple[str, str] | None = (hub, port) if port else None
@@ -148,6 +157,40 @@ def power_cycle(where: str | None = None) -> bool:
         if find_port() or BOOTSEL_VOL.is_dir():
             return True
     return False
+
+
+def eject_bootsel() -> None:
+    """Unmount /Volumes/RP2350 before the board takes it away.
+
+    Every reboot out of BOOTSEL yanks a mounted FAT volume out from under
+    macOS. The visible cost is a "Disk Not Ejected Properly" notification every
+    single time, which after a day of flashing is most of what the notification
+    centre contains. The invisible cost is the one worth fixing: the log says
+
+        diskarbitrationd: added volume id = ... /Volumes/RP2350/ to
+                          danglingVolumeList
+        com.apple.fskit.msdos: Failed to clean dirty bit, error ... Code=5
+
+    and a dangling volume with an unclean dirty bit is the same stale-mount
+    state the third wedge above is about. So this is hygiene, not cosmetics.
+
+    Best effort on purpose. If the volume is not there, or is already the wedged
+    kind where every access blocks in the kernel, rebooting is still the right
+    next move - the timeout is there so this cannot become a fourth way to hang.
+    """
+    if not BOOTSEL_VOL.is_dir():
+        return
+    try:
+        subprocess.run(["diskutil", "unmount", str(BOOTSEL_VOL)],
+                       capture_output=True, text=True, timeout=15)
+    except (subprocess.SubprocessError, FileNotFoundError):
+        pass
+
+
+def reboot_to_app() -> None:
+    """picotool reboot, with the volume put away first. Always use this."""
+    eject_bootsel()
+    subprocess.run(["picotool", "reboot"], capture_output=True, timeout=30)
 
 
 def nudge(port: str) -> None:
@@ -250,8 +293,7 @@ def flash(image: Path) -> bool:
                            capture_output=True, text=True, timeout=300)
         if v.returncode == 0:
             print(f"  wrote in {secs:.1f} s, verified")
-            subprocess.run(["picotool", "reboot"], capture_output=True,
-                           timeout=30)
+            reboot_to_app()
             return True
         print(f"  wrote in {secs:.1f} s and the readback DID NOT MATCH - the "
               f"board is still running the old image")
@@ -286,8 +328,9 @@ def main() -> int:
                     help="leave the board in the application, not BOOTSEL")
     ap.add_argument("--hub", metavar="HUB:PORT",
                     help="where the board is plugged in, for when it has left "
-                         "the bus and cannot be found by VID - on this desk, "
-                         "2-1:1. `uhubctl` with no arguments lists them")
+                         "the bus and cannot be found by VID. `uhubctl` with "
+                         "no arguments lists them; take the port showing "
+                         "`power` with no `connect`")
     args = ap.parse_args()
 
     global HUB_OVERRIDE
@@ -336,7 +379,7 @@ def main() -> int:
         if not flash(args.flash):
             return 1
     elif args.run:
-        subprocess.run(["picotool", "reboot"], capture_output=True, timeout=30)
+        reboot_to_app()
 
     if args.flash or args.run:
         dev = wait_cdc()

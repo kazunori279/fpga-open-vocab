@@ -140,11 +140,19 @@ description of it.
 picotool reboot -f -u                              # into BOOTSEL, over USB
 picotool load   firmware/build/forgix_m9.uf2       # write
 picotool verify firmware/build/forgix_m9.uf2       # and check it landed
-picotool reboot                                    # then run it
+diskutil unmount /Volumes/RP2350                   # put the volume away, then
+picotool reboot                                    # run it
 ```
 
 `load -x` runs it for you and is fine once you trust the write; the three-step
 form is here because the trust is the thing that was misplaced.
+
+The `diskutil unmount` is not politeness. Rebooting out of BOOTSEL pulls a
+mounted FAT volume out from under macOS, which answers with "Disk Not Ejected
+Properly" every time and — the part that costs something — leaves the mount on
+`diskarbitrationd`'s `danglingVolumeList` with its dirty bit unclean, which is
+the stale-mount state that hangs `ls` in the kernel. `host/bootsel.py` does the
+unmount for you on every path that reboots.
 
 Use **Homebrew's `picotool`**, not the SDK's, which is built without USB
 support. Four things about this are load-bearing:
@@ -164,7 +172,7 @@ support. Four things about this are load-bearing:
 
 ```sh
 uv run host/bootsel.py --flash firmware/build-280/forgix_m9.uf2   # nudge, write, verify, run
-uv run host/bootsel.py --power-cycle --hub 2-1:1                  # the hammer
+uv run host/bootsel.py --power-cycle --hub 2-1:2                  # the hammer
 ```
 
 `--flash` does the write the way the four rules above say to: `load -f` then
@@ -174,8 +182,15 @@ and it prints the wall time of each because the 2.5 s no-op is recognisable.
 `--power-cycle` cuts VBUS instead of trying the wire. `--hub HUB:PORT` names
 the hub port by hand — needed exactly when the board has left the bus and
 cannot be found by VID, which is issue [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9)'s
-worst case; on this desk it is `2-1:1`, and `uhubctl` with no arguments lists
-them.
+worst case; `uhubctl` with no arguments lists them.
+
+**Do not write the port down and trust it.** On this desk it was `2-1:1` until
+2026-08-16 and is `2-1:2` since, because a neighbour was unplugged — and a
+hardcoded port is worse than none: it cycles an empty port and then reports
+that even the hammer did not work. `hub 2-1` is the Mac mini's internal 2-port
+USB2 hub and is the **only** place on this machine `uhubctl` can switch VBUS,
+so the board stays there and the neighbours move. When the board has already
+left the bus, take the port showing `power` with no `connect`.
 
 Fallbacks in order, if USB will not do it: the **`PRG`–`GND` strap** on the
 short bottom edge while plugging USB in — *not* the silkscreen `17`/`18` pads
