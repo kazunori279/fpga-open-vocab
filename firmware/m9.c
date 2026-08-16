@@ -1771,11 +1771,15 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
         // within half a point of what the single cut actually scored the first
         // time. Nothing reached the 0.15 edge: the lowest was 0.22.
         //
-        // NOT YET MEASURED: what the stage BUYS. It has never fired on a bench,
-        // because the only empty desk in cue.py's schedule runs before the rule
-        // engages. Replaying that baseline against the run's own references says
-        // it would have held - 0/30 called present, worst case - but a stage
-        // whose cost is measured and whose benefit is inferred is half a result.
+        // NOT YET MEASURED: what the stage BUYS. Replaying the baseline against
+        // the run's own references says it would have held - 0/30 called
+        // present, worst case - but a stage whose cost is measured and whose
+        // benefit is inferred is half a result. It had never fired on a bench
+        // because the only empty desk in cue.py's schedule was the baseline,
+        // which runs before the rule engages AND is the segment the absent
+        // reference is taught from. cue.py now revisits the empty scene once
+        // per cycle, last in the rotation, and tools/score_cue.py scores those
+        // segments on their own; what is still owed is the run. #15.
         if (absent_on) {
             float obj = 0.0f;
             uint32_t no = 0;

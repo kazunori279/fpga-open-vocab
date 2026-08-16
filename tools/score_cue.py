@@ -24,6 +24,14 @@ All three are true of the same 180 frames. So this prints all three, plus the
 per-segment table they are computed from, because the per-segment table is what
 shows a between-segment drift big enough to swallow the effect.
 
+There is a fourth now, and it needed a change at the other end to be askable at
+all: what the presence stage BUYS. Its cost was always measurable - it is the
+class frames it wrongly shuts on - but its benefit is frames of empty scene it
+keeps a class name off, and until host/cue.py started returning to the empty
+scene mid-run there was no such frame that the empty reference had not been
+taught from. There is one segment per repeat now, labelled "empty", and the
+section that scores it is the one below the rules.
+
 AUC, NOT ACCURACY, FOR THE DISCRIMINATION. Accuracy needs a threshold and the
 threshold is the thing in question; AUC is the fraction of (scene A frame,
 scene B frame) pairs that are ordered correctly, so it asks whether the
@@ -50,6 +58,28 @@ from pathlib import Path
 FRAME = re.compile(r"^frame\s+(\d+) :\s+(.*?)\s+led")
 SCORE = re.compile(r"(\S.*?)\s([-+]\d+\.\d+)\*?(?=\s|$)")
 MATCH = re.compile(r"MATCH (.+?) \(cos")
+
+# Everything after `led`, which the score column deliberately stops before
+# (firmware/m9.c:1836 says why). Two numbers live out here:
+#   b   the presence fraction of the enrolled span - 0 where the empty scene
+#       read, 1 where the objects did. It is the quantity the two edges cut, so
+#       it is the only one that says how close a call each frame was. Printed
+#       only under a two-stage rule.
+#   lvl the frame's mean z, which is what b is a fraction of.
+#     ... led 255/  0 h1.00 b0.87 lvl+0.34   MATCH an opened book~ (cos 0.041 ...
+TAIL = re.compile(r"\sled\s+\d+/\s*\d+\s+h[-+]?[\d.]+"
+                  r"(?:\s+b([-+]?[\d.]+))?\s+lvl([-+][\d.]+)")
+
+# MUST MATCH FGX_PRESENT_ON / FGX_PRESENT_OFF in firmware/m9.c. Enter high,
+# leave low: the board latches, so a frame at 0.30 is present if the one before
+# it was and absent if it was not, and no single number scores it.
+PRESENT_ON, PRESENT_OFF = 0.50, 0.15
+
+# MUST MATCH host/cue.py's EMPTY. The label of a return visit to the empty
+# scene, as opposed to "baseline", which is the leading empty segment the
+# reference was taught from. The difference between those two words is the
+# whole of #15.
+EMPTY = "empty"
 # background: after 30 frames (frozen, room spread), this room reads  an open
 # hand~ -0.057 +-0.0046 (COCO ...)  a closed hand~ 0.062 +-0.0051 (COCO ...)
 #
@@ -158,7 +188,11 @@ def load(log):
             continue
         scores = {n.strip(): float(v) for n, v in SCORE.findall(m.group(2))}
         hit = MATCH.search(line)
-        frames[int(m.group(1))] = (scores, hit.group(1).strip() if hit else None)
+        t = TAIL.search(line)
+        frames[int(m.group(1))] = (
+            scores, hit.group(1).strip() if hit else None,
+            float(t.group(1)) if t and t.group(1) else None,
+            float(t.group(2)) if t else None)
     return cues, frames, roles, bg, enrol, window
 
 
@@ -172,7 +206,13 @@ def main():
     args = p.parse_args()
 
     cues, frames, roles, bg, enrol, window = load(args.log)
-    scenes = [c for c in cues if c[2] != "baseline"]
+    # Neither empty segment is a class, and they are dropped here for two
+    # different reasons. "baseline" taught the references, so scoring it is
+    # scoring training frames. "empty" is held out and IS scored - just not
+    # against a class it was never supposed to win, which is what leaving it in
+    # `scenes` would do. It gets its own section, which is #15.
+    scenes = [c for c in cues if c[2] not in ("baseline", EMPTY)]
+    blank = [c for c in cues if c[2] == EMPTY]
     # A visit the board learned from, by frame number rather than by position in
     # the schedule: cue.py enrols on the first visit to each scene today, and a
     # rule about "the first two segments" would go quietly wrong the day that
@@ -218,15 +258,27 @@ def main():
     print(f"{args.log}  -  {len(scenes)} scenes, settle {args.settle}, "
           f"gate {gates or '(none)'}, states {states or '(none)'}\n")
 
+    # The empty revisits are in the table - a presence stage is judged on where
+    # the empty scene sits relative to the classes, and that is a comparison of
+    # rows - but they are not in `scenes` and so not in anything scored as a
+    # class. Sorted, so the table reads in the order the operator was cued.
     print("per segment")
-    head = "  cue  scene           n  " + "".join(f"{n:>16}" for n in names)
+    head = ("  cue  scene           n  " + "".join(f"{n:>16}" for n in names)
+            + f"{'presence':>10}")
     print(head)
-    for a, b, lab in scenes:
+    for a, b, lab in sorted(scenes + blank):
         fs = scored(a, b)
+        if not fs:
+            continue
         row = f"  {a:>3}  {lab:<14} {len(fs):>2}  "
         row += "".join(f"{st.mean([frames[f][0].get(n, 0.0) for f in fs]):>+16.2f}"
                        for n in names)
+        lit = [frames[f][2] for f in fs if frames[f][2] is not None]
+        row += f"{st.mean(lit):>+10.2f}" if lit else f"{'-':>10}"
         print(row)
+    print("  presence is the frame's fraction of the enrolled span: 0 is where "
+          "the empty\n  scene read, 1 is where the objects did. Blank under any "
+          "rule that has no\n  presence stage to print it.")
     print()
 
     # 1. Did the gate let anything through at all? This is M20's own claim.
@@ -367,7 +419,92 @@ def main():
             print(f"            two-stage, gate at z {cut:<6.2f}  "
                   f"{two}/{len(pts)} ({100 * two / len(pts):.1f}%)")
 
-    # 5. How long the operator and the EMA took. A settle that is too short is
+    # 5. WHAT THE PRESENCE STAGE BUYS, which is #15 and which nothing measured
+    #    before. Everything above measures its COST - the class frames it shuts
+    #    on - because until cue.py put the empty scene back in the rotation
+    #    there was no scored frame with nothing in it. There is now, and it is
+    #    held out the way a later visit to a class is: the empty reference came
+    #    off the baseline at the head of the run, these visits come after every
+    #    class has been enrolled.
+    #
+    #    Be blunt about how cheap the benefit number is. Ranking has no way to
+    #    answer "nothing" - argmax over the enrolled classes returns one of them
+    #    on every frame there is - so on an empty desk rank-only is wrong N out
+    #    of N by construction, and every frame the stage holds is one of those
+    #    removed. The two counts below are therefore one measurement read from
+    #    either end, and the one carrying information is the false positives:
+    #    how much of an empty scene still comes back with a class name on it.
+    if blank:
+        efs = [f for a, b, _ in blank for f in scored(a, b)]
+        late = [f for f in efs if engage is None or f >= engage]
+        print(f"\nempty scene, {len(blank)} revisit"
+              f"{'' if len(blank) == 1 else 's'}, held out")
+        # Which rule's "nothing there" is being scored. All three print the
+        # same absent frame, and only two of them have a presence stage.
+        if enrol:
+            print("  stage: M21, the frame's fraction of the enrolled span")
+        elif gates:
+            print(f"  stage: M20, the gate query {gates}")
+        else:
+            print("  stage: none - no gate and no enrolment, so a frame with no "
+                  "MATCH is\n         only one where nothing cleared its own "
+                  "threshold. Not a presence rule.")
+        if len(late) != len(efs):
+            print(f"  {len(efs) - len(late)} of {len(efs)} frames came before "
+                  f"the rule was live at {engage} and are not counted")
+        if not late:
+            print("  no scored frames - nothing to say")
+        else:
+            named = [f for f in late if frames[f][1] is not None]
+            held = len(late) - len(named)
+            print(f"  called present, wrongly    {len(named):>4}/{len(late)}  "
+                  f"({100 * len(named) / len(late):5.1f}%)")
+            print(f"  held                       {held:>4}/{len(late)}  "
+                  f"({100 * held / len(late):5.1f}%)   <- what the stage buys, "
+                  f"against rank-only's {len(late)}/{len(late)} wrong")
+            if named:
+                by = {}
+                for f in named:
+                    by[frames[f][1]] = by.get(frames[f][1], 0) + 1
+                print("  what it called them:       "
+                      + ", ".join(f"{k} {v}" for k, v in
+                                  sorted(by.items(), key=lambda kv: -kv[1])))
+            for a, b, _ in blank:
+                fs = [f for f in scored(a, b) if f in late]
+                if not fs:
+                    continue
+                bad = sum(frames[f][1] is not None for f in fs)
+                # From the cue, not from the first scored frame: the operator
+                # taking the object away is the event, and how long the latch
+                # takes to let go of it is a property of the rule worth seeing
+                # next to --settle rather than hidden inside it.
+                rel = next((f - a for f in range(a, b + 1)
+                            if f in frames and frames[f][1] is None), None)
+                print(f"    cue {a:>3}   {bad}/{len(fs)} present   "
+                      + (f"released {rel} frames after the cue" if rel is not None
+                         else "never released"))
+
+        # Where the empty scene sat on the axis the edges cut, and where the
+        # classes sat, because a benefit of "it held" means nothing without the
+        # margin it held by. m9 picked 0.15 out of a gap it measured this way:
+        # the empty baseline reached +0.091 and the lowest object frame +0.245.
+        elit = [frames[f][2] for f in late if frames[f][2] is not None]
+        clit = [frames[f][2] for a, b, _ in scenes for f in scored(a, b)
+                if frames[f][2] is not None]
+        if elit and clit:
+            print(f"\n  presence fraction, enter {PRESENT_ON:.2f} / "
+                  f"leave {PRESENT_OFF:.2f}")
+            print(f"    empty      mean {st.mean(elit):+.3f}   "
+                  f"worst (highest) {max(elit):+.3f}")
+            print(f"    classes    mean {st.mean(clit):+.3f}   "
+                  f"worst (lowest)  {min(clit):+.3f}")
+            gap = min(clit) - max(elit)
+            print(f"    gap between the two worst cases {gap:+.3f}"
+                  + ("" if gap > 0 else
+                     "   <- they overlap: no single pair of edges separates "
+                     "these two"))
+
+    # 6. How long the operator and the EMA took. A settle that is too short is
     #    counted as wrong answers and looks exactly like a worse model.
     print("\nlag to the right leader")
     for a, b, lab in scenes:

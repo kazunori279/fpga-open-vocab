@@ -35,6 +35,12 @@
 # The first visit to each scene teaches the board and every later visit is held
 # out, which is what --repeat was already producing and nothing was using.
 #
+# The rotation also goes back to an EMPTY desk once per cycle, after the classes.
+# Take everything out when it says so. That segment is what measures the presence
+# stage - the half of the rule that answers "nothing there" - and it could not be
+# measured before, because the only empty scene in the schedule was the one the
+# rule learns "empty" from. --no-revisit-empty drops it.
+#
 # Extra flags go through to host/cue.py, so --hold 200 and --quiet work here.
 # Flags that belong to host/demo.py rather than cue.py need the = form -
 # --snap-every=15, not --snap-every 15 - because cue.py's queries are positional

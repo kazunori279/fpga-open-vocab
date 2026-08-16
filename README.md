@@ -80,7 +80,9 @@ Two GO/NO-GO gates were passed on the way: **M2** (is the on-board link fast and
 clean enough to be worth using) and **M4** (can a model small enough to fit still
 tell the queries apart). What is left is not speed — it is the decision rule, and
 one honest gap in it: the presence stage's *benefit* has never been measured,
-because it has never fired on a bench
+because it had never fired on a bench — the only empty scene in the schedule
+was the one the rule was taught from. The bench now returns to an empty desk
+after every class is enrolled, and scores it; what is owed is the run
 ([#15](https://github.com/kazunori279/fpga-open-vocab/issues/15)).
 
 **Open work is in [issues](https://github.com/kazunori279/fpga-open-vocab/issues)**,

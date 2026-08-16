@@ -27,6 +27,12 @@ and records the frame number at the moment it cued. The boundaries are then
 data rather than opinion. Frames within --settle of a cue are dropped, because
 the operator's hand is in shot.
 
+The rotation returns to the empty scene once per cycle. That is not symmetry
+for its own sake: the leading baseline is what the empty reference is taught
+from, so it can never be a held-out test of the half of the rule that decides
+whether anything is there at all. A later visit can. --no-revisit-empty takes
+it back out.
+
 It adds nothing to the measurement. demo.py still does all of it; this only
 decides when to speak and which frames to count.
 """
@@ -67,6 +73,15 @@ QUERY = re.compile(r"^query\s+:\s+(\S.*?)\s{2,}(plain|presence|state)\s+z>\s*"
 # records what this side assumed, so tools/score_cue.py can compare the two.
 ENROL_FRAMES = 20
 
+# The label for a return visit to the empty scene, and the reason it is not
+# called "baseline" is the whole point of #15. The baseline segment at the head
+# of the run TAUGHT the empty reference, so scoring the presence stage on it is
+# scoring it on its own training frames. A visit later in the rotation is held
+# out by construction, exactly the way the second and third visits to a class
+# already are - and it is the only segment in the schedule where the presence
+# stage has anything to suppress. tools/score_cue.py keys off this string.
+EMPTY = "empty"
+
 # The schedule keys off the frame number and not off the board's "background:
 # after N frames (frozen)" line, which was the first thing this tried. That line
 # is reprinted about every 100 frames (firmware/m9.c:234, and m9.c:937 explains
@@ -75,6 +90,12 @@ ENROL_FRAMES = 20
 # shoves the whole run 70 frames late. The 2026-08-10 hand run lost 65 of the
 # 120 frames of its second scene that way. The freeze is at a frame number the
 # caller already chose; use the number.
+
+
+def cue_text(label: str) -> str:
+    """What to say for a scene change. "empty. Now." is not an instruction."""
+    return ("Empty. Take it all out." if label == EMPTY
+            else f"{label}. Now.")
 
 
 def cue(text: str, *, speak: bool) -> None:
@@ -315,7 +336,11 @@ def report(scores: dict[int, dict[str, float]],
     # each scene briefly, visit it several times, and let the spread across
     # visits be the error bar. It is the only one here that is measuring the
     # thing that actually varies.
-    ab = [r for r in rows if r[0] != "baseline"]
+    # The empty revisit is a scene like any other in the table above - it has a
+    # mean per query and that is worth seeing - but it is not one of the two
+    # being compared, and letting it into `order` below turns a two-scene run
+    # into a three-label one and silently drops this whole section.
+    ab = [r for r in rows if r[0] not in ("baseline", EMPTY)]
     if len(ab) < 2:
         return
     order: list[str] = []
@@ -361,7 +386,9 @@ def main() -> int:
                          "'/' still separates a positive from its negatives")
     ap.add_argument("--scene", action="append", default=[], metavar="LABEL",
                     help="a scene to cue, repeat for each; the empty scene "
-                         "before the first one is always measured as 'baseline'")
+                         "before the first one is always measured as "
+                         "'baseline', and the rotation returns to it once per "
+                         "cycle as 'empty'")
     ap.add_argument("--hold", type=int, default=30, metavar="N",
                     help="frames counted per visit to a scene, default 30 "
                          "(about 15 s). Measured on three 2026-08-10 runs, 13 "
@@ -397,6 +424,13 @@ def main() -> int:
     ap.add_argument("--smooth", type=float, default=0.3, metavar="A",
                     help="EMA weight on z before the softmax, 1.0 for none; "
                          "default 0.3, roughly a 3-frame memory")
+    ap.add_argument("--no-revisit-empty", dest="revisit_empty",
+                    action="store_false",
+                    help="drop the empty scene from the rotation. It is in "
+                         "there by default: a run that never goes back to an "
+                         "empty desk after the rule is live cannot measure what "
+                         "the presence stage buys, which is #15. Costs one "
+                         "visit per repeat")
     ap.add_argument("--enrol", action="store_true",
                     help="M21. Show the board each scene once and let it decide "
                          "by nearest reference for the rest of the run. The "
@@ -431,7 +465,24 @@ def main() -> int:
             return 2
 
     base = args.scene or ["scene A", "scene B"]
-    scenes = base * max(1, args.repeat)
+    if EMPTY in base:
+        print(f"--scene {EMPTY!r}: that label is taken - the schedule already "
+              f"returns to the empty scene once per cycle and records it under "
+              f"that name. Call the scene something else, or "
+              f"--no-revisit-empty.", file=sys.stderr)
+        return 2
+
+    # THE EMPTY SCENE GOES LAST IN THE CYCLE, and #15 is why it is in the cycle
+    # at all. Every scene after the baseline used to have an object in it, so
+    # the presence stage - the half of the rule that decides whether anything is
+    # there - had nothing to say on any frame that was scored, and its benefit
+    # was inferred by replaying the baseline it was taught from. Last in the
+    # cycle rather than first means the first one lands after the final class
+    # has been enrolled, so the rule is already live on it; and there is one per
+    # repeat, so the spread across visits is an error bar on the same terms as
+    # everything else here.
+    rotation = base + ([EMPTY] if args.revisit_empty else [])
+    scenes = rotation * max(1, args.repeat)
 
     # Ask before demo.py does, because demo.py loads the teacher first and looks
     # for the board a minute later - so a board that hung after the previous run
@@ -543,7 +594,7 @@ def main() -> int:
            *[f"--enrol={f}:{k}" for f, k in enrol],
            *extra, *args.queries]
 
-    print("cue       : " + "  ->  ".join(["empty (baseline)"] + base)
+    print("cue       : " + "  ->  ".join(["empty (baseline)"] + rotation)
           + (f"   x{args.repeat}" if args.repeat > 1 else ""))
     print(f"schedule  : freeze {args.bg_tau}, baseline {args.baseline}, then "
           f"{args.settle} settle + {args.hold} held per visit, "
@@ -556,6 +607,10 @@ def main() -> int:
             for f, k in enrol))
         print(f"            the first visit to each scene teaches the board; "
               f"the other {args.repeat - 1} are held out")
+        if args.revisit_empty:
+            print(f"            the {args.repeat} '{EMPTY}' visits are held out "
+                  f"too - the empty reference came off the baseline, not off "
+                  f"them, and they are what measures the presence stage")
     print("            LEAVE THE SCENE EMPTY until the first cue.\n")
 
     proc = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE,
@@ -609,7 +664,7 @@ def main() -> int:
             nxt = pending.pop(0)
             if bars is not None:
                 bars.release()
-            cue(f"{nxt}. Now.", speak=not args.quiet)
+            cue(cue_text(nxt), speak=not args.quiet)
             open_seg = (nxt, i)
             scene_now = f"{nxt}  (settling, {args.settle} frames dropped)"
         elif held >= due and not pending:
