@@ -60,20 +60,28 @@ SCORE = re.compile(r"(\S.*?)\s([-+]\d+\.\d+)\*?(?=\s|$)")
 MATCH = re.compile(r"MATCH (.+?) \(cos")
 
 # Everything after `led`, which the score column deliberately stops before
-# (firmware/m9.c:1836 says why). Two numbers live out here:
-#   b   the presence fraction of the enrolled span - 0 where the empty scene
-#       read, 1 where the objects did. It is the quantity the two edges cut, so
-#       it is the only one that says how close a call each frame was. Printed
-#       only under a two-stage rule.
-#   lvl the frame's mean z, which is what b is a fraction of.
-#     ... led 255/  0 h1.00 b0.87 lvl+0.34   MATCH an opened book~ (cos 0.041 ...
+# (firmware/m9.c says why). Three numbers live out here:
+#   b   the LED's brightness, which is also the presence stage's confidence.
+#       Under #18 it is 1 - d/(TRIP*sep); before that it was the frame's
+#       fraction of the enrolled level span. Printed only under a two-stage rule.
+#   lvl the frame's mean z. Nothing decides on it since #18 - it is the axis
+#       that turned out to be the drift - but it is still what the two runs that
+#       killed the level-based stage were diagnosed from.
+#   d   THE DECISION VARIABLE under #18: distance to the nearest enrolled
+#       reference in the centred space, in units of sep. Absent above TRIP.
+#       Missing from any log written before #18, which is what tells the two
+#       generations of log apart.
+#     ... led 255/  0 h1.00 b0.87 lvl+0.34 d0.26   MATCH an opened book (cos ...
 TAIL = re.compile(r"\sled\s+\d+/\s*\d+\s+h[-+]?[\d.]+"
-                  r"(?:\s+b([-+]?[\d.]+))?\s+lvl([-+][\d.]+)")
+                  r"(?:\s+b([-+]?[\d.]+))?\s+lvl([-+][\d.]+)"
+                  r"(?:\s+d([\d.]+))?")
 
-# MUST MATCH FGX_PRESENT_ON / FGX_PRESENT_OFF in firmware/m9.c. Enter high,
-# leave low: the board latches, so a frame at 0.30 is present if the one before
+# MUST MATCH FGX_PRESENT_ON / FGX_PRESENT_OFF in firmware/m9.c before #18, and
+# FGX_ABSENT_TRIP / FGX_ABSENT_STAY after it. Enter one way, leave the other:
+# the board latches, so a frame between the edges is present if the one before
 # it was and absent if it was not, and no single number scores it.
-PRESENT_ON, PRESENT_OFF = 0.50, 0.15
+PRESENT_ON, PRESENT_OFF = 0.50, 0.15        # the level rule, pre-#18 logs
+ABSENT_TRIP, ABSENT_STAY = 2.0, 1.5         # the distance rule, in sep
 
 # MUST MATCH host/cue.py's EMPTY. The label of a return visit to the empty
 # scene, as opposed to "baseline", which is the leading empty segment the
@@ -192,7 +200,8 @@ def load(log):
         frames[int(m.group(1))] = (
             scores, hit.group(1).strip() if hit else None,
             float(t.group(1)) if t and t.group(1) else None,
-            float(t.group(2)) if t else None)
+            float(t.group(2)) if t else None,
+            float(t.group(3)) if t and t.group(3) else None)
     return cues, frames, roles, bg, enrol, window
 
 
@@ -262,9 +271,16 @@ def main():
     # the empty scene sits relative to the classes, and that is a comparison of
     # rows - but they are not in `scenes` and so not in anything scored as a
     # class. Sorted, so the table reads in the order the operator was cued.
+    # Which generation of firmware wrote this log. `d` is #18's decision
+    # variable and only appears after it; without it the presence column is the
+    # old level fraction and has to be described as one, because the two numbers
+    # do not mean the same thing and a run of each will be compared side by side
+    # for a while yet.
+    dist_rule = any(f[4] is not None for f in frames.values())
+
     print("per segment")
     head = ("  cue  scene           n  " + "".join(f"{n:>16}" for n in names)
-            + f"{'presence':>10}")
+            + f"{'presence':>10}" + (f"{'d/sep':>8}" if dist_rule else ""))
     print(head)
     for a, b, lab in sorted(scenes + blank):
         fs = scored(a, b)
@@ -275,10 +291,22 @@ def main():
                        for n in names)
         lit = [frames[f][2] for f in fs if frames[f][2] is not None]
         row += f"{st.mean(lit):>+10.2f}" if lit else f"{'-':>10}"
+        if dist_rule:
+            ds = [frames[f][4] for f in fs if frames[f][4] is not None]
+            row += f"{st.mean(ds):>8.2f}" if ds else f"{'-':>8}"
         print(row)
-    print("  presence is the frame's fraction of the enrolled span: 0 is where "
-          "the empty\n  scene read, 1 is where the objects did. Blank under any "
-          "rule that has no\n  presence stage to print it.")
+    if dist_rule:
+        print(f"  d/sep is the distance to the NEAREST enrolled reference, in "
+              f"units of the\n  closest pair of references: the quantity #18's "
+              f"stage cuts. Absent above\n  {ABSENT_TRIP:.1f}, present again "
+              f"below {ABSENT_STAY:.1f}. presence is the LED's brightness on the "
+              f"same\n  distance, 1 on a reference and 0 a trip radius from all "
+              f"of them.")
+    else:
+        print("  presence is the frame's fraction of the enrolled span: 0 is "
+              "where the empty\n  scene read, 1 is where the objects did. Blank "
+              "under any rule that has no\n  presence stage to print it. This "
+              "log predates #18.")
     print()
 
     # 1. Did the gate let anything through at all? This is M20's own claim.
@@ -441,8 +469,13 @@ def main():
               f"{'' if len(blank) == 1 else 's'}, held out")
         # Which rule's "nothing there" is being scored. All three print the
         # same absent frame, and only two of them have a presence stage.
-        if enrol:
-            print("  stage: M21, the frame's fraction of the enrolled span")
+        if enrol and dist_rule:
+            print(f"  stage: M21 after #18, distance to the nearest reference: "
+                  f"absent above {ABSENT_TRIP:.1f} sep, back below "
+                  f"{ABSENT_STAY:.1f}")
+        elif enrol:
+            print("  stage: M21 before #18, the frame's fraction of the "
+                  "enrolled level span")
         elif gates:
             print(f"  stage: M20, the gate query {gates}")
         else:
@@ -486,23 +519,46 @@ def main():
 
         # Where the empty scene sat on the axis the edges cut, and where the
         # classes sat, because a benefit of "it held" means nothing without the
-        # margin it held by. m9 picked 0.15 out of a gap it measured this way:
-        # the empty baseline reached +0.091 and the lowest object frame +0.245.
-        elit = [frames[f][2] for f in late if frames[f][2] is not None]
-        clit = [frames[f][2] for a, b, _ in scenes for f in scored(a, b)
-                if frames[f][2] is not None]
-        if elit and clit:
-            print(f"\n  presence fraction, enter {PRESENT_ON:.2f} / "
-                  f"leave {PRESENT_OFF:.2f}")
-            print(f"    empty      mean {st.mean(elit):+.3f}   "
-                  f"worst (highest) {max(elit):+.3f}")
-            print(f"    classes    mean {st.mean(clit):+.3f}   "
-                  f"worst (lowest)  {min(clit):+.3f}")
-            gap = min(clit) - max(elit)
-            print(f"    gap between the two worst cases {gap:+.3f}"
-                  + ("" if gap > 0 else
-                     "   <- they overlap: no single pair of edges separates "
-                     "these two"))
+        # margin it held by. The old stage picked 0.15 out of a gap it measured
+        # this way, and the 08-16 bench then found the gap was not there.
+        #
+        # UNDER #18 THE AXIS POINTS THE OTHER WAY: the empty scene should be
+        # FAR from every reference and the classes near one, so the worst cases
+        # swap ends. Two blocks rather than one signed number, because a table
+        # whose "worst" column silently changes meaning between two logs is how
+        # a comparison goes wrong without anybody noticing.
+        if dist_rule:
+            ed = [frames[f][4] for f in late if frames[f][4] is not None]
+            cd = [frames[f][4] for a, b, _ in scenes for f in scored(a, b)
+                  if frames[f][4] is not None]
+            if ed and cd:
+                print(f"\n  distance to the nearest reference, absent above "
+                      f"{ABSENT_TRIP:.1f} / back below {ABSENT_STAY:.1f} sep")
+                print(f"    empty      mean {st.mean(ed):6.2f}   "
+                      f"worst (lowest)  {min(ed):6.2f}")
+                print(f"    classes    mean {st.mean(cd):6.2f}   "
+                      f"worst (highest) {max(cd):6.2f}")
+                gap = min(ed) - max(cd)
+                print(f"    gap between the two worst cases {gap:+.2f} sep"
+                      + ("" if gap > 0 else
+                         "   <- they overlap: no single pair of edges separates "
+                         "these two"))
+        else:
+            elit = [frames[f][2] for f in late if frames[f][2] is not None]
+            clit = [frames[f][2] for a, b, _ in scenes for f in scored(a, b)
+                    if frames[f][2] is not None]
+            if elit and clit:
+                print(f"\n  presence fraction, enter {PRESENT_ON:.2f} / "
+                      f"leave {PRESENT_OFF:.2f}")
+                print(f"    empty      mean {st.mean(elit):+.3f}   "
+                      f"worst (highest) {max(elit):+.3f}")
+                print(f"    classes    mean {st.mean(clit):+.3f}   "
+                      f"worst (lowest)  {min(clit):+.3f}")
+                gap = min(clit) - max(elit)
+                print(f"    gap between the two worst cases {gap:+.3f}"
+                      + ("" if gap > 0 else
+                         "   <- they overlap: no single pair of edges separates "
+                         "these two"))
 
     # 6. How long the operator and the EMA took. A settle that is too short is
     #    counted as wrong answers and looks exactly like a worse model.

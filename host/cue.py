@@ -28,10 +28,11 @@ data rather than opinion. Frames within --settle of a cue are dropped, because
 the operator's hand is in shot.
 
 The rotation returns to the empty scene once per cycle. That is not symmetry
-for its own sake: the leading baseline is what the empty reference is taught
-from, so it can never be a held-out test of the half of the rule that decides
-whether anything is there at all. A later visit can. --no-revisit-empty takes
-it back out.
+for its own sake: it is the only held-out test of the half of the rule that
+decides whether anything is there at all, and until it existed that half had
+never been scored on a frame it was not fitted to. It found the level-based
+stage holding 16/90 and 22/90, which is what #18 replaced. --no-revisit-empty
+takes it back out.
 
 It adds nothing to the measurement. demo.py still does all of it; this only
 decides when to speak and which frames to count.
@@ -76,8 +77,10 @@ ENROL_FRAMES = 20
 
 # The label for a return visit to the empty scene, and the reason it is not
 # called "baseline" is the whole point of #15. The baseline segment at the head
-# of the run TAUGHT the empty reference, so scoring the presence stage on it is
-# scoring it on its own training frames. A visit later in the rotation is held
+# of the run used to TEACH the empty reference, so scoring the presence stage on
+# it was scoring it on its own training frames; #18 has since deleted that
+# reference, but the baseline is still the frames the background was frozen on
+# and so is still not a test of anything. A visit later in the rotation is held
 # out by construction, exactly the way the second and third visits to a class
 # already are - and it is the only segment in the schedule where the presence
 # stage has anything to suppress. tools/score_cue.py keys off this string.
@@ -563,19 +566,21 @@ def main() -> int:
     # WHERE EACH ENROLMENT LANDS, and every offset here is load-bearing. A key
     # sent at board frame F is read during F+1 and the window it opens covers
     # F+2 .. F+1+ENROL_FRAMES - the two-frame lag is measured, not assumed: the
-    # 2026-08-11 bench scheduled '0' for frame 58 and the board captured 60.
-    #   - the empty scene, so its window ENDS on the last baseline frame. It used
-    #     to be a single capture two frames before that, and widening a forward
-    #     window from there walked straight into the object being put down: the
-    #     absent level drifted +0.21 -> -4.81 as the window grew 1 -> 28, which
-    #     is the object's level, not the room's.
-    #   - each scene, --settle + 2 frames into its FIRST visit, which is the
-    #     first frame the operator's hand is guaranteed to be out of.
-    # Later visits are then held out by construction. The offline scorer needs
-    # to know which visit was spent enrolling, so the frames go in the sidecar.
+    # 2026-08-11 bench scheduled a key for frame 58 and the board captured 60.
+    # Each scene is enrolled --settle + 2 frames into its FIRST visit, which is
+    # the first frame the operator's hand is guaranteed to be out of. Later
+    # visits are then held out by construction, and the offline scorer needs to
+    # know which visit was spent enrolling, so the frames go in the sidecar.
+    #
+    # THERE USED TO BE A '0' HERE, enrolling the empty scene at the end of the
+    # baseline, and #18 removed the thing it fed. It was never an empty desk: the
+    # window sat right after the background froze, so it measured the freeze
+    # against itself and read ~0 whatever was in shot. Presence is a distance
+    # from the classes now, so there is nothing to teach it - which also means
+    # the baseline is no longer an enrolment window and --baseline only has to
+    # be long enough to freeze the background.
     enrol: list[tuple[int, str]] = []
     if args.enrol:
-        enrol.append((args.bg_tau + args.baseline - 2 - ENROL_FRAMES, "0"))
         for k, label in enumerate(base):
             start = args.bg_tau + args.baseline + k * (args.settle + args.hold)
             enrol.append((start + args.settle + 2, str(k + 1)))
@@ -587,11 +592,6 @@ def main() -> int:
         # and nothing downstream can see that it did - the reference is just
         # quietly wrong. Only this side knows the schedule, so only this side
         # can say so.
-        if ENROL_FRAMES + 2 > args.baseline:
-            print(f"--enrol: --baseline {args.baseline} is too short for the "
-                  f"board's {ENROL_FRAMES}-frame window; the empty-scene "
-                  f"reference will start before the background freezes. Use "
-                  f"--baseline {ENROL_FRAMES + 2} or more.", file=sys.stderr)
         if ENROL_FRAMES + 2 > args.hold:
             print(f"--enrol: --hold {args.hold} is too short for the board's "
                   f"{ENROL_FRAMES}-frame window; each reference will average in "
@@ -612,15 +612,14 @@ def main() -> int:
     print(f"            about {frames * 0.5 / 60:.1f} min of frames, plus a minute of startup")
     if enrol:
         print("enrol     : " + ", ".join(
-            f"frames {f + 2}-{f + 1 + ENROL_FRAMES} = "
-            + ("the empty scene" if k == "0" else base[int(k) - 1])
+            f"frames {f + 2}-{f + 1 + ENROL_FRAMES} = {base[int(k) - 1]}"
             for f, k in enrol))
         print(f"            the first visit to each scene teaches the board; "
               f"the other {args.repeat - 1} are held out")
         if args.revisit_empty:
             print(f"            the {args.repeat} '{EMPTY}' visits are held out "
-                  f"too - the empty reference came off the baseline, not off "
-                  f"them, and they are what measures the presence stage")
+                  f"too - nothing is enrolled for them at all, and they are "
+                  f"what measures the presence stage")
     print("            LEAVE THE SCENE EMPTY until the first cue.\n")
 
     proc = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE,

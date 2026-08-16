@@ -5933,6 +5933,23 @@ lands in the same place bench 2's did, which is a second independent look at the
 whose benefit is inferred is not the same as one that has been seen to work. **A
 bench with an empty segment after enrolment is what it needs.**
 
+> **That bench was run on 2026-08-16 and the stage failed it: 17.8% and 24.4% of
+> the empty frames held, where the replayed baseline had promised 100%** — the
+> replay above is training accuracy, scored against references taken from the
+> same segment. The cause is structural, not an edge: the presence axis is the
+> common mode, and the common mode is the term `c[]` subtracts because that is
+> where the drift lives. Everything in this subsection describes a rule that has
+> since been **removed** —
+> [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) replaced it
+> with open-set rejection on `min_k ‖c[] − qref[k]‖`, which scores 90.0% and
+> 87.8% replayed on those same two runs, and deleted the `'0'` enrolment key
+> along with it. The two-edge table, the 0.15 gap and the 120/120 stay here
+> because the shape of this mistake is the argument for the shape of that fix.
+> See [architecture](architecture.md#from-the-embedding-to-an-answer) for the
+> rule the board runs now, and
+> [#19](https://github.com/kazunori279/fpga-open-vocab/issues/19) for why the
+> 120/120 in the header of this section is itself in doubt.
+
 #### `tools/score_cue.py` stopped charging M21 for frames from before it exists
 
 M21 needs two references, so every frame before the second one lands is the *old*

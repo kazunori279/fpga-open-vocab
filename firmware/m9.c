@@ -141,26 +141,53 @@ static uint32_t n_gate, n_class;   // recounted by recv_queries, read every fram
 // drift lives: the sensor warms and moves every query together by about 1.5 z
 // over four minutes (2026-08-11, 500 static frames).
 //
-// Both questions are answerable, on axes that are orthogonal by construction.
-// Split the frame's z into its mean across queries and what is left:
+// Both questions are answerable. Split the frame's z into its mean across
+// queries and what is left:
 //
-//   level  = mean(z)            "is anything here at all"
+//   level  = mean(z)            the common mode
 //   c[i]   = z[i] - level       "which of the things I was shown is it"
 //
 // The common mode cancels out of c[] for any query count, the way a difference
 // of two queries cancels it for two - which is why removing it is worth
 // 44.2 -> 84.2 and 87.5 -> 95.8 on the two recorded book runs
-// (tools/probe_rule.py). And `level` is precisely what centring throws away,
-// which is why it is the presence axis and not a third reference: enrolling
-// "absent" as a centred class instead scores 42.3% and 73.1%, losing 56 and 33
-// real frames to it. The two questions cannot share a rule.
+// (tools/probe_rule.py).
+//
+// M21 PUT PRESENCE ON `level` AND THAT WAS WRONG, measured 2026-08-16 on frames
+// it was not fit to: 16/90 and 22/90 of a held-out empty desk (#15). `level` is
+// precisely what centring throws away, and the reason to throw it away is that
+// it is where the sensor's drift lives - 1.5 z in four minutes. A presence axis
+// built out of the discarded term inherits the drift the state axis was made
+// immune to, and the bench watched it happen: three visits to the same empty
+// desk read 0.21 / 0.32 / 0.44 of the span, monotonically, and the stage never
+// let go after the first one.
+//
+// SO PRESENCE IS A DISTANCE NOW, in the same space the state stage decides in
+// (#18):
+//
+//   absent  <=>  min_k || c[] - qref[k] ||  >  radius
+//
+// which is open-set rejection rather than a second axis - the frame is absent
+// when it does not look like anything it was shown. It inherits the state
+// stage's drift immunity because it IS the state stage's arithmetic: `m21_d`
+// below is already computed for the classifier and the presence test is one
+// comparison on it. Replayed off both 08-16 logs (tools/probe_reject.py) at
+// radius 2.0 sep it holds 81/90 and 79/90 of the empty desk while keeping
+// 118/120 and 102/120 of the classes, against 16/90 and 22/90 for the level -
+// AUC 0.956 and 0.909 - and the three empty visits read 3.03 / 3.48 / 3.06 and
+// 2.31 / 2.87 / 2.54 sep, middle visit highest, so there is no trend to follow.
+//
+// The earlier objection to this shape was that enrolling "absent" as a third
+// centred class scores 42.3% and 73.1%, losing 56 and 33 real frames. That
+// finding stands and this is not that: there is no absent reference. Nothing is
+// enrolled for it, which is also why the empty scene stops being something the
+// operator has to keep valid - and for a product that matters more than the
+// accuracy does.
 //
 // Neither axis carries a threshold. The operator SHOWS the board each class -
-// '1'..'6' for the class named by that query, '0' for the empty scene - and it
-// keeps what it saw. That is the point: measurement says the ordering was
-// already right and the boundary was not at zero (AUC 1.000 and 79.4% at a
-// margin of zero, because the right cut was -3.79), so the boundary is the
-// thing to learn and the ranking is not.
+// '1'..'6' for the class named by that query - and it keeps what it saw. That is
+// the point: measurement says the ordering was already right and the boundary
+// was not at zero (AUC 1.000 and 79.4% at a margin of zero, because the right
+// cut was -3.79), so the boundary is the thing to learn and the ranking is not.
 //
 // A reference is FGX_ENROL_N frames averaged, not one frame. The first version
 // captured one, on probe_rule.py's finding that one frame beat thirty on two
@@ -181,24 +208,27 @@ static uint32_t n_gate, n_class;   // recounted by recv_queries, read every fram
 #define FGX_ENROL_N 20u
 
 static float qref[FGX_MAX_Q][FGX_MAX_Q];  // [class][query], centred
-static float qref_lvl[FGX_MAX_Q];         // that class's presence level
 static bool  qref_on[FGX_MAX_Q];
-static float absent_lvl;
-static bool  absent_on;
-static int   enrol_want = -1;             // class being captured, -2 meaning the
-                                          // empty scene
+static int   enrol_want = -1;             // class being captured
 static float enrol_acc[FGX_MAX_Q];        // running sum of cz over the window
-static float enrol_acc_lvl;
+static float enrol_acc_lvl;               // only to print the level; not a rule
 static uint32_t enrol_left;               // frames still to fold in, 0 = idle
 static bool  m21_present;                 // the presence stage's sticky state
 
 #define FGX_ENROL_NONE   (-1)
-#define FGX_ENROL_ABSENT (-2)
 
-// The presence stage's two edges, as fractions of the enrolled span. See the
-// measurement at the decision below for why there are two of them.
-#define FGX_PRESENT_ON   0.50f
-#define FGX_PRESENT_OFF  0.15f
+// The presence stage's two edges, as MULTIPLES OF `sep` - the closest that two
+// enrolled references sit to each other - rather than absolutes, so they carry
+// the room's calibration the way z already does and there is no constant here
+// to be wrong about in a different room.
+//
+// TRIP is where a frame stops being present; STAY is where it starts again. The
+// grid is in tools/probe_reject.py and was swept on both 08-16 runs; 2.0 is the
+// single-edge optimum on both and the two-edge pairs 1.5/2.0 and 1.0/2.0 came
+// out within 0.4 points of each other averaged over the pair, so the band is
+// chosen narrow rather than fitted.
+#define FGX_ABSENT_TRIP  2.0f
+#define FGX_ABSENT_STAY  1.5f
 
 // The digits index the enrollable queries in the order the host sent them: the
 // FGX_Q_CLASS ones when roles came with the set, every query when they did not.
@@ -229,7 +259,6 @@ static uint32_t enrol_count(void)
 static void enrol_forget(void)
 {
     for (uint32_t i = 0; i < FGX_MAX_Q; i++) qref_on[i] = false;
-    absent_on  = false;
     enrol_want  = FGX_ENROL_NONE;
     enrol_left  = 0;
     m21_present = false;
@@ -630,11 +659,13 @@ static void led_two(float margin, float thr, float gate_z, float gate_thr)
 // saturates exactly when the frame is sitting on one of them. Both are
 // distances in the centred z space, so the scale is the enrolment's own.
 //
-// BRIGHTNESS. Linear between the level of the empty scene and the mean level of
-// the enrolled classes, so half-lit is the midpoint - which is also where the
-// presence decision flips. The LED and the printed verdict therefore cannot
-// disagree. With nothing enrolled as absent there is no scale and it stays lit;
-// the board is not claiming presence in that case, it is declining to.
+// BRIGHTNESS. `lit` is now 1 - d/(TRIP * sep): full on when the frame is sitting
+// on a reference, dark when it is a trip radius away from every one of them, and
+// the same distance the presence decision is made on, so the LED and the printed
+// verdict cannot disagree. It used to be the frame's place on the level span,
+// which was the axis #18 removed. With fewer than two references there is no
+// scale and it stays lit; the board is not claiming presence in that case, it is
+// declining to.
 static void led_ref(float margin, float sep, float lit)
 {
     const float half = (sep > 0.0f) ? sep : 1.0f;
@@ -1563,19 +1594,15 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
     if (enrol_want != FGX_ENROL_NONE && enrol_left == 0) {
         const float w = (float)FGX_ENROL_N;
         const float alvl = enrol_acc_lvl / w;
-        if (enrol_want == FGX_ENROL_ABSENT) {
-            absent_lvl = alvl;
-            absent_on  = true;
-            printf("enrol     : the empty scene, level %+.2f (%u frames)\n",
-                   (double)alvl, (unsigned)FGX_ENROL_N);
-        } else {
-            for (uint32_t j = 0; j < nq; j++)
-                qref[enrol_want][j] = enrol_acc[j] / w;
-            qref_lvl[enrol_want] = alvl;
-            qref_on[enrol_want]  = true;
-            printf("enrol     : %s, level %+.2f (%u frames)\n",
-                   qname[enrol_want], (double)alvl, (unsigned)FGX_ENROL_N);
-        }
+        for (uint32_t j = 0; j < nq; j++)
+            qref[enrol_want][j] = enrol_acc[j] / w;
+        qref_on[enrol_want] = true;
+        // The level is printed and not kept. Nothing decides on it any more
+        // (#18) - it is here because it is free, it is what the two runs that
+        // killed the level-based stage were diagnosed from, and a log that
+        // stops recording a quantity cannot be asked about it later.
+        printf("enrol     : %s, level %+.2f (%u frames)\n",
+               qname[enrol_want], (double)alvl, (unsigned)FGX_ENROL_N);
         enrol_want = FGX_ENROL_NONE;
 
         // A new reference moves the presence scale, so the sticky state below
@@ -1596,12 +1623,19 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
         // reference is not at zero - but that is one of the two claims and the
         // other one was untestable, and nothing in the log said so.
         if (enrol_count() >= 2u) {
-            float sep = INFINITY, obj = 0.0f;
-            uint32_t no = 0;
+            float sep = INFINITY, orig = INFINITY;
+            uint32_t no = 0, near_o = 0;
             for (uint32_t i = 0; i < nq; i++) {
                 if (!qref_on[i]) continue;
-                obj += qref_lvl[i];
                 no++;
+                // Distance from the ORIGIN of the centred space, which is not
+                // an arbitrary point: c[] = 0 means every query moved together,
+                // and that is what "nothing has changed since the background
+                // was frozen" reads as. See the guard below.
+                float o = 0.0f;
+                for (uint32_t j = 0; j < nq; j++) o += qref[i][j] * qref[i][j];
+                o = sqrtf(o);
+                if (o < orig) { orig = o; near_o = i; }
                 for (uint32_t k = i + 1u; k < nq; k++) {
                     if (!qref_on[k]) continue;
                     float s = 0.0f;
@@ -1613,23 +1647,34 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
                     if (s < sep) sep = s;
                 }
             }
-            obj /= (float)no;
-            printf("enrol     : %u classes, nearest pair %.2f apart",
-                   (unsigned)no, (double)sep);
-            if (absent_on) printf(", presence span %+.2f", (double)(obj - absent_lvl));
-            printf("\n");
-            if (absent_on && fabsf(obj - absent_lvl) < 0.05f)
-                printf("            THE PRESENCE SPAN IS ZERO, so nothing will "
-                       "ever read as absent. A two-phrase\n"
-                       "            contrast set does this: the two z are exact "
-                       "negatives, so their mean is 0\n"
-                       "            on every frame. Send the phrases bare - "
-                       "M21 does the contrast itself.\n");
+            printf("enrol     : %u classes, nearest pair %.2f apart, absent "
+                   "beyond %.2f (%.1f sep)\n",
+                   (unsigned)no, (double)sep, (double)(FGX_ABSENT_TRIP * sep),
+                   (double)FGX_ABSENT_TRIP);
             if (!(sep > 0.05f))
                 printf("            THE CLASSES ARE ON TOP OF EACH OTHER. "
                        "Whatever was in shot for the two\n"
                        "            captures was the same thing, or close "
                        "enough that this cannot separate them.\n");
+            // THE FAILURE MODE OF #18's RULE, said at the enrolment rather than
+            // discovered in the log six minutes later - which is the lesson the
+            // presence-span guard above it was written for. A reference sitting
+            // near the origin cannot be fenced off from a still scene, because
+            // a still scene IS the origin, so the board will call an untouched
+            // desk that class and no radius can stop it. Measured: on the
+            // 2026-08-11 bench 'a closed book' landed 0.49 sep from the origin
+            // and its baseline was inseparable (AUC 0.624); on both 08-16 runs
+            // the nearest reference sat 3.16 and 0.97 sep out and they worked.
+            else if (orig < 0.5f * sep)
+                printf("            '%s' SITS %.2f SEP FROM THE ORIGIN, which is "
+                       "where a scene identical to\n"
+                       "            the frozen background lands. Presence cannot "
+                       "separate the two, so an empty\n"
+                       "            desk will read as that class. Re-freeze the "
+                       "background ('N') on a scene\n"
+                       "            that is actually empty, or enrol a class "
+                       "that looks less like it.\n",
+                       qname[near_o], (double)(orig / sep));
         }
         stdio_flush();
     }
@@ -1738,82 +1783,60 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
             }
         }
 
-        // Presence, on a fraction of the enrolled span rather than on a level:
-        // 0 is where the empty scene read and 1 is where the objects did. The
-        // direction is the enrolment's to state rather than this code's to
-        // assume - on all three recorded runs the objects read LOWER than the
-        // empty scene, +0.11 against -10.52, +0.05 against -4.45, -8.26 against
-        // +0.21 - and dividing by a signed span carries that for free, where the
-        // `(span >= 0) ? lvl >= cut : lvl <= cut` this replaces carried it by
-        // hand. A hardcoded `lvl >= cut` would have been wrong on all three.
+        // PRESENCE, AS A DISTANCE. m21_d is already the distance to the nearest
+        // reference and m21_sep the closest two references sit to each other,
+        // both computed just above for the classifier and the LED, so the whole
+        // stage is one comparison. The frame is absent when it does not look
+        // like anything the board was shown.
         //
-        // TWO EDGES, NOT ONE, AND THIS IS THE WHOLE FIX. The single cut at 0.5
-        // was M20's failure returning in a new costume: it shut on 19 frames of
-        // "an opened book", one of the two classes the stage exists to admit,
-        // because the third visit to that scene drifted from 1.12 down to 0.25
-        // of the span and crossed it. Drift lives in the common mode, which is
-        // exactly what this axis is - the centred axis was 30/30 on those same
-        // frames. So enter high, where the evidence is strong, and leave low:
+        // WHAT THIS REPLACES, and why it is not a retune. Until 2026-08-16 this
+        // was a fraction of the span between an enrolled empty scene and the
+        // enrolled classes, entered at 0.50 and left at 0.15, and on paper it
+        // was the best thing in the repo: 120/120 held out, 0/26 on the empty
+        // desk. Both of those were the baseline scored against references taken
+        // from the baseline. The first bench that put an empty desk AFTER the
+        // enrolment - #15, and it needed a schedule change in host/cue.py to
+        // exist at all - held 16/90 and 22/90, released once 24 and 18 frames
+        // in, and never released again.
         //
-        //     enter  leave     held out          empty desk called present
-        //      0.50   0.50    101/120  84.2%     0/26
-        //      0.50   0.25    105/120  87.5%     0/26
-        //      0.50   0.15    120/120 100.0%     0/26
+        // Two faults, and only the second one is interesting. absent_lvl stored
+        // the background freeze rather than an empty desk, because key '0's
+        // window sat right after the freeze and so measured it against itself:
+        // -0.46 and +0.16 on the two runs, which is what "nothing has changed"
+        // reads as whatever is on the desk. And the level IS the common mode,
+        // the exact term cz[] subtracts above to make the state stage immune to
+        // the sensor's 1.5 z of warm-up in four minutes. The three empty
+        // revisits read 0.21 / 0.32 / 0.44 of the span, monotonically, past a
+        // leave edge of 0.15. Worst cases overlapped by 0.87 of a span, so no
+        // pair of edges separated them; the axis was the problem.
         //
-        // 0.15 sits in a gap that the run measures rather than assumes: the
-        // empty baseline reached +0.091 and the lowest object frame +0.245.
+        // Replayed off the same two logs (tools/probe_reject.py), the rule
+        // below at 2.0 sep holds 81/90 and 79/90 while keeping 118/120 and
+        // 102/120 of the classes, AUC 0.956 and 0.909, and the same three
+        // empty visits read 3.03 / 3.48 / 3.06 and 2.31 / 2.87 / 2.54 sep with
+        // the MIDDLE visit highest - no trend, because there is no common mode
+        // left in here to drift. #18.
         //
-        // Confirmed on the board the same day. 34 frames of the next bench sat
-        // in the 0.15-0.50 band - all of them one visit to "an opened book",
-        // the same class and the same slot in the schedule that failed before -
-        // and the low edge kept every one of them. That run scored 126/126 with
-        // two edges and 96/126 replayed against a single cut at 0.50, which is
-        // within half a point of what the single cut actually scored the first
-        // time. Nothing reached the 0.15 edge: the lowest was 0.22.
-        //
-        // MEASURED 2026-08-16, AND THIS STAGE DOES NOT WORK. The 0/30 that
-        // stood in for it was the baseline replayed against references taken
-        // from the baseline - training accuracy. On 90 held-out empty frames it
-        // held 16/90 and 22/90 across two runs, released once 24 and 18 frames
-        // after the first cue, and never released again: visits 2 and 3 were
-        // 30/30 called present both times.
-        //
-        // Two things are wrong and only one is fixable here. absent_lvl came
-        // out -0.46 and +0.16, which is arithmetic and not a fact about the
-        // desk: key '0's window sits right after the background was frozen, so
-        // it measures the freeze against itself and reads ~0 with a book in
-        // shot too. It stores the freeze, not an empty desk. The other one is
-        // structural - THE PRESENCE AXIS IS THE COMMON MODE, which is the exact
-        // term cz[] subtracts above to make the state stage drift-immune. The
-        // three empty revisits of run 2 read 0.21 / 0.32 / 0.44 of the span,
-        // monotonically, past a leave edge of 0.15: the sensor warming up,
-        // priced in span. Worst cases overlap by 0.87 of a span, so no pair of
-        // edges separates them and FGX_PRESENT_ON/OFF are not the knob.
-        //
-        // #18 replaces this block with open-set rejection in the centred space,
-        // min_k ||cz - qref[k]|| > radius - m21_d and m21_sep above are already
-        // it - which inherits the state stage's drift immunity and deletes the
-        // absent enrolment. #15 is the measurement that got here.
-        if (absent_on) {
-            float obj = 0.0f;
-            uint32_t no = 0;
-            for (uint32_t i = 0; i < nq; i++)
-                if (qref_on[i]) { obj += qref_lvl[i]; no++; }
-            obj /= (float)no;
-            const float span = obj - absent_lvl;
-            if (fabsf(span) < 0.05f) {
-                // No axis to measure on. The geometry guard has already said so
-                // in capitals; staying open keeps the rest of the run readable
-                // rather than turning it into 300 lines of "nothing there".
-                m21_here = true;
-                m21_lit  = 1.0f;
-            } else {
-                const float frac = (lvl - absent_lvl) / span;
-                m21_present = m21_present ? (frac >= FGX_PRESENT_OFF)
-                                          : (frac >= FGX_PRESENT_ON);
-                m21_here = m21_present;
-                m21_lit  = frac;
-            }
+        // Two edges survive the change, for the reason they were added: the
+        // single cut at 0.50 shut on 19 frames of "an opened book" when a later
+        // visit drifted across it, and a stage that excludes a class it exists
+        // to admit is M20's failure in a new costume. Enter absent only on
+        // strong evidence (TRIP), return on weaker (STAY).
+        if (m21_sep > 0.05f) {
+            const float trip = FGX_ABSENT_TRIP * m21_sep;
+            const float stay = FGX_ABSENT_STAY * m21_sep;
+            m21_present = m21_present ? (m21_d <= trip) : (m21_d <= stay);
+            m21_here = m21_present;
+            m21_lit  = 1.0f - m21_d / trip;
+            if (m21_lit < 0.0f) m21_lit = 0.0f;
+            if (m21_lit > 1.0f) m21_lit = 1.0f;
+        } else {
+            // References on top of each other: there is no scale to measure a
+            // radius in. The geometry guard has already said so in capitals,
+            // and staying open keeps the rest of the run readable rather than
+            // turning it into 300 lines of "nothing there".
+            m21_here = true;
+            m21_lit  = 1.0f;
         }
 
         // No threshold on the winner, for M20's reason, which survives it: once
@@ -1865,6 +1888,13 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
         // `led`, so a "lvl +0.12" in it would arrive in tools/score_cue.py as a
         // seventh query with a plausible score. After `led` it is free.
         printf(" lvl%+.2f", (double)lvl);
+        // THE DECISION VARIABLE GOES IN THE LOG. The whole of #15 was that the
+        // presence stage could not be scored after the fact, and half of why
+        // was that the log recorded the verdict and not the quantity it was
+        // reached from. `d` is the distance to the nearest reference in units
+        // of sep, so it is directly comparable across runs and rooms, and the
+        // edges it is tested against are constants any scorer can read here.
+        if (m21 && m21_sep > 0.0f) printf(" d%.2f", (double)(m21_d / m21_sep));
         if (le != GH_OK) printf(" !led");
     }
     wd_stage(FGX_ST_PRINT, frame);
@@ -2293,11 +2323,15 @@ int main(void)
            (unsigned)ft_nconv());
     printf("            scores are z against this room's background, ranked; "
            "'*' means over its threshold.\n");
-    printf("            '1'..'%u' enrol the next %u frames as that class and "
-           "'0' as the empty scene. Two\n"
-           "            classes in and the board decides by nearest reference "
-           "instead of by threshold - see M21.\n",
-           (unsigned)FGX_MAX_Q, (unsigned)FGX_ENROL_N);
+    printf("            '1'..'%u' enrol the next %u frames as that class. Two "
+           "classes in and the board decides\n"
+           "            by nearest reference instead of by threshold, and calls "
+           "a frame absent when it is\n"
+           "            further than %.1f sep from every one of them - see M21. "
+           "The empty scene is not\n"
+           "            enrolled and '0' does nothing; see #18.\n",
+           (unsigned)FGX_MAX_Q, (unsigned)FGX_ENROL_N,
+           (double)FGX_ABSENT_TRIP);
     if (bg_hold)
         printf("            The first %u frames set the baseline and it is then "
                "frozen, so anything left in\n"
@@ -2593,12 +2627,15 @@ int main(void)
         if (c >= '0' && c <= '0' + (int)FGX_MAX_Q) {
             const uint32_t k = (uint32_t)(c - '0');
             if (k == 0u) {
-                enrol_want = FGX_ENROL_ABSENT;
-                enrol_left = 0;
-                printf("\nenrol     : the next %u frames are the empty scene. They "
-                       "set the presence axis;\n"
-                       "            with no class enrolled yet they set nothing "
-                       "else.\n", (unsigned)FGX_ENROL_N);
+                // ACCEPTED AND IGNORED, deliberately. '0' used to enrol the
+                // empty scene and #18 removed the thing it fed. Rejecting it as
+                // an unknown key would be quieter and worse: host/cue.py logs
+                // are replayed months later and a session that silently skipped
+                // a step reads exactly like one that did not have the step.
+                printf("\nenrol     : '0' is gone. The empty scene is not "
+                       "enrolled any more - presence is a\n"
+                       "            distance from the classes now, so there is "
+                       "nothing to teach it. #18.\n");
             } else {
                 const int i = enrol_slot(k);
                 if (i < 0) {

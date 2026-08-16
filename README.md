@@ -19,7 +19,7 @@ ArduCam SPI ──▶ RP2354A ──3-bit on-board link──▶ Trion T8 ──
 2. **Once per frame, on the board.** A 128 × 128 × 3 image comes off the camera. A 1.40 M-parameter int4 CNN — distilled to imitate the teacher's *image* tower — runs eight 3 × 3 convolution stages over it.
 3. **The MCU cuts each layer into blocks and feeds the FPGA.** The tile holds 2,048 int32 accumulators and a 2 KB slice of input, so a frame becomes 174 blocks, 1,856 passes, 6,264 transactions across a link that is **3 bits out and 1 bit back**. The MCU is also the tile's only clock.
 4. **The MCU finishes what the tile does not do** — requantize, scatter, and after the eighth layer an average pool and one 256 → 512 linear. That is the image's own embedding, in the same space as step 1's.
-5. **The board decides.** Cosine against each query, standardized against the background *this room* reads at, then split into a presence axis and a state axis, both learned by being **shown** the scenes rather than given a threshold. The answer comes out on the RGB LED and on the serial log.
+5. **The board decides.** Cosine against each query, standardized against the background *this room* reads at, then answered in two parts — **which** of the scenes it was shown this is, by nearest reference, and **whether** it is any of them at all, by how far the nearest one is — both learned by being **shown** the scenes rather than given a threshold. The answer comes out on the RGB LED and on the serial log.
 
 The long version, with the numbers and the reasons, is [`docs/architecture.md`](docs/architecture.md).
 
@@ -73,7 +73,7 @@ harness, and rebuilding the model — are in [`docs/building.md`](docs/building.
 | **retention** | 91% of the queries the teacher itself gets right, at int4 |
 | **fabric** | **6,265 of 7,384 LE (85%)**, 8/8 multipliers, **21 of 24 memory blocks** — it started at 33% with memory the only thing running out; three milestones of arithmetic later both are nearly full |
 | **link** | 26.4 MB/s forward measured, 8.9 MB/s back, and it cannot be widened either way |
-| **decision rule** | 120/120 held out on the board at M21 on 2026-08-11, against 90/180 for ranking the same frames — **and the 2026-08-16 bench does not reproduce it**, twice, at 58.3% and 57.5% with the same rule and the same phrases. What changed is the bench, not the firmware: it now empties the desk between visits, so the objects are re-staged rather than sitting still. Which number is the honest one is [#19](https://github.com/kazunori279/fpga-open-vocab/issues/19), and one control run settles it. The rule's other half, presence, **is** settled and it failed: [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) |
+| **decision rule** | 120/120 held out on the board at M21 on 2026-08-11, against 90/180 for ranking the same frames — **and the 2026-08-16 bench does not reproduce it**, twice, at 58.3% and 57.5% with the same rule and the same phrases. What changed is the bench, not the firmware: it now empties the desk between visits, so the objects are re-staged rather than sitting still. Which number is the honest one is [#19](https://github.com/kazunori279/fpga-open-vocab/issues/19), and one control run settles it. The rule's other half, presence, **is** settled: the level-based one failed at 17.8% and 24.4%, and [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) has replaced it with open-set rejection, which scores **90.0% and 87.8%** replayed on the very frames that killed it. That is offline replay; the board carries the new rule but has not been benched with it |
 | **the flaky two** | both now measured rather than guessed at. The camera bus's **worst gap is 16 µs against a 2,000 µs deadline** over 152 frames at 280/140, and 15 µs over 101 at 320/160 — the same at both rates, 125× clear, so [#12](https://github.com/kazunori279/fpga-open-vocab/issues/12) is not the fast side running out of time. A USB outage is now caught **by the board** off `sof_rd` rather than inferred by the host from a log that stopped: it re-attaches itself in ~2.8 s, says which frames it lost, and reboots deliberately at 30 s. `'U'` and `'I'` make both halves happen on demand, which is how they were checked. [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9) is still open, and it now has a third shape in it: a reset from underneath the firmware, which the banner separates from a watchdog reboot by diffing `POWMAN_CHIP_RESET` |
 
 Two GO/NO-GO gates were passed on the way: **M2** (is the on-board link fast and
@@ -88,10 +88,14 @@ two runs the stage held **17.8% and 24.4%** of those frames. The cause is
 structural rather than a threshold: the presence axis is the common mode, which
 is exactly the part the state axis subtracts because it is where the sensor's
 drift lives. [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18)
-replaces it with open-set rejection in the centred space, and can be tried
-against the existing logs before the board is touched. The same runs put the
-state stage's 120/120 in doubt as well
-([#19](https://github.com/kazunori279/fpga-open-vocab/issues/19)).
+replaces it with open-set rejection in the centred space — absent when the frame
+is further than 2.0 `sep` from every reference the board was shown — and because
+that quantity is recoverable from the logs, the replacement was scored on the two
+failing runs **before** the board was touched: **90.0% and 87.8%** held, keeping
+98.3% and 85.0% of the class frames. That is now the firmware, awaiting its
+confirmation bench. The same runs put the state stage's 120/120 in doubt as well
+([#19](https://github.com/kazunori279/fpga-open-vocab/issues/19)), and one
+session settles both.
 
 **Open work is in [issues](https://github.com/kazunori279/fpga-open-vocab/issues)**,
 labelled `P0`/`P1`/`P2`. The docs here record what was measured; what is still owed

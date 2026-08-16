@@ -26,8 +26,9 @@
 # M21 adds --enrol, and it changes what the neutral is for again - this time by
 # making it unnecessary. With --enrol the board is SHOWN each scene once and
 # decides the rest of the run by nearest reference, so the gate is not a query
-# any more, it is the frame's mean z; the neutral can be given or left out and
-# the presence stage works either way. Run it both ways on one scene to compare:
+# any more: since #18 it is how FAR the nearest reference is, and "nothing there"
+# means further than 2 sep from all of them. The neutral can be given or left out
+# and the presence stage works either way. Run it both ways on one scene:
 #
 #     ./ab.sh "an opened book" "a closed book" "a book"            # M20
 #     ./ab.sh "an opened book" "a closed book" --enrol             # M21
@@ -42,11 +43,16 @@
 # not be measured before: the only empty scene in the schedule was the one the
 # rule learns "empty" from. --no-revisit-empty drops it.
 #
-# It has now been measured, twice, and the stage holds 17.8% and 24.4% of those
-# frames - see #18, which replaces it. Meanwhile the re-staging this rotation
-# forces appears to have cost the STATE stage too: 58% held out on both runs
-# against 120/120 on 2026-08-11, when the objects plausibly never moved between
-# visits. That is #19, and --no-revisit-empty is the control that settles it.
+# It was measured twice and the old level-based stage held 17.8% and 24.4% of
+# those frames. #18 replaced it with a distance, and replaying that on the same
+# two logs gives 90.0% and 87.8% - but that is offline, and THIS SCRIPT IS HOW
+# THE BOARD GETS TO SAY SO. Watch the d column in the frame line: it is the
+# distance to the nearest reference in sep, the quantity the gate cuts.
+#
+# Meanwhile the re-staging this rotation forces appears to have cost the STATE
+# stage too: 58% held out on both runs against 120/120 on 2026-08-11, when the
+# objects plausibly never moved between visits. That is #19, and
+# --no-revisit-empty is the control that settles it - run both in one session.
 #
 # Extra flags go through to host/cue.py, so --hold 200 and --quiet work here.
 # Flags that belong to host/demo.py rather than cue.py need the = form -

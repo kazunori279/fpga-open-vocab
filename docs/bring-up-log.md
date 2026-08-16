@@ -11,6 +11,65 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-16 — presence is a distance now, and it was scored on the frames that killed the old rule before anything was flashed
+
+[#18](https://github.com/kazunori279/fpga-open-vocab/issues/18), the replacement
+for the stage the entry below measures at 17.8% and 24.4%. The rule:
+
+```
+absent  ⇔  min_k ‖c[] − qref[k]‖  >  radius
+```
+
+Open-set rejection in the centred space the state stage already decides in, so it
+inherits the drift immunity the level axis could not have — the level axis *was*
+the drift. `m21_d` is the same minimum the state decision already takes, so the
+frame loop pays one comparison. `radius` is in units of `sep`, the closest two
+references, which is what lets a constant travel between rooms.
+
+**Replayed first, flashed second, and that order is the point.** `c[] = z[] − lvl`
+is recoverable from the frame lines, so `tools/probe_reject.py` scores the new
+rule on the two runs that failed, no board involved:
+
+| held out, at 2.0 sep | run 1 (17:22) | run 2 (17:35) |
+|---|---|---|
+| **empty desk held** | **81/90 (90.0%)** | **79/90 (87.8%)** |
+| the level rule, same frames | 16/90 (17.8%) | 22/90 (24.4%) |
+| class frames kept | 118/120 (98.3%) | 102/120 (85.0%) |
+| AUC, empty vs class | 0.956 | 0.909 |
+
+The probe reproduces `score_cue.py`'s numbers for the old rule exactly on the same
+frames, which is what says the harness is measuring the rule and not itself. The
+radii are read off a sweep rather than fitted: 2.0 sep is the single-edge optimum
+on **both** runs, and 1.5/2.0, 1.0/2.0 and 0.5/2.0 sit within 0.4 points of each
+other averaged over the two, so the narrow band was picked for its shape.
+
+**No drift trend in the new quantity**, which is the claim that had to hold: the
+three empty revisits sit at 3.03 / 3.48 / 3.06 sep in run 1 and 2.31 / 2.87 / 2.54
+in run 2 — highest in the middle, not climbing. The old rule's equivalent walked
+0.23 of a span in one direction across the same frames.
+
+**The failure mode moved rather than vanished, and it is checkable at enrolment.**
+`c[] = 0` is where "nothing has changed since the background froze" lands, so a
+reference sitting near the origin cannot be fenced off from a still desk. The
+2026-08-11 run has `a closed book` at **0.49 sep** from the origin and its baseline
+is inseparable there (AUC 0.624) — that run cannot test this rule at all. The
+08-16 runs sit at 3.16 and 0.97 and work. The board now measures this when the
+last class is enrolled and prints `SITS n.nn SEP FROM THE ORIGIN` in capitals if
+it is under half a `sep`, which is four minutes found rather than spent.
+
+Shipped with it: `'0'` is gone from the console and from `cue.py`'s schedule (it
+is accepted and explained rather than silently ignored), `--baseline` only has to
+freeze the background now, and the frame line carries **`d`**, the distance in
+sep — because #15's lesson was that the log recorded the verdict and not the
+quantity it came from. `score_cue.py` reads `d` when it is there and scores the
+old logs unchanged when it is not.
+
+**Not yet benched.** Every figure above is offline replay. The confirmation run
+pairs with [#19](https://github.com/kazunori279/fpga-open-vocab/issues/19)'s
+`--no-revisit-empty` control so one session settles both.
+
+---
+
 ### 2026-08-16 — the presence stage fired on a bench for the first time, and holds one frame in five
 
 The last unmeasured claim in the decision rule ([#15](https://github.com/kazunori279/fpga-open-vocab/issues/15))
@@ -75,8 +134,9 @@ honest headline is the lower number.
 the `--no-revisit-empty` control that tells them apart. Until it is run, **the
 120/120 in the README is not safe to quote.**
 
-Logs: `/tmp/m9_cue-20260816-172256.log`, `/tmp/m9_cue.log`, and
-`/tmp/m9_cue-20260811-072207.log` for the run they are against.
+Logs: `/tmp/m9_cue-20260816-172256.log`, `/tmp/m9_cue-20260816-173537.log` (run 2;
+it was still `/tmp/m9_cue.log` when this was written and `cue.py` has since
+rotated it), and `/tmp/m9_cue-20260811-072207.log` for the run they are against.
 
 ---
 
