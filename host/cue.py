@@ -36,15 +36,25 @@ takes it back out.
 
 It adds nothing to the measurement. demo.py still does all of it; this only
 decides when to speak and which frames to count.
+
+**What the camera saw is part of the record too.** `--frame-check` runs no
+experiment and just keeps one PNG showing the live scene, for aiming and
+lighting before a ten-minute run; `--preview N` does the same during one; and
+with `--enrol` a picture of each enrolment window is kept beside the log
+whether or not anybody asked, because "what was in shot while the board
+learned" is the first question a bad reference raises and nothing used to
+answer it.
 """
 from __future__ import annotations
 
 import argparse
 import math
+import queue
 import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 from statistics import mean
@@ -382,6 +392,206 @@ def report(scores: dict[int, dict[str, float]],
         print("  One visit each, so there is no error bar. --repeat 3 gives one.")
 
 
+# One fixed path, overwritten in place, because that is what makes a viewer
+# usable as a live preview: VS Code's image tab reloads a file that changes
+# underneath it, and cannot follow a new filename per frame.
+PREVIEW_PNG = Path("/tmp/fgx_preview.png")
+# --frame-check gets its own log. It is not a measurement and it would
+# otherwise push the last real run out of /tmp/m9_cue.log through the rotation
+# above - a run that was kept precisely because it was worth keeping.
+FRAMECHECK_LOG = Path("/tmp/fgx_framecheck.log")
+
+# MUST MATCH the board's header at firmware/m9.c:2401, and host/cam.py's
+# SNAPSHOT, which parses the same line for the same number. Only the frame is
+# wanted here; the mean RGB is cam.py's business.
+SNAPSHOT = re.compile(r"^snapshot\s*:\s*frame (\d+)")
+
+
+def open_viewer(png: Path) -> str:
+    """Put the PNG on screen, once."""
+    if shutil.which("code"):
+        subprocess.run(["code", "-r", str(png)], check=False,
+                       capture_output=True)
+        return "opened in VS Code; the tab reloads on its own as it is rewritten"
+    if sys.platform == "darwin":
+        # -g so the run keeps the keyboard: the operator is holding a scene,
+        # not clicking on a window.
+        subprocess.run(["open", "-g", str(png)], check=False)
+        return "opened in Preview.app"
+    return "open it in a viewer that reloads a changed file"
+
+
+class Preview:
+    """Catch the board's frame dumps going past, and keep one PNG current.
+
+    Both halves of this have to live here rather than in cam.py. A dump is
+    ~44 KB of base64 on the same stream as the score lines, so it has to be
+    taken out of the stream before it reaches the bars, or the display scrolls
+    away for ten seconds every time a picture arrives. And rendering costs a
+    fraction of a second of numpy, which must not happen on the thread reading
+    demo.py's pipe: a blocked reader is a full pipe, and a full pipe stalls the
+    board's run - the thing being measured - to draw a picture of it.
+
+    Nothing is lost by swallowing the block. demo.py writes every line to its
+    own log first, so the dumps are all still there afterwards for the full
+    host/cam.py, quantizer check and both byte orders included.
+
+    cam.py is run as a subprocess rather than imported because its numpy is
+    declared in its own PEP 723 header and not in this project's, and because
+    the alternative - a second copy of the PNG writer in here - is the kind of
+    duplicate constant this repo keeps being bitten by.
+    """
+
+    def __init__(self, png: Path, keep_stem: Path | None = None,
+                 keep_at: set[int] | None = None):
+        self.png = png
+        self.keep_stem = keep_stem
+        self.keep_at = keep_at or set()
+        self.buf: list[str] | None = None
+        self.head = ""
+        self.jobs: queue.Queue = queue.Queue()
+        self.out: queue.Queue = queue.Queue()
+        self.shown = False
+        self.busy = False
+        threading.Thread(target=self._work, daemon=True).start()
+
+    def feed(self, line: str) -> bool:
+        """True if this line was part of a dump and must not be printed."""
+        if self.buf is not None:
+            self.buf.append(line)
+            if line.startswith("END "):
+                block, self.buf = self.buf, None
+                # 'V' vectors ride the same envelope and are not pictures.
+                if not block[0].startswith("BEGIN m9emb"):
+                    self.jobs.put((self.head, block))
+            return True
+        if line.startswith("BEGIN "):
+            self.buf = [line.rstrip("\n")]
+            return True
+        if SNAPSHOT.match(line):
+            # Kept, and also printed: it is one line, and it carries the frame
+            # number the picture belongs to.
+            self.head = line.rstrip("\n")
+        return False
+
+    def drain(self) -> list[str]:
+        msgs = []
+        while True:
+            try:
+                msgs.append(self.out.get_nowait())
+            except queue.Empty:
+                return msgs
+
+    def finish(self, timeout: float = 30.0) -> list[str]:
+        """Wait for the dumps still in flight, then drain.
+
+        A run can end within a second of a dump arriving, and the worker is a
+        daemon thread - so without this the last picture is dropped, and with
+        it the copy kept off to the side, which is the one that cannot be
+        re-made afterwards.
+        """
+        end = time.monotonic() + timeout
+        while (self.busy or not self.jobs.empty()) and time.monotonic() < end:
+            time.sleep(0.05)
+        return self.drain()
+
+    def _work(self) -> None:
+        frag = self.png.with_name(self.png.name + ".block")
+        while True:
+            head, block = self.jobs.get()
+            self.busy = True
+            # Skip to the newest waiting dump. A preview that is three pictures
+            # behind is worse than useless for aiming a camera - it shows the
+            # scene as it was before the last two things the operator tried.
+            skipped = 0
+            while True:
+                try:
+                    head, block = self.jobs.get_nowait()
+                    skipped += 1
+                except queue.Empty:
+                    break
+            frag.write_text("\n".join([head] + block) + "\n")
+            # --rot is left at cam.py's 0 to match FT_MOUNT_ROT = CAM_ROT_0 in
+            # firmware/frame.h:64. If the camera is ever remounted, that is the
+            # knob, and the picture is what says it is wrong.
+            r = subprocess.run(
+                ["uv", "run", "--script", str(ROOT / "host/cam.py"),
+                 "--preview", str(self.png), str(frag)],
+                cwd=ROOT, capture_output=True, text=True)
+            lines = [ln for ln in (r.stdout + r.stderr).splitlines() if ln.strip()]
+            msg = lines[-1] if lines else f"preview   : cam.py said nothing (rc {r.returncode})"
+            if skipped:
+                msg += f"  ({skipped} older dump{'s' if skipped > 1 else ''} skipped)"
+            if r.returncode == 0:
+                if not self.shown:
+                    self.shown = True
+                    msg += f"\n            {open_viewer(self.png)}"
+                msg += self._keep(head)
+            self.out.put(msg)
+            self.busy = False
+
+    def _keep(self, head: str) -> str:
+        """Copy off the pictures worth having after the run - the enrolment
+        windows. Not every dump: a --preview run makes hundreds and they are
+        all the same desk."""
+        m = SNAPSHOT.match(head)
+        if not (self.keep_stem and m):
+            return ""
+        bf = int(m.group(1))
+        # Within a few frames, because the board defers 'P' to the next frame
+        # and a dropped frame line moves it further.
+        if not any(abs(bf - k) <= 3 for k in self.keep_at):
+            return ""
+        dst = self.keep_stem.with_name(f"{self.keep_stem.name}-f{bf:04d}.png")
+        shutil.copyfile(self.png, dst)
+        return f"\n            kept as {dst} (an enrolment window)"
+
+
+def frame_check(args, extra: list[str]) -> int:
+    """Show what the camera is pointed at, and measure nothing.
+
+    Aiming the camera used to be done by running an experiment and reading the
+    scores, which is a slow way to find out that the object is half out of
+    frame. This runs demo.py with no schedule, no enrolment and no cues, asks
+    for a picture every --preview frames, and keeps one PNG current until
+    Ctrl-C. The queries still have to be given because demo.py needs something
+    to score, and their scores are ignored here.
+    """
+    every = max(1, args.preview)
+    cmd = ["uv", "run", str(ROOT / "host/demo.py"),
+           "--frames", "0", "--out", str(FRAMECHECK_LOG),
+           f"--snap-every={every}", *extra, *args.queries]
+    print(f"framing   : a picture every {every} frames "
+          f"(about {every * 0.5:.0f} s), Ctrl-C when the scene sits right")
+    print(f"            {PREVIEW_PNG} is the live one; nothing here is "
+          f"measured and the log goes to {FRAMECHECK_LOG}\n")
+
+    prev = Preview(PREVIEW_PNG)
+    proc = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True, bufsize=1)
+    assert proc.stdout is not None
+    try:
+        for line in proc.stdout:
+            if prev.feed(line):
+                continue
+            # The frame lines are the one thing not wanted: this is about the
+            # picture, and 120 score lines a minute bury it.
+            if not line.startswith("frame "):
+                sys.stdout.write(line)
+            for msg in prev.drain():
+                print(msg)
+            sys.stdout.flush()
+    except KeyboardInterrupt:
+        proc.terminate()
+    proc.wait()
+    # Short, because the operator has just pressed Ctrl-C and is waiting: one
+    # more picture is worth a couple of seconds and not twenty.
+    for msg in prev.finish(timeout=5.0):
+        print(msg)
+    print(f"\nframing   : last picture {PREVIEW_PNG}, log {FRAMECHECK_LOG}")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description="cue an A/B scene change and record where the boundary fell")
@@ -441,6 +651,16 @@ def main() -> int:
                          "enrolling visit is the FIRST visit to each scene, so "
                          "every later one is held out - which is what --repeat "
                          "was already producing and nothing was using")
+    ap.add_argument("--preview", type=int, default=0, metavar="N",
+                    help=f"ask the board for a picture every N frames and keep "
+                         f"{PREVIEW_PNG} showing the newest one. Costs ~44 KB "
+                         f"of log and about a second of run time per picture, "
+                         f"so N below ~4 starts eating the run")
+    ap.add_argument("--frame-check", action="store_true",
+                    help="don't run an experiment at all - just show what the "
+                         "camera is pointed at, every --preview frames (4 by "
+                         "default), until Ctrl-C. For aiming and lighting a "
+                         "scene before spending ten minutes measuring it")
     ap.add_argument("--python", default=None, help=argparse.SUPPRESS)
     args, extra = ap.parse_known_args()
 
@@ -532,6 +752,14 @@ def main() -> int:
             return 1
         print(f"  back as {board.find_port()}", file=sys.stderr)
 
+    # Before the log rotation below, because --frame-check has its own log and
+    # has no business pushing a measured run aside to get one.
+    if args.frame_check:
+        # A picture every 4 frames, about every two seconds, unless asked
+        # otherwise: --frame-check IS the preview, so 0 cannot mean "none".
+        args.preview = args.preview or 4
+        return frame_check(args, extra)
+
     # Keep the previous run. demo.py opens --out for writing, so starting a run
     # destroys the one before it, and that has now cost two: a hung run whose
     # log was the only record of the hang, and the hand run that the book run
@@ -598,10 +826,23 @@ def main() -> int:
                   f"the start of the next scene. Use --hold {ENROL_FRAMES + 2} "
                   f"or more.", file=sys.stderr)
 
+    # A PICTURE OF EACH ENROLMENT WINDOW, unasked-for and on by default with
+    # --enrol. A reference is 20 frames of whatever was in shot, and when a run
+    # comes back wrong the first question is what the board was actually
+    # looking at while it learned - which, until now, nothing recorded. The
+    # 08-17 run is the case: it enrolled 'an opened book' 0.14 sep from the
+    # origin, and whether the book was badly framed, badly lit or simply not
+    # very different from the desk is a question a picture answers and a score
+    # trace does not. Mid-window, so it is one of the frames that was averaged.
+    # Two dumps a run, ~88 KB of log; the alternative costs a whole re-run.
+    snap_at = [f + 2 + ENROL_FRAMES // 2 for f, _ in enrol]
+
     cmd = ["uv", "run", str(ROOT / "host/demo.py"),
            "--frames", str(frames), "--out", str(args.out),
            "--bg-tau", str(args.bg_tau),
            *[f"--enrol={f}:{k}" for f, k in enrol],
+           *[f"--snap-at={f}" for f in snap_at],
+           *([f"--snap-every={args.preview}"] if args.preview else []),
            *extra, *args.queries]
 
     print("cue       : " + "  ->  ".join(["empty (baseline)"] + rotation)
@@ -620,7 +861,21 @@ def main() -> int:
             print(f"            the {args.repeat} '{EMPTY}' visits are held out "
                   f"too - nothing is enrolled for them at all, and they are "
                   f"what measures the presence stage")
+    if snap_at:
+        print("            a picture of each enrolment window is dumped at "
+              + ", ".join(str(f) for f in snap_at)
+              + f", kept beside the log as {args.out.with_suffix('')}-fNNNN.png")
+    if args.preview:
+        print(f"preview   : every {args.preview} frames "
+              f"(about {args.preview * 0.5:.0f} s) -> {PREVIEW_PNG}")
     print("            LEAVE THE SCENE EMPTY until the first cue.\n")
+
+    # The enrolment dumps are wanted whether or not anybody is watching, so the
+    # renderer runs for those alone; with --preview it also gets the periodic
+    # ones. Without either there is nothing to catch and no thread to run.
+    prev = (Preview(PREVIEW_PNG, keep_stem=args.out.with_suffix(""),
+                    keep_at=set(snap_at))
+            if args.preview or snap_at else None)
 
     proc = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, bufsize=1)
@@ -637,6 +892,16 @@ def main() -> int:
 
     assert proc.stdout is not None
     for line in proc.stdout:
+        # First, before anything else looks at it: 44 KB of base64 through the
+        # bars would scroll the run off the screen, and through parse_scores
+        # would be a waste of a regex on every one of six hundred lines.
+        if prev is not None:
+            if prev.feed(line):
+                continue
+            for msg in prev.drain():
+                if bars is not None:
+                    bars.release()
+                print(msg, flush=True)
         q = QUERY.match(line)
         if q:
             roles[q.group(1)] = q.group(2)
@@ -685,6 +950,9 @@ def main() -> int:
     proc.wait()
     if bars is not None:
         bars.release()
+    if prev is not None:
+        for msg in prev.finish():
+            print(msg, flush=True)
 
     # demo.py exits 3 when the board wedged and its watchdog rebooted it. That
     # is not a short run, it is a DIFFERENT run: the reboot forgot the frozen
@@ -735,6 +1003,10 @@ def main() -> int:
         # the old rule's output wearing the new rule's name.
         + (f"# enrol-window {ENROL_FRAMES}\n" if enrol else "")
         + "".join(f"# enrol {f} {k}\n" for f, k in enrol)
+        # Where the pictures are, for the same reason the flags above are: an
+        # artifact that cannot say whether a dump was asked for cannot be told
+        # apart from one where the board ignored the request.
+        + "".join(f"# snap {f}\n" for f in snap_at)
         + "".join(f"{lo}\t{hi - 1}\t{label}\n" for label, lo, hi in segments))
 
     print(f"\nlog       : {args.out}")

@@ -788,6 +788,13 @@ def main() -> int:
                          "caller computing these knows the schedule in board "
                          "frames and an off-by-one would enrol the settling "
                          "frame with a hand still in shot")
+    ap.add_argument("--snap-at", action="append", default=[], type=int,
+                    metavar="FRAME",
+                    help="dump a frame at the BOARD's frame FRAME, the same "
+                         "numbering --enrol uses and for the same reason: the "
+                         "caller asking for a picture of an enrolment window "
+                         "knows where that window is in board frames. "
+                         "Repeatable, and independent of --snap-every")
     ap.add_argument("--ask", action="store_true",
                     help="read new comma-separated query sets from stdin and "
                          "send them to the running board")
@@ -812,6 +819,9 @@ def main() -> int:
                              f"0..{MAX_Q}, e.g. --enrol=125:1")
         enrol.append((int(frame), key))
     enrol.sort()
+    if any(k < 1 for k in args.snap_at):
+        raise SystemExit("--snap-at wants a board frame number of 1 or more")
+    snap_at = sorted(set(args.snap_at))
     # A set, so a repeated frame is one keystroke and not two - two would flip
     # the overlap back and leave a window nobody asked for. Checked here for the
     # reason --enrol is: the run is the expensive thing.
@@ -1160,7 +1170,7 @@ def main() -> int:
                     # of the run - would otherwise skip the enrolment silently
                     # and the board would spend the rest of the run on the old
                     # rule while the log looked like a clean M21 run.
-                    if enrol:
+                    if enrol or snap_at:
                         tok = ln.split()
                         bf = int(tok[1]) if len(tok) > 1 and tok[1].isdigit() else -1
                         while enrol and bf >= enrol[0][0]:
@@ -1169,6 +1179,18 @@ def main() -> int:
                                   f"{bf}")
                             sys.stdout.flush()
                             s.write(key.encode())
+                            s.flush()
+                        # `>=` again, and every frame we ran past is dropped
+                        # rather than dumped: two 44 KB transfers back to back
+                        # to catch up on a missed one would cost more frames
+                        # than they document.
+                        if snap_at and bf >= snap_at[0]:
+                            while snap_at and bf >= snap_at[0]:
+                                snap_at.pop(0)
+                            print(f"snap      : requesting a dump at board "
+                                  f"frame {bf}")
+                            sys.stdout.flush()
+                            s.write(b"PV" if args.emb else b"P")
                             s.flush()
                     # Once, on the way past. The dump is ~44 KB of base64 into
                     # the same log, which host/cam.py picks out by its BEGIN/END

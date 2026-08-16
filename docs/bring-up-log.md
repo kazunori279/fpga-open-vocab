@@ -11,6 +11,70 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-17 — the confirmation bench measured the staging instead of the rule, and the board said so before it started
+
+[#18](https://github.com/kazunori279/fpga-open-vocab/issues/18)'s first run on
+hardware, 07:33, `an opened book` against `a closed book` with `--enrol`. The
+presence stage held **0 of 90** held-out empty frames. That is worse than the
+level rule it replaced, and it is not the rule's fault: the log carries the
+guard the entry below shipped, in capitals, from before the first empty revisit —
+
+```
+'an opened book' SITS 0.14 SEP FROM THE ORIGIN, which is where a scene identical to ...
+```
+
+**The origin is the empty desk, and one of the two references was standing on
+it.** The references came out at `an opened book (-0.32,+0.32)` and `a closed
+book (+1.98,-1.98)`, 3.25 apart, sitting 0.14 and 0.86 sep from the origin. The
+empty desk is then 0.00–0.46 sep from the nearest reference and the class frames
+are 0.03–0.80, so the two overlap almost completely: **AUC 0.319**, below the
+0.500 that means no signal at all — the empty desk is on average *closer* to a
+reference than a class frame is. `tools/probe_reject.py` sweeps every radius
+from 0.25 to 3.6 sep and every hysteresis pair, and not one of them holds a
+single empty frame while keeping the classes. There is no threshold to tune
+here. Nothing about the run tests #18.
+
+**What put the reference on the origin was the staging, not the geometry.** The
+enrolment window landed in the first visit to the opened book, and that visit is
+the weakest-framed of the three: the opened book reads z −1.61/−0.46 against the
+closed book's −11.15/−14.64 in its own first visit. An opened book lying flat on
+a desk *is* nearly the empty desk as far as the encoder is concerned, and the
+background froze on that desk. Two things to fix at the bench and neither is in
+firmware: prop the book up so it fills the frame, and check what the camera sees
+before enrolling rather than after scoring.
+
+**The state stage, on the same run, held 116/120 (96.7%).** That is the same
+empty-revisit rotation that read 57.5% and 58.3% yesterday, which weakens
+[#19](https://github.com/kazunori279/fpga-open-vocab/issues/19)'s hypothesis that
+re-staging is what costs the state stage — with the caveat that today's geometry
+is degenerate and one run is not a control.
+
+**So the tooling gap got closed instead.** Nothing recorded what the board was
+looking at while it learned, which is exactly the question this run raises and
+cannot answer. Three additions, no firmware change — the `'P'` dump has been
+there since M8a:
+
+* `./ab.sh A B --frame-check` runs no experiment at all: camera on, a picture
+  every 4 frames to `/tmp/fgx_preview.png`, Ctrl-C when the scene sits right.
+* `--preview N` does the same during a real run. `cue.py` takes the 44 KB
+  base64 block out of the stream before it reaches the bars and renders it on a
+  worker thread, because a blocked pipe reader stalls the board.
+* With `--enrol`, a picture of each enrolment window is kept beside the log as
+  `<log>-fNNNN.png` whether or not anyone asked. Mid-window, so it is one of the
+  20 frames that were averaged into the reference.
+
+`host/cam.py --preview PNG` is the renderer, one fixed path rewritten in place
+so a viewer left open on it follows the camera. It cross-checks its own mean RGB
+against the `mean RGB` the board prints beside the dump — worth knowing that
+this is a *decode-agreement* check and not a byte-order oracle, because
+`cam_frame_means()` decodes hi-first too, the same as `CAM_HI_FIRST`. For the
+byte-order question the only evidence is still the picture, which is why the
+full `cam.py` writes both.
+
+**Re-run owed**, better staged, still paired with `--no-revisit-empty`.
+
+---
+
 ### 2026-08-16 — presence is a distance now, and it was scored on the frames that killed the old rule before anything was flashed
 
 [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18), the replacement

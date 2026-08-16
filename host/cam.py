@@ -6,7 +6,10 @@
 
     uv run host/cam.py /tmp/m8a.log
 
-Two jobs, and the second is the one that matters.
+Two jobs, and the second is the one that matters. There is a third mode,
+`--preview PNG`, which does neither of them: it renders the newest dump in the
+log to one fixed path so a viewer left open on that path shows what the camera
+is pointed at. That is for aiming the camera before a run, not for trusting it.
 
 **Render the frame.** RGB565 has two byte orders and the ArduChip's datasheet
 does not say which one comes out of the FIFO, so both PNGs get written and you
@@ -51,6 +54,12 @@ CHWCRC = re.compile(r"chw crc32\s*:\s*([0-9a-f]{8})\s*\((high|low) byte first\)"
 # be tied to the frame line that scored it. Optional by design: a log without
 # these still parses, it just cannot name the frame.
 SNAPAT = re.compile(r"^snap\s*:.*\bframe (\d+)")
+# The board's own header on the dump (m9.c:2401). Better than the marker above
+# in two ways: it is the frame that was actually dumped rather than the frame
+# the request went out on, and its mean RGB is what the device made of the same
+# bytes, so a host decode can be checked against it.
+SNAPSHOT = re.compile(
+    r"^snapshot\s*:\s*frame (\d+), mean RGB (-?\d+) (-?\d+) (-?\d+)")
 
 
 def write_png(path: Path, rgb: np.ndarray) -> None:
@@ -176,16 +185,21 @@ def parse(log: Path) -> list[dict]:
     perfectly-clean capture is a checker that gets bypassed on the first messy
     one.
     """
-    frames, cur, at = [], None, None
+    frames, cur, at, mean = [], None, None, None
     for line in log.read_text(errors="replace").splitlines():
         m = BEGIN.match(line)
         if m:
             cur = {"tag": m[1], "w": int(m[2]), "h": int(m[3]),
                    "n": int(m[4]), "crc": int(m[5], 16), "b64": [],
-                   "device_chw": {}, "at": at}
-            at = None
+                   "device_chw": {}, "at": at, "mean": mean}
+            at, mean = None, None
             continue
         if cur is None:
+            m = SNAPSHOT.match(line)
+            if m:
+                at = int(m[1])
+                mean = tuple(int(m[i]) for i in (2, 3, 4))
+                continue
             m = SNAPAT.match(line)
             if m:
                 at = int(m[1])
@@ -203,6 +217,66 @@ def parse(log: Path) -> list[dict]:
     return frames
 
 
+# firmware/cam.h:104 - the byte order the encoder eats, so it is the one a
+# framing preview should show. Note that cam_frame_means() (firmware/cam.c:430)
+# also decodes hi-first, which makes the mean check below an agreement test
+# between host and device over the same bytes, not an independent vote on the
+# order. The full run above still writes both PNGs, because for the *order*
+# question the only real evidence is the picture.
+HI_FIRST = True
+
+
+def preview(log: Path, out: Path, rot: int) -> int:
+    """Render the newest pixel dump in `log` to one PNG, in place.
+
+    The framing aid, not the checker. Only the last block is decoded, no blob
+    is read, no quantizer is compared, and the PNG is written to a sibling
+    temp file and moved over `out` - so a viewer watching that one path
+    (VS Code refreshes an image tab on its own) never catches a half-written
+    file, and the path stays stable while the picture underneath changes.
+    """
+    frames = [f for f in parse(log) if f["tag"] != "m9emb"]
+    if not frames:
+        print(f"preview   : no pixel dump in {log} yet")
+        return 1
+
+    f = frames[-1]
+    at = "" if f["at"] is None else f" frame {f['at']}"
+    raw = base64.b64decode("".join(f["b64"]))
+    crc = binascii.crc32(raw) & 0xFFFFFFFF
+    if crc != f["crc"]:
+        print(f"preview   :{at} CORRUPT IN TRANSIT "
+              f"({crc:08x} vs {f['crc']:08x} announced), not rendered")
+        return 1
+    buf = np.frombuffer(raw, np.uint8)
+    want = f["w"] * f["h"] * 2
+    if len(buf) < want:
+        print(f"preview   :{at} short - need {want} bytes for "
+              f"{f['w']}x{f['h']}, have {len(buf)}")
+        return 1
+
+    rgb = unpack565(buf, f["w"], f["h"], HI_FIRST)
+    tmp = out.with_name(out.name + ".part")
+    write_png(tmp, np.rot90(rgb, rot // 90) if rot else rgb)
+    tmp.replace(out)
+
+    mean = rgb.reshape(-1, 3).mean(axis=0)
+    note = ""
+    if f["mean"] is not None:
+        d = max(abs(float(mean[c]) - f["mean"][c]) for c in range(3))
+        # The board truncates each channel to an int, so one count of slack is
+        # expected and anything past that means the two ends are not looking at
+        # the same bytes.
+        note = ("" if d <= 1.5 else
+                f"  !! board says ({f['mean'][0]},{f['mean'][1]},"
+                f"{f['mean'][2]}) - host and device disagree")
+    if buf[:want].min() == buf[:want].max():
+        note = f"  !! every byte is 0x{buf[0]:02x} - the sensor produced nothing"
+    print(f"preview   :{at} mean rgb ({mean[0]:5.1f},{mean[1]:5.1f},"
+          f"{mean[2]:5.1f}) -> {out}{note}")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("log", type=Path, nargs="?",
@@ -217,6 +291,11 @@ def main() -> int:
                          "from test_cam_pixel.c --frame, which have no blob")
     ap.add_argument("--out", type=Path, default=Path("/tmp"),
                     help="where the PNGs go")
+    ap.add_argument("--preview", type=Path, metavar="PNG",
+                    help="render only the newest pixel dump in the log, to "
+                         "this one path, and exit. For framing a scene: the "
+                         "path never changes, so a viewer left open on it "
+                         "follows the camera. Skips the quantizer check")
     ap.add_argument("--rot", type=int, default=0, choices=(0, 90, 180, 270),
                     help="turn the PNG this many degrees counter-clockwise, to "
                          "match firmware FT_MOUNT_ROT. Display only: the chw "
@@ -231,6 +310,9 @@ def main() -> int:
         return 0 if ok else 1
     if not args.log:
         ap.error("a log file is required unless --selftest is given")
+
+    if args.preview:
+        return preview(args.log, args.preview, args.rot)
 
     args.out.mkdir(parents=True, exist_ok=True)
 
@@ -267,7 +349,7 @@ def main() -> int:
               "Read them with host/caption.py.")
         return 0
 
-    ok = True
+    ok, compared = True, 0
     for i, f in enumerate(frames):
         # One dump per tag was the old assumption and it overwrote silently:
         # m9 tags every block "m9", so a log with several of them used to leave
@@ -278,6 +360,9 @@ def main() -> int:
         # harmless - nothing reads these paths, they are looked at by eye.
         stem = f["tag"] if len(frames) == 1 else f"{f['tag']}-{i:02d}"
         if f.get("at") is not None:
+            # The board's own "snapshot :" header when the log has one, which
+            # is the frame that was dumped; demo.py's marker, which is the
+            # frame the request went out on, only when it does not.
             stem = f"{stem}-f{f['at']:04d}"
         raw = base64.b64decode("".join(f["b64"]))
         crc = binascii.crc32(raw) & 0xFFFFFFFF
@@ -319,6 +404,7 @@ def main() -> int:
             dcrc = f["device_chw"][key]
             same = hcrc == dcrc
             ok &= same
+            compared += 1
             print(f"     chw crc32 : host {hcrc:08x} vs device {dcrc:08x}  "
                   f"{'MATCH' if same else 'MISMATCH'}")
 
@@ -328,8 +414,17 @@ def main() -> int:
             print(f"  !! every byte is 0x{buf[0]:02x} - the sensor produced nothing")
             ok = False
 
+    # Said rather than implied: m9's dumps carry no chw CRC - only
+    # forgix_cam_probe prints those - so on an m9 log the second job above did
+    # not run at all, and a PASS that claims the quantizer was checked when
+    # nothing was compared is the kind of green light this file exists to
+    # refuse.
+    quant = ("and the device's quantizer matches numpy"
+             if compared else
+             "- no chw CRC in this log, so the QUANTIZER WAS NOT CHECKED "
+             "(only forgix_cam_probe prints one)")
     print("\nRESULT : " + (
-        "PASS - frames decoded and the device's quantizer matches numpy.\n"
+        f"PASS - frames decoded {quant}.\n"
         "         Now open the PNGs. The CRCs cannot tell you the picture is "
         "the right way up."
         if ok else "FAIL - see above"))

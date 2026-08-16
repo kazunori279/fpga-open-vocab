@@ -259,11 +259,26 @@ uv run host/m6.py  --bitstream rtl/bitstreams/m16/gemm_top.hex      --out /tmp/m
 uv run host/mon.py --out /tmp/m5.log            # anything that just prints
 uv run host/probe.py                            # loader state
 uv run host/load.py <image.hex>                 # bitstream only
-uv run host/cam.py --rot <n> < snap.b64          # render a dumped frame to PNG
+uv run host/cam.py /tmp/m9.log                  # render every dumped frame to PNG
 ```
 
 `host/cam.py`'s `--rot` must match `firmware/frame.h`'s `FT_MOUNT_ROT`, and a
 mismatch is invisible in every log the board prints.
+
+Pointing the camera is its own job, and doing it by reading scores is a slow
+way to find out that the object is half out of frame:
+
+```sh
+./ab.sh "an opened book" "a closed book" --frame-check   # live preview, Ctrl-C to stop
+./ab.sh "an opened book" "a closed book" --enrol --preview=8   # and during a run
+uv run host/cam.py --preview /tmp/x.png /tmp/m9.log      # newest dump, one fixed path
+```
+
+The path never changes, which is the point: an image tab left open on it
+follows the camera. With `--enrol`, a picture of each enrolment window is kept
+beside the log as `<log>-fNNNN.png` whether or not a preview was asked for —
+what was in shot while the board learned is the first question a bad reference
+raises, and until 2026-08-17 nothing recorded it.
 
 `host/board.py` answers "which serial port is the board" for all of the above,
 so none of them needs a hard-coded `/dev/cu.usbmodem*`.

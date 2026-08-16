@@ -8,6 +8,17 @@
 # The third phrase is the shared neutral and is optional; give it when both
 # sides are the same object in two states, which is the case this is for.
 #
+# Point the camera before spending ten minutes on a run:
+#
+#     ./ab.sh "an opened book" "a closed book" --frame-check
+#
+# That measures nothing. It runs the camera, keeps /tmp/fgx_preview.png showing
+# the newest frame it captured, and stops on Ctrl-C - so a scene that is half
+# out of frame, or too dark, or barely different from the empty desk, is found
+# in twenty seconds instead of afterwards. --preview N does the same during a
+# real run, every N frames, and with --enrol a picture of each enrolment window
+# is kept beside the log whether or not you ask.
+#
 # M20 gives it a second job, and it turns out to have been the same job all
 # along: the neutral also becomes the presence gate. So "a book" both cancels
 # out of the two contrasts and decides whether there is a book there at all,
@@ -63,7 +74,7 @@ set -eu
 cd "$(dirname "$0")"
 
 if [ $# -lt 2 ]; then
-    sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,35p' "$0" | sed 's/^# \{0,1\}//'
     exit 2
 fi
 
@@ -98,8 +109,9 @@ case " $* " in
         QA="$A"
         QB="$B"
         if [ -n "$N" ]; then
-            echo "ab.sh: --enrol given, so '$N' is not used - M21's gate is the"
-            echo "       frame's mean z, not a query. Dropping it." >&2
+            echo "ab.sh: --enrol given, so '$N' is not used - since #18 the gate"
+            echo "       is the distance to the nearest enrolled reference, not"
+            echo "       a query. Dropping it." >&2
         fi
         ;;
     *)
