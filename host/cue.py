@@ -52,6 +52,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import board  # noqa: E402  (after the path insert)
+import bootsel  # noqa: E402  (for its power cycle, which knows where the board is)
 
 # demo.py's frame line, e.g.
 #   frame   125 :  an opened book~ +1.35*  a closed book~ -1.86   led 255/  0 ...
@@ -506,9 +507,18 @@ def main() -> int:
         # Do it rather than advise it. ab.sh already power-cycled on this
         # condition; moving it here means a bare cue.py run recovers too, which
         # is how the board is usually driven now.
+        #
+        # THROUGH bootsel.power_cycle RATHER THAN A LITERAL `-l 2-1 -p 1`, which
+        # is what this used to run. That constant went stale on 2026-08-16 when
+        # a neighbour was unplugged and the board moved to port 2, and cycling
+        # the wrong port does not fail loudly - it succeeds at doing nothing and
+        # then this reports that even the hammer could not bring the board back.
+        # bootsel finds it by VID, which also works with the board in BOOTSEL
+        # (it enumerates as 2e8a:000f there, and the PID is why that matters).
         print("  power cycling the hub", file=sys.stderr)
-        subprocess.run(["uhubctl", "-l", "2-1", "-p", "1", "-a", "cycle"],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if not bootsel.power_cycle():
+            print(f"  {board.recover()}", file=sys.stderr)
+            return 1
         for _ in range(15):
             time.sleep(1)
             if board.find_port():
