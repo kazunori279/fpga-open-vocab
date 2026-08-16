@@ -11,6 +11,92 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-16 — it was never USB: the PSRAM's chip select had the QSPI bus the whole time
+
+**The entry below reads the 1,987 outage as a USB fault and offers two endings,
+and neither is right.** The board was not leaving the bus. It was losing the
+flash — and everything above that, USB included, is downstream of a core that
+cannot fetch an instruction.
+
+**What made it findable was refusing to power-cycle first.** The recovery is a
+VBUS cut, a VBUS cut is a power-on reset, and a power-on reset is also the thing
+that erases the evidence, so every previous outage had been recovered before it
+could be asked anything. This one was caught in BOOTSEL instead — a 280 MHz soak
+died at frame 1,554, and 6.9 s later the same board re-enumerated as
+`2e8a:000f RP2350 Boot` with the pull-up never dropping at all. In that state:
+
+```
+picotool info                            ->  Program Information: none
+picotool save -r 0x10000000 0x10001000   ->  high-entropy noise
+  ... the same 4 KB, three times         ->  three different answers
+picotool verify forgix_m9.uf2            ->  ERROR: contents did not match
+uhubctl -l 2-1 -p 2 -a cycle             ->  the SAME flash verifies OK
+```
+
+**Nothing was ever corrupted.** The bus was jammed, and only removing the 5 V
+cleared it.
+
+**GPIO0 is U1's chip select.** The APS1604M PSRAM shares the RP2354A's QSPI bus
+with the in-package flash on QMI CS1, which on this board is GPIO0
+([pinmap](pinmap.md)); `PADS_BANK0_GPIO0_RESET` is `0x116`, so the pad comes out
+of reset with the pull-down enabled and the pull-up off; and `m9` does not link
+`hardware_psram` — it has no `.psram_load` to place — so the QMI never takes the
+pin. Nothing else does either: the firmware's pins start at GPIO1. **The
+pull-down therefore holds U1 selected for the whole run**, orders of magnitude
+past the part's ~8 µs tCEM, watching every read the flash answers and free to
+decide one of them was addressed to it and drive `SD0..3` back. Only a VBUS cut
+recovers it because only that power-cycles U1 — which is exactly why
+`picotool reboot` and the firmware's own watchdog never did.
+
+**One cause, both shapes.** XIP dies instantly, so D1 goes dark mid-frame and
+the loop is not slow but gone; the watchdog fires 8 s later exactly as designed;
+and the bootrom it hands control to cannot read the image either. Whether that
+ends in USB boot or in a hang before the pull-up goes up is the difference
+between "came back as `RP2350 Boot`" and "`0100 power` and stayed there". The
+entry below saw the second and reasoned about the USB block.
+
+**Two soaks retired the other suspects before the cause was found.** 280 MHz
+died at frame 1,554; 150 MHz — a 1.87× slower clock, the most conservative point
+in the project — died at frame **1,478**, seventy-six frames away. It is not the
+clock. And a USB current meter photographed once every two seconds by a webcam
+(`host/meter_cam.py`, filenames are the wall clock) read **5.09 V and 0.16 A
+straight through the failure**, against 5.10 V / 0.14 A idle and 5.08 V / 0.20 A
+under load: no sag, no spike, no collapse to zero. It is not the rail, and it is
+not the cable.
+
+**The fix is three lines and it is in `m9`'s `main()` before anything else** —
+value, then direction, so the pin never drives low on its way up. It cannot be
+truly first, because that code is itself running from XIP, but it takes the
+exposure from a whole run down to a few milliseconds of boot. Driving the pin
+beats linking `hardware_psram`: `m9` has no use for the 2 MB, and
+`psram_detect_size()` returns 0 on this board for reasons [pinmap](pinmap.md)
+still calls unexplained, so initialising a part nobody needs would only buy a new
+way to fail.
+
+| | before | after |
+| --- | --- | --- |
+| 3,000-frame runs completed | 1 of 5 | **5 of 5** |
+| frame the board died at | 687 / 1,478 / 1,554 / 1,987 | — |
+| frames run, outages seen | — | **15,008, zero** |
+
+All five print `usb: 0 outages, 0 ms off the bus, 0 re-attaches`.
+
+**What this does not close.** [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9)
+was filed for a board that *keeps computing* while off the bus — frame 71 to 244
+with no banner and no counter reset — and that shape is a live firmware in a
+dead pipe, not a dead core. It was seen again on the way to this fix, at 150 MHz
+frame 49: the pull-up dropped for about a second, the board came back on its own
+with no banner, and the run continued from the board's side. The QSPI wedge
+explains the outages that end in `uhubctl`; it does not explain that one.
+
+**The two instruments are the durable part.** `host/usb_watch.py` polls the hub
+port every second and logs transitions, which is the only record that survives
+the power cycle that erases watchdog scratch — it is what caught the two-stage
+`connect`-then-`RP2350 Boot` signature that started all of this.
+`host/meter_cam.py` photographs a USB meter on a timer, because the reading only
+means anything if it was already on disk when the failure ended the session.
+Both are cheap to leave running beside a soak, and neither existed a day ago.
+
 ### 2026-08-16 — the outage happens with the instruments on, and the reboot turns out not to be the recovery
 
 **A 3,000-frame soak at 280/140 lost the board at frame 1,987, and for the first

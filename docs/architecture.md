@@ -116,14 +116,27 @@ glitch from a watchdog reboot instead of leaving them indistinguishable.
 not a recovery** (2026-08-16, frame 1,987 of a 3,000-frame soak). D1 went dark,
 which the LED only does if the loop stopped rather than froze, so the reboot
 fired — and the hub still read `power` with no `connect` until `uhubctl` cut
-VBUS. Either something on the board survives a chip reset in the USB block, or
-**the hub port latched and the fault is at the desk's end of the cable**;
-nothing measured so far separates those, and a different hub is the cheap test.
-The same event exposed the limit of the reporting: stage, frame and the
-`CHIP_RESET` copy all live in watchdog scratch, and scratch does not survive the
-power cycle that is the only known recovery — so an outage that ends in
-`uhubctl` cannot be attributed at all. Last words in flash are what would fix
-that.
+VBUS. That looked like the USB block surviving a chip reset, or the hub port
+latching, and it was neither: **the escalation was not failing, the flash was**.
+GPIO0 is the APS1604M PSRAM's chip select, on the same QSPI bus as the
+in-package flash, and `PADS_BANK0_GPIO0_RESET` has the pull-down on — so with no
+`hardware_psram` linked and nothing else touching the pin, U1 sits selected for
+the whole run and eventually drives `SD0..3` against the flash. XIP dies
+instantly, which is what D1 going dark actually measures; the watchdog fires on
+time; and the bootrom cannot read the image either, so it falls to USB boot or
+hangs before the pull-up goes back up. Only cutting VBUS clears it because only
+that power-cycles U1. `m9`'s `main()` now parks GPIO0 high first thing:
+**15,008 frames over five 3,000-frame soaks with zero outages**, against one
+completion in five before. The bring-up log has the diagnosis, the two soaks
+that excluded the clock and the rail, and what is left of
+[#9](https://github.com/kazunori279/fpga-open-vocab/issues/9).
+
+The same event exposed a limit of the reporting that still stands: stage, frame
+and the `CHIP_RESET` copy all live in watchdog scratch, and scratch does not
+survive the power cycle that is the only recovery — so an outage that ends in
+`uhubctl` cannot be attributed by the board at all. `host/usb_watch.py` is the
+answer for now, logging the hub port from outside the reset; last words in a
+flash sector are what would let the board answer for itself.
 
 ---
 
