@@ -1771,15 +1771,29 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
         // within half a point of what the single cut actually scored the first
         // time. Nothing reached the 0.15 edge: the lowest was 0.22.
         //
-        // NOT YET MEASURED: what the stage BUYS. Replaying the baseline against
-        // the run's own references says it would have held - 0/30 called
-        // present, worst case - but a stage whose cost is measured and whose
-        // benefit is inferred is half a result. It had never fired on a bench
-        // because the only empty desk in cue.py's schedule was the baseline,
-        // which runs before the rule engages AND is the segment the absent
-        // reference is taught from. cue.py now revisits the empty scene once
-        // per cycle, last in the rotation, and tools/score_cue.py scores those
-        // segments on their own; what is still owed is the run. #15.
+        // MEASURED 2026-08-16, AND THIS STAGE DOES NOT WORK. The 0/30 that
+        // stood in for it was the baseline replayed against references taken
+        // from the baseline - training accuracy. On 90 held-out empty frames it
+        // held 16/90 and 22/90 across two runs, released once 24 and 18 frames
+        // after the first cue, and never released again: visits 2 and 3 were
+        // 30/30 called present both times.
+        //
+        // Two things are wrong and only one is fixable here. absent_lvl came
+        // out -0.46 and +0.16, which is arithmetic and not a fact about the
+        // desk: key '0's window sits right after the background was frozen, so
+        // it measures the freeze against itself and reads ~0 with a book in
+        // shot too. It stores the freeze, not an empty desk. The other one is
+        // structural - THE PRESENCE AXIS IS THE COMMON MODE, which is the exact
+        // term cz[] subtracts above to make the state stage drift-immune. The
+        // three empty revisits of run 2 read 0.21 / 0.32 / 0.44 of the span,
+        // monotonically, past a leave edge of 0.15: the sensor warming up,
+        // priced in span. Worst cases overlap by 0.87 of a span, so no pair of
+        // edges separates them and FGX_PRESENT_ON/OFF are not the knob.
+        //
+        // #18 replaces this block with open-set rejection in the centred space,
+        // min_k ||cz - qref[k]|| > radius - m21_d and m21_sep above are already
+        // it - which inherits the state stage's drift immunity and deletes the
+        // absent enrolment. #15 is the measurement that got here.
         if (absent_on) {
             float obj = 0.0f;
             uint32_t no = 0;

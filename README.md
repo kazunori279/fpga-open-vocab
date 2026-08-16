@@ -73,17 +73,25 @@ harness, and rebuilding the model — are in [`docs/building.md`](docs/building.
 | **retention** | 91% of the queries the teacher itself gets right, at int4 |
 | **fabric** | **6,265 of 7,384 LE (85%)**, 8/8 multipliers, **21 of 24 memory blocks** — it started at 33% with memory the only thing running out; three milestones of arithmetic later both are nearly full |
 | **link** | 26.4 MB/s forward measured, 8.9 MB/s back, and it cannot be widened either way |
-| **decision rule** | 120/120 held out on the board at M21, against 90/180 for ranking the same frames |
+| **decision rule** | 120/120 held out on the board at M21 on 2026-08-11, against 90/180 for ranking the same frames — **and the 2026-08-16 bench does not reproduce it**, twice, at 58.3% and 57.5% with the same rule and the same phrases. What changed is the bench, not the firmware: it now empties the desk between visits, so the objects are re-staged rather than sitting still. Which number is the honest one is [#19](https://github.com/kazunori279/fpga-open-vocab/issues/19), and one control run settles it. The rule's other half, presence, **is** settled and it failed: [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) |
 | **the flaky two** | both now measured rather than guessed at. The camera bus's **worst gap is 16 µs against a 2,000 µs deadline** over 152 frames at 280/140, and 15 µs over 101 at 320/160 — the same at both rates, 125× clear, so [#12](https://github.com/kazunori279/fpga-open-vocab/issues/12) is not the fast side running out of time. A USB outage is now caught **by the board** off `sof_rd` rather than inferred by the host from a log that stopped: it re-attaches itself in ~2.8 s, says which frames it lost, and reboots deliberately at 30 s. `'U'` and `'I'` make both halves happen on demand, which is how they were checked. [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9) is still open, and it now has a third shape in it: a reset from underneath the firmware, which the banner separates from a watchdog reboot by diffing `POWMAN_CHIP_RESET` |
 
 Two GO/NO-GO gates were passed on the way: **M2** (is the on-board link fast and
 clean enough to be worth using) and **M4** (can a model small enough to fit still
 tell the queries apart). What is left is not speed — it is the decision rule, and
-one honest gap in it: the presence stage's *benefit* has never been measured,
-because it had never fired on a bench — the only empty scene in the schedule
-was the one the rule was taught from. The bench now returns to an empty desk
-after every class is enrolled, and scores it; what is owed is the run
-([#15](https://github.com/kazunori279/fpga-open-vocab/issues/15)).
+the one honest gap that was left in it has now been measured and it came back
+badly. The presence stage's *benefit* had never been tested, because it had never
+fired on a bench — the only empty scene in the schedule was the one the rule was
+taught from, so the 0/30 that stood in for it was training accuracy. The bench
+now returns to an empty desk after every class is enrolled and scores it, and on
+two runs the stage held **17.8% and 24.4%** of those frames. The cause is
+structural rather than a threshold: the presence axis is the common mode, which
+is exactly the part the state axis subtracts because it is where the sensor's
+drift lives. [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18)
+replaces it with open-set rejection in the centred space, and can be tried
+against the existing logs before the board is touched. The same runs put the
+state stage's 120/120 in doubt as well
+([#19](https://github.com/kazunori279/fpga-open-vocab/issues/19)).
 
 **Open work is in [issues](https://github.com/kazunori279/fpga-open-vocab/issues)**,
 labelled `P0`/`P1`/`P2`. The docs here record what was measured; what is still owed

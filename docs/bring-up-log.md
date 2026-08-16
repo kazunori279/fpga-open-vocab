@@ -11,6 +11,75 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-16 — the presence stage fired on a bench for the first time, and holds one frame in five
+
+The last unmeasured claim in the decision rule ([#15](https://github.com/kazunori279/fpga-open-vocab/issues/15))
+had never been measured for a reason that was in the schedule rather than in the
+rule: the only empty desk `cue.py` ever cued was the baseline at the head of the
+run, which is both before the rule engages *and* the segment the empty reference
+is taught from. `cue.py` now returns to an empty desk **once per cycle, last in
+the rotation**, so the first revisit lands at frame 140 with the rule live from
+134, and `tools/score_cue.py` scores those segments on their own. Two runs of
+`./ab.sh "an opened book" "a closed book" --enrol`, 90 held-out empty frames
+each:
+
+| | run 1 (17:22) | run 2 (17:35) |
+|---|---|---|
+| **held** — what the stage buys | **16/90 (17.8%)** | **22/90 (24.4%)** |
+| called present, wrongly | 74/90 | 68/90 |
+| what it called them | `a closed book` 73 | `a closed book` 67 |
+| visit 1 (cue 140) | released 24 frames after the cue | released 18 frames after the cue |
+| visits 2 and 3 | 30/30 present, never released | 30/30 present, never released |
+
+**The replayed 0/30 was training accuracy.** It was the baseline scored against
+references taken from the baseline, and it said the stage would hold on every
+frame. On frames nothing was fit to, it holds one in five, and after the first
+revisit it does not hold at all.
+
+**Two things are wrong, and only one of them is the desk.** The enrolled anchors:
+
+| | `absent_lvl` | `an opened book` | `a closed book` | span |
+|---|---|---|---|---|
+| run 1 | −0.46 | −8.24 | −14.94 | −11.13 |
+| run 2 | +0.16 | −13.42 | −17.33 | −15.53 |
+
+`absent_lvl` ≈ 0 in both, and that is arithmetic rather than a fact about the
+desk — key `0`'s window sits immediately after `--bg-tau` froze the background,
+so it measures the freeze against itself and would read ≈ 0 with a book in shot
+too. It stores the freeze, not an empty desk. That is fixable. The second one is
+not: the presence axis **is** the common mode, and the common mode is where the
+drift lives — it is the exact term `c[i] = z[i] - lvl` subtracts to make the
+state stage drift-immune. Run 2's three empty revisits read 0.21 / 0.32 / 0.44 of
+the span, rising monotonically, against a `FGX_PRESENT_OFF` of 0.15. That is the
+sensor warming up, priced in fractions of span, and it is why visit 3 is worse
+than visit 1. The two distributions overlap by −0.87 of a span at their worst
+cases, so no pair of edges separates them and retuning is not a fix.
+[#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) proposes
+rejecting on `min_k ||c[] - qref[k]|| > radius` instead — the same centred space
+the state stage already decides in, which inherits its drift immunity and removes
+the empty-scene enrolment entirely. `m21_d` and `m21_sep` are already computed
+every frame, and the rule can be replayed off these two logs before any firmware
+change, because `c[] = z[] - lvl` is recoverable from what the frame lines print.
+
+**The same runs put the state stage in doubt, which was not the plan.** It scored
+58.3% and 57.5% held out, against 120/120 on 2026-08-11 with the same rule, the
+same two phrases and the same board. The two failures do not look alike — run 1
+separates the scenes cleanly (`a closed book` AUC 0.954) and puts the labels on
+the wrong side of the split, 46 of 66 closed-book frames called `an opened book`;
+run 2 barely separates them at all (AUC 0.647 / 0.595). The one thing that
+changed is this bench: emptying the desk three times means the books were
+re-staged three times, where on 08-11 they plausibly sat still for all three
+visits. If that is it, 120/120 was measuring a desk that never moved and the
+honest headline is the lower number.
+[#19](https://github.com/kazunori279/fpga-open-vocab/issues/19) has the runs and
+the `--no-revisit-empty` control that tells them apart. Until it is run, **the
+120/120 in the README is not safe to quote.**
+
+Logs: `/tmp/m9_cue-20260816-172256.log`, `/tmp/m9_cue.log`, and
+`/tmp/m9_cue-20260811-072207.log` for the run they are against.
+
+---
+
 ### 2026-08-16 — it was never USB: the PSRAM's chip select had the QSPI bus the whole time
 
 **The entry below reads the 1,987 outage as a USB fault and offers two endings,

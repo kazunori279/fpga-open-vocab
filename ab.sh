@@ -36,10 +36,17 @@
 # out, which is what --repeat was already producing and nothing was using.
 #
 # The rotation also goes back to an EMPTY desk once per cycle, after the classes.
-# Take everything out when it says so. That segment is what measures the presence
-# stage - the half of the rule that answers "nothing there" - and it could not be
-# measured before, because the only empty scene in the schedule was the one the
+# Take everything out when it says so, and put the objects back where they were -
+# see below, because that turned out to matter. That segment is what measures the
+# presence stage, the half of the rule that answers "nothing there", and it could
+# not be measured before: the only empty scene in the schedule was the one the
 # rule learns "empty" from. --no-revisit-empty drops it.
+#
+# It has now been measured, twice, and the stage holds 17.8% and 24.4% of those
+# frames - see #18, which replaces it. Meanwhile the re-staging this rotation
+# forces appears to have cost the STATE stage too: 58% held out on both runs
+# against 120/120 on 2026-08-11, when the objects plausibly never moved between
+# visits. That is #19, and --no-revisit-empty is the control that settles it.
 #
 # Extra flags go through to host/cue.py, so --hold 200 and --quiet work here.
 # Flags that belong to host/demo.py rather than cue.py need the = form -
