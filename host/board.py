@@ -27,6 +27,8 @@ that answers it is the vendor ID.
 """
 from __future__ import annotations
 
+import re
+import subprocess
 import sys
 
 from serial.tools import list_ports
@@ -42,7 +44,48 @@ RP2350_VID = "2E8A"
 
 # How it comes back. A reboot is not enough once the firmware has stopped
 # answering, and picotool cannot reach a device that is not enumerating at all.
-RECOVER = "uhubctl -l 2-1 -p 1 -a cycle   # then wait ~9 s and retry"
+#
+# THE PORT CANNOT BE A CONSTANT, which this file learned the hard way. It used
+# to read `-l 2-1 -p 1`, and on 2026-08-16 the board moved to port 2 because a
+# neighbour was unplugged - so the printed advice would have cycled an EMPTY
+# port and then reported that even the hammer did not work. Recovery advice
+# naming the wrong port is worse than advice naming none.
+#
+# And it has to be looked up EARLY, while the board is still there: the moment
+# this string is needed - issue #9's outage - the board is gone from uhubctl's
+# tree and cannot be found by VID any more.
+_WHERE: tuple[str, str] | None = None
+
+
+def note_where() -> tuple[str, str] | None:
+    """Remember which hub port the board is on. Call it while it is still on."""
+    global _WHERE
+    try:
+        out = subprocess.run(["uhubctl"], capture_output=True, text=True,
+                             timeout=20).stdout
+    except (FileNotFoundError, subprocess.SubprocessError):
+        return _WHERE
+    hub = None
+    for line in out.splitlines():
+        m = re.match(r"\s*Current status for hub (\S+)", line)
+        if m:
+            hub = m.group(1)
+            continue
+        m = re.match(r"\s*Port (\d+):", line)
+        if m and hub and f"{RP2350_VID.lower()}:" in line.lower():
+            _WHERE = (hub, m.group(1))
+            break
+    return _WHERE
+
+
+def recover() -> str:
+    """The command that brings the board back, naming the port if we know it."""
+    if _WHERE:
+        return (f"uhubctl -l {_WHERE[0]} -p {_WHERE[1]} -a cycle"
+                f"   # then wait ~9 s and retry")
+    return ("uhubctl -l HUB -p PORT -a cycle   # then wait ~9 s and retry. "
+            "The board is not in uhubctl's tree any more, so it cannot name "
+            "the port for you: take the one showing `power` with no `connect`.")
 
 
 def ports() -> list:
@@ -72,6 +115,7 @@ def pick_port() -> str:
     if len(hits) > 1:
         raise SystemExit("several RP2350s, pass --port: "
                          + ", ".join(p.device for p in hits))
+    note_where()   # while it is still there to be found
     return hits[0].device
 
 
@@ -81,6 +125,6 @@ if __name__ == "__main__":
         print(f"no RP2350 (VID {RP2350_VID}) - the board is not enumerating.",
               file=sys.stderr)
         print(f"  other modems: {neighbours()}", file=sys.stderr)
-        print(f"  {RECOVER}", file=sys.stderr)
+        print(f"  {recover()}", file=sys.stderr)
         sys.exit(1)
     print(port)

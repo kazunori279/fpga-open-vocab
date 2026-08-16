@@ -450,7 +450,7 @@ def main() -> int:
         print(f"no RP2350 (VID {board.RP2350_VID}) - the board is not "
               f"enumerating. Other modems: {board.neighbours()}", file=sys.stderr)
         if not shutil.which("uhubctl"):
-            print(f"  {board.RECOVER}", file=sys.stderr)
+            print(f"  {board.recover()}", file=sys.stderr)
             return 1
         # Do it rather than advise it. ab.sh already power-cycled on this
         # condition; moving it here means a bare cue.py run recovers too, which

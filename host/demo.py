@@ -125,7 +125,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "model"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from board import (RP2350_VID, RECOVER, find_port,  # noqa: E402
+from board import (RP2350_VID, recover, find_port,  # noqa: E402
                    pick_port, ports as bus_ports)
 
 MAGIC_B = b"FGXB"
@@ -955,7 +955,7 @@ def main() -> int:
             emit(f"[host] nothing with VID {RP2350_VID} came back within "
                  f"{REOPEN_S:.0f}s, so the board is not enumerating at all and "
                  f"the watchdog did not get it either.\n"
-                 f"[host] {RECOVER}\n")
+                 f"[host] {recover()}\n")
             # AND STOP, because `s` is closed and everything after this point
             # writes to it. Returning "" used to let the caller carry on into
             # the next send(), which then died on PortNotOpenError - a traceback
