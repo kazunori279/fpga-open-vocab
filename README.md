@@ -73,7 +73,7 @@ harness, and rebuilding the model — are in [`docs/building.md`](docs/building.
 | **retention** | 91% of the queries the teacher itself gets right, at int4 |
 | **fabric** | **6,265 of 7,384 LE (85%)**, 8/8 multipliers, **21 of 24 memory blocks** — it started at 33% with memory the only thing running out; three milestones of arithmetic later both are nearly full |
 | **link** | 26.4 MB/s forward measured, 8.9 MB/s back, and it cannot be widened either way |
-| **decision rule** | 120/120 held out on the board at M21 on 2026-08-11, against 90/180 for ranking the same frames — **and the 2026-08-16 bench does not reproduce it**, twice, at 58.3% and 57.5% with the same rule and the same phrases. What changed is the bench, not the firmware: it now empties the desk between visits, so the objects are re-staged rather than sitting still. Which number is the honest one is [#19](https://github.com/kazunori279/fpga-open-vocab/issues/19), still, after four attempts: the two 08-17 runs with a clean enrolment scored 91.7% and 59.2%, and what differs is how far a re-staged object landed from the reference taken on its first visit — so the re-staging is the mechanism, but the empty rotation is not. The rule's other half, presence, **is** settled: the level-based one failed at 17.8% and 24.4%, and [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) has replaced it with open-set rejection, which scores **90.0% and 87.8%** replayed on the very frames that killed it. That is offline replay, and the first bench of it on 2026-08-17 held **0/90** — of the staging, not the rule: the board's own enrolment guard printed `SITS 0.14 SEP FROM THE ORIGIN` before the first held-out frame, an opened book lying flat being nearly indistinguishable from the desk the background froze on. Two more on 08-17 failed on the enrolment too; the guard for that is now in the firmware and the re-run is still owed. **Replayed across all nine archived benches** by `tools/probe_presence.py`, three are inverted — the empty desk nearer the references than the objects, which no threshold repairs — and six are not, four of them at AUC 0.90–0.96. The shipped radius scores 59.2% balanced; the best one chosen without seeing the bench scores 64–68%, in any of three units. So the stage works when the scene lets it, and retuning the constant is worth five points, not thirty |
+| **decision rule** | 120/120 held out on the board at M21 on 2026-08-11, against 90/180 for ranking the same frames — **and nothing since reproduces it**: 58.3% and 57.5% on 2026-08-16, then 57.5% again on 08-17 from a control run that took the empty desk back out of the schedule. That control is [#19](https://github.com/kazunori279/fpga-open-vocab/issues/19)'s own outcome (2) — the re-staging is real, but the schedule is not what causes it. The clearest evidence yet is in the visit centres: the opened book's four visits walked +1.96, +3.25, +4.64, +4.39 toward the closed book sitting flat at +5.8, **without ever leaving the frame**, so 9 of 60 held-out opened frames were called right against 66 of 66 closed ones. The signal is not what moved — the margin still separates the two scenes at 93.8%, AUC 0.970 — and the weights and bitstream crc32s are byte-identical across all three dates, so what collapsed is the nearest-reference rule and not the encoder. The rule's other half, presence, is settled in shape and not in constant: the level-based one failed at 17.8% and 24.4%, and [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) replaced it with open-set rejection, which scores **90.0% and 87.8%** replayed on the very frames that killed it. **Replayed across all ten archived benches** by `tools/probe_presence.py`, three are inverted — the empty desk nearer the references than the objects, which no threshold repairs — and seven are not, five of them at AUC 0.90–0.96. But fit the radius on nine benches and score it on the tenth and the best unit gains 6.0 points over the shipped `2.0 sep` while paying **10.7** for not having seen that bench, so there is nothing worth changing it to |
 | **the flaky two** | both now measured rather than guessed at. The camera bus's **worst gap is 16 µs against a 2,000 µs deadline** over 152 frames at 280/140, and 15 µs over 101 at 320/160 — the same at both rates, 125× clear, so [#12](https://github.com/kazunori279/fpga-open-vocab/issues/12) is not the fast side running out of time. A USB outage is now caught **by the board** off `sof_rd` rather than inferred by the host from a log that stopped: it re-attaches itself in ~2.8 s, says which frames it lost, and reboots deliberately at 30 s. `'U'` and `'I'` make both halves happen on demand, which is how they were checked. [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9) is still open, and it now has a third shape in it: a reset from underneath the firmware, which the banner separates from a watchdog reboot by diffing `POWMAN_CHIP_RESET` |
 
 Two GO/NO-GO gates were passed on the way: **M2** (is the on-board link fast and
@@ -92,17 +92,19 @@ replaces it with open-set rejection in the centred space — absent when the fra
 is further than 2.0 `sep` from every reference the board was shown — and because
 that quantity is recoverable from the logs, the replacement was scored on the two
 failing runs **before** the board was touched: **90.0% and 87.8%** held, keeping
-98.3% and 85.0% of the class frames. That is now the firmware, awaiting its
-confirmation bench. The same runs put the state stage's 120/120 in doubt as well
-([#19](https://github.com/kazunori279/fpga-open-vocab/issues/19)), and one
-session settles both.
+98.3% and 85.0% of the class frames. That is now the firmware, and ten benches
+have since run it: the shape holds where the scene lets it, the radius is not
+worth retuning, and what is left of #18 is a geometry question. The same runs
+put the state stage's 120/120 in doubt as well
+([#19](https://github.com/kazunori279/fpga-open-vocab/issues/19)), which four
+benches later is still open with the schedule ruled out.
 
 Several benches have since tried to confirm it and none of them measured the
 rule — each was spent on a bad enrolment instead, in a way nothing was checking
 for. So the board now checks: it compares the gap between the two references
-against the **spread of the frames each was averaged from**, and says so at the
-console rather than letting the run finish. It first fired on hardware on
-2026-08-17 at 0.7×, ninety seconds into a run that went on to score 47.5% —
+against the **spread of the frames each was averaged from**, and prints both at
+the console before the first held-out frame. It first called a run on hardware
+on 2026-08-17 at 0.7×, ninety seconds in, on one that went on to score 47.5% —
 right, and nine minutes earlier than the scoring pass.
 
 **The first version measured that spread inside one enrolment window, and that
@@ -112,20 +114,22 @@ where the *same object staged again* lands, which at the moment a reference is
 taken has never been observed. So enrolment takes **two visits** now: press the
 class's digit again later and both windows fold into one reference.
 
-**Then the first run to test that prospectively rejected the best bench of the
-day, and the guard is one-sided as a result.** Measured over two visits the
-ratio put nine benches on the correct side of 2.0 with nothing between 1.24 and
-2.64 — and the tenth read 1.12 and scored 92.5%, the best in the project, with
-the board telling the operator to throw it away. Eleven runs now: above 2.6
-there are three and they scored 91.7%, 96.7% and 100.0%; the eight below it run
-from 92.5% down to 47.5%. So
-the bar only ever says the good news, and below it the board prints the numbers
-and no advice. **Three quantities measurable at enrolment have now failed the
-same way** — `sep`, the one-window ratio, the two-visit ratio — because what
-decides a run is where the object lands on visits that have not happened yet.
-`sep` in particular carries no signal at all: its largest value of the nine
-belongs to a 76.7% run, and since #18's absent radius is quoted in `sep`, that
-radius is still not being touched.
+**Then it was tested prospectively four times and came out backwards at both
+ends.** Measured over two visits the ratio put nine benches on the correct side
+of 2.0 with nothing between 1.24 and 2.64 — and the tenth read 1.8× on the
+board, was told to throw itself away, and scored 92.5%, the best in the project.
+That left the bar as good news only, until the run that finally cleared it did
+so at **3.7×, the highest this arithmetic has ever produced on any bench**, and
+scored **57.5%**; the 2.3× run four minutes later scored 74.2%. In order:
+3.7 → 57.5%, 2.3 → 74.2%, 1.8 → 92.5%, 1.2 → 68.3%. **So `FGX_ENROL_SNR` is
+deleted rather than re-fitted.** Four quantities measurable at enrolment have
+now failed the same way — `sep`, the one-window ratio, the two-visit ratio, and
+the two-visit ratio read one-sided — because what decides a run is where the
+object lands on visits that have not happened yet. The board still computes the
+ratio and prints it, and no longer says anything about what it means. `sep` in
+particular carries no signal at all: its largest value belongs to a 76.7% run,
+and since #18's absent radius is quoted in `sep`, that radius is still not being
+touched.
 
 **Open work is in [issues](https://github.com/kazunori279/fpga-open-vocab/issues)**,
 labelled `P0`/`P1`/`P2`. The docs here record what was measured; what is still owed

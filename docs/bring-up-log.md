@@ -11,6 +11,142 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-17 — the control run says #19 is not the schedule, and the bar certified the run it settles
+
+Two benches at 13:35 and 13:39, same light, same phrases, same board, four
+minutes apart. The first dropped the empty revisit — issue #19's control, meant
+to reproduce the 2026-08-11 conditions that produced 120/120. The second put the
+empty rotation back for #18. Both clean: 387 and 547 frames, nothing dropped, no
+reboot. `bench/cue/m9_cue-20260817-133552.log` and `-133952.log`.
+
+**The hypothesis is dead.** #19 proposed that `cue.py`'s return to an empty desk
+made the operator re-stage the objects, so 08-16's 58% was the honest number and
+08-11's 120/120 had been measuring a desk that never moved. Remove the revisit
+and it should come back near 100%:
+
+| run | schedule | held out |
+|---|---|---|
+| 2026-08-11 07:22 | no empty revisit | **120/120 (100.0%)** |
+| 2026-08-16 17:22 | empty revisit | 70/120 (58.3%) |
+| 2026-08-16 17:35 | empty revisit | 69/120 (57.5%) |
+| **2026-08-17 13:35** | **no empty revisit** | **69/120 (57.5%)** |
+
+It came back at 57.5%, which is the issue's own outcome (2): whatever changed
+between 08-11 and 08-16, it is not the schedule.
+
+**But the reading underneath the hypothesis survives, and now there is a
+picture of it.** The claim worth keeping was never about the empty scene, it was
+that on 08-11 "held out" meant held out in time and not in pose. Visit centres,
+from `tools/probe_sepscale.py`:
+
+```
+08-11 07:22   a closed book    -0.86  -0.81  -0.98
+              an opened book   -2.47  -3.96  -3.36
+
+08-17 13:35   a closed book    +5.82  +5.33  +6.97  +5.98
+              an opened book   +1.96  +3.25  +4.64  +4.39
+```
+
+The closed book sits still in both. The opened book walks — monotonically, and
+toward the class it is being told apart from. Enrolment pooled visits 1 and 2,
+centre +2.6; the two held-out visits arrived at +4.64 and +4.39, by which point
+the closed reference at +5.8 was the nearer one. **9 of 60 held-out opened
+frames were called right, and 66 of 66 closed ones were** — the same
+one-directional collapse #19 recorded for 08-16 run 1.
+
+And the book never left the frame. It was opened and closed in place for the
+whole run, which is exactly what the control was for. So pose drift is not
+caused by taking the object out of shot; it happens anyway, and 08-11 is the run
+where it happened not to.
+
+The `--preview 20` pictures say what moved. Recovered from the log with
+`uv run host/cam.py <log> --out /tmp/shots` — the base64 is in there, which is
+the whole reason `--preview` costs 44 KB a frame. Visits 1 and 2 of the opened
+book are pages filling the frame; visits 3 and 4 are a book that has receded far
+enough to show its spine and the desk around it. A book you can see the edges of
+looks more like *a book* and less like *a page*, which is the direction the
+numbers moved.
+
+**The signal did not degrade, and the encoder is not involved.** Re-scoring
+08-11 with today's `score_cue.py`, the margin `an opened book − a closed book`
+separates the two scenes at 100.0% (best cut, in sample); on today's control it
+separates them at **93.8%**, AUC 0.970. What collapsed is the nearest-reference
+rule, on frames a linear margin still splits. Three things are therefore
+excluded:
+
+- **the model and the RTL.** `weights crc32=0xF368CC6E` and
+  `bitstream crc32 0a2e9953` are byte-identical in the 08-11, 08-16 and 08-17
+  logs. Same teacher, same weights, same fabric.
+- **the requantize fix (#14, `9e2b887`, 2026-08-15).** It sits exactly in the
+  gap and it changed the encode by 80 ms, but `probe()` gates it on all 512
+  embedding floats matching `encoder_fast` and reported 512/512 exact. It is
+  bit-exact; it cannot have moved an embedding.
+- **anything in `m9.c`'s decision path**, which #19 already established.
+
+What is left in the gap is the capture path (`7412684` overlapped the capture,
+`c2a787e` stopped shipping a half-second-old frame — both change which photons
+land in a frame without changing any arithmetic), the clock and link rate
+(280/75 → 320/160), and the enrolment procedure itself: 08-11 enrolled three
+references from one visit each including the empty desk, today enrols two from
+two visits each. **#19 stays open**, with the schedule ruled out.
+
+**And the enrolment bar certified the 57.5% run.** This is the fourth statistic
+to fail and it failed on its first prospective test. The board printed, at
+frame 212:
+
+> This enrolment clears the bar: 4.29 apart against 1.17 of spread within a
+> class, over 2 visits. The three benches that have done that scored 91.7%,
+> 96.7% and 100.0%. **Three runs is all it rests on.**
+
+3.7× is the highest ratio this arithmetic has ever produced on any bench. It
+held 69 of 120. The 13:39 run read 2.3×, below the bar, and scored 74.2%.
+
+Four benches have ever produced a board-side two-visit ratio — every prospective
+test the bar has had — and it is ordered backwards at both ends:
+
+| board's own ratio | held out | |
+|---|---|---|
+| 3.7 | 57.5 % | 08-17 13:35, certified |
+| 2.3 | 74.2 % | 08-17 13:39 |
+| 1.8 | 92.5 % | 08-17 11:26, `THE CLASSES OVERLAP` |
+| 1.2 | 68.3 % | 08-17 11:44 |
+
+Note which column that is. The bar ran in firmware on the board's own number,
+from the 20 frames after the key press; the eleven-run table in `m9.c` and
+`probe_sepscale.py` is an offline replay pooled from the first 20 frames of each
+cued span, and the two disagree — 11:26 replays at 1.12 and the board printed
+1.8×. This is the same two-columns-that-look-alike trap as the held-out figures
+earlier today, so both are now labelled wherever they appear.
+
+`FGX_ENROL_SNR` is **deleted**. Not moved, not re-fitted: `sep`, ratio(1),
+ratio(2) and ratio(2)-used-only-upward have now each sorted the benches they
+were measured on and broken on the next one, and the fifth statistic would be
+the same mistake a fifth time. The ratio is still computed and still printed,
+because it is a real property of the enrolment; the board no longer says
+anything about what it means, in either direction. Flashed 2026-08-17.
+
+**#18's tenth bench, from the 13:39 run:** AUC 0.911, not inverted, its own best
+radius 1.20 absolute for 83.8% balanced — and `FGX_ABSENT_TRIP = 2.0 sep` scores
+50.0% on it, the floor. Adding it to the leave-one-bench-out replay moves the
+answer past a threshold of its own:
+
+```
+unit                          blind mean   LOO cost   worst
+scat, the enrolment spread         64.3%      10.7    20.1
+absolute distance                  62.7%      12.2    33.8
+sep, as FGX_ABSENT_TRIP does       59.9%      12.5    33.5
+FGX_ABSENT_TRIP = 2.0 sep          58.3%
+```
+
+This morning, on nine benches, the best blind unit beat the shipped constant by
+7.9 points against a leave-one-out cost of 6.8 — thin, but positive. On ten it
+is 6.0 points against a cost of 10.7. **The cost of not having seen the bench
+now exceeds the gain over what ships**, so there is no radius worth changing to,
+and that is a stronger statement than "worth about five points". `FGX_ABSENT_TRIP`
+is untouched for the fourth day running.
+
+---
+
 ### 2026-08-17 — "the presence geometry is inverted" was wrong, and the nine-bench replay says the radius is worth five points
 
 Written into the entry below this morning, and put on issue #18 before anything

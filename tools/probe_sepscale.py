@@ -25,10 +25,12 @@ themselves are in bench/cue/ and bench/README.md lists both columns for each:
     08-11 07:22   100.0 %       2.28        13.91      2.94      3.49
     08-17 09:18    91.7 %       3.61         2.17      2.64      2.29
     ------------------ 2.6, and everything above it worked ----------------
+    08-17 13:35    57.5 %       5.46         2.49      2.08      1.70
     08-17 09:33    59.2 %       3.83         2.71      1.24      1.06
     08-17 11:26    92.5 %       0.07         0.09      1.12      2.15
     08-17 09:57    74.2 %       3.69         1.81      0.94      1.05
     08-17 11:44    68.3 %       0.55         0.24      0.92      0.58
+    08-17 13:39    74.2 %       3.73         2.93      1.89      1.73
     08-17 08:57    76.7 %       5.83         3.69      0.87      0.95
     08-17 09:55    47.5 %       0.84         0.67      0.44      0.04
     08-16 17:22    58.3 %       0.17         0.05      0.22      0.28
@@ -38,19 +40,29 @@ THIS TABLE HAD A VOID IN IT AND 11:26 FILLED IT. Written on the first nine rows,
 this tool claimed ratio(2) put every run on the correct side with nothing
 between 1.24 and 2.64. 11:26 is the first bench whose references the board
 itself built from two visits - the first prospective test rather than a replay -
-and it read 1.12 and scored 92.5%, the best in the project. The board printed
-THE CLASSES OVERLAP and told the operator to throw it away.
+and it read 1.12 here and scored 92.5%, the best in the project. The board
+printed THE CLASSES OVERLAP and told the operator to throw it away.
 
-SO READ IT ONE-SIDED. Above 2.6: three runs, 91.7%, 96.7%, 100.0%. Below it:
-nothing, the eight rows there running from 92.5% down to 47.5%. That is a
-sufficient condition and not a necessary one, and the guard in m9.c used to have
-it backwards.
+SO IT WAS READ ONE-SIDED FOR HALF A DAY - above 2.6 three runs had scored 91.7%,
+96.7% and 100.0%, so high certified and low said nothing - AND 13:35 ENDED THAT
+TOO. Beware which column you check that against: the bar lived in the firmware
+and ran on the BOARD's ratio, from the 20 frames after the key press, not on
+this tool's, which pools the first 20 of each cued span. 11:26 replays at 1.12
+here and the board printed 1.8x. Four benches have ever produced a board-side
+two-visit ratio - every prospective test the bar has had - and they run
+3.7 -> 57.5%, 2.3 -> 74.2%, 1.8 -> 92.5%, 1.2 -> 68.3%: backwards at both ends.
+So this tool no longer prints a verdict either, and m9.c has no constant.
 
 `sep` on its own is worse still - its largest value, 5.83, belongs to a 76.7%
 run and 11:26 scored 92.5% at 0.07 - and so is ratio(1), which puts 08:57 (3.69)
-above 09:18 (2.17) and scores them 76.7% against 91.7%. Three quantities
-measurable at enrolment, three failures of the same shape: what decides a run is
-where the object lands on visits that have not happened yet.
+above 09:18 (2.17) and scores them 76.7% against 91.7%. Four quantities
+measurable at enrolment now, four failures of the same shape: what decides a run
+is where the object lands on visits that have not happened yet. 13:35 is the
+cleanest demonstration in the tree, and it is in the visit centres this tool
+prints first rather than in any ratio below them - its opened book walked +1.96,
++3.25, +4.64, +4.39 across four visits while its closed book sat at +5.8, so the
+reference built from visits 1 and 2 described neither of the visits it was
+scored on. Read those rows before the ratios.
 
 WHAT THE RATIO IS. Pool the first N visits of a class and take the mean: that
 is the class centre rather than one visit's accident, and `sep` becomes the gap
@@ -67,9 +79,9 @@ the board averages.
 WHY THIS IS A TOOL AND NOT A NOTE. The board only has the visits it was shown,
 so ratio(all) is not available to it at the bench - ratio(2) is, if enrolment
 takes two key presses per class. Whether those two are enough, or whether the
-third visit was quietly doing the work, is the question the firmware constant
-has to be set against, so all three columns are printed side by side. They are
-what FGX_ENROL_V and FGX_ENROL_SNR in firmware/m9.c were chosen on.
+third visit was quietly doing the work, is what the three columns printed side
+by side are for. They are what FGX_ENROL_V in firmware/m9.c was chosen on. There
+is no longer a threshold for them to set: see THE ENROLMENT RATIO there.
 """
 import itertools
 import statistics as st
@@ -130,14 +142,12 @@ def score(log: Path) -> None:
           f"ratio {two / two_n:5.2f}   <- what the board could have")
     print(f"    every visit       sep {allv:5.2f}  noise {all_n:5.2f}  "
           f"ratio {allv / all_n:5.2f}   ({nv}+ visits per class)")
-    if two / two_n >= 2.6:
-        print("      the two-visit ratio clears 2.6, which three benches have "
-              "done and all\n      three scored above 91%. Three runs is all "
-              "that rests on.")
-    else:
-        print("      the two-visit ratio is under 2.6, which on its own says "
-              "nothing: the\n      eight benches below that line run from "
-              "92.5% down to 47.5%.")
+    # NO VERDICT. There was a bar here at 2.6 and m9.c had one to match; both
+    # went on 2026-08-17, when the highest ratio the board has ever computed
+    # certified a 57.5% run. See THE ENROLMENT RATIO in firmware/m9.c.
+    print("      no verdict on that ratio: high and low have each now been "
+          "wrong. On the\n      board's own column 3.7 scored 57.5% and 1.8 "
+          "scored 92.5%.")
 
 
 def main() -> int:

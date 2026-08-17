@@ -217,9 +217,12 @@ static uint32_t n_gate, n_class;   // recounted by recv_queries, read every fram
 // boundary. Press the digit again on a later visit and both visits fold into
 // the same class: the reference moves to the middle of the class instead of
 // wherever the first visit happened to sit, and - the actual point - the
-// spread below starts measuring the staging variance too. See FGX_ENROL_SNR.
+// spread below starts measuring the staging variance too. That did not turn
+// the spread into a predictor - see THE ENROLMENT RATIO below, which is the
+// record of four attempts to make one out of it - but it is still the honest
+// version of the number, and the board reports it without judging it.
 //
-// Two is what host/cue.py schedules and what the guard asks for. More is
+// Two is what host/cue.py schedules and what the print reports over. More is
 // allowed and costs nothing but bench time; the arithmetic is a running sum.
 #define FGX_ENROL_V 2u
 
@@ -264,8 +267,14 @@ static bool  m21_present;                 // the presence stage's sticky state
 #define FGX_ABSENT_TRIP  2.0f
 #define FGX_ABSENT_STAY  1.5f
 
-// IS THE ENROLMENT WORTH ANYTHING, asked in the only units that can answer it.
-// `sep` alone cannot: it is the yardstick everything else is quoted in, so a
+// THE ENROLMENT RATIO, AND WHY IT IS REPORTED AND NOT JUDGED. There is no
+// constant here any more, and the four attempts to put one here are the reason
+// this comment is long: it is the record of a mistake made four times, and the
+// next person to think of a fifth statistic should read to the end first.
+//
+// The question was whether the enrolment is worth anything, asked in the only
+// units that can answer it. `sep` alone cannot: it is the yardstick everything
+// else is quoted in, so a
 // collapsed pair does not read as small, it makes every other distance read as
 // huge. The 08-17 08:55 bench enrolled two references 0.20 apart, called every
 // frame of the run absent - and its origin guard stayed quiet, because those
@@ -297,43 +306,61 @@ static bool  m21_present;                 // the presence stage's sticky state
 //     08-16 17:22    58.3 %       0.17         0.05      0.22      0.28
 //     08-16 17:35    57.5 %       0.26         0.10      0.15      0.09
 //
-// THE VOID IN THAT TABLE WAS FILLED BY THE FIRST RUN THAT TESTED IT, and this
-// is the retraction. 08-17 11:26 is the first bench whose references the BOARD
-// built from two visits, rather than a log replayed afterwards, and it read
-// 1.12 - inside the void, on the reject side. It scored 92.5% held out, the
-// best in the project, while the board printed THE CLASSES OVERLAP and told the
-// operator to throw it away. The next run read 0.92 and scored 68.3%. Eleven
-// runs now:
+// THE VOID IN THAT TABLE WAS FILLED BY THE FIRST RUN THAT TESTED IT. 08-17
+// 11:26 is the first bench whose references the BOARD built from two visits
+// rather than a log replayed afterwards, and it replayed at 1.12 - inside the
+// void, on the reject side. It scored 92.5% held out, the best in the project,
+// while the board printed THE CLASSES OVERLAP and told the operator to throw it
+// away. So the reject side went, and the bar was made one-sided at 2.6: high
+// certifies, low says nothing.
 //
-//     3.24 -> 96.7 %      0.94 -> 74.2 %
-//     2.94 -> 100.0 %     0.92 -> 68.3 %   <- 08-17 11:44
-//     2.64 -> 91.7 %      0.87 -> 76.7 %
-//     1.24 -> 59.2 %      0.44 -> 47.5 %
-//     1.12 -> 92.5 %      0.22 -> 58.3 %   <- 08-17 11:26, the one that broke it
-//                         0.15 -> 57.5 %
+// AND NOW READ THE COLUMN THE BAR ACTUALLY RUNS ON, WHICH IS NOT THE ONE ABOVE.
+// The table above is tools/probe_sepscale.py's offline replay, pooled from the
+// first 20 frames of each cued span. The bar is decided by the board, from the
+// 20 frames after the operator's key press, and the two disagree - 11:26
+// replays at 1.12 and the board printed 1.8x. Four benches have ever produced a
+// board-side two-visit ratio, which is every prospective test the bar has had:
 //
-// THAT IS THE THIRD QUANTITY MEASURABLE AT ENROLMENT TO FAIL THE SAME WAY -
-// `sep`, then ratio(1), then ratio(2). Each sorted the benches it was fitted to
-// and broke on the next one, and the reason is structural rather than a bad
-// choice of statistic three times running: what decides a run is where the
-// object lands on visits that have not happened yet, and no measurement taken
-// at the enrolment can contain that.
+//     board's own ratio      held out
+//          3.7                57.5 %     08-17 13:35   certified by the bar
+//          2.3                74.2 %     08-17 13:39
+//          1.8                92.5 %     08-17 11:26   THE CLASSES OVERLAP
+//          1.2                68.3 %     08-17 11:44
 //
-// SO THIS IS NOW ONE-SIDED. High still means something - 2.64, 2.94 and 3.24
-// scored 91.7%, 100.0% and 96.7%, three for three - and the board says so. Low
-// means nothing at all: below the bar the eight runs span 92.5% to 47.5%, so
-// the message says that and stops, instead of telling the operator to throw
-// away an enrolment that may be the best one they will get today. The constant
-// is 2.6 rather than the 2.0 it was, because 2.64 is the lowest ratio that has
-// ever certified anything and the interval below it is not measured; erring
-// upward costs a line of praise, erring downward is what just cost a bench.
-// Three runs is what it rests on. Do not read the bar as a promise.
+// It is ordered backwards at both ends: the highest ratio the board has ever
+// computed scored the worst run of the four, and the run it told the operator
+// to throw away scored the best. 13:35 printed "this enrolment clears the bar
+// ... the three benches that have done that scored 91.7%, 96.7% and 100.0%" and
+// then held 69 of 120.
+//
+// SO FOUR STATISTICS HAVE NOW FAILED THE SAME WAY - `sep`, ratio(1), ratio(2),
+// and ratio(2) restricted to the direction that still looked safe. The comment
+// that shipped the one-sided version said "three runs is what it rests on. Do
+// not read the bar as a promise", which was the right hedge on the wrong side
+// of the argument: the harm was never only in rejecting. There is no safe
+// direction, and a threshold that does not predict cannot be repaired by
+// choosing which half of it to believe.
+//
+// The reason is structural rather than four bad choices of statistic: what
+// decides a run is where the object lands on visits that have not happened yet.
+// 13:35 shows it directly, and this is the useful part of that bench. Its
+// opened book's visit centres walked +1.96, +3.25, +4.64, +4.39 while the
+// closed book's sat flat at +5.8 - so the two enrolling visits averaged to
+// +2.6, the two held-out visits arrived at +4.6, and by then the closed
+// reference was the nearer one. 9 of 60 opened frames were called right and 66
+// of 66 closed ones were. Nothing measurable at frame 212 contains that, and
+// the enrolment PICTURES do: visits 1 and 2 are pages filling the frame, visits
+// 3 and 4 are a book that has receded far enough to show its spine.
+//
+// So there is no bar and no constant. The ratio is still computed and still
+// printed on the line above, because it is a real property of the enrolment;
+// the board says nothing about what it means. `docs/bring-up-log.md` for
+// 2026-08-17 has the rest, and issue #19 is where it is still open.
 //
 // The collapse check below (sep > 0.05) is untouched and is not part of this:
 // two references on top of each other is a degeneracy, not a prediction.
 //
 // tools/probe_sepscale.py is where the table comes from and how to redo it.
-#define FGX_ENROL_SNR    2.6f
 
 // The digits index the enrollable queries in the order the host sent them: the
 // FGX_Q_CLASS ones when roles came with the set, every query when they did not.
@@ -1825,31 +1852,22 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
                        "            again ('1'/'2' on a later visit) to make "
                        "it mean something.\n",
                        (unsigned)vmin, vmin == 1u ? "" : "s");
-            // THE BAR, AND IT ONLY EVER SAYS THE GOOD NEWS. See FGX_ENROL_SNR
-            // for why this stopped being a rejection: three benches have
-            // cleared it and all three scored above 91%, while below it the
-            // eight runs measured so far span 92.5% to 47.5%.
-            else if (sep >= FGX_ENROL_SNR * scat)
-                printf("            This enrolment clears the bar: %.2f apart "
-                       "against %.2f of spread within\n"
-                       "            a class, over %u visits. The three benches "
-                       "that have done that scored\n"
-                       "            91.7%%, 96.7%% and 100.0%%. Three runs is "
-                       "all it rests on.\n",
-                       (double)sep, (double)scat, (unsigned)vmin);
-            // AND BELOW THE BAR, DELIBERATELY NO ADVICE. The version that told
-            // the operator to enrol again threw away 08-17 11:26, which scored
-            // 92.5% - higher than one of the three that cleared the bar -
-            // because it read 1.12 here. The numbers are still printed; what is
-            // removed is the instruction that was wrong.
+            // NO BAR, IN EITHER DIRECTION. The two branches this replaces first
+            // rejected on a low ratio and then, when that threw away the best
+            // bench of the day, certified on a high one instead - and the
+            // certificate went on to bless a 57.5% run while the 2.3x run four
+            // minutes later scored 74.2%. See THE ENROLMENT RATIO above. The
+            // numbers are on the line above; what is deleted is every sentence
+            // that told the operator what they meant.
             else
-                printf("            Below the bar (%.2f apart against %.2f of "
-                       "spread), which on its own\n"
-                       "            predicts nothing: benches below this line "
-                       "have scored 92.5%% and 47.5%%.\n"
-                       "            Look at the enrolment pictures before "
-                       "re-enrolling on this number.\n",
-                       (double)sep, (double)scat);
+                printf("            That ratio has now been wrong in both "
+                       "directions - it certified a 57.5%%\n"
+                       "            run at 3.7x and a 2.3x run scored 74.2%% "
+                       "the same afternoon - so it is\n"
+                       "            reported and not judged. The enrolment "
+                       "pictures beside the log are the\n"
+                       "            check that has never misled anyone: look "
+                       "at them.\n");
             // THE FAILURE MODE OF #18's RULE, said at the enrolment rather than
             // discovered in the log six minutes later - which is the lesson the
             // presence-span guard above it was written for. A reference sitting

@@ -1,0 +1,21 @@
+# host/cue.py, settle 10, hold 30, baseline 30, bg-tau 30
+# demo.py (no extra flags)
+# log /tmp/m9_cue.log
+# enrol-window 20
+# enrol 72 1
+# enrol 112 2
+# enrol 152 1
+# enrol 192 2
+# snap 84
+# snap 124
+# snap 164
+# snap 204
+30	59	baseline
+60	99	an opened book
+100	139	a closed book
+140	179	an opened book
+180	219	a closed book
+220	259	an opened book
+260	299	a closed book
+300	339	an opened book
+340	379	a closed book

@@ -2,8 +2,9 @@
 
 Every number in this repository that says how well the appliance recognises
 anything came out of one of the logs in `cue/`. The enrolment guard's constant
-(`FGX_ENROL_SNR` in `firmware/m9.c`), the eleven-run table in
-`tools/probe_sepscale.py`, the argument in `docs/bring-up-log.md` that three
+(`FGX_ENROL_SNR`, deleted from `firmware/m9.c` on 2026-08-17 after the run that
+certified it scored 57.5%), the thirteen-run table in
+`tools/probe_sepscale.py`, the argument in `docs/bring-up-log.md` that four
 enrolment-time quantities have each failed the same way — all of it rests on
 these files and nothing else. A bench costs a morning of daylight and cannot be
 re-run from anything on disk.
@@ -64,6 +65,8 @@ timestamp in the filename — see 11:44 below.
 | `m9_cue-20260817-112155.log` | — | — | | what `pkill` on a running bench looks like: the board kept going to its frame budget, parked, and rebooted into BOOTSEL |
 | `m9_cue-20260817-112606.log` | 92.5% | 91.7% | 08-17 11:26 | the first enrolment the board built from two visits, and the first prospective test of the two-visit guard. It failed the guard and scored the best of the day |
 | `m9_cue-20260817-113304.log` | 68.3% | 76.1% | 08-17 11:44 | the control for 11:26. The docs call it 11:44 and the file is stamped 11:33; the scores are what tie the two together |
+| `m9_cue-20260817-133552.log` | 57.5% | 65.6% | 08-17 13:35 | issue #19's control: the empty revisit removed, to reproduce 08-11's schedule. It scored what the 08-16 runs did, which is what killed the hypothesis. Also the only bench ever to clear the enrolment bar prospectively — at 3.7×, the highest ratio there is — which is what deleted the bar |
+| `m9_cue-20260817-133952.log` | 74.2% | 70.6% | 08-17 13:39 | four minutes later with the empty rotation back on, below the bar at 2.3×, and 17 points better. #18's tenth bench: AUC 0.911, and the one that pushed the leave-one-out cost past the gain |
 | `m9_cue-smoke-2e48d86.log` | 37.5% | 37.5% | | `/tmp/m9_cue.log` as it stood after flashing the one-sided guard — a smoke test, kept because it is the only log of that firmware running |
 | `m9_cue_fake_d.log` | 58.3% | 48.3% | | **synthetic.** A doctored copy of `m9_cue-20260816-172256.log`, made to exercise a probe against a class that was never in the room. Not a bench, and it will happily score like one if you forget that |
 

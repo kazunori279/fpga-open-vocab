@@ -967,9 +967,10 @@ def main() -> int:
     # THE FIRST ENROL_VISITS VISITS TO EACH SCENE, not just the first. A single
     # visit pins down where an object sits while it sits there and says nothing
     # about where it lands when it is staged again - and the second quantity is
-    # what decides runs, so the board cannot measure the enrolment's quality
-    # without it. See FGX_ENROL_SNR in firmware/m9.c for the nine benches that
-    # say so. This costs a visit per class off the held-out count, which is why
+    # what decides runs, so the board cannot even report the enrolment's spread
+    # honestly without it. It still cannot PREDICT from it - see THE ENROLMENT
+    # RATIO in firmware/m9.c, which is the record of four attempts and four
+    # failures. This costs a visit per class off the held-out count, which is why
     # --repeat has to be at least ENROL_VISITS + 1 for the run to test anything.
     #
     # THERE USED TO BE A '0' HERE, enrolling the empty scene at the end of the

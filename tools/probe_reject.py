@@ -156,9 +156,9 @@ def references(spans, frames, enrol, window, names, note=lambda s: None):
         # the scale that says whether the gap between two references is a gap:
         # sep cannot, being the unit everything else is quoted in. Over more
         # than one visit it carries the staging variance too, which is the term
-        # that actually decides runs. Same formula as m9.c's FGX_ENROL_SNR
-        # guard, and it agrees with the board to the printed digits - keep the
-        # two together if either changes.
+        # that actually decides runs. Same formula as the ratio m9.c prints on
+        # its enrolment line, and it agrees with the board to the printed digits
+        # - keep the two together if either changes.
         scat[k] = sum(st.mean((v[j] - refs[k][j]) ** 2 for v in vecs)
                       for j in range(len(names))) ** 0.5
 
@@ -196,9 +196,15 @@ def score(log: Path) -> None:
     print(f"    nearest pair {sep:.2f} apart against {worst:.2f} of spread "
           f"({sep / worst:.2f}x over {vmin} visit{'' if vmin == 1 else 's'}); "
           f"rule settled at frame {engage}")
-    # ONE-SIDED, mirroring m9.c's FGX_ENROL_SNR since 2026-08-17. This used to
-    # print THE CLASSES OVERLAP below 2x and call the run noise; the 11:26 bench
-    # read 1.12 and scored 92.5%, so the low side says nothing now.
+    # NO BAR, mirroring m9.c, which stopped having one on 2026-08-17. It first
+    # printed THE CLASSES OVERLAP below 2x and called the run noise, until 11:26
+    # read 1.8 and scored 92.5%; then it certified above 2.6 instead, until
+    # 13:35 read 3.7 - the highest this arithmetic has ever produced - and
+    # scored 57.5%. Those are the four benches with a board-side two-visit
+    # ratio, i.e. every prospective test the bar has had, and they are ordered
+    # backwards at both ends: 3.7 -> 57.5%, 2.3 -> 74.2%, 1.8 -> 92.5%,
+    # 1.2 -> 68.3%. The ratio is printed because it is a real property of the
+    # enrolment, not because it says anything about how the run will go.
     if vmin < 2:
         print("      ^ measured over one visit, so it says how still the scene "
               "was held and not\n"
@@ -206,15 +212,12 @@ def score(log: Path) -> None:
               "is what decides the\n"
               "        run. tools/probe_sepscale.py is the same ratio done "
               "properly on this log.")
-    elif sep >= 2.6 * worst:
-        print("      ^ clears the bar. Three benches have and they scored "
-              "91.7%, 96.7% and 100.0%;\n"
-              "        three runs is all it rests on.")
     else:
-        print("      ^ below the bar, which on its own predicts nothing: the "
-              "eight benches under\n"
-              "        this line run from 92.5% down to 47.5%. See "
-              "FGX_ENROL_SNR in m9.c.")
+        print("      ^ reported, not judged: on the board's own column 3.7 "
+              "scored 57.5% and 1.8\n"
+              "        scored 92.5%, so this number has been wrong in both "
+              "directions. See THE\n"
+              "        ENROLMENT RATIO in m9.c.")
     # WHERE THE ORIGIN IS, because it is not an arbitrary point. c[] = 0 means
     # every query moved together, which is what "nothing has changed since the
     # background was frozen" reads as. A reference that sits close to the origin

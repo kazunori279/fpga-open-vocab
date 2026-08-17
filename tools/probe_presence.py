@@ -5,6 +5,15 @@
 
     uv run --script tools/probe_presence.py bench/cue/*.log
 
+PASS IT BENCHES, NOT THE GLOB, if you want the figures the docs quote. `*.log`
+picks up four scoreable things that are not benches - the 10:48 and 10:52 smoke
+tests, `m9_cue-smoke-2e48d86.log`, and the synthetic `m9_cue_fake_d.log`, which
+is a doctored copy of an 08-16 run and would vote twice. The ten real benches
+with a held-out empty rotation are 08-16 17:22 and 17:35 and 08-17 07:33, 08:55,
+09:18, 09:55, 09:57, 11:26, 11:33 and 13:39; `bench/README.md` is the manifest.
+On those ten the answer is `scat` at 64.3% blind against 58.3% shipped, for a
+leave-one-out cost of 10.7 - the cost exceeds the gain, so nothing changes.
+
 WHY THIS EXISTS. On 2026-08-17 three benches were read as showing the empty desk
 sitting FURTHER from the class references than the class frames do, and that was
 written up as "the ordering is inverted, so no radius fixes it" - which is
@@ -62,7 +71,8 @@ def bench(log: Path):
     enrolled - so every empty frame here is test data.
 
     `scat` is the worst class's RMS spread at enrolment - the same quantity the
-    board already divides by for FGX_ENROL_SNR. It is here as a third unit to
+    board already divides `sep` by in the ratio it prints. It is here as a
+    third unit to
     quote the radius in, because unlike `sep` it is a spread and a threshold on
     distances is a spread.
     """
@@ -186,11 +196,17 @@ def main() -> int:
     for unit, cost, worst, blind in summary:
         print(f"{unit:<32}{100 * blind:11.1f}%{100 * cost:10.1f}{100 * worst:8.1f}")
     print(f"{'FGX_ABSENT_TRIP = 2.0 sep, today':<32}{100 * shipped:11.1f}%")
+    floor = sum(balanced(db, dc, 2.0 * sep) <= 0.5
+                for _n, sep, _c, db, dc in runs)
     print("  `blind mean` is what a radius chosen WITHOUT seeing the bench "
           "scores on it, which\n  is the only column that describes the "
           "appliance. 50% is the floor: keep every\n  class frame, hold no "
-          "empty one - which is what the shipped constant does on five\n"
-          "  of these nine.")
+          f"empty one - which is what the shipped constant does on\n"
+          f"  {floor} of these {len(runs)}.")
+    # THE READING, as of the tenth bench. The best unit's blind mean beats the
+    # shipped constant by ~6 points and pays ~11 for not having seen the bench,
+    # so the cost of the blindness now exceeds the gain and there is no radius
+    # worth shipping. On nine benches this read the other way round.
     return 0
 
 
