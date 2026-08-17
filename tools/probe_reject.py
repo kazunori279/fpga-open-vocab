@@ -121,7 +121,7 @@ def score(log: Path) -> None:
     # A key sent for frame F is read during F+1 and its window covers
     # F+2 .. F+1+window. Same arithmetic as tools/score_cue.py, and it is the
     # difference between a reference and twenty frames of somebody's hand.
-    refs, ref_lab = {}, {}
+    refs, ref_lab, scat = {}, {}, {}
     for f, k in enrol:
         if k == "0":
             continue                    # this rule does not enrol the empty scene
@@ -131,6 +131,13 @@ def score(log: Path) -> None:
             print(f"    key {k}: only {len(vecs)}/{window} frames in the window - skipped")
             continue
         refs[k] = [st.mean(v[j] for v in vecs) for j in range(len(names))]
+        # How far ONE frame of that window fell from the window's own mean, RMS.
+        # This is the scale that says whether the gap between two references is
+        # a gap: sep cannot, being the unit everything else is quoted in. Same
+        # formula as m9.c's FGX_ENROL_SNR guard, and it agrees with the board to
+        # the printed digits - keep the two together if either changes.
+        scat[k] = sum(st.mean((v[j] - refs[k][j]) ** 2 for v in vecs)
+                      for j in range(len(names))) ** 0.5
         # Which class this key is, by which cued segment the window fell in,
         # rather than by its position in the schedule.
         ref_lab[k] = next((lab for a, b, lab in spans if a - 1 <= lo <= b), f"key {k}")
@@ -142,11 +149,21 @@ def score(log: Path) -> None:
     sep = min(dist(refs[i], refs[j])
               for x, i in enumerate(keys) for j in keys[x + 1:])
     engage = sorted(f for f, k in enrol if k != "0")[1] + 2 + window
-    print(f"    references, in the centred space:")
+    worst = max(scat[k] for k in keys)
+    print(f"    references, in the centred space, and their windows' scatter:")
     for k in keys:
         print(f"      {ref_lab[k]:<18} " +
-              "  ".join(f"{v:+.2f}" for v in refs[k]))
-    print(f"    nearest pair {sep:.2f} apart; rule live from frame {engage}")
+              "  ".join(f"{v:+.2f}" for v in refs[k]) +
+              f"   +-{scat[k]:.2f}")
+    print(f"    nearest pair {sep:.2f} apart against {worst:.2f} of scatter "
+          f"({sep / worst:.2f}x); rule live from frame {engage}")
+    if sep < 2.0 * worst:
+        print("      ^ THE CLASSES OVERLAP. Below 2x a frame lands nearer the "
+              "wrong reference about\n"
+              "        as often as the right one, so this run measured noise. "
+              "m9.c refuses to stay\n"
+              "        quiet about this since FGX_ENROL_SNR; runs older than "
+              "that guard did not know.")
     # WHERE THE ORIGIN IS, because it is not an arbitrary point. c[] = 0 means
     # every query moved together, which is what "nothing has changed since the
     # background was frozen" reads as. A reference that sits close to the origin

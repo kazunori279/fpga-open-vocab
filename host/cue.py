@@ -78,6 +78,34 @@ SCORE = re.compile(r"([^+\-]+?)\s+([+-][\d.]+)(\*?)(?=\s\s|\s*$)")
 QUERY = re.compile(r"^query\s+:\s+(\S.*?)\s{2,}(plain|presence|state)\s+z>\s*"
                    r"([-\d.]+)")
 
+# WHAT THE BOARD DECIDED, read off the tail of the frame line rather than
+# re-derived. Everything after `led` on that line is the #18 rule's own
+# arithmetic - `d` is the distance to the nearest enrolled reference in units of
+# `sep`, and the MATCH names which one it was and by how much (in raw units, not
+# in sep). The bars used to ignore all of it and run a softmax over the raw z
+# instead, which is the pre-#18 quantity: it has no way to say "nothing there",
+# it carries the sensor drift the centred space subtracts, and it disagreed with
+# both the LED and the board's own MATCH on the same frame. Mirror, do not
+# recompute - that is the only way the two displays cannot drift apart.
+DIST    = re.compile(r"\sd([\d.]+)(?:\s|$)")
+MATCHED = re.compile(r"\sMATCH (.+?) \(cos [-+]?[\d.]+, nearer by "
+                     r"([-+]?[\d.]+)\)")
+ABSENT  = re.compile(r"\s-\s\(nothing there\)")
+
+# `sep` and which queries carry a reference, from the board's enrolment lines.
+# The distances above are quoted in sep, so this side needs it to put the
+# runner-up's raw gap on the same scale.
+ENROL_ONE  = re.compile(r"^enrol\s+:\s+(.+?), level [-+][\d.]+"
+                        r"(?:, scatter [\d.]+)? \(\d+ frames\)")
+ENROL_PAIR = re.compile(r"^enrol\s+:\s+\d+ classes, nearest pair ([\d.]+) apart")
+
+# MUST MATCH FGX_ABSENT_TRIP / FGX_ABSENT_STAY in firmware/m9.c. Only the trip
+# radius is used for drawing - the board owns the verdict and this side never
+# re-decides it - but a bar with no scale printed on it is the thing #15 was
+# about, so both edges are shown next to the number.
+ABSENT_TRIP = 2.0
+ABSENT_STAY = 1.5
+
 # MUST MATCH FGX_ENROL_N in firmware/m9.c. The board owns the number - it is the
 # one doing the averaging - and this side only needs it to place the cues so the
 # windows land where they are supposed to. A mismatch is visible rather than
@@ -134,6 +162,27 @@ def parse_scores(body: str) -> dict[str, float]:
     return {m.group(1).strip(): float(m.group(2)) for m in SCORE.finditer(body)}
 
 
+def parse_verdict(tail: str) -> dict | None:
+    """The #18 rule's numbers, off the part of the frame line after `led`.
+
+    None when the board is not deciding that way - fewer than two references
+    enrolled, or a build older than #18 - and the caller then falls back to the
+    softmax display, which is the right one for the rule the board IS running.
+
+    The board prints the nearest distance in sep and the runner-up as a raw gap,
+    so the second distance is `d + gap / sep` and needs the enrolment's sep from
+    the caller. With more than two classes enrolled only those two are
+    recoverable, which is honest: the board did not print the rest.
+    """
+    d = DIST.search(tail)
+    if not d:
+        return None
+    v: dict = {"d": float(d.group(1)), "match": None, "gap": None}
+    if m := MATCHED.search(tail):
+        v["match"], v["gap"] = m.group(1), float(m.group(2))
+    return v
+
+
 class Bars:
     """A bar per query, redrawn in place, showing each one's share of the frame.
 
@@ -170,6 +219,33 @@ class Bars:
     state queries only, which is the comparison it was ever valid for. With the
     gate shut the state bars are still drawn but marked, because a forced choice
     between two states of a thing that is not there has an answer and no meaning.
+
+    **ONCE TWO CLASSES ARE ENROLLED, NONE OF THE ABOVE IS WHAT THE BOARD IS
+    DOING, and until 2026-08-17 these bars went on drawing it anyway.** The
+    display and the LED were then two different quantities on the same frame and
+    the operator had no way to know which to believe:
+
+      * The LED reads `c[] = z[] - lvl`, the centred space (`led_ref()`,
+        `firmware/m9.c:700`). These bars read the raw z. The sensor's ~1.5 z
+        warm-up over four minutes is common to every query, so it cancels out of
+        the first and moves the second - the bars drift on a scene that is
+        sitting still and the LED does not.
+      * `ab.sh --enrol` drops the gate query, so `two_stage` is False and the
+        softmax has no way to express "nothing there": the shares sum to 100%
+        on every frame, so an empty desk still reads 91% / 9% while the LED goes
+        dark and the log says `- (nothing there)`. That is the largest of the
+        disagreements and it is on exactly the frames #18 exists for.
+      * Red is pinned to one class for the whole run and saturates at `sep`;
+        the softmax's leader arrow follows whoever is ahead and saturates at
+        `--temp`. Even when they agree on WHICH, they disagree on how strongly.
+
+    So with a reference geometry in hand the rows switch to it: distance to each
+    reference in units of sep, filled the way the LED's brightness is filled
+    (`1 - d / TRIP`, full on a reference and empty at the absent radius), and
+    the presence verdict taken verbatim from the board's own MATCH rather than
+    re-decided here. Not smoothed, unlike the softmax rows - the verdict is
+    hysteretic and a filtered `d` beside an unfiltered THERE/absent would be a
+    third quantity again.
     """
 
     GLYPH_FULL = "█"
@@ -186,7 +262,11 @@ class Bars:
         self.thr = thr or {}
         self.ema: dict[str, float] = {}
         self.height = 0
-        self.label_w = max(len(n) for n in names)
+        # "presence" gets a row of its own once the board is on #18's rule, and
+        # it has to sit in the same column as the query labels.
+        self.label_w = max(len(n) for n in [*names, "presence"])
+        self.sep: float | None = None       # from the board's enrolment summary
+        self.refs: set[str] = set()         # queries that carry a reference
         cols = shutil.get_terminal_size((100, 24)).columns
         self.width = max(12, min(46, cols - self.label_w - 34))
         self.gates = [n for n in names if self.roles.get(n) == "presence"]
@@ -213,10 +293,25 @@ class Bars:
         fill = max(0, min(self.width, int(round(frac * self.width))))
         return self.GLYPH_FULL * fill + glyph * (self.width - fill)
 
-    def update(self, frame: int, scene: str, scores: dict[str, float]) -> None:
+    def enrolled(self, line: str) -> None:
+        """Pick the reference geometry out of the board's own enrolment lines.
+
+        Nothing here is derived: `sep` and which queries carry a reference are
+        both things the board prints, and taking them from anywhere else is how
+        the display and the LED got out of step in the first place.
+        """
+        if m := ENROL_ONE.match(line):
+            self.refs.add(m.group(1))
+        elif m := ENROL_PAIR.match(line):
+            self.sep = float(m.group(1)) or None
+
+    def update(self, frame: int, scene: str, scores: dict[str, float],
+               verdict: dict | None = None) -> None:
         self.smooth(scores)
         lines = [f"frame {frame:4d}   scene: {scene}"]
-        if self.two_stage:
+        if verdict is not None and self.sep and len(self.refs) >= 2:
+            lines += self.ref_rows(verdict)
+        elif self.two_stage:
             lines += self.two_stage_rows()
         else:
             p, z = self.shares(self.names)
@@ -226,6 +321,48 @@ class Bars:
                              f"{pi * 100:5.1f}% {'<' if i == lead else ' '}"
                              f"   z {zi:+6.2f}")
         self.draw(lines)
+
+    def ref_rows(self, v: dict) -> list[str]:
+        """#18's geometry, in the board's numbers. See the class docstring.
+
+        No percentages here, deliberately. A share is what the softmax rows show
+        and it is the reading that had to be argued with above; a distance in
+        sep is the quantity the rule actually cuts on, the LED's brightness is
+        the same `1 - d / TRIP` these bars are filled with, and the two edges are
+        printed beside it so the bar has a scale rather than a vibe.
+        """
+        assert self.sep
+        d, here = v["d"], v["match"] is not None
+        rows = [(f"  {'presence':<{self.label_w}}  "
+                 f"{'THERE        ' if here else 'nothing there'}"
+                 f"  nearest {d:5.2f} sep   "
+                 f"(absent > {ABSENT_TRIP:.2f}, back at {ABSENT_STAY:.2f})")]
+        # The nearest is printed in sep, the runner-up as a raw gap. With more
+        # than two classes the rest are simply not in the log, and a bar for a
+        # number nobody measured is the thing #15 was about.
+        dist: dict[str, float] = {}
+        if here:
+            dist[v["match"]] = d
+            rest = [n for n in self.names if n in self.refs and n != v["match"]]
+            if len(rest) == 1 and v["gap"] is not None:
+                dist[rest[0]] = d + v["gap"] / self.sep
+        for n in self.names:
+            z = self.ema.get(n, 0.0)
+            if n not in self.refs:
+                # Scored by the board, but nothing was enrolled on it, so it is
+                # not part of this decision. Shown, never given a bar.
+                rows.append(f"  {n:<{self.label_w}} |{' ' * self.width}| "
+                            f" (idle)      z {z:+6.2f}")
+            elif n in dist:
+                rows.append(f"  {n:<{self.label_w}} "
+                            f"|{self.bar(1.0 - dist[n] / ABSENT_TRIP)}| "
+                            f"{dist[n]:5.2f} sep {'<' if n == v['match'] else ' '}"
+                            f"  z {z:+6.2f}")
+            else:
+                glyph = self.GLYPH_SHUT if not here else self.GLYPH_EMPTY
+                rows.append(f"  {n:<{self.label_w}} |{glyph * self.width}| "
+                            f"   --       z {z:+6.2f}")
+        return rows
 
     def two_stage_rows(self) -> list[str]:
         # The gate is the weakest presence query, matching firmware/m9.c's
@@ -899,6 +1036,7 @@ def main() -> int:
     pending = list(scenes)
     open_seg: tuple[str, int] | None = None
     bars: Bars | None = None
+    enrol_lines: list[str] = []
     roles: dict[str, str] = {}
     thr: dict[str, float] = {}
     drawing = not args.raw and sys.stdout.isatty()
@@ -920,6 +1058,14 @@ def main() -> int:
         if q:
             roles[q.group(1)] = q.group(2)
             thr[q.group(1)] = float(q.group(3))
+        # Kept as well as forwarded, because the first frame line arrives long
+        # before the first enrolment on a real run but nothing guarantees it -
+        # a replay, or a board that was already enrolled, would otherwise lose
+        # the geometry and silently fall back to the softmax display.
+        if line.startswith("enrol"):
+            enrol_lines.append(line)
+            if bars is not None:
+                bars.enrolled(line)
         m = FRAME.match(line)
 
         if m is None or not drawing:
@@ -932,6 +1078,7 @@ def main() -> int:
             continue
         i = int(m.group(1))
         scores[i] = parse_scores(m.group(2))
+        verdict = parse_verdict(line[m.end():])
 
         if open_seg is None and not segments and i >= args.bg_tau:
             open_seg = ("baseline", i)
@@ -940,7 +1087,9 @@ def main() -> int:
             if bars is None:
                 bars = Bars(list(scores[i]), temp=args.temp, alpha=args.smooth,
                             roles=roles, thr=thr)
-            bars.update(i, scene_now, scores[i])
+                for el in enrol_lines:
+                    bars.enrolled(el)
+            bars.update(i, scene_now, scores[i], verdict)
 
         if open_seg is None:
             continue

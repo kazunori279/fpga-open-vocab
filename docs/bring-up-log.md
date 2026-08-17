@@ -11,6 +11,155 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-17 — two clean enrolments, and the second one retracts what the first one seemed to prove
+
+09:18 and 09:33, both with the new guard live, both passed it: `2.99 apart,
+scatter 1.05 (2.8x)` and `3.23 apart, scatter 1.17 (2.7x)`, neither with an
+origin warning. **They are the first two benches in this project with an
+enrolment nothing objects to**, and they disagree with each other.
+
+| | 09:18 | 09:33 |
+|---|---|---|
+| sep / scatter | 2.99 / 1.05 = **2.85** | 3.23 / 1.17 = **2.75** |
+| state stage, held out | **110/120 (91.7%)** | **71/120 (59.2%)** |
+| presence AUC | 0.923 | 0.937 (baseline only) |
+
+**So the entry below is wrong where it says the ratio orders the benches, and
+this is the retraction.** Two runs a tenth of a ratio apart scored 91.7% and
+59.2%. The guard is a **floor and not a predictor**: it still catches the
+catastrophic enrolments it was measured on, and 2.0 is still in the right place,
+but nothing above it is a promise. #19 is not answered and the sentence that
+said it was has been taken out of the README and `architecture.md`.
+
+**What actually separates the two runs is between-visit staging, which the
+guard is structurally unable to see.** Scatter is measured inside one enrolment
+window — one visit, twenty frames, the operator holding still. The variable that
+decides the run is where the *same object staged again* lands. Per-visit centres
+on the state axis, 09:33:
+
+```
+   an opened book   +2.28   +3.71   +2.75      its reference  +1.72
+   a closed book    +4.02   +3.68   +4.61      its reference  +4.00
+```
+
+The opened book's second visit sat at +3.71 — **0.13 sep from the closed book's
+reference and 0.87 from its own** — so the board called all thirty of its frames
+closed, correctly by its own rule. 09:18's visits spread just as widely (+2.23,
++0.88, +2.93) but all of them on the right side of the boundary. That is the
+difference between 91.7% and 59.2%, and it is luck about where the boundary fell,
+not enrolment quality.
+
+Measured across all eight cue benches: the sign of the **worst held-out visit's
+margin** (distance to the nearest other reference minus distance to its own,
+saturating at −1.00 sep when a visit centre passes the other reference) orders
+them where the scatter ratio does not — +0.86, +0.58, +0.55 for the runs at
+100.0, 96.7 and 91.7%, negative for every run below 77%. It is a **diagnostic
+and cannot be a guard**: it needs the later visits, which do not exist yet at
+the moment the reference is taken. The fix it points at is either staging the
+object the same way each visit, or enrolling a class from more than one visit so
+its reference sits in the middle of its own spread rather than at one edge of it
+— the second is testable offline against these logs before anything is reflashed.
+
+**And the radius question is still open, because 09:33 was run with
+`--no-revisit-empty`.** No held-out empty scene, so the only "nothing there"
+frames are the baseline, which sits at the origin by construction. Its sweep
+says best r = 0.50 sep against 09:18's 0.75 — same direction, both far under the
+shipped 2.0, but one honest data point and one degenerate one is not two. The
+next run needs the empty rotation on.
+
+---
+
+### 2026-08-17 — the bars were still showing the rule the board stopped using
+
+Noticed at the bench, from the display and the LED disagreeing on the same
+frame. `cue.py`'s bars ran a softmax over the raw z; the LED has read the #18
+geometry since it shipped. Three separate disagreements, and none of them is a
+rounding difference:
+
+* **The bars had no way to say "nothing there".** `ab.sh --enrol` drops the gate
+  query, so the two-stage branch never fired and the shares summed to 100% on
+  every frame — an empty desk read 91% / 9% while the LED went dark and the log
+  said `- (nothing there)`. That is the display being wrong on precisely the
+  frames the presence stage exists for.
+* **The bars carried the drift the LED does not.** z is raw; the LED reads
+  `c[] = z[] − lvl`. The sensor's ~1.5 z warm-up is common to every query, so it
+  cancels out of one and moves the other.
+* **Rank is not the rule.** Frame 215 of the 09:18 run: `a closed book` scores
+  **+12.36** against `an opened book`'s **+9.98**, so the softmax pointed at the
+  closed book — while the board matched the **opened** one, at 0.57 sep against
+  1.57, and the LED agreed with the board. The z ordering and the reference
+  geometry are different questions and this run answers them differently.
+
+Fixed by mirroring instead of re-deriving. Everything needed is already on the
+frame line after `led` — `d` in units of sep, and the `MATCH ... nearer by`
+that gives the runner-up — so with two references enrolled the rows become
+distance per class, filled `1 − d / 2.0` the way the LED's brightness is, and
+the presence verdict is copied from the board rather than recomputed. Not
+smoothed, unlike the softmax rows: the verdict is hysteretic and a filtered `d`
+next to an unfiltered THERE would be a third quantity again. With fewer than
+two references the old display is still the right one, because it is still the
+rule the board is running.
+
+---
+
+### 2026-08-17 — the guard the entry below asked for, and it turns out to order every bench there is
+
+`m9` now measures the **scatter inside each enrolment window** and refuses to
+be quiet when the classes overlap. Twenty frames were already being averaged
+into a reference, so a second accumulator — `Σ cz²` beside `Σ cz` — buys the
+RMS distance of one enrolment frame from its own window mean for nothing:
+
+```
+enrol     : an opened book, level +0.34, scatter 0.10 (20 frames)
+enrol     : 2 classes, nearest pair 0.04 apart, scatter 0.20 (0.2x), absent beyond 0.09 (2.0 sep)
+```
+
+**Why this is the missing measurement and `sep` alone can never be.** `sep` is
+the unit every other distance is quoted in, so a collapsed pair does not read
+as small — it makes everything else read as huge, which is exactly how the
+08:55 run put its references 26 *sep* from the origin and walked past the
+origin guard. The enrolment frames' own spread is the one scale in the problem
+that `sep` does not set. A frame lands nearer the wrong reference once the
+noise exceeds half the gap, so **`sep < 2 × scatter` is the classes being one
+blob**, and that is the whole rule (`FGX_ENROL_SNR`).
+
+**The threshold was measured before it was written, on all six cue benches**
+(worst of the two windows, replayed offline by `tools/probe_reject.py`, which
+now prints the same figures):
+
+| run | sep | scatter | ratio | state stage, held out |
+|---|---|---|---|---|
+| 08-11 07:22 | 2.35 | 0.151 | **15.59** | 120/120 100.0% |
+| 08-17 08:57 | 6.73 | 1.654 | **4.07** | 92/120 76.7% |
+| 08-17 07:33 | 3.25 | 0.897 | **3.62** | 116/120 96.7% |
+| 08-16 17:35 | 1.22 | 1.376 | **0.89** | 70/120 58.3% |
+| 08-16 17:22 | 1.41 | 2.749 | **0.51** | 69/120 57.5% |
+| 08-17 08:55 | 0.20 | 2.353 | **0.08** | 0/126 0.0% |
+
+The runs that worked and the runs that did not are separated by 0.89 → 3.62, a
+gap four times wide, and 2.0 sits in the middle of it. That is a constant
+placed in a void rather than fitted to an edge — the first threshold in this
+project that did not need a sweep.
+
+**And read the right-hand column.** [#19](https://github.com/kazunori279/fpga-open-vocab/issues/19)
+has been trying to explain that list by the empty rotation, which does not
+order it. **This ratio does**, monotonically apart from one adjacent swap at
+3.62/4.07. The variable was never the rotation; it was how good the enrolment
+was, and nothing had been measuring that.
+
+Smoke-tested against a still desk, which is the degenerate case that needs
+nobody at the bench: two windows on an unchanged scene came out `nearest pair
+0.04 apart, scatter 0.20 (0.2x)`. It fell to the older absolute floor rather
+than the new branch — right precedence, and the floor stays, because a frozen
+sensor could put two identical references 0.04 apart with 0.001 of scatter and
+pass the ratio. The board's `0.10 / 0.20` matched the offline replay of its own
+log to the printed digit, so the firmware and the calibration are the same
+arithmetic. **The overlap message itself has not been seen on hardware yet** —
+no live scene here reproduces it on demand — and the next bench is where it
+gets its first real chance.
+
+---
+
 ### 2026-08-17 — better staged, and the degenerate enrolment moved from the origin to the pair
 
 Two more runs, 08:55 with the empty rotation and 08:57 with

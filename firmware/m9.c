@@ -208,9 +208,11 @@ static uint32_t n_gate, n_class;   // recounted by recv_queries, read every fram
 #define FGX_ENROL_N 20u
 
 static float qref[FGX_MAX_Q][FGX_MAX_Q];  // [class][query], centred
+static float qref_scat[FGX_MAX_Q];        // RMS spread of its window, see below
 static bool  qref_on[FGX_MAX_Q];
 static int   enrol_want = -1;             // class being captured
 static float enrol_acc[FGX_MAX_Q];        // running sum of cz over the window
+static float enrol_sq[FGX_MAX_Q];         // and of cz*cz, for the same price
 static float enrol_acc_lvl;               // only to print the level; not a rule
 static uint32_t enrol_left;               // frames still to fold in, 0 = idle
 static bool  m21_present;                 // the presence stage's sticky state
@@ -229,6 +231,35 @@ static bool  m21_present;                 // the presence stage's sticky state
 // chosen narrow rather than fitted.
 #define FGX_ABSENT_TRIP  2.0f
 #define FGX_ABSENT_STAY  1.5f
+
+// IS THE ENROLMENT WORTH ANYTHING, asked in the only units that can answer it.
+// `sep` alone cannot: it is the yardstick everything else is quoted in, so a
+// collapsed pair does not read as small, it makes every other distance read as
+// huge. The 08-17 08:55 bench enrolled two references 0.20 apart, called every
+// frame of the run absent - and its origin guard stayed quiet, because those
+// references sat 26 *sep* out. The missing measurement is the scale the frames
+// themselves set: the RMS distance of one enrolment frame from its own window
+// mean, which twenty averaged frames give for the price of a second
+// accumulator. A frame lands nearer the wrong reference once noise exceeds half
+// the gap, so sep < 2 * scatter means the two classes are one blob.
+//
+// Measured on every cue bench there is (worst of the two windows):
+//
+//     run            sep   scatter   ratio    the state stage, held out
+//     08-11 07:22   2.35     0.151   15.59    120/120  100.0 %
+//     08-17 08:57   6.73     1.654    4.07     92/120   76.7 %
+//     08-17 07:33   3.25     0.897    3.62    116/120   96.7 %
+//     08-16 17:35   1.22     1.376     0.89     70/120   58.3 %
+//     08-16 17:22   1.41     2.749     0.51     69/120   57.5 %
+//     08-17 08:55   0.20     2.353     0.08      0/126    0.0 %
+//
+// The gap between the runs that worked and the runs that did not is 0.89 to
+// 3.62, four times wide, and 2.0 is inside it with room on both sides - so this
+// is a threshold placed in a void, not fitted to an edge. Note what else that
+// table says: the three runs #19 could not explain by the empty rotation are
+// ordered exactly by this ratio. The enrolment's quality was always the
+// variable.
+#define FGX_ENROL_SNR    2.0f
 
 // The digits index the enrollable queries in the order the host sent them: the
 // FGX_Q_CLASS ones when roles came with the set, every query when they did not.
@@ -1582,11 +1613,15 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
 
     if (enrol_want != FGX_ENROL_NONE) {
         if (enrol_left == 0) {                    // first frame of the window
-            for (uint32_t j = 0; j < FGX_MAX_Q; j++) enrol_acc[j] = 0.0f;
+            for (uint32_t j = 0; j < FGX_MAX_Q; j++)
+                enrol_acc[j] = enrol_sq[j] = 0.0f;
             enrol_acc_lvl = 0.0f;
             enrol_left    = FGX_ENROL_N;
         }
-        for (uint32_t j = 0; j < nq; j++) enrol_acc[j] += cz[j];
+        for (uint32_t j = 0; j < nq; j++) {
+            enrol_acc[j] += cz[j];
+            enrol_sq[j]  += cz[j] * cz[j];
+        }
         enrol_acc_lvl += lvl;
         enrol_left--;
     }
@@ -1594,15 +1629,25 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
     if (enrol_want != FGX_ENROL_NONE && enrol_left == 0) {
         const float w = (float)FGX_ENROL_N;
         const float alvl = enrol_acc_lvl / w;
-        for (uint32_t j = 0; j < nq; j++)
-            qref[enrol_want][j] = enrol_acc[j] / w;
+        float var = 0.0f;
+        for (uint32_t j = 0; j < nq; j++) {
+            const float mu = enrol_acc[j] / w;
+            qref[enrol_want][j] = mu;
+            // E[x^2] - E[x]^2, clamped: the two terms are within a few ulp of
+            // each other on a window that barely moved, and sqrtf of -1e-9 is
+            // a NaN that would then poison every comparison below.
+            const float v = enrol_sq[j] / w - mu * mu;
+            var += v > 0.0f ? v : 0.0f;
+        }
+        qref_scat[enrol_want] = sqrtf(var);
         qref_on[enrol_want] = true;
         // The level is printed and not kept. Nothing decides on it any more
         // (#18) - it is here because it is free, it is what the two runs that
         // killed the level-based stage were diagnosed from, and a log that
         // stops recording a quantity cannot be asked about it later.
-        printf("enrol     : %s, level %+.2f (%u frames)\n",
-               qname[enrol_want], (double)alvl, (unsigned)FGX_ENROL_N);
+        printf("enrol     : %s, level %+.2f, scatter %.2f (%u frames)\n",
+               qname[enrol_want], (double)alvl,
+               (double)qref_scat[enrol_want], (unsigned)FGX_ENROL_N);
         enrol_want = FGX_ENROL_NONE;
 
         // A new reference moves the presence scale, so the sticky state below
@@ -1624,7 +1669,7 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
         // other one was untestable, and nothing in the log said so.
         if (enrol_count() >= 2u) {
             float sep = INFINITY, orig = INFINITY;
-            uint32_t no = 0, near_o = 0;
+            uint32_t no = 0, near_o = 0, near_a = 0, near_b = 0;
             for (uint32_t i = 0; i < nq; i++) {
                 if (!qref_on[i]) continue;
                 no++;
@@ -1644,18 +1689,38 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
                         s += e * e;
                     }
                     s = sqrtf(s);
-                    if (s < sep) sep = s;
+                    if (s < sep) { sep = s; near_a = i; near_b = k; }
                 }
             }
-            printf("enrol     : %u classes, nearest pair %.2f apart, absent "
-                   "beyond %.2f (%.1f sep)\n",
-                   (unsigned)no, (double)sep, (double)(FGX_ABSENT_TRIP * sep),
-                   (double)FGX_ABSENT_TRIP);
+            // The noise the closest pair has to clear, not the average one: a
+            // steady reference does not rescue the twitchy one it is being
+            // told apart from.
+            const float scat = qref_scat[near_a] > qref_scat[near_b]
+                             ? qref_scat[near_a] : qref_scat[near_b];
+            printf("enrol     : %u classes, nearest pair %.2f apart, scatter "
+                   "%.2f (%.1fx), absent beyond %.2f (%.1f sep)\n",
+                   (unsigned)no, (double)sep, (double)scat,
+                   (double)(scat > 0.0f ? sep / scat : INFINITY),
+                   (double)(FGX_ABSENT_TRIP * sep), (double)FGX_ABSENT_TRIP);
             if (!(sep > 0.05f))
                 printf("            THE CLASSES ARE ON TOP OF EACH OTHER. "
                        "Whatever was in shot for the two\n"
                        "            captures was the same thing, or close "
                        "enough that this cannot separate them.\n");
+            // THE OTHER FAILURE MODE, and the one `sep` is structurally unable
+            // to report, because sep is the unit everything else is quoted in.
+            // See FGX_ENROL_SNR: the enrolment frames' own spread is the scale
+            // that says whether the gap between the classes is a gap at all.
+            else if (sep < FGX_ENROL_SNR * scat)
+                printf("            THE CLASSES OVERLAP: %.2f apart against "
+                       "%.2f of scatter inside one window.\n"
+                       "            A single frame lands nearer the wrong "
+                       "reference about as often as the\n"
+                       "            right one, so this run will measure noise. "
+                       "Steady the scene and the\n"
+                       "            framing - see ./ab.sh --frame-check - and "
+                       "enrol again ('N', then '1'/'2').\n",
+                       (double)sep, (double)scat);
             // THE FAILURE MODE OF #18's RULE, said at the enrolment rather than
             // discovered in the log six minutes later - which is the lesson the
             // presence-span guard above it was written for. A reference sitting

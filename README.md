@@ -73,7 +73,7 @@ harness, and rebuilding the model — are in [`docs/building.md`](docs/building.
 | **retention** | 91% of the queries the teacher itself gets right, at int4 |
 | **fabric** | **6,265 of 7,384 LE (85%)**, 8/8 multipliers, **21 of 24 memory blocks** — it started at 33% with memory the only thing running out; three milestones of arithmetic later both are nearly full |
 | **link** | 26.4 MB/s forward measured, 8.9 MB/s back, and it cannot be widened either way |
-| **decision rule** | 120/120 held out on the board at M21 on 2026-08-11, against 90/180 for ranking the same frames — **and the 2026-08-16 bench does not reproduce it**, twice, at 58.3% and 57.5% with the same rule and the same phrases. What changed is the bench, not the firmware: it now empties the desk between visits, so the objects are re-staged rather than sitting still. Which number is the honest one is [#19](https://github.com/kazunori279/fpga-open-vocab/issues/19), and one control run settles it. The rule's other half, presence, **is** settled: the level-based one failed at 17.8% and 24.4%, and [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) has replaced it with open-set rejection, which scores **90.0% and 87.8%** replayed on the very frames that killed it. That is offline replay, and the first bench of it on 2026-08-17 held **0/90** — of the staging, not the rule: the board's own enrolment guard printed `SITS 0.14 SEP FROM THE ORIGIN` before the first held-out frame, an opened book lying flat being nearly indistinguishable from the desk the background froze on. Re-run owed, better staged |
+| **decision rule** | 120/120 held out on the board at M21 on 2026-08-11, against 90/180 for ranking the same frames — **and the 2026-08-16 bench does not reproduce it**, twice, at 58.3% and 57.5% with the same rule and the same phrases. What changed is the bench, not the firmware: it now empties the desk between visits, so the objects are re-staged rather than sitting still. Which number is the honest one is [#19](https://github.com/kazunori279/fpga-open-vocab/issues/19), still, after four attempts: the two 08-17 runs with a clean enrolment scored 91.7% and 59.2%, and what differs is how far a re-staged object landed from the reference taken on its first visit — so the re-staging is the mechanism, but the empty rotation is not. The rule's other half, presence, **is** settled: the level-based one failed at 17.8% and 24.4%, and [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) has replaced it with open-set rejection, which scores **90.0% and 87.8%** replayed on the very frames that killed it. That is offline replay, and the first bench of it on 2026-08-17 held **0/90** — of the staging, not the rule: the board's own enrolment guard printed `SITS 0.14 SEP FROM THE ORIGIN` before the first held-out frame, an opened book lying flat being nearly indistinguishable from the desk the background froze on. Two more on 08-17 failed on the enrolment too; the guard for that is now in the firmware and the re-run is still owed |
 | **the flaky two** | both now measured rather than guessed at. The camera bus's **worst gap is 16 µs against a 2,000 µs deadline** over 152 frames at 280/140, and 15 µs over 101 at 320/160 — the same at both rates, 125× clear, so [#12](https://github.com/kazunori279/fpga-open-vocab/issues/12) is not the fast side running out of time. A USB outage is now caught **by the board** off `sof_rd` rather than inferred by the host from a log that stopped: it re-attaches itself in ~2.8 s, says which frames it lost, and reboots deliberately at 30 s. `'U'` and `'I'` make both halves happen on demand, which is how they were checked. [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9) is still open, and it now has a third shape in it: a reset from underneath the firmware, which the banner separates from a watchdog reboot by diffing `POWMAN_CHIP_RESET` |
 
 Two GO/NO-GO gates were passed on the way: **M2** (is the on-board link fast and
@@ -96,6 +96,23 @@ failing runs **before** the board was touched: **90.0% and 87.8%** held, keeping
 confirmation bench. The same runs put the state stage's 120/120 in doubt as well
 ([#19](https://github.com/kazunori279/fpga-open-vocab/issues/19)), and one
 session settles both.
+
+Three benches have since tried to confirm it and none of them measured the rule
+— each was spent on a bad enrolment instead, twice in a way nothing was checking
+for. So the board now checks: it compares the gap between the two references
+against the **scatter of the 20 frames each was averaged from**, and says
+`THE CLASSES OVERLAP` at the console rather than letting the run finish. The
+ratio was measured on all six cue benches before the threshold was picked: the
+runs that worked read 15.6×, 4.1× and 3.6×, the runs that did not read 0.9×,
+0.5× and 0.1×, so the cut at 2.0 sits in a gap four times wide.
+
+**It is a floor and not a predictor**, which the two runs after it made clear by
+scoring 91.7% and 59.2% at 2.85× and 2.75×. What separates those is where the
+*same object staged again* lands relative to the reference taken from its first
+visit — between-visit variance, which the guard cannot see, because at the
+moment a reference is taken there has only been one visit. So
+[#19](https://github.com/kazunori279/fpga-open-vocab/issues/19) is still open,
+now with a mechanism rather than a schedule to blame.
 
 **Open work is in [issues](https://github.com/kazunori279/fpga-open-vocab/issues)**,
 labelled `P0`/`P1`/`P2`. The docs here record what was measured; what is still owed
