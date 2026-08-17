@@ -11,6 +11,66 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-17 — "the presence geometry is inverted" was wrong, and the nine-bench replay says the radius is worth five points
+
+Written into the entry below this morning, and put on issue #18 before anything
+was replayed:
+
+> `11:26   empty mean 0.87 sep   classes mean 0.70 sep`
+> **The empty desk is FURTHER from the references than the class frames are.**
+> The rule cuts on "far means absent" and on this scene the ordering is
+> inverted, so every radius calls the desk present or calls everything absent.
+
+**Further is the direction the rule wants.** `absent ⇔ d > radius` wants the
+empty desk further out; 0.87 against 0.70 is a correct ordering with a small
+margin, and what actually happened is a 2.0-sep threshold sitting above both
+populations. Two errors in one sentence, and the word "inverted" was doing the
+work in both.
+
+Now that the logs are in `bench/cue/`, `tools/probe_presence.py` replays #18
+across all of them at once. Nine benches have a held-out empty rotation:
+
+| bench | AUC | best r | balanced there | at 2.0 sep |
+|---|---|---|---|---|
+| 08-16 17:22 | 0.956 | 2.50 | 94.9% | 94.2% |
+| 08-16 17:35 | 0.909 | 2.55 | 87.5% | 86.4% |
+| 08-17 09:18 | 0.923 | 2.50 | 90.8% | 50.0% |
+| 08-17 11:44 | 0.904 | 1.55 | 90.0% | 50.0% |
+| 08-17 11:26 | 0.726 | 0.55 | 72.6% | 52.2% |
+| 08-17 08:55 | 0.711 | 3.60 | 80.0% | 51.7% |
+| 08-17 07:33 | 0.319 | — | 50.0% | 50.0% |
+| 08-17 09:57 | 0.276 | — | 50.0% | 50.0% |
+| 08-17 09:55 | 0.274 | — | 50.0% | 50.0% |
+
+**Three of nine are genuinely inverted** — AUC below 0.5, the empty desk nearer
+the references than the objects — and nothing thresholded on this distance
+recovers those. **Six are not**, four of them strongly. So it is not the scene
+in the sense claimed this morning, and the radius sweep is not blocked.
+
+It is also not the fix. The per-bench optimum is 0.55 to 3.60 absolute, 0.50 to
+3.90 in sep — a seven-fold range. Fit the radius on eight benches and score it
+on the ninth, which is the only measurement that describes the appliance:
+
+```
+sep, as FGX_ABSENT_TRIP does     64.1 %   (worst fold -20.7)
+scat, the enrolment spread       67.1 %   (worst fold -17.1)
+absolute distance                67.8 %   (worst fold -22.6)
+FGX_ABSENT_TRIP = 2.0 sep, today 59.2 %
+```
+
+**Five to eight points, not thirty**, and the three units are within four points
+of each other, so the unit is not the bug either. This is the same structural
+fact for the fourth time: the right constant is a property of the bench and
+nothing measurable beforehand predicts it. A radius sweep is therefore still not
+worth a morning of daylight — not because the geometry is inverted, which it
+mostly is not, but because the number it would produce is worth five points and
+would be the fifth constant fitted to these same benches.
+
+What #18 needs is evidence the distance to a reference does not carry. That is a
+different experiment, not a different threshold.
+
+---
+
 ### 2026-08-17 — the benches move into the repository, and two rows of the table turn out to be the wrong column
 
 Every number in this project that says how well the appliance recognises

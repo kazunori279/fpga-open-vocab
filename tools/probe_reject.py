@@ -112,12 +112,17 @@ def quart(xs):
     return q(0.0), q(0.25), q(0.5), q(0.75), s[-1]
 
 
-def score(log: Path) -> None:
-    spans, frames, enrol, window = load(log)
-    names = sorted(next(iter(frames.values()))[0])
-    print(f"\n=== {log}")
-    print(f"    queries {names}, {len(frames)} frames, enrol window {window}")
+class Skip(Exception):
+    """This log cannot be replayed against the rule, and why."""
 
+
+def references(spans, frames, enrol, window, names, note=lambda s: None):
+    """(refs, ref_lab, nvis, scat, sep, engage) in the centred space.
+
+    Split out of score() so tools/probe_presence.py builds its references with
+    exactly this arithmetic rather than a second copy of it - the window offsets
+    and the pooling below are where this is easy to get quietly wrong.
+    """
     # A key sent for frame F is read during F+1 and its window covers
     # F+2 .. F+1+window. Same arithmetic as tools/score_cue.py, and it is the
     # difference between a reference and twenty frames of somebody's hand.
@@ -134,7 +139,7 @@ def score(log: Path) -> None:
         lo, hi = f + 2, f + 1 + window
         vecs = [centred(frames[i][0], names) for i in range(lo, hi + 1) if i in frames]
         if len(vecs) < window:
-            print(f"    key {k}: only {len(vecs)}/{window} frames in the window - skipped")
+            note(f"    key {k}: only {len(vecs)}/{window} frames in the window - skipped")
             continue
         pool.setdefault(k, []).extend(vecs)
         nvis[k] = nvis.get(k, 0) + 1
@@ -142,8 +147,7 @@ def score(log: Path) -> None:
         # rather than by its position in the schedule.
         ref_lab[k] = next((lab for a, b, lab in spans if a - 1 <= lo <= b), f"key {k}")
     if len(pool) < 2:
-        print("    fewer than two references - nothing to be nearest to")
-        return
+        raise Skip("fewer than two references - nothing to be nearest to")
 
     refs, scat = {}, {}
     for k, vecs in pool.items():
@@ -166,6 +170,22 @@ def score(log: Path) -> None:
     # it were scored against something the run did not finish with. Same change
     # as tools/score_cue.py, and a no-op on one-visit logs.
     engage = max(f for f, k in enrol if k != "0") + 2 + window
+    return refs, ref_lab, nvis, scat, sep, engage
+
+
+def score(log: Path) -> None:
+    spans, frames, enrol, window = load(log)
+    names = sorted(next(iter(frames.values()))[0])
+    print(f"\n=== {log}")
+    print(f"    queries {names}, {len(frames)} frames, enrol window {window}")
+    try:
+        refs, ref_lab, nvis, scat, sep, engage = references(
+            spans, frames, enrol, window, names, note=print)
+    except Skip as why:
+        print(f"    {why}")
+        return
+
+    keys = sorted(refs)
     worst = max(scat[k] for k in keys)
     vmin = min(nvis[k] for k in keys)
     print(f"    references, in the centred space, and their frames' spread:")
