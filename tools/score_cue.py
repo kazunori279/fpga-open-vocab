@@ -237,8 +237,15 @@ def main():
     #
     # A key sent for frame F is read during F+1 and its window covers
     # F+2 .. F+1+window, so the rule is live from F+2+window.
+    #
+    # THE LAST WINDOW AND NOT THE SECOND, since FGX_ENROL_V. A class enrolled
+    # from more than one visit has a reference that MOVES when the later visit
+    # lands, so the frames in between were scored against a reference the run
+    # did not finish with - live, but not the rule whose score is being
+    # reported. On a one-visit-per-class log the two are the same frame and
+    # this changes nothing, which is why it is safe to apply to old logs.
     cls = sorted(f for f, k in enrol if k != "0")
-    engage = cls[1] + 2 + window if len(cls) >= 2 else None
+    engage = cls[-1] + 2 + window if len(cls) >= 2 else None
     if not scenes:
         sys.exit("no scene segments in the sidecar")
     names = list(next(iter(frames.values()))[0]) if frames else []
@@ -326,9 +333,10 @@ def main():
         before = [f for _, f in known if f < engage]
         known = [(lab, f) for lab, f in known if f >= engage]
         if before:
-            print(f"enrolled  : rule live from frame {engage} (second reference "
-                  f"lands there); {len(before)} earlier scored frames are the "
-                  f"old rule's and are not counted")
+            print(f"enrolled  : rule settled at frame {engage} (the last "
+                  f"reference lands there); {len(before)} earlier scored frames "
+                  f"were the old rule's or an earlier reference's and are not "
+                  f"counted")
     if known:
         ok = sum(frames[f][1] == want[lab] for lab, f in known)
         rule = "enrolled " if enrol else "two-stage"

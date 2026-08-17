@@ -96,7 +96,8 @@ ABSENT  = re.compile(r"\s-\s\(nothing there\)")
 # The distances above are quoted in sep, so this side needs it to put the
 # runner-up's raw gap on the same scale.
 ENROL_ONE  = re.compile(r"^enrol\s+:\s+(.+?), level [-+][\d.]+"
-                        r"(?:, scatter [\d.]+)? \(\d+ frames\)")
+                        r"(?:, scatter [\d.]+)? \(\d+ frames"
+                        r"(?:, visit \d+ of \d+)?\)")
 ENROL_PAIR = re.compile(r"^enrol\s+:\s+\d+ classes, nearest pair ([\d.]+) apart")
 
 # MUST MATCH FGX_ABSENT_TRIP / FGX_ABSENT_STAY in firmware/m9.c. Only the trip
@@ -112,6 +113,13 @@ ABSENT_STAY = 1.5
 # silent: the board prints "(N frames)" on every enrol line, and the sidecar
 # records what this side assumed, so tools/score_cue.py can compare the two.
 ENROL_FRAMES = 20
+
+# MUST MATCH FGX_ENROL_V in firmware/m9.c. How many visits to each class get a
+# key press: the board folds them into one reference, and the second one is what
+# lets its enrolment guard see staging variance rather than only stillness. This
+# side owns the schedule, so this side is what makes the second visit happen.
+# Costs one visit of held-out data per class, which is why it is not three.
+ENROL_VISITS = 2
 
 # The label for a return visit to the empty scene, and the reason it is not
 # called "baseline" is the whole point of #15. The baseline segment at the head
@@ -746,10 +754,13 @@ def main() -> int:
                          "frames already pins the mean to +-0.05; the old "
                          "default of 120 was buying a third decimal place on "
                          "effects of 1.14 and 2.42")
-    ap.add_argument("--repeat", type=int, default=3, metavar="K",
-                    help="times to cycle through the scenes, default 3. This "
+    ap.add_argument("--repeat", type=int, default=4, metavar="K",
+                    help="times to cycle through the scenes, default 4. This "
                          "is where the time saved by a short --hold goes, and "
-                         "it buys the only error bar that measures what varies")
+                         "it buys the only error bar that measures what varies. "
+                         "--enrol spends the first ENROL_VISITS cycles teaching, "
+                         "so 4 is what leaves the two held-out visits per class "
+                         "that the state figure used to be measured on")
     ap.add_argument("--baseline", type=int, default=30, metavar="N",
                     help="frames of empty scene to keep after the background "
                          "freezes, before the first cue; default 30")
@@ -783,11 +794,13 @@ def main() -> int:
                          "the presence stage buys, which is #15. Costs one "
                          "visit per repeat")
     ap.add_argument("--enrol", action="store_true",
-                    help="M21. Show the board each scene once and let it decide "
-                         "by nearest reference for the rest of the run. The "
-                         "enrolling visit is the FIRST visit to each scene, so "
-                         "every later one is held out - which is what --repeat "
-                         "was already producing and nothing was using")
+                    help="M21. Show the board each scene and let it decide by "
+                         "nearest reference for the rest of the run. The "
+                         "enrolling visits are the FIRST ENROL_VISITS visits to "
+                         "each scene - two of them, so the board's guard can see "
+                         "how far a class moves between stagings and not only "
+                         "how still it was held - and every later visit is held "
+                         "out")
     ap.add_argument("--preview", type=int, default=0, metavar="N",
                     help=f"ask the board for a picture every N frames and keep "
                          f"{PREVIEW_PNG} showing the newest one. Costs ~44 KB "
@@ -946,10 +959,18 @@ def main() -> int:
     # sent at board frame F is read during F+1 and the window it opens covers
     # F+2 .. F+1+ENROL_FRAMES - the two-frame lag is measured, not assumed: the
     # 2026-08-11 bench scheduled a key for frame 58 and the board captured 60.
-    # Each scene is enrolled --settle + 2 frames into its FIRST visit, which is
-    # the first frame the operator's hand is guaranteed to be out of. Later
-    # visits are then held out by construction, and the offline scorer needs to
-    # know which visit was spent enrolling, so the frames go in the sidecar.
+    # Each scene is enrolled --settle + 2 frames into a visit, which is the
+    # first frame the operator's hand is guaranteed to be out of. The offline
+    # scorer needs to know which visits were spent enrolling, so they go in the
+    # sidecar and the visits that are left are held out by construction.
+    #
+    # THE FIRST ENROL_VISITS VISITS TO EACH SCENE, not just the first. A single
+    # visit pins down where an object sits while it sits there and says nothing
+    # about where it lands when it is staged again - and the second quantity is
+    # what decides runs, so the board cannot measure the enrolment's quality
+    # without it. See FGX_ENROL_SNR in firmware/m9.c for the nine benches that
+    # say so. This costs a visit per class off the held-out count, which is why
+    # --repeat has to be at least ENROL_VISITS + 1 for the run to test anything.
     #
     # THERE USED TO BE A '0' HERE, enrolling the empty scene at the end of the
     # baseline, and #18 removed the thing it fed. It was never an empty desk: the
@@ -960,12 +981,29 @@ def main() -> int:
     # be long enough to freeze the background.
     enrol: list[tuple[int, str]] = []
     if args.enrol:
-        for k, label in enumerate(base):
-            start = args.bg_tau + args.baseline + k * (args.settle + args.hold)
-            enrol.append((start + args.settle + 2, str(k + 1)))
+        visits = min(ENROL_VISITS, max(1, args.repeat))
+        for v in range(visits):
+            for k, label in enumerate(base):
+                scene = v * len(rotation) + k
+                start = (args.bg_tau + args.baseline
+                         + scene * (args.settle + args.hold))
+                enrol.append((start + args.settle + 2, str(k + 1)))
         if len(base) < 2:
             print("--enrol with one scene: the board needs two enrolled classes "
                   "before the M21 rule engages, so it will stay on the old one.",
+                  file=sys.stderr)
+        # Enrolling from every visit there is leaves nothing to score, and the
+        # run would still print a state figure - one measured on its own
+        # training frames. Say so here rather than let it read as a result.
+        if args.repeat <= visits:
+            print(f"--enrol with --repeat {args.repeat}: all {visits} visits to "
+                  f"each scene are enrolment windows, so the state stage has no "
+                  f"held-out frames left. Use --repeat {visits + 1} or more.",
+                  file=sys.stderr)
+        elif visits < ENROL_VISITS:
+            print(f"--enrol with --repeat {args.repeat}: only {visits} visit per "
+                  f"class can be enrolled, so the board's enrolment guard will "
+                  f"measure stillness and not staging. See FGX_ENROL_V.",
                   file=sys.stderr)
         # A window that runs off the end of its scene averages in the NEXT one
         # and nothing downstream can see that it did - the reference is just
@@ -1006,8 +1044,11 @@ def main() -> int:
         print("enrol     : " + ", ".join(
             f"frames {f + 2}-{f + 1 + ENROL_FRAMES} = {base[int(k) - 1]}"
             for f, k in enrol))
-        print(f"            the first visit to each scene teaches the board; "
-              f"the other {args.repeat - 1} are held out")
+        held = args.repeat - visits
+        print(f"            the first {visits} visit{'' if visits == 1 else 's'} "
+              f"to each scene teach the board and fold into one reference; "
+              f"{held if held else 'none'} {'is' if held == 1 else 'are'} "
+              f"held out")
         if args.revisit_empty:
             print(f"            the {args.repeat} '{EMPTY}' visits are held out "
                   f"too - nothing is enrolled for them at all, and they are "
@@ -1036,6 +1077,7 @@ def main() -> int:
     pending = list(scenes)
     open_seg: tuple[str, int] | None = None
     bars: Bars | None = None
+    last_i = -1
     enrol_lines: list[str] = []
     roles: dict[str, str] = {}
     thr: dict[str, float] = {}
@@ -1077,6 +1119,27 @@ def main() -> int:
         if not m:
             continue
         i = int(m.group(1))
+
+        # THE BOARD'S FRAME COUNTER WENT BACKWARDS, so this is a different
+        # session and everything above belongs to the previous one. It happens
+        # on every run that finds the board still looping: demo.py sends 'R',
+        # which is watchdog_reboot(), and the frames it printed before that -
+        # frame 1114 on the run that caught this - are already through here.
+        # The baseline then opened at 1114, the first cue fired against the old
+        # loop, and after the reboot `i - start` was negative forever, so no
+        # further cue ever came. The enrolment keys still landed, because those
+        # ride demo.py's own schedule off the board's counter, which is exactly
+        # why the failure read as "cues are broken" and not "wrong session".
+        # Dropping the record and re-arming is right either way: if this was a
+        # real mid-run wedge, demo.py voids the measurement regardless.
+        if i < last_i:
+            scores.clear()
+            segments.clear()
+            pending = list(scenes)
+            open_seg = None
+            scene_now = "empty (leave it that way until the cue)"
+        last_i = i
+
         scores[i] = parse_scores(m.group(2))
         verdict = parse_verdict(line[m.end():])
 

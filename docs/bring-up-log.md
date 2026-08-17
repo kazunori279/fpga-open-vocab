@@ -11,6 +11,85 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-17 — the guard fires for the first time, and then a fourth run says what it is still not measuring
+
+Two more benches, and between them they finish the argument the three entries
+below were circling.
+
+**09:55 is the first time `THE CLASSES OVERLAP` has appeared on hardware.**
+`nearest pair 0.79 apart, scatter 1.13 (0.7x)`, printed about ninety seconds
+in. The run was allowed to finish anyway, to find out whether the guard was
+right: **47.5% held out, presence AUC 0.274.** It was right. That is the whole
+case for the guard — ten minutes of bench time and a scoring pass, replaced by
+one line at the enrolment.
+
+**09:57, re-enrolled, then read 5.1x — the cleanest ratio of any bench so far —
+and scored 74.2%.** So the retraction below stands and gets sharper: the
+within-window ratio is not merely an imperfect predictor, it is close to
+useless above the floor. Sorted by it, the nine benches go 13.91 (100%), 3.69
+(76.7%), 2.71 (59.2%), 2.52 (96.7%), 2.17 (91.7%), 1.81 (74.2%), 0.67, 0.10,
+0.05.
+
+**What does sort them is the same ratio measured over more than one visit.**
+`tools/probe_sepscale.py`, written for this, pools every visit of a class into
+one centre and measures the frame spread about *that*:
+
+| run | held out | sep (1 visit) | ratio(1) | **ratio(2)** |
+|---|---|---|---|---|
+| 07:33 | 96.7% | 2.40 | 2.52 | **3.24** |
+| 08-11 07:22 | 100.0% | 2.28 | 13.91 | **2.94** |
+| 09:18 | 91.7% | 3.61 | 2.17 | **2.64** |
+| | | | | *— nothing here —* |
+| 09:33 | 59.2% | 3.83 | 2.71 | **1.24** |
+| 09:57 | 74.2% | 3.69 | 1.81 | **0.94** |
+| 08:57 | 76.7% | **5.83** | 3.69 | **0.87** |
+| 09:55 | 47.5% | 0.84 | 0.67 | **0.44** |
+| 08-16 17:22 | 58.3% | 0.17 | 0.05 | **0.22** |
+| 08-16 17:35 | 57.5% | 0.26 | 0.10 | **0.15** |
+
+Every run on the correct side, and the void between 1.24 and 2.64 is wide
+enough that **2.0 did not have to move** — the constant was never the problem,
+the quantity was. Note the `sep` column while it is here: the largest value of
+all nine belongs to a 76.7% run and the smallest three include a 58.3%. **`sep`
+as this board has been printing it is not a scale**, which also means #18's
+`2.0 sep` radius has been quoted in a unit that means something different every
+run, and that is why the radius is still not being touched.
+
+So `FGX_ENROL_V = 2`: a repeat press on a class folds a second visit into the
+same reference instead of replacing it, `host/cue.py` schedules the second
+press, and `--repeat` defaults to 4 so two visits per class are still held out.
+The firmware cost is eight bytes a class — the obvious per-query sum of squares
+is 144 bytes and **does not link**, this image having about twenty bytes of
+headroom, so it accumulates the scalar `Σ|cz|²` and uses
+`Σⱼvar(xⱼ) = E[|x|²] − |μ|²` instead.
+
+**The second visit is not an accuracy win and should not be sold as one.**
+`tools/probe_multivisit.py` replays leave-one-visit-out over all seven scorable
+logs: two-visit references beat one-visit ones by 1.1 and 0.6 points on the two
+clean benches, lose by 18 points on 08-16 17:35, and a longer *single*-visit
+window does just as well wherever either helps. It is here to make the guard
+measurable, nothing else.
+
+**Two host bugs found while trying to see the second visit on hardware, both of
+them the same event read twice.** m9's `'R'` is `watchdog_reboot()`, and
+`demo.py` presses it when it finds the board still looping from a killed run —
+so the port vanishes and `follow_reboot()` marks the run rebooted. Two benches
+in a row therefore came back `>>> VOID: the board wedged mid-run` with a clean
+log underneath: **a reboot this end asked for, counted as a wedge.** Cleared now
+at the point it is caused, before the run starts, so a later one still voids.
+Underneath it, the frames the old loop had already printed — numbered 1114 on
+the run that caught this — were in the log and had been through `cue.py`, which
+opened its baseline at 1114 and fired the first cue against the previous
+session; after the reboot the counter restarted at 1, `i - start` went negative,
+and no further cue ever came. The enrolment keys still landed, because those
+ride `demo.py`'s own schedule off the board's counter, which is exactly why it
+read as *cues are broken* rather than *wrong session*. `cue.py` now re-arms when
+the frame counter goes backwards and `demo.py` rebuilds the log from the
+reattach, so one file is one session. Verified by killing a run to leave the
+board looping and re-running: ten cue boundaries, frame 0 to 361, no void.
+
+---
+
 ### 2026-08-17 — two clean enrolments, and the second one retracts what the first one seemed to prove
 
 09:18 and 09:33, both with the new guard live, both passed it: `2.99 apart,

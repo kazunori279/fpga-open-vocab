@@ -97,22 +97,27 @@ confirmation bench. The same runs put the state stage's 120/120 in doubt as well
 ([#19](https://github.com/kazunori279/fpga-open-vocab/issues/19)), and one
 session settles both.
 
-Three benches have since tried to confirm it and none of them measured the rule
-— each was spent on a bad enrolment instead, twice in a way nothing was checking
+Several benches have since tried to confirm it and none of them measured the
+rule — each was spent on a bad enrolment instead, in a way nothing was checking
 for. So the board now checks: it compares the gap between the two references
-against the **scatter of the 20 frames each was averaged from**, and says
-`THE CLASSES OVERLAP` at the console rather than letting the run finish. The
-ratio was measured on all six cue benches before the threshold was picked: the
-runs that worked read 15.6×, 4.1× and 3.6×, the runs that did not read 0.9×,
-0.5× and 0.1×, so the cut at 2.0 sits in a gap four times wide.
+against the **spread of the frames each was averaged from**, and says
+`THE CLASSES OVERLAP` at the console rather than letting the run finish. It
+first fired on hardware on 2026-08-17 at 0.7×, ninety seconds into a run that
+went on to score 47.5% — right, and nine minutes earlier than the scoring pass.
 
-**It is a floor and not a predictor**, which the two runs after it made clear by
-scoring 91.7% and 59.2% at 2.85× and 2.75×. What separates those is where the
-*same object staged again* lands relative to the reference taken from its first
-visit — between-visit variance, which the guard cannot see, because at the
-moment a reference is taken there has only been one visit. So
-[#19](https://github.com/kazunori279/fpga-open-vocab/issues/19) is still open,
-now with a mechanism rather than a schedule to blame.
+**The first version measured that spread inside one enrolment window, and that
+was the wrong quantity** — two runs at 2.85× and 2.75× scored 91.7% and 59.2%.
+One window says how still the operator held the scene; what decides a run is
+where the *same object staged again* lands, which at the moment a reference is
+taken has never been observed. So enrolment takes **two visits** now: press the
+class's digit again later and both windows fold into one reference. Measured
+that way the ratio puts all nine benches on the correct side of 2.0 — the three
+that worked at 2.6–3.2×, the six that did not at 1.24× and below, and **nothing
+in between** — so the threshold did not have to move, only the thing it divides.
+The same table says `sep` on its own carries no signal at all: its largest value
+of all nine belongs to a 76.7% run. Since #18's absent radius is quoted in
+`sep`, that is now the open question rather than
+[#19](https://github.com/kazunori279/fpga-open-vocab/issues/19)'s schedule.
 
 **Open work is in [issues](https://github.com/kazunori279/fpga-open-vocab/issues)**,
 labelled `P0`/`P1`/`P2`. The docs here record what was measured; what is still owed

@@ -121,7 +121,13 @@ def score(log: Path) -> None:
     # A key sent for frame F is read during F+1 and its window covers
     # F+2 .. F+1+window. Same arithmetic as tools/score_cue.py, and it is the
     # difference between a reference and twenty frames of somebody's hand.
-    refs, ref_lab, scat = {}, {}, {}
+    #
+    # EVERY WINDOW FOR A KEY POOLS INTO ONE CLASS, because that is what the
+    # board does since FGX_ENROL_V - a repeat press adds a visit rather than
+    # replacing one. Keying `refs` by the digit and assigning would silently
+    # keep only the last visit and report a scatter that had never seen the
+    # first, which is the one number this tool exists to get right.
+    pool, ref_lab, nvis = {}, {}, {}
     for f, k in enrol:
         if k == "0":
             continue                    # this rule does not enrol the empty scene
@@ -130,33 +136,46 @@ def score(log: Path) -> None:
         if len(vecs) < window:
             print(f"    key {k}: only {len(vecs)}/{window} frames in the window - skipped")
             continue
-        refs[k] = [st.mean(v[j] for v in vecs) for j in range(len(names))]
-        # How far ONE frame of that window fell from the window's own mean, RMS.
-        # This is the scale that says whether the gap between two references is
-        # a gap: sep cannot, being the unit everything else is quoted in. Same
-        # formula as m9.c's FGX_ENROL_SNR guard, and it agrees with the board to
-        # the printed digits - keep the two together if either changes.
-        scat[k] = sum(st.mean((v[j] - refs[k][j]) ** 2 for v in vecs)
-                      for j in range(len(names))) ** 0.5
+        pool.setdefault(k, []).extend(vecs)
+        nvis[k] = nvis.get(k, 0) + 1
         # Which class this key is, by which cued segment the window fell in,
         # rather than by its position in the schedule.
         ref_lab[k] = next((lab for a, b, lab in spans if a - 1 <= lo <= b), f"key {k}")
-    if len(refs) < 2:
+    if len(pool) < 2:
         print("    fewer than two references - nothing to be nearest to")
         return
+
+    refs, scat = {}, {}
+    for k, vecs in pool.items():
+        refs[k] = [st.mean(v[j] for v in vecs) for j in range(len(names))]
+        # How far ONE enrolled frame fell from its class's centre, RMS. This is
+        # the scale that says whether the gap between two references is a gap:
+        # sep cannot, being the unit everything else is quoted in. Over more
+        # than one visit it carries the staging variance too, which is the term
+        # that actually decides runs. Same formula as m9.c's FGX_ENROL_SNR
+        # guard, and it agrees with the board to the printed digits - keep the
+        # two together if either changes.
+        scat[k] = sum(st.mean((v[j] - refs[k][j]) ** 2 for v in vecs)
+                      for j in range(len(names))) ** 0.5
 
     keys = sorted(refs)
     sep = min(dist(refs[i], refs[j])
               for x, i in enumerate(keys) for j in keys[x + 1:])
-    engage = sorted(f for f, k in enrol if k != "0")[1] + 2 + window
+    # The LAST reference and not the second: a class enrolled from two visits
+    # has a reference that moves when the later one lands, so the frames before
+    # it were scored against something the run did not finish with. Same change
+    # as tools/score_cue.py, and a no-op on one-visit logs.
+    engage = max(f for f, k in enrol if k != "0") + 2 + window
     worst = max(scat[k] for k in keys)
-    print(f"    references, in the centred space, and their windows' scatter:")
+    vmin = min(nvis[k] for k in keys)
+    print(f"    references, in the centred space, and their frames' spread:")
     for k in keys:
         print(f"      {ref_lab[k]:<18} " +
               "  ".join(f"{v:+.2f}" for v in refs[k]) +
-              f"   +-{scat[k]:.2f}")
-    print(f"    nearest pair {sep:.2f} apart against {worst:.2f} of scatter "
-          f"({sep / worst:.2f}x); rule live from frame {engage}")
+              f"   +-{scat[k]:.2f}  ({nvis[k]} visit{'' if nvis[k] == 1 else 's'})")
+    print(f"    nearest pair {sep:.2f} apart against {worst:.2f} of spread "
+          f"({sep / worst:.2f}x over {vmin} visit{'' if vmin == 1 else 's'}); "
+          f"rule settled at frame {engage}")
     if sep < 2.0 * worst:
         print("      ^ THE CLASSES OVERLAP. Below 2x a frame lands nearer the "
               "wrong reference about\n"
@@ -164,6 +183,13 @@ def score(log: Path) -> None:
               "m9.c refuses to stay\n"
               "        quiet about this since FGX_ENROL_SNR; runs older than "
               "that guard did not know.")
+    elif vmin < 2:
+        print("      ^ measured over one visit, so it says how still the scene "
+              "was held and not\n"
+              "        how far the class moves when it is staged again - which "
+              "is what decides the\n"
+              "        run. tools/probe_sepscale.py is the same ratio done "
+              "properly on this log.")
     # WHERE THE ORIGIN IS, because it is not an arbitrary point. c[] = 0 means
     # every query moved together, which is what "nothing has changed since the
     # background was frozen" reads as. A reference that sits close to the origin

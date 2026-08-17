@@ -1053,6 +1053,32 @@ def main() -> int:
                                   "came back to the bitstream prompt",
                                   secs=30.0):
                     return 1
+                # 'R' IS watchdog_reboot(), so the port vanishes and comes back
+                # and follow_reboot() sets `rebooted` on the way through - the
+                # detector cannot tell this end's own keypress from a wedge.
+                # Left set, it voids a run that has not started yet: two
+                # consecutive benches came back ">>> VOID: the board wedged
+                # mid-run" with a clean 103-frame log underneath. The reboot we
+                # asked for is not evidence of anything, so it is cleared here,
+                # before the run, and any later one still counts.
+                rebooted = False
+                # The old loop's frames are in the log above, numbered from
+                # wherever that session had reached - 1114 on the run that
+                # caught this - and the run about to start numbers from 1. Two
+                # sessions in one file is not a log, and every tool downstream
+                # reads it by frame number. `emit` is the only writer and it
+                # mirrors into `transcript`, so the file can be rebuilt from the
+                # reattach onward. Keeping the reattach line itself: the banner
+                # the board prints after the reboot comes later, so the crc32
+                # and query-set checks below still have theirs.
+                cut = next((n for n, t in enumerate(transcript)
+                            if "reattached on" in t), None)
+                if cut is not None:
+                    del transcript[:cut]
+                    log.seek(0)
+                    log.truncate()
+                    log.writelines(transcript)
+                    log.flush()
             else:
                 print(f"\n(no banner in 10s - it was probably printed "
                       f"before this end opened the port, which stdio_usb drops. "
