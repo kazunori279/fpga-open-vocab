@@ -11,6 +11,57 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-17 — better staged, and the degenerate enrolment moved from the origin to the pair
+
+Two more runs, 08:55 with the empty rotation and 08:57 with
+`--no-revisit-empty` as [#19](https://github.com/kazunori279/fpga-open-vocab/issues/19)'s
+control. The book was propped up this time. Neither confirms
+[#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) either, and the
+first one fails in a way the morning's guard cannot see.
+
+**Run 1: the two references landed on the same point.** `nearest pair 0.20
+apart`, against 3.25 in the morning — `an opened book` at `(+3.76, −3.76)` and
+`a closed book` at `(+3.62, −3.62)`. With everything else 15 to 32 sep away the
+board called **every frame absent**: the presence stage "held" 90/90 of the
+empty desk and kept 0/120 of the classes, and `MATCH` read 0/126. A stage that
+answers "nothing there" to everything is not a stage that works.
+
+**And the staging was right, which is how the pictures earned their keep on the
+first run that had them.** The enrolment windows are on disk as
+`m9_cue-20260817-085504-f0086.png` and `-f0126.png`: a held-open book filling
+the frame, and the closed cover. Ten seconds of looking ruled out the framing
+explanation that took the 07:33 run an hour of arithmetic. What collapsed is
+the *contrast*, not the picture: `z(opened) − z(closed)` was **−6.02** in the
+opened-book window and **−6.62** in the closed-book one. With two queries the
+centred space is one-dimensional and antisymmetric — a reference *is* the
+contrast — so two scenes that read the same contrast have no geometry between
+them, however different they look.
+
+**The origin guard is blind to this, structurally.** It measures the distance
+from the origin *in units of sep*, so a collapsed `sep` inflates every distance:
+run 1's references sit 26 sep from the origin and the guard stayed quiet. The
+check that is missing is the pair against the **scatter inside the enrolment
+windows** — the board already averages 20 frames, so the spread of those frames
+around their own mean is free, and a between-class distance that is not much
+bigger than the within-class scatter is an enrolment that should be refused at
+the console rather than scored ten minutes later.
+
+**Run 2, the control:** `sep` 6.73, state stage **92/120 (76.7%)** held out —
+and `SITS 0.27 SEP FROM THE ORIGIN`, so its geometry is doubtful in the
+morning's way instead. The tally #19 now has to explain: 120/120 (08-11,
+no-revisit), 57.5% and 58.3% (08-16, revisit), 96.7% (08-17 07:33, revisit),
+76.7% (08-17 08:57, no-revisit). **The empty rotation does not order that
+list.** What varies with it is the enrolment geometry, which nothing was
+measuring until three days ago.
+
+The two enrolment dumps are not what broke run 1: run 2 asked for the same two
+and separated 6.73. The pictures also caught a bug in themselves — they are
+named after the log, so run 2 overwrote run 1's pair. The base64 is in the
+rotated log, so `cam.py` re-rendered them, and the log rotation now moves the
+PNGs along with the `.cues` sidecar for the same reason it moves that.
+
+---
+
 ### 2026-08-17 — the confirmation bench measured the staging instead of the rule, and the board said so before it started
 
 [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18)'s first run on

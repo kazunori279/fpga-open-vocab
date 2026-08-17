@@ -778,7 +778,21 @@ def main() -> int:
         old_cues = args.out.with_suffix(args.out.suffix + ".cues")
         if old_cues.exists():
             old_cues.replace(keep.with_suffix(keep.suffix + ".cues"))
-        print(f"kept      : the previous run is now {keep}")
+        # The enrolment pictures move with it too, and for the same reason the
+        # sidecar does: they are named after the log, so the next run silently
+        # overwrites them. Not hypothetical - the 08:55 run on 2026-08-17 kept
+        # its pair for two minutes, until the control run started, and the
+        # collapsed-reference geometry that made that run worth looking at was
+        # exactly what the pictures were wanted for. They were recoverable
+        # from the rotated log with `cam.py`, because the base64 is in there;
+        # this is so nobody has to notice that in time.
+        stem = args.out.with_suffix("").name
+        shots = sorted(args.out.parent.glob(f"{stem}-f[0-9]*.png"))
+        for shot in shots:
+            shot.replace(keep.with_name(
+                f"{keep.with_suffix('').name}{shot.name[len(stem):]}"))
+        print(f"kept      : the previous run is now {keep}"
+              + (f" (+{len(shots)} enrolment pictures)" if shots else ""))
 
     # demo.py counts every frame including the 30 it spends freezing the
     # background. Ask for exactly what the schedule needs and no more, so the
