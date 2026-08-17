@@ -1,5 +1,10 @@
 # The cue benches
 
+Two directories. **`cue/`** is accuracy — this file is its manifest.
+**`soak/`** is reliability: eight 200-frame runs from 2026-08-15 at two clocks,
+three of which died, and the earliest recorded instance of the USB outage behind
+#9. It has [its own README](soak/README.md).
+
 Every number in this repository that says how well the appliance recognises
 anything came out of one of the logs in `cue/`. The enrolment guard's constant
 (`FGX_ENROL_SNR`, deleted from `firmware/m9.c` on 2026-08-17 after the run that

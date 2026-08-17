@@ -1,0 +1,16 @@
+frame   244 :  an opened book +0.67  a closed book +0.09   led  66/ 46 h0.54 lvl+0.38   -
+frame   245 :  an opened book +0.68  a closed book -0.16   led  70/ 43 h0.56 lvl+0.26   -
+frame   246 :  an opened book +0.55  a closed book -0.01   led  44/ 69 h0.45 lvl+0.27   -
+frame   247 :  an opened book +0.74  a closed book +0.13   led  84/ 33 h0.60 lvl+0.44   -
+frame   248 :  an opened book +0.40  a closed book -0.05   led  21/109 h0.32 lvl+0.17   -
+frame   249 :  an opened book +0.30  a closed book +0.02   led  12/137 h0.25 lvl+0.16   -
+frame   250 :  a closed book +0.65  an opened book +0.63   led  63/ 48 h0.53 lvl+0.64   -
+frame   251 :  an opened book +0.52  a closed book +0.47   led  38/ 77 h0.42 lvl+0.49   -
+frame   252 :  a closed book +0.58  an opened book +0.54   led  49/ 63 h0.47 lvl+0.56   -
+frame   253 :  a closed book -0.06  an opened book -0.08   led   0/255 h0.00 lvl-0.07   -
+frame   254 :  a closed book +0.21  an opened book -0.01   led   5/170 h0.17 lvl+0.10   -
+frame   255 :  a closed book -0.22  an opened book -0.59   led   0/255 h0.00 lvl-0.41   -
+
+[host] /dev/cu.usbmodem21101 vanished mid-run. That is what m9's watchdog reboot looks like from this end; the board should come back in a few seconds and say why. Following it.
+[host] nothing with VID 2E8A came back within 45s, so the board is not enumerating at all and the watchdog did not get it either.
+[host] uhubctl -l 2-1 -p 1 -a cycle   # then wait ~9 s and retry

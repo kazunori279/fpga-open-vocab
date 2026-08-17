@@ -11,6 +11,58 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-17, housekeeping — the last logs out of `/tmp`, and the CS park stops being m9's
+
+Two things that were owed rather than discovered, done while the board was idle.
+
+**`bench/soak/` — eight runs from 2026-08-15, rescued from `/tmp` two days and
+one reboot's worth of luck late.** `bench/cue/` was archived on 08-17 and these
+were not, because they are reliability rather than accuracy and nothing quotes a
+percentage off them. They are still the only copy of two things: the **454 ms
+against 802 ms** that is issue #1's headline, and the **earliest recorded
+instance of the USB outage** — 12:16 and 12:20, both at 150 MHz, board gone from
+the bus entirely with the watchdog not getting it and only a VBUS cycle bringing
+it back. Three of the eight runs died, in two ways that look identical from the
+host: 12:04 at 280 MHz was a `ft_capture` hang the watchdog **caught** and
+reported (that is #12), and the two 150 MHz ones were the PSRAM chip select
+(#16/#9). Worth having the pair side by side, because "the port vanished" is the
+same first line on the host for both. `bench/soak/README.md` is the manifest;
+`bench_loop.sh` is checked in with them, including the hard-coded `-l 2-1 -p 1`
+that was already wrong by the next morning.
+
+**#17 — the chip-select park is now every target's, and it is a preinit hook.**
+`8daa66b` fixed `m9` and left `m2`, `m5b`, `m6`, `m7`, `m8`, `cam_probe` and
+`diag` exposed. Nothing had been seen to hit it there for an uninteresting
+reason — the bug needs ~1,500 frames and those are two-minute bring-up images —
+so the hole was a trap rather than a fault, and `m7`'s clock ladders are where
+it would have sprung.
+
+`firmware/qspi_park.c` is the fix and it is deliberately not three lines copied
+seven times. It registers `fgx_qspi_park()` in the SDK's preinit array at
+`"00601"` — immediately after `PICO_RUNTIME_INIT_POST_CLOCK_RESETS` (`"00600"`)
+releases the pad banks, which is the earliest slot where writing `PADS_BANK0`
+does anything at all; earlier is not safer, it is a no-op. So the park happens
+**before `main()`**, and integrating it into a new target is listing one file in
+`add_executable`. There is nothing left to call and therefore nothing to forget.
+
+The three GPIO lines are copied byte-for-byte from `m9`, including leaving the
+pad's pull-down alone — the output driver wins against it, and the point of
+carrying over a sequence that produced 15,008 clean frames is not to improve it.
+`m9.c` keeps a pointer where the essay used to be.
+
+**It is listed on `forgix_m5` and `forgix_psram_probe` too, which link
+`hardware_psram` and actually want the part.** That was the one thing worth
+checking rather than assuming: `runtime_init_setup_psram()` registers at
+`"11080"` and reclaims the pin with `gpio_set_function(..., GPIO_FUNC_XIP_CS1)`,
+so ordering makes it safe. `nm -n forgix_m5.elf` shows the array as built —
+`post_clock_resets`, `fgx_qspi_park`, … , `setup_psram` — which is the check,
+not the reasoning. All ten targets build and all ten carry the symbol.
+
+Unconditional is the whole idea. A file listed everywhere cannot be a target
+somebody forgot.
+
+---
+
 ### 2026-08-17, later — measure the ceiling first, and half of #19 goes away
 
 The entry below reads four benches off one number each and gets two of them

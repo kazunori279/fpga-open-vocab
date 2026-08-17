@@ -101,11 +101,27 @@ add_custom_command(
     COMMENT "Embedding bitstream ${BITSTREAM}"
     VERBATIM)
 
+# EVERY TARGET BELOW LISTS qspi_park.c, AND A NEW ONE MUST TOO (#17).
+#
+# It parks GPIO0, U1's chip select, whose pad reset state otherwise holds the
+# PSRAM selected on the same QSPI bus as the flash for the whole run - which is
+# #9/#16, cost four bench runs and an afternoon, and looks like corrupt flash
+# that verifies fine after a power cycle. The file registers itself through the
+# SDK's preinit array, so listing it here is the entire integration: there is no
+# call to add to main() and nothing to remember at run time.
+#
+# It is listed even on forgix_m5 and forgix_psram_probe, which link
+# hardware_psram and actually want the part. That is safe and deliberate:
+# runtime_init_setup_psram() sits at priority "11080" against this file's
+# "00601", so the PSRAM's own init runs later and takes the pin back. Listing it
+# unconditionally is what makes "did this target get the fix?" a question nobody
+# has to ask.
 add_executable(forgix_m2
     main.c
     fpga_config.c
     link_test.c
-    ${CMAKE_CURRENT_BINARY_DIR}/bitstream.c)
+    ${CMAKE_CURRENT_BINARY_DIR}/bitstream.c
+    qspi_park.c)
 
 target_compile_definitions(forgix_m2 PRIVATE LINK_CFG=${LINK_CFG_VALUE})
 target_include_directories(forgix_m2 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
@@ -210,7 +226,8 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
     add_executable(forgix_m5
         m5.c
         encoder.c
-        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S)
+        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S
+        qspi_park.c)
 
     target_include_directories(forgix_m5 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
     # Creates the PSRAM linker region. Only this target needs it, and without it
@@ -234,7 +251,8 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
         m5b.c
         encoder.c
         encoder_fast.c
-        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S)
+        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S
+        qspi_park.c)
 
     target_include_directories(forgix_m5b PRIVATE ${CMAKE_CURRENT_LIST_DIR})
     target_link_libraries(forgix_m5b pico_stdlib hardware_clocks)
@@ -266,7 +284,8 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
         gemm_block.c
         encoder.c
         fpga_config.c
-        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S)
+        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S
+        qspi_park.c)
 
     target_include_directories(forgix_m6 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
     # Lets gemm_wire.c put its hot path in SRAM without needing a Pico header
@@ -315,7 +334,8 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
         encoder.c
         encoder_fast.c
         fpga_config.c
-        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S)
+        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S
+        qspi_park.c)
 
     target_include_directories(forgix_m7 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
     # The stdout timeout for the same reason forgix_m9 pins it - see the block
@@ -353,7 +373,8 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
         encoder.c
         encoder_fast.c
         fpga_config.c
-        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S)
+        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S
+        qspi_park.c)
 
     target_include_directories(forgix_m8 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
     target_compile_definitions(forgix_m8 PRIVATE GW_PICO=1)
@@ -387,7 +408,8 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
         encoder.c
         encoder_fast.c
         fpga_config.c
-        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S)
+        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S
+        qspi_park.c)
 
     target_include_directories(forgix_m9 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
     # PICO_STDIO_USB_STDOUT_TIMEOUT_US IS PINNED, NOT INHERITED (#9).
@@ -434,7 +456,8 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
         cam_probe.c
         cam.c
         encoder.c
-        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S)
+        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S
+        qspi_park.c)
 
     target_include_directories(forgix_cam_probe PRIVATE ${CMAKE_CURRENT_LIST_DIR})
     pico_generate_pio_header(forgix_cam_probe ${CMAKE_CURRENT_LIST_DIR}/cam_spi.pio)
@@ -451,7 +474,7 @@ endif()
 # M5c: dump the raw READ ID bytes from U1. Standalone rather than folded into
 # m5.c because it is meant to be flashed, read, and thrown away - and because
 # keeping it small means it can ride along with any other strap.
-add_executable(forgix_psram_probe psram_probe.c)
+add_executable(forgix_psram_probe psram_probe.c qspi_park.c)
 target_include_directories(forgix_psram_probe PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 target_compile_definitions(forgix_psram_probe PRIVATE PICO_AUTO_DETECT_PSRAM_SIZE=1)
 target_link_libraries(forgix_psram_probe
@@ -464,7 +487,8 @@ add_executable(forgix_diag
     diag.c
     fpga_config.c
     ${CMAKE_CURRENT_BINARY_DIR}/bitstream.c
-    ${DIAG_SOURCES})
+    ${DIAG_SOURCES}
+    qspi_park.c)
 
 target_compile_definitions(forgix_diag PRIVATE LINK_CFG=${LINK_CFG_VALUE})
 target_include_directories(forgix_diag PRIVATE ${CMAKE_CURRENT_LIST_DIR})

@@ -2277,46 +2277,15 @@ static uint32_t sys_clock_bring_up(uint32_t khz)
 
 int main(void)
 {
-    // PARK THE PSRAM'S CHIP SELECT BEFORE ANYTHING ELSE. THIS IS ISSUE #9.
-    //
-    // GPIO0 is U1's chip select - the APS1604M PSRAM sharing the RP2354A's QSPI
-    // bus with the in-package flash, on QMI CS1 (docs/pinmap.md). CS is active
-    // low, PADS_BANK0_GPIO0_RESET is 0x116 so the pad comes out of reset with
-    // PDE set and PUE clear, and m9 does not link hardware_psram - it has no
-    // .psram_load or .psram_noload to place - so the QMI never takes the pin and
-    // nothing else in the tree touches it either: the firmware's pins start at
-    // GPIO1. The pull-down therefore holds U1 SELECTED for the entire run, which
-    // is orders of magnitude past the part's ~8 us tCEM, watching every read the
-    // flash answers and free to decide one of them was addressed to it and drive
-    // SD0..3 back.
-    //
-    // That is #9, and 2026-08-16 caught it in the act. At the outage the flash
-    // stops answering: `picotool info` says "Program Information: none", three
-    // reads of the same 4 KB come back as three different high-entropy strings,
-    // and `picotool verify` fails - then a VBUS cycle, and the SAME flash
-    // verifies OK against the SAME image. Nothing was ever corrupted; the bus
-    // was jammed, and only removing the 5 V clears it, because only that power
-    // cycles U1. It also explains both shapes the outage takes, since XIP dies
-    // instantly (D1 goes dark mid-frame) and the watchdog's reboot 8 s later
-    // hands a bootrom that cannot read the image either: 280 MHz frame 1554 fell
-    // through to USB boot, 150 MHz frame 1478 did the same, and the run before
-    // that never got its pull-up back up at all.
-    //
-    // Two clocks, 76 frames apart, is also the answer to whether this was the
-    // clock: it is not. Nor is it the rail - the meter read 5.09 V and 0.16 A
-    // through the failure, with no sag and no spike.
-    //
-    // Driving it high here rather than linking hardware_psram is deliberate: m9
-    // has no use for the 2 MB, and psram_detect_size() returns 0 on this board
-    // for reasons docs/pinmap.md still calls unexplained, so initialising a part
-    // we do not need would buy a new way to fail. Value before direction, so the
-    // pin never drives low on its way up. It cannot be first - this code is
-    // itself running from XIP, so the window between the pad leaving isolation
-    // and this line is unavoidable - but it takes the exposure from a whole run
-    // down to a few milliseconds of boot.
-    gpio_init(PICO_PSRAM_CS_PIN);
-    gpio_put(PICO_PSRAM_CS_PIN, 1);
-    gpio_set_dir(PICO_PSRAM_CS_PIN, GPIO_OUT);
+    // The PSRAM's chip select is already parked by the time this line runs, and
+    // that is issue #9 - the most expensive bug this project has had. It used to
+    // be three lines right here; #17 moved them to qspi_park.c, which every
+    // target links and which registers the park as a preinit hook, so it now
+    // happens before main() and no future target can forget it. The whole
+    // argument - why GPIO0's reset pull-down holds U1 selected for a whole run,
+    // why only a VBUS cycle clears it, and why it is neither the clock nor the
+    // rail - lives in the comment at the top of that file. Read it before
+    // touching GPIO0 anywhere.
 
     // USB FIRST, THEN THE CLOCK, AND THE ORDER IS A RECOVERY PATH.
     //

@@ -125,11 +125,28 @@ the whole run and eventually drives `SD0..3` against the flash. XIP dies
 instantly, which is what D1 going dark actually measures; the watchdog fires on
 time; and the bootrom cannot read the image either, so it falls to USB boot or
 hangs before the pull-up goes back up. Only cutting VBUS clears it because only
-that power-cycles U1. `m9`'s `main()` now parks GPIO0 high first thing:
-**15,008 frames over five 3,000-frame soaks with zero outages**, against one
-completion in five before. The bring-up log has the diagnosis, the two soaks
+that power-cycles U1. `firmware/qspi_park.c` now parks GPIO0 high on every
+target: **15,008 frames over five 3,000-frame soaks with zero outages**, against
+one completion in five before. The bring-up log has the diagnosis, the two soaks
 that excluded the clock and the rail, and what is left of
-[#9](https://github.com/kazunori279/fpga-open-vocab/issues/9).
+[#9](https://github.com/kazunori279/fpga-open-vocab/issues/9); the earliest
+recorded instances are in [`bench/soak/`](../bench/soak/README.md), at 150 MHz,
+from 2026-08-15.
+
+**It is a preinit hook and a shared file rather than three lines in `main()`,
+which is [#17](https://github.com/kazunori279/fpga-open-vocab/issues/17).** The
+fix landed in `m9` alone in `8daa66b` and left every other target exposed — `m7`
+in particular, which runs long clock ladders and is the one most likely to
+surprise somebody with a "corrupt" flash that verifies fine after a power cycle.
+`qspi_park.c` registers `fgx_qspi_park()` in the SDK's preinit array at priority
+`"00601"`, immediately after `PICO_RUNTIME_INIT_POST_CLOCK_RESETS` releases the
+pad banks and the earliest point at which writing them does anything, so the
+park now happens *before* `main()` and listing the file in a target's sources is
+the whole integration. **Every target lists it, including the two that link
+`hardware_psram` and want the part**: `runtime_init_setup_psram()` sits at
+`"11080"` and takes the pin back with `gpio_set_function()`, which `nm -n` on
+`forgix_m5.elf` confirms in the array ordering. Unconditional is the point — it
+makes "did this target get the fix?" a question nobody has to ask.
 
 The same event exposed a limit of the reporting that still stands: stage, frame
 and the `CHIP_RESET` copy all live in watchdog scratch, and scratch does not
@@ -769,6 +786,7 @@ A plain tree of the repo is in [the README](../README.md#layout). This is the ot
 | `firmware/gemm_plan.c` | the blocking, swept from `desc[]` rather than tabulated. Hand-drafting it produced two errors in eight rows |
 | `firmware/worker.h` | the two job rings, one producer, one consumer, no locks — **five rules in the header**, because this is the first bug class here that one trip to the bench does not settle |
 | `firmware/frame.{c,h}` | one frame through the tile, extracted from `m7.c` so the harness and the demos share one engine. No `printf` and no `park()` in it: a library must not exit |
+| `firmware/qspi_park.{c,h}` | four lines of code and sixty of comment, and the comment is the file. Parks the PSRAM's chip select through the SDK's preinit array so **every** target gets it before `main()` — #9 cost four bench runs by looking like corrupt flash, and #17 is what stopped it from being fixed in one target only. Listed in every `add_executable` in `firmware/CMakeLists.txt`, and a new target must list it too |
 
 ### The decision rule
 
