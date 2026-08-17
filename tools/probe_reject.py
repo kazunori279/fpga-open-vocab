@@ -176,20 +176,25 @@ def score(log: Path) -> None:
     print(f"    nearest pair {sep:.2f} apart against {worst:.2f} of spread "
           f"({sep / worst:.2f}x over {vmin} visit{'' if vmin == 1 else 's'}); "
           f"rule settled at frame {engage}")
-    if sep < 2.0 * worst:
-        print("      ^ THE CLASSES OVERLAP. Below 2x a frame lands nearer the "
-              "wrong reference about\n"
-              "        as often as the right one, so this run measured noise. "
-              "m9.c refuses to stay\n"
-              "        quiet about this since FGX_ENROL_SNR; runs older than "
-              "that guard did not know.")
-    elif vmin < 2:
+    # ONE-SIDED, mirroring m9.c's FGX_ENROL_SNR since 2026-08-17. This used to
+    # print THE CLASSES OVERLAP below 2x and call the run noise; the 11:26 bench
+    # read 1.12 and scored 91.7%, so the low side says nothing now.
+    if vmin < 2:
         print("      ^ measured over one visit, so it says how still the scene "
               "was held and not\n"
               "        how far the class moves when it is staged again - which "
               "is what decides the\n"
               "        run. tools/probe_sepscale.py is the same ratio done "
               "properly on this log.")
+    elif sep >= 2.6 * worst:
+        print("      ^ clears the bar. Three benches have and they scored "
+              "91.7%, 96.7% and 100.0%;\n"
+              "        three runs is all it rests on.")
+    else:
+        print("      ^ below the bar, which on its own predicts nothing: the "
+              "eleven benches under\n"
+              "        this line run from 91.7% down to 47.5%. See "
+              "FGX_ENROL_SNR in m9.c.")
     # WHERE THE ORIGIN IS, because it is not an arbitrary point. c[] = 0 means
     # every query moved together, which is what "nothing has changed since the
     # background was frozen" reads as. A reference that sits close to the origin

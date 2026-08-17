@@ -293,20 +293,43 @@ static bool  m21_present;                 // the presence stage's sticky state
 //     08-16 17:22    58.3 %       0.17         0.05      0.22      0.28
 //     08-16 17:35    57.5 %       0.26         0.10      0.15      0.09
 //
-// ratio(2) puts all nine runs on the correct side with nothing between 1.24 and
-// 2.64, so 2.0 is a threshold in a void rather than one fitted to an edge - and
-// it is the same 2.0 as before, because the constant was never the problem.
-// ratio(1), the within-window version this guard shipped with, does not: it
-// ranks 08:57 (3.69) above 09:18 (2.17) and they scored 76.7% and 91.7%. Nor
-// does `sep`, whose largest value of all nine belongs to a 76.7% run.
+// THE VOID IN THAT TABLE WAS FILLED BY THE FIRST RUN THAT TESTED IT, and this
+// is the retraction. 08-17 11:26 is the first bench whose references the BOARD
+// built from two visits, rather than a log replayed afterwards, and it read
+// 1.12 - inside the void, on the reject side. It scored 91.7% on the table's
+// column above, and 92.5% by its own two-visit rule, the best in the project.
+// The board printed THE CLASSES OVERLAP and told the operator to throw it away.
+// The next run read 0.92 and scored 76.1% (68.3% live). Eleven runs now:
 //
-// READ IT AS A TWO-SIDED SORTER, NOT A PREDICTOR. Inside either group the ratio
-// says nothing - 0.94 outscored 1.24 by fifteen points - and a run that clears
-// 2.0 has not been promised anything. What it gets right, nine times out of
-// nine, is which side of "worth the next ten minutes" a bench is on.
+//     3.24 -> 96.7 %      0.94 -> 74.2 %
+//     2.94 -> 100.0 %     0.92 -> 76.1 %   <- 08-17 11:44
+//     2.64 -> 91.7 %      0.87 -> 76.7 %
+//     1.24 -> 59.2 %      0.44 -> 47.5 %
+//     1.12 -> 91.7 %      0.22 -> 58.3 %   <- 08-17 11:26, the one that broke it
+//                         0.15 -> 57.5 %
+//
+// THAT IS THE THIRD QUANTITY MEASURABLE AT ENROLMENT TO FAIL THE SAME WAY -
+// `sep`, then ratio(1), then ratio(2). Each sorted the benches it was fitted to
+// and broke on the next one, and the reason is structural rather than a bad
+// choice of statistic three times running: what decides a run is where the
+// object lands on visits that have not happened yet, and no measurement taken
+// at the enrolment can contain that.
+//
+// SO THIS IS NOW ONE-SIDED. High still means something - 2.64, 2.94 and 3.24
+// scored 91.7%, 100.0% and 96.7%, three for three - and the board says so. Low
+// means nothing at all: below the bar the eleven runs span 91.7% to 47.5%, so
+// the message says that and stops, instead of telling the operator to throw
+// away an enrolment that may be the best one they will get today. The constant
+// is 2.6 rather than the 2.0 it was, because 2.64 is the lowest ratio that has
+// ever certified anything and the interval below it is not measured; erring
+// upward costs a line of praise, erring downward is what just cost a bench.
+// Three runs is what it rests on. Do not read the bar as a promise.
+//
+// The collapse check below (sep > 0.05) is untouched and is not part of this:
+// two references on top of each other is a degeneracy, not a prediction.
 //
 // tools/probe_sepscale.py is where the table comes from and how to redo it.
-#define FGX_ENROL_SNR    2.0f
+#define FGX_ENROL_SNR    2.6f
 
 // The digits index the enrollable queries in the order the host sent them: the
 // FGX_Q_CLASS ones when roles came with the set, every query when they did not.
@@ -1783,29 +1806,14 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
                        "Whatever was in shot for the two\n"
                        "            captures was the same thing, or close "
                        "enough that this cannot separate them.\n");
-            // THE OTHER FAILURE MODE, and the one `sep` is structurally unable
-            // to report, because sep is the unit everything else is quoted in.
-            // See FGX_ENROL_SNR: the spread of the enrolled frames about their
-            // class centre is the scale that says whether the gap between the
-            // classes is a gap at all.
-            else if (sep < FGX_ENROL_SNR * scat)
-                printf("            THE CLASSES OVERLAP: %.2f apart against "
-                       "%.2f of spread within a class.\n"
-                       "            A single frame lands nearer the wrong "
-                       "reference about as often as the\n"
-                       "            right one, so this run will measure noise. "
-                       "Steady the scene and the\n"
-                       "            framing - see ./ab.sh --frame-check - and "
-                       "enrol again ('N', then '1'/'2').\n",
-                       (double)sep, (double)scat);
-            // CLEARING THE BAR ON ONE VISIT IS NOT CLEARING IT. Said after the
-            // guard rather than instead of it, because a pair that overlaps on
-            // one visit overlaps on two and the advice above still stands; but
-            // a pair that passes on one visit has only been measured against
-            // how still the operator held it. 08-17 09:33 passed at 2.71 this
-            // way and scored 59.2%; the same enrolment over two visits reads
-            // 1.24 and would have been stopped here.
-            else if (vmin < FGX_ENROL_V)
+            else {
+            // ONE VISIT MEASURES ONLY HOW STILL IT WAS HELD, so nothing is
+            // claimed either way until there are two. This comes before the bar
+            // rather than after it: 08-17 09:33 passed at 2.71 on one visit and
+            // scored 59.2%, and 08-17 11:26 read 0.9x on one visit and went on
+            // to score 91.7%, so on one visit the ratio is wrong in both
+            // directions and the only honest output is to say so.
+            if (vmin < FGX_ENROL_V)
                 printf("            Measured over %u visit%s, so this ratio "
                        "cannot see how far a class moves\n"
                        "            when it is staged again - which is what "
@@ -1813,6 +1821,31 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
                        "            again ('1'/'2' on a later visit) to make "
                        "it mean something.\n",
                        (unsigned)vmin, vmin == 1u ? "" : "s");
+            // THE BAR, AND IT ONLY EVER SAYS THE GOOD NEWS. See FGX_ENROL_SNR
+            // for why this stopped being a rejection: three benches have
+            // cleared it and all three scored above 91%, while below it the
+            // eleven runs measured so far span 91.7% to 47.5%.
+            else if (sep >= FGX_ENROL_SNR * scat)
+                printf("            This enrolment clears the bar: %.2f apart "
+                       "against %.2f of spread within\n"
+                       "            a class, over %u visits. The three benches "
+                       "that have done that scored\n"
+                       "            91.7%%, 96.7%% and 100.0%%. Three runs is "
+                       "all it rests on.\n",
+                       (double)sep, (double)scat, (unsigned)vmin);
+            // AND BELOW THE BAR, DELIBERATELY NO ADVICE. The version that told
+            // the operator to enrol again threw away 08-17 11:26, which scored
+            // 91.7% - as high as any run that cleared the bar - because it read
+            // 1.12 here. The numbers are still printed; what is removed is the
+            // instruction that was wrong.
+            else
+                printf("            Below the bar (%.2f apart against %.2f of "
+                       "spread), which on its own\n"
+                       "            predicts nothing: benches below this line "
+                       "have scored 91.7%% and 47.5%%.\n"
+                       "            Look at the enrolment pictures before "
+                       "re-enrolling on this number.\n",
+                       (double)sep, (double)scat);
             // THE FAILURE MODE OF #18's RULE, said at the enrolment rather than
             // discovered in the log six minutes later - which is the lesson the
             // presence-span guard above it was written for. A reference sitting
@@ -1822,7 +1855,12 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
             // 2026-08-11 bench 'a closed book' landed 0.49 sep from the origin
             // and its baseline was inseparable (AUC 0.624); on both 08-16 runs
             // the nearest reference sat 3.16 and 0.97 sep out and they worked.
-            else if (orig < 0.5f * sep)
+            //
+            // NOT PART OF THE CHAIN ABOVE any more. It used to hang off the end
+            // of it, so an enrolment that cleared the ratio never got told its
+            // reference sat on the origin - two unrelated failure modes sharing
+            // one `else`. They are independent and both are worth saying.
+            if (orig < 0.5f * sep)
                 printf("            '%s' SITS %.2f SEP FROM THE ORIGIN, which is "
                        "where a scene identical to\n"
                        "            the frozen background lands. Presence cannot "
@@ -1832,6 +1870,7 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
                        "            that is actually empty, or enrol a class "
                        "that looks less like it.\n",
                        qname[near_o], (double)(orig / sep));
+            }
         }
         stdio_flush();
     }

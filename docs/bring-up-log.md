@@ -11,6 +11,84 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-17 — the two-visit guard's first prospective test rejects the best run of the day
+
+The entry below shipped `FGX_ENROL_V = 2` on a nine-bench table with a void in
+it, between 1.24 and 2.64, and put the reject threshold inside that void. Two
+benches at 11:26 and 11:44 are the first runs where the **board itself** built
+its references from two visits, rather than the ratio being replayed off a log
+afterwards. The first one filled the void.
+
+| | 11:26 | 11:44 |
+|---|---|---|
+| ratio(2), the board | **1.8x** | **1.2x** |
+| ratio(2), `probe_sepscale.py` | **1.12** | **0.92** |
+| what the board printed | `THE CLASSES OVERLAP` | `THE CLASSES OVERLAP` |
+| state stage, held out | **111/120 (92.5%)** | 82/120 (68.3%) |
+| same, one-visit replay for comparability | **165/180 (91.7%)** | 137/180 (76.1%) |
+
+**11:26 is as good as any bench this project has run, and the board told the
+operator to throw it away.** Eleven runs now, sorted by ratio(2):
+
+```
+3.24 -> 96.7 %      0.94 -> 74.2 %
+2.94 -> 100.0 %     0.92 -> 76.1 %
+2.64 -> 91.7 %      0.87 -> 76.7 %
+1.24 -> 59.2 %      0.44 -> 47.5 %
+1.12 -> 91.7 %      0.22 -> 58.3 %
+                    0.15 -> 57.5 %
+```
+
+**That is the third quantity measurable at enrolment to fail the same way** —
+`sep`, then ratio(1), then ratio(2). Each sorted the benches it was fitted to
+and broke on the next one, and three times is enough to stop calling it bad
+luck with a statistic. What decides a run is where the object lands on visits
+that have not happened yet, and nothing measured at the enrolment can contain
+that. 11:26 is the cleanest possible statement of it: its two enrolment visits
+sat 0.05 apart on the state axis and its held-out visits sat 1.67 and 1.72
+apart. **The reference pair was tiny and pointed the right way, which is all
+classification needs** — the ratio measures magnitude.
+
+The obvious follow-up, that the first visit is systematically the worst and
+enrolment should move to visits 2 and 3, **does not survive 11:44**: its visit
+gaps went 0.39, 2.17, 0.51, 0.45, with the outlier at visit 2 and no trend.
+Visit centres wander; they do not drift.
+
+**So the guard is one-sided from now on.** Above the bar it says so — 2.64,
+2.94 and 3.24 scored 91.7%, 100.0% and 96.7%, three for three — and below it
+the board prints the numbers and **no advice at all**. `FGX_ENROL_SNR` moves
+2.0 → 2.6 for the same reason: 2.64 is the lowest ratio that has ever certified
+anything and the interval below it is not measured, so erring upward costs a
+line of praise and erring downward costs a bench. The one-visit note now comes
+*before* the bar rather than after it, since on one visit the ratio has now been
+wrong in both directions (09:33 passed at 2.71 and scored 59.2%; 11:26 read 0.9x
+and scored 91.7%). Three runs is what the bar rests on and the message says so.
+
+While rewiring that: the origin guard had been hanging off the end of the same
+`else if` chain, so **an enrolment that cleared the ratio was never told its
+reference sat on the origin.** Two unrelated failure modes sharing one `else`.
+It is its own `if` now.
+
+**#18 got measured twice more and failed twice more, in a way no radius fixes.**
+Both runs had the empty rotation on, so both have held-out empty frames — 7/90
+(7.8%) and 0/90 (0.0%). The reason is the same on both and it is not the
+threshold:
+
+```
+11:26   empty mean 0.87 sep   classes mean 0.70 sep
+11:44   empty mean 1.06 sep   classes mean 0.44 sep
+```
+
+**The empty desk is FURTHER from the references than the class frames are.** The
+rule cuts on "far means absent" and on this scene the ordering is inverted, so
+every radius calls the desk present or calls everything absent. `an opened book`
+took 78 and 86 of the 90 empty frames. This is the 07:33 geometry again and it
+is now three benches, so it is the scene and not an accident: a book on a desk
+with the background frozen on that same desk leaves the opened state sitting
+between the closed state and nothing-at-all.
+
+---
+
 ### 2026-08-17 — the guard fires for the first time, and then a fourth run says what it is still not measuring
 
 Two more benches, and between them they finish the argument the three entries

@@ -21,24 +21,33 @@ proposes, scored with the board's own held-out figure from tools/score_cue.py:
     08-17 07:33    96.7 %       2.40         2.52      3.24      3.03
     08-11 07:22   100.0 %       2.28        13.91      2.94      3.49
     08-17 09:18    91.7 %       3.61         2.17      2.64      2.29
-    -------------------------------------- the void ----------------------
+    ------------------ 2.6, and everything above it worked ----------------
     08-17 09:33    59.2 %       3.83         2.71      1.24      1.06
+    08-17 11:26    91.7 %       0.07         0.09      1.12      2.15
     08-17 09:57    74.2 %       3.69         1.81      0.94      1.05
+    08-17 11:44    76.1 %       0.55         0.24      0.92      0.58
     08-17 08:57    76.7 %       5.83         3.69      0.87      0.95
     08-17 09:55    47.5 %       0.84         0.67      0.44      0.04
     08-16 17:22    58.3 %       0.17         0.05      0.22      0.28
     08-16 17:35    57.5 %       0.26         0.10      0.15      0.09
 
-ratio(2) separates the three runs that worked from the six that did not, with
-nothing between 1.24 and 2.64 and every run on the correct side. `sep` on its
-own does not: its largest value of all nine, 5.83, belongs to a 76.7% run, and
-its smallest three include a 58.3%. Neither does ratio(1), the within-window
-scatter the guard uses today - it puts 08:57 (3.69) above 09:18 (2.17) and
-scores them 76.7% against 91.7%.
+THIS TABLE HAD A VOID IN IT AND 11:26 FILLED IT. Written on the first nine rows,
+this tool claimed ratio(2) put every run on the correct side with nothing
+between 1.24 and 2.64. 11:26 is the first bench whose references the board
+itself built from two visits - the first prospective test rather than a replay -
+and it read 1.12 and scored 91.7%, as high as anything above the line. The board
+printed THE CLASSES OVERLAP and told the operator to throw it away.
 
-Read this as a two-sided sorter and not as a predictor. Inside each group the
-ratio says nothing: 0.94 outscored 1.24 by fifteen points. What it gets right,
-on nine runs out of nine, is which side of "worth running" a bench is on.
+SO READ IT ONE-SIDED. Above 2.6: three runs, 91.7%, 96.7%, 100.0%. Below it:
+nothing, the eleven rows there running from 91.7% down to 47.5%. That is a
+sufficient condition and not a necessary one, and the guard in m9.c used to have
+it backwards.
+
+`sep` on its own is worse still - its largest value, 5.83, belongs to a 76.7%
+run and 11:26 scored 91.7% at 0.07 - and so is ratio(1), which puts 08:57 (3.69)
+above 09:18 (2.17) and scores them 76.7% against 91.7%. Three quantities
+measurable at enrolment, three failures of the same shape: what decides a run is
+where the object lands on visits that have not happened yet.
 
 WHAT THE RATIO IS. Pool the first N visits of a class and take the mean: that
 is the class centre rather than one visit's accident, and `sep` becomes the gap
@@ -46,9 +55,11 @@ between centres. `noise` is the RMS distance of one enrolled frame from its own
 class's centre, pooled the same way - so from two visits on it contains the
 BETWEEN-VISIT staging variance, which is the term that decided 09:18 against
 09:33 and which a one-visit enrolment structurally cannot see. ratio is
-sep/noise, and a frame lands nearer the wrong centre once noise exceeds half
-the gap, so 2.0 is where it stops meaning anything. Every visit is trimmed to
-WINDOW frames first, because that is all the board averages.
+sep/noise, and a frame lands nearer the wrong centre once noise exceeds half the
+gap - which is where the 2.0 this shipped with came from, and 11:26 is why that
+argument is not enough on its own: a small gap pointed the right way still
+classifies. Every visit is trimmed to WINDOW frames first, because that is all
+the board averages.
 
 WHY THIS IS A TOOL AND NOT A NOTE. The board only has the visits it was shown,
 so ratio(all) is not available to it at the bench - ratio(2) is, if enrolment
@@ -116,9 +127,14 @@ def score(log: Path) -> None:
           f"ratio {two / two_n:5.2f}   <- what the board could have")
     print(f"    every visit       sep {allv:5.2f}  noise {all_n:5.2f}  "
           f"ratio {allv / all_n:5.2f}   ({nv}+ visits per class)")
-    if two / two_n < 2.0:
-        print("      the two-visit ratio is under 2.0: at the bench this run "
-              "would be\n      called overlapping and re-enrolled before it ran.")
+    if two / two_n >= 2.6:
+        print("      the two-visit ratio clears 2.6, which three benches have "
+              "done and all\n      three scored above 91%. Three runs is all "
+              "that rests on.")
+    else:
+        print("      the two-visit ratio is under 2.6, which on its own says "
+              "nothing: the\n      eleven benches below that line run from "
+              "91.7% down to 47.5%.")
 
 
 def main() -> int:
