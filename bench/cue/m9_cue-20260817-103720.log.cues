@@ -1,0 +1,15 @@
+# host/cue.py, settle 10, hold 24, baseline 20, bg-tau 30
+# demo.py (no extra flags)
+# log /tmp/m9_cue.log
+# VOID the board wedged mid-run and its watchdog rebooted it, so the background froze twice and these boundaries outlived the run they describe. tools/score_cue.py refuses this unless forced.
+# enrol-window 20
+# enrol 62 1
+# enrol 96 2
+# enrol 164 1
+# enrol 198 2
+# snap 74
+# snap 108
+# snap 176
+# snap 210
+248	267	baseline
+268	281	an opened book

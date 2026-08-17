@@ -1,0 +1,1882 @@
+
+=== M9: fpga-open-vocab - describe it, the board spots it ===
+
+clock     : 320 MHz requested; BOOTSEL is reachable for 1.5 s
+clock     : 320 MHz system, core 1.25 V
+reset     : chip_reset 00010000  (scratch was cold: either the always-on domain went away - power, a brown-out - or this boot came through the bootrom, which clears it too)
+            new this boot: power-on reset - the supply arrived
+waiting for a bitstream on USB CDC (host/demo.py)
+bitstream : 173124 bytes announced, crc32 0a2e9953
+bitstream : received intact
+configure : configured, CDONE high   CDONE=1 nSTATUS=0
+crc       : DMA sniffer, calc=1 out_rev=1 out_inv=1
+model     : 9 layers, 512-d embedding, 131072 B/buffer
+weights   : 780720 B, crc32=0xF368CC6E  (126 ms to hash)
+
+reference : encoder_fast on the flash test vector  (1584 ms)
+
+link      : probing the wire by running the whole test vector over it
+probe     : 3 forward data lines -> 512/512 floats exact, 265 ms
+link      : configuration C, 3 forward data lines, 160.0 MHz
+
+camera    : exposure ramp 100 112 119 122 116 118 120 121
+camera    : live 128x128 RGB565, id 0x82, 16.0 MHz, expose 37 ms, read 16 ms, exposure settled after 8 frames
+            mean RGB 120 124 120  (tuned camera on a neutral scene: about 115 107 105)
+
+queries   : waiting for a query set on USB CDC (host/demo.py)
+queries   : 2 accepted, 512-d, crc ok
+            scored as z = (cos - background) / std, where the background is this room's
+            own mean over its first 30 frames and is then FROZEN - so a thing left in
+            shot keeps its score instead of decaying into the furniture. 'N' re-learns
+            it, 'H' switches to tracking. The COCO figures below are only the seed for
+            frame 0 and the fixed std.
+            std is THIS ROOM's, measured over the same 30 frames ('S' switches to COCO's).
+            The thresholds below still mean the 90th percentile of a background; the
+            background they now mean it against is this room empty, not 5000 COCO photos.
+            z is EMA-smoothed at 0.35 (~5 frames) before ranking, so a state has to
+            persist for about two seconds to be called.
+            an opened book       match above z 1.23   (COCO background -0.151 +- 0.030, so cos -0.114)
+            a closed book        match above z 1.23   (COCO background -0.159 +- 0.035, so cos -0.116)
+
+loop      : capture, 8 convs on the T8, pool and head, then one cosine per query. 'B' for BOOTSEL, 'R' to restart,
+            'P' to dump the next frame for host/cam.py, 'V' to dump its 512 floats for host/caption.py,
+            'E' to provoke a fault so D1 shows its fault display, 'H' to freeze/unfreeze the background,
+            'S' to switch the spread between this room's and COCO's, 'W' to hang on purpose and see
+            the watchdog name the stage, 'C' to stall the camera bus on purpose and see it cost one frame,
+            'U' to drop off USB on purpose and watch it come back, 'I' to drop off and refuse to,
+            'N' to forget it and learn it again from now. 'P' and 'V' together describe the same frame.
+            'O' closes the timing window, prints it and flips the capture between overlapped and serial;
+            'D' does the same and flips the trigger between late and at-the-collect, which is #14's A/B.
+            scores are z against this room's background, ranked; '*' means over its threshold.
+            '1'..'6' enrol the next 20 frames as that class. Two classes in and the board decides
+            by nearest reference instead of by threshold, and calls a frame absent when it is
+            further than 2.0 sep from every one of them - see M21. The empty scene is not
+            enrolled and '0' does nothing; see #18.
+            The first 30 frames set the baseline and it is then frozen, so anything left in
+            shot KEEPS its score. Point the camera at the empty scene for those frames.
+            Send a new set at any time to re-query - that resets the baseline too.
+
+frame     0 :  a closed book +0.60  an opened book +0.57   led  52/ 59 h0.48 lvl+0.58   -
+frame     1 :  a closed book +0.35  an opened book +0.29   led  16/123 h0.28 lvl+0.32   -
+frame     2 :  a closed book +0.29  an opened book +0.23   led  10/142 h0.23 lvl+0.26   -
+frame     3 :  a closed book +0.12  an opened book +0.07   led   2/203 h0.10 lvl+0.09   -
+frame     4 :  a closed book +0.08  an opened book -0.01   led   1/222 h0.06 lvl+0.03   -
+frame     5 :  a closed book +0.01  an opened book -0.05   led   0/253 h0.00 lvl-0.02   -
+frame     6 :  a closed book +0.05  an opened book +0.00   led   0/231 h0.04 lvl+0.03   -
+frame     7 :  a closed book +0.01  an opened book -0.02   led   0/251 h0.01 lvl-0.01   -
+background: after 8 frames (warming up, room spread), this room reads  an opened book -0.107 +-0.0038 (COCO -0.151 +-0.0303)  a closed book -0.102 +-0.0040 (COCO -0.159 +-0.0351)
+frame     8 :  an opened book +0.54  a closed book +0.32   led  42/ 71 h0.44 lvl+0.43   -
+frame     9 :  an opened book +0.85  a closed book +0.41   led 113/ 19 h0.69 lvl+0.63   -
+frame    10 :  an opened book +0.69  a closed book +0.51   led  71/ 42 h0.56 lvl+0.60   -
+frame    11 :  an opened book +0.88  a closed book +0.64   led 121/ 16 h0.71 lvl+0.76   -
+frame    12 :  an opened book +1.19  a closed book +0.95   led 239/  0 h0.97 lvl+1.07   -
+frame    13 :  an opened book +1.03  a closed book +0.63   led 174/  4 h0.84 lvl+0.83   -
+frame    14 :  a closed book +0.42  an opened book +0.30   led  24/101 h0.34 lvl+0.36   -
+frame    15 :  a closed book +0.22  an opened book -0.21   led   6/166 h0.18 lvl+0.01   -
+frame    16 :  a closed book +0.51  an opened book -0.42   led  37/ 78 h0.42 lvl+0.04   -
+frame    17 :  a closed book +0.37  an opened book -0.54   led  18/116 h0.30 lvl-0.08   -
+frame    18 :  a closed book -0.34  an opened book -0.87   led   0/255 h0.00 lvl-0.60   -
+frame    19 :  a closed book -0.70  an opened book -0.71   led   0/255 h0.00 lvl-0.70   -
+frame    20 :  a closed book +0.02  an opened book +0.00   led   0/244 h0.02 lvl+0.01   -
+frame    21 :  a closed book +0.14  an opened book +0.04   led   2/195 h0.11 lvl+0.09   -
+frame    22 :  a closed book +0.11  an opened book -0.19   led   1/206 h0.09 lvl-0.04   -
+frame    23 :  a closed book +0.14  an opened book +0.05   led   2/195 h0.12 lvl+0.10   -
+frame    24 :  a closed book +0.30  an opened book +0.29   led  12/137 h0.25 lvl+0.30   -
+frame    25 :  a closed book -0.39  an opened book -0.53   led   0/255 h0.00 lvl-0.46   -
+frame    26 :  a closed book +0.14  an opened book +0.04   led   2/194 h0.12 lvl+0.09   -
+frame    27 :  a closed book +0.76  an opened book +0.45   led  89/ 30 h0.62 lvl+0.61   -
+frame    28 :  a closed book +0.57  an opened book -0.15   led  48/ 64 h0.47 lvl+0.21   -
+frame    29 :  a closed book +1.00  an opened book +0.18   led 162/  6 h0.81 lvl+0.59   -
+frame    30 :  a closed book +0.53  an opened book -0.21   led  40/ 73 h0.43 lvl+0.16   -
+frame    31 :  a closed book +0.29  an opened book -0.56   led  11/140 h0.24 lvl-0.13   -
+frame    32 :  a closed book +0.08  an opened book -0.33   led   1/221 h0.06 lvl-0.12   -
+frame    33 :  a closed book -0.23  an opened book -0.71   led   0/255 h0.00 lvl-0.47   -
+frame    34 :  a closed book +0.29  an opened book +0.03   led  10/142 h0.23 lvl+0.16   -
+frame    35 :  an opened book +0.46  a closed book +0.22   led  30/ 90 h0.38 lvl+0.34   -
+frame    36 :  an opened book +0.61  a closed book +0.41   led  54/ 57 h0.49 lvl+0.51   -
+frame    37 :  an opened book +0.38  a closed book +0.08   led  20/112 h0.31 lvl+0.23   -
+frame    38 :  an opened book +0.12  a closed book -0.01   led   1/204 h0.10 lvl+0.05   -
+frame    39 :  a closed book -0.31  an opened book -0.33   led   0/255 h0.00 lvl-0.32   -
+frame    40 :  a closed book -0.30  an opened book -0.52   led   0/255 h0.00 lvl-0.41   -
+frame    41 :  a closed book -0.12  an opened book -0.34   led   0/255 h0.00 lvl-0.23   -
+frame    42 :  a closed book -0.46  an opened book -0.55   led   0/255 h0.00 lvl-0.51   -
+frame    43 :  a closed book -0.24  an opened book -0.52   led   0/255 h0.00 lvl-0.38   -
+frame    44 :  a closed book +0.11  an opened book -0.19   led   1/207 h0.09 lvl-0.04   -
+frame    45 :  a closed book +0.32  an opened book +0.02   led  13/131 h0.26 lvl+0.17   -
+frame    46 :  a closed book +0.21  an opened book -0.07   led   5/171 h0.17 lvl+0.07   -
+frame    47 :  a closed book +0.47  an opened book +0.27   led  30/ 89 h0.38 lvl+0.37   -
+frame    48 :  a closed book +0.40  an opened book +0.32   led  22/107 h0.33 lvl+0.36   -
+frame    49 :  a closed book +0.23  an opened book +0.16   led   7/160 h0.19 lvl+0.20   -
+frame    50 :  a closed book -0.12  an opened book -0.15   led   0/255 h0.00 lvl-0.14   -
+frame    51 :  a closed book -0.30  an opened book -0.36   led   0/255 h0.00 lvl-0.33   -
+frame    52 :  a closed book -0.65  an opened book -0.75   led   0/255 h0.00 lvl-0.70   -
+frame    53 :  an opened book -0.41  a closed book -0.43   led   0/255 h0.00 lvl-0.42   -
+frame    54 :  an opened book -0.17  a closed book -0.29   led   0/255 h0.00 lvl-0.23   -
+frame    55 :  a closed book +0.12  an opened book +0.09   led   1/205 h0.09 lvl+0.10   -
+frame    56 :  an opened book -0.00  a closed book -0.31   led   0/255 h0.00 lvl-0.16   -
+frame    57 :  an opened book -0.34  a closed book -0.92   led   0/255 h0.00 lvl-0.63   -
+frame    58 :  an opened book -0.18  a closed book -0.32   led   0/255 h0.00 lvl-0.25   -
+frame    59 :  an opened book +0.25  a closed book +0.11   led   8/154 h0.21 lvl+0.18   -
+frame    60 :  an opened book +0.44  a closed book +0.04   led  26/ 97 h0.36 lvl+0.24   -
+frame    61 :  an opened book +0.01  a closed book -0.85   led   0/249 h0.01 lvl-0.42   -
+frame    62 :  an opened book +0.13  a closed book -0.59   led   2/201 h0.10 lvl-0.23   -
+frame    63 :  an opened book -0.25  a closed book -0.85   led   0/255 h0.00 lvl-0.55   -
+frame    64 :  an opened book -0.03  a closed book -0.40   led   0/255 h0.00 lvl-0.22   -
+frame    65 :  an opened book +0.24  a closed book +0.15   led   7/158 h0.20 lvl+0.19   -
+frame    66 :  an opened book +0.69  a closed book +0.31   led  72/ 41 h0.56 lvl+0.50   -
+frame    67 :  an opened book +0.45  a closed book -0.16   led  28/ 94 h0.36 lvl+0.14   -
+frame    68 :  an opened book +0.34  a closed book +0.19   led  15/126 h0.27 lvl+0.26   -
+frame    69 :  a closed book +0.11  an opened book -0.27   led   1/209 h0.09 lvl-0.08   -
+frame    70 :  an opened book -0.03  a closed book -0.10   led   0/255 h0.00 lvl-0.06   -
+frame    71 :  an opened book +0.11  a closed book +0.06   led   1/208 h0.09 lvl+0.08   -
+frame    72 :  a closed book +0.96  an opened book -0.33   led 148/  9 h0.78 lvl+0.32   -
+frame    73 :  an opened book +0.03  a closed book -0.66   led   0/244 h0.02 lvl-0.32   -
+
+enrol     : the next 20 frames are 'an opened book'. HOLD THE SCENE STILL until it lands.
+frame    74 :  an opened book +0.26  a closed book -3.82   led   8/151 h0.21 lvl-1.78   -
+frame    75 :  an opened book +0.38  a closed book -6.38   led  20/112 h0.31 lvl-3.00   -
+frame    76 :  an opened book +1.40*  a closed book -6.01   led 255/  0 h1.00 lvl-2.30   MATCH an opened book (cos -0.091)
+frame    77 :  an opened book -0.55  a closed book -6.28   led   0/255 h0.00 lvl-3.41   -
+frame    78 :  an opened book -0.89  a closed book -7.00   led   0/255 h0.00 lvl-3.95   -
+frame    79 :  an opened book +0.76  a closed book -5.47   led  88/ 31 h0.62 lvl-2.36   -
+frame    80 :  an opened book +0.97  a closed book -5.33   led 150/  9 h0.79 lvl-2.18   -
+frame    81 :  an opened book +2.32*  a closed book -4.27   led 255/  0 h1.00 lvl-0.97   MATCH an opened book (cos -0.084)
+frame    82 :  an opened book +1.56*  a closed book -5.44   led 255/  0 h1.00 lvl-1.94   MATCH an opened book (cos -0.105)
+frame    83 :  an opened book +1.43*  a closed book -5.88   led 255/  0 h1.00 lvl-2.22   MATCH an opened book (cos -0.100)
+frame    84 :  an opened book +0.82  a closed book -6.35   led 105/ 22 h0.67 lvl-2.76   -
+frame    85 :  an opened book +0.65  a closed book -6.70   led  62/ 49 h0.53 lvl-3.03   -
+
+snapshot  : frame 86, mean RGB 125 115 118
+BEGIN m9 128 128 32768 0881300f
+pRSlFKUUnNOUkpSSpRStVKUUnNOc061VrVWtVaUUpNO1VbWWpRSUkrWWxhfGF8YX
+xhfGF8YYxhi1l73XxhjGGMYYvde1lsYZzhnOWb3YvhjGWc5ZvdjGGM5ZzlnGGL4Y
+zlnOWb4XzlrOmsZZxlrOm86bzlrGGdZazlrOGc5a1pvOm86bxlrOm86axlrOm85a
+zlrWm86bxlrOm8ZbxlrGWsYZtde1l7WWtZa1lrWWtZa1lrWWpVWc062WrZatlq2W
+rZa1174Yvhm+GbYZthm2GbYYthmt2LXZrZi12K2Xtditl62XpZetl62XpVelV6WW
+nVRCCBjDEIIIQghCCEIIQqUUpRSc1JyTlJOMUaUUpRSlFJSSnNOtVa1VrVWlVaUV
+tZatFJzTlJK1lsYXxhfGGMYYxljOWM5YzhjOWM5ZzlnOWcYYtZfGGM5Zzlm92L4Y
+zlrOWsXYxhnOWs5axhm+Gc5azlrF2M5a1pvGGcZZzprOm85axhnOWs5azhnOWtZb
+1prWm85b1pvOm8ZazpvOWs5a1pvOm8ZazpvGWsYZvde1lrWWtZatlq2WrZatVq1W
+rVWtlp0VnVatl62XrZetl62XtZe+Gb4Zthm2GbYZthquGLYZrdi12K3Ytdit2K3Y
+rZetl6WXrZell6WXpZadVTnHGMMQQhBCCEIIQghCCEKlFJzUnNOU05SSjJGlFK1U
+pROckpzTrRS1Va1VpRWtVrWWpNSck5zSvdbGF8YYxhjGGM5YxhjGGMYYzlnOWc5Z
+zlnOWcZZzlnOWc5Zvde+GM5Zzpm+GMYZzlrOWsYZxhnWm86avdnOWs5bxhnGGtab
+1pvWW8YazlrOWsYZzlrWm9ac1pvOWtZbzpvGWs6bzlvGW86bzpvGWsZatde1lrWW
+rZa1lrWWrZatlqVVnNSc1K1WrVatl62XrZetl62XrZetl62Xvhm+Gb4Zvhm2GbYZ
+thi2Ga3Yrhit2LXYrdi12K2XrZell62XrZelV6VWQckYxRBCCEIIQghCCEIIQggC
+pRSlFJzTnNOUkpRRpRSlFKTUlJKc061UrVWtVJzTrVW1lpzTlJKc0r3WxhfGF8YX
+xhjGGMYYxhjGGM5YzlnOWc5ZzlnWmtaa1prWms5ZzlnOWs5avdjGGc5azlrOWcYZ
+1prOWsYYzlrWmsZZxlnOm9abzlrGGs5bzlrGGs5a1pvWnNabzlrOm86bzlrOm86b
+zlvWm9abxhi1lrWVtZW1lrWWtZatVqUVnRSdFKVVrVatl62XrZe1l7WXtZetl62X
+rZetl74Zvhm+GbYZthm+GbXYthm12LXYrZi12K2XtditmKWXpZell62XpZZjThjE
+EIMIQghCCEIIQghCCEIIQqUTpRSk05yTlJKMUaUUrVWlE5ySnNOlFK1VrVV7z5zT
+tZac05zTnNK918XXxhjGGMYYxhi9174XzljOGM5ZzlnOWc5Z1prWmtaa1prWmtaa
+1prWmsYYxhjOWs5azhnGGdaa1lrGGM5a1pvOWc4Z1pvWm9ZbzhnOWs5axhnOWtZb
+1pvWm85a1lvWm85a1pvWms5azlq917WWtZa1lrWWtZatVqUVnNSlFa1WrVatl7WX
+tZe1l7WXtZe1l7WXtZetl62WrZa92MYZvhi2GbYZthmt2LXZrdi12K2Ytditl7XY
+rZitl62XrZetl5TUIQUYgxBCEEIIQghCCEIIQghCCEGlE6UTnNOUkpSSjFGc06UU
+nNOUkpzTpRStVK0Ue46lFLVWnNOU05zTvdfGF8YXxhjGGMYYrVa1lsYYvdbGGMYY
+zlnWmdaZ1pnWmtaa1prWmt7b3tve29aa1prWWs5ZxhjWmtaaxhnOWtabzlnOWdab
+1prOmsZZzlrOWs4ZzlrWW9ab1pvOWs5b1pvOWtabzlq917WWtZa1lrWWtZatVZzT
+nRSlFKVVrZatlq2WtZa1l7WXrZatlqUVpVatlq2XrZetlq2Wtde+GL4Ythm12bYZ
+tdi2GbXYtditmK3YrZet2K2XrZetl62XrZdazBCDEIIIQghCCEIIQghCCEIIQghB
+pROk06TTnJKUkoxRpROlFJzTlFKUkpzTpRSdFIxRnRWlVpzUnNOc073XxhfGGMYY
+xhjGGMYYxhjGGMYYxhi918YYxhi918ZZ1pnWmdaa1prW2t7b3tve297b3tvOWcYY
+1lrWmsYYzlrWm8ZZzlnWm9abzpvGWs5azlrGWc5azpvWm9abzpvOW9abzlrOWb3W
+tZa1lbWWrVWtVaUUnNOc1K1VrZWtlrWWtZa1l7WWtZatlZzUpRSc1KVWrZatlq2W
+rZatlrXXvhi+GL4Zthm2GbYYthi12LXYrdi12K2Xtdit2KWXpZetl6VXIQUQgwhC
+CEIIQghCCEIIQghCCEIIQaUUpNOc05ySlJKMUaTTpRSc04xRjFKckpzTnNN0UWxU
+hRaNV5zTnNLF18YXxhfGGMYYxhjGGMYYzlnOWc5ZzlnOWc5ZxhjGF84YxhjGGNaa
+1tve297b3tvfG+cb5xve297b1prGGM5a1pvOGc4Z1pvWm85azhnOWtZazlnOWtab
+1pvWm85bzpvWm74YtZa1lrWWtZatVaUVlJOc1K1VrVa1VrWWtZa1lrWWrZatVqVV
+nRSlVa2WrZatlq2WrZatlq2WrZa1174Yvhm2GbXZthmt2bYZtdm12K3Ytditl63Y
+rZitl62XrZdz0BiDEEIQQhBCCEIIQghCCEIIQghCCEKdE5zTnNOUkoxRjFGc06TT
+nJKMEYxRlFKUkpSSZBJslIUXjVic1JzTvdfGF8YXxhfGGMYYxhjGGM5ZzlnOWc5Z
+zlnOWc5ZzlnOWc5ZvdfOGdaa1pre297b5tvm2+cb5xznHN7bzlnWWtabzlrGGtab
+1pvWm85azlrWW85azlrWW9ac1pvOWs5avdi1VrVWtVa1lq1VrVWc06UUrVWtVrWV
+tZW1lrVWrVWtFaUVpRWtVq1WpVWlVZTUnRWtl62XrZetl62Wrde+GL4Yvhm2GbYZ
+thm2GbXZtdmt2bXYrZi12K3YpZill6WXOcgQgghCCEIIQghCCEIIQghCCAIIQghC
+nRSc05zTnNOUkoxRnJKc05SShBCMEIwQjBCMUWPQbFR814VYlNSc074XxhfGF8YY
+xhjGGMYYxhjOWc5ZzlnOWc5Z1prWmtaa1prWmtaa1prWmtaa1prWmt7b5xvnG+cb
+5xznHN8b3tvem85azlrWm9ab1prOWs5a1pvOWtZa1pvW29aazlm91rWVtZW1lbWV
+rVWtVa1VrVWtla2WtZatlq1WpRWU06UVrVWtVa1WrVWlFZzUpRWlVq2WrZetlq2W
+rZatlq2Wvhi+GL4Ztdm2GbYZthm2Ga3Yrdit2K3Xrdit2KWXrZd8ESEEEEIIQghC
+CEIIQghCCEIIQghCCEEIQqUTnNOc05SSjFGMEJRSlJKUUYPQhA+ED4QPhA9j0GxU
+hRaFV5TTnRO918XXxhfGGMYYxhitVcXYxhjOWc5ZzlnOWc5ZzlnWmtaa1prWmt7b
+3tve297b1prWmtaa3tvnHOcc7xzvHOcc5tzWms5Z1prem9abzlrOWtZazlrOWtab
+1pvOWr2XtVa1VrVWtVWtVa1VrVW1lbWWtZa1Vq1WpRWlFaTUrVWtVq1WpVWdFKVV
+pVatl62XrZatlq2WrZatl61WrZa1lr4Yxli+GL4Zthm2GbYZthm12K3Yrdit2K3Y
+rdill62XQgkYxAhCCAIIQghCCEIIQwgCCEIIQghCCEKc1JzTnNOUkoxRhBCMUZRR
+jFGDz4PPg857jnuOW49sVH0WhVec06UUvdfF18YXxhjOGMYYhBC9l5zSzlnOWbWW
+tZXGF86Y1pnWmd7a3tve297b3tve297b3tvWmtaa1pre2+cc5xznHO9c5xzWmt6b
+1pzWm85azlrWms5ZzlnWms5ZvZa1VbVVtVW1Va1VrVWtVa1VrVW1lrWWrVWlFJ0T
+rVWtVaVVpRWlFaVVrVW1lq1WpRWdFaVVpVWtlq2WrZatlq2WrZa12L4Ythi2GLYZ
+thi2GLYYtdi12LXXrdet163YrZeU0xjEEIMIQgBCCEIIQghCCEIIQghCCEIIQghC
+pNSk05zTlJKMUYQPjFGMUYQQg86DjXuNc0xrC1uPbFKFFYVVlNOlFL3XvdfGF8YY
+xhjGGLWWtZatVc5ZzlmUkXuNi86Dja0TtRPWmd6a3pre297b3xvfG+cb5xznHN7b
+1premucb5xzvHO9d7xze297b1pvOWs5a1prOWc5azlm9lrVWtVW1VbVVrVWtVbVV
+tVW1VrVVrVWlFK1VrVWtVa1VpRSlFbVWtZalVaUVrValFaVVrVatlq2WtZatlq2W
+rZatlq2Wtde+GL4Ythm2GbYYtdm2Ga3Ztdit2K3Yrdit2KXXSosQgwhCCEIIAQhB
+CEIIQghCCEIIQghCCEEAQpzUpNOc05SSjFGEEIxRlFGMD4POg417THMLaspKRzoG
+UoqEUJTSpRS9173XxhfGF8YYxhjGGMYYxhjGGM5Zvdec05SSe46UkXNMtZWlE8YX
+zljWmt7b3tznHOcc5xznHN8b3tve2+cc7x3vXe9d713e29aazlnOWtabzlrGWb3W
+vZa1lbWVrZWtVa1VrVW1lrWWrVWtVa1VrVWtVq1VrVWlVa1WrVatVpzUnJSc1aVW
+rVatlqVVpVWlVa2WrZatlq2WrZatlrXXvhi+GLYZthm2GbYZthmt2LXYrdit2K3Y
+rdiVFRkECIIIQghBCAEIQQhBEEIIQghCCEIIQghCCEKc05zTnNKUkoxRhBCMUZRR
+jBCDz3uNe0xzCmrJi4yMDZSSjFKUk60Vvde918XYxhjGGMYYxhjGGM4YzlnOWc5Z
+zlnOWc5ZvdelFLWVtVWlE60TnJK1ld7a5xvnHO8c5xzvHOcc5xznG+cc71zvXe9d
+5xzWms5azlrWms5Zvda9lr2WvZa1VbVVtVW1VrVWtVWtFKUUrVWtVaUUpRStVK1V
+rVWtVZ0UpRSlFK1WrVatVqUVpVWdFKVVrZatlq2WrZatlq2WrZa1174Yvhi2GbYZ
+thm2GbYardi2Ga3Yrdit163YW04QhAhCCEIIQggCCAEIAhBCCEIIQghCCEIIQghC
+pNSk05zSlJKMEYPQjBCMEIQPe457TXNMcwpqyZQOlI+c05SSlJKtVL3XvdfGGMYX
+xhfGGMYYvde918YYzlnWWc5Z1lnWWdaa1prWmsYYzlm1loxRpRTF185Yzlne2+bc
+5xzvHO8d7xznHObb713vXe9d3tvOWc5Z1prF172WvZa9lrVWtVW1VbVVtVWtVaUU
+pVStVa1VpRSlFK1VrVWtVaUVpRWtFa1WrVWtVaUUpVSlVa2WrVatVqVWrVa1lrWW
+rZatlq2VtZe+GL4Zvhm2GbYZthi2Ga3Ythmt2K3YrditlyEFEIMQQwhCCEIIQgAC
+CAIIQghCCEIIgghCCEIIQpzTnNOUk5SRhBGD0IwQjBGD0HuOc01zS3MKasmlE61V
+nNOUkpSSrVW9173XvdfGF8YXxhjGGL3Xvde9173XxhjGF85ZzlnOmdaa1premt7a
+3tvWm85ZvZfWWaSTtVbN2Obc5xzvHO9d713vXe9d713vXecc1lrOWc5Zvda91r2V
+vZW1VbVVtVWtVa0UrRStVa1VpRSlFK1VrVWlFKUUpRWtVa1VpVWlFJzTrVWtVq1W
+rZatloyTnRSlFK1WtZa1lq2WrZatlq2Xvhi+GL4Ytdi+GbXZthmt2LYZrdit2K2X
+a08QgwhCCEIIAghCCAIIQggCCEIIQwhCCEIIQghCCEOk05zTlJKMUYQQg8+Lz4wQ
+g897jnNMewtyymqKpRStVZzTlFKckrVVvda918YXxhfGF8YXxhfGGMYYxhjGGMYY
+vdfGGL3XvdfGGM5Z1lrem97b3tve297b1pq1lqUUjFG1lt6a5xzvXe9d713vXO9c
+713nXNaazhnGFsXWxda9lr2VvZa1lrVVrRSlFK1VrVSlVK1VrVWlFaUUpRWtVa1V
+pRSc05zTrVWtVq1WrVac1JSTrVadFa1WrVatlq2WrZatlq2WrZatlr4Xvhi+GbXY
+thmuGLYZtdi12K2XrdellymGEIIIQQhBCEEIQQhBAEEAQQhBCEIIQghCCEIIQghC
+pNOc05SSjFGEEHvPhBCMEIvPe01zDHMKcspqya0UtVak05SSlJK1lb3WvhfGGMYX
+xhfGF72WvdbGF8YYxhjGGc5ZzlnOWc5ZzlnOWb3X1prWmd6a3tvnHOcc5xze28YY
+xde1lr3W5xzvHO9d713vHe9d7xzemsYYxhbF1sWWvZW9lr2WtVWtFK1VrVWtFa1V
+rVatFaUUpRWtVa1VpVSc06TUrRWtVaUUpNStVa1VrVWtVq2WrValVaVVnRStlq2W
+rdatlq2WrZa2GL5Zvlm12LYZtdi12a3YtdmtmK3YdBAQwwhCCEEIQQhBCEEIQQhB
+CAEIQRBCCEIIQghCCEIIQ5zTnNOUkoxRhBB7z4QPhBCDz3NNawtyyXLJcomtVbVW
+nNOUkpyStZW9174XvhfGF8YXxhfGF8YYxhjGGL3Xzhi9lrWWxhjOWc5Z1prWmtaa
+zlm918XX1lnm2+cc5xznHN7b3tu9lr2V1ljvG/dd913vHOcc3pnF1s3WzdbF1sWW
+vZa1Va0UrVWlFKUUrVWtVa0VpRStVa1VpRSlFKUUrVWtVaUUnROMkp0UrVW1VrVW
+pRSlFKUUnNOlFaVVrZatlq2WrZatlq2Wtde+GL4Ztdi12a3Ythi12LXZrZe12DGH
+EIMIQghCAEIIQQhBCEEIQQgBCAEIQghCCEMIQwhDCEOc05zTlJKMUYQQe8+Dz4QP
+g89zTWrLaslqyWLIrRStVZyTlJKUkrWWvde9173XxdfGF73WtVW9173XxhjOGM5Z
+zlnOWc5ZzlnOGM4Y3prWmt7a3tvWmtaa1prWmubc5xzvHO8c3tvOGbVVtVXe2+9d
+713nHN6atVTN1s3Wxda91r2VrVS1Va1VpNStVa1VrRStVa1VrVWdFKUUrVWtVaUV
+pRSc060VrVatVa1VpRWtVZzUrRatVq2WrZalVq2XrZatl62XrZatlrXXvhi+GLXY
+tdmt2LXYtdit2K2XjJMYxBBCCEIIQghCCEIIQhBCCEEIAQgBCAIIQghDCEMIQwiD
+pJOc05RSjFGMEHvPg8+Dz4PPc01qy2rJaslqyaSRtZWc05SSnJK9lsXXxdfF18XX
+xhjGGL2WtZa1Vb3XvZbGF8YXzlnWWdZZ1prWWt6a1lnWWdZZ3pvm297b3tve297a
+5xvvHO8d7x3e27VVpNPnG+9c5xvemq0TxdbF1sXWvZW1VbVVrRS1VbVVpRStVK1V
+rVWtFK1UrVWtVa1VrVWtVa1VrVatVa1VrVSlFK1VrVatVq1WpVWlFZ0UpRStlq2W
+rZatlq2WrZa1175Zvlm2GbXYtdi12K3Xrdill0qKEIIIQghBCEEIQghBCEEIQQhB
+CAEIAQhBEEIIQghCCEIIQpzTlNKMUoxRhBB7j4PPg8+Dz2tMYslqiWrJaomkkbVV
+lJKUkpSSvdW91r3WxdfGF8YYxhjGGMYYxhjGGMYYxhjGGMYYxhjGGM5Z1lnWmt6a
+3premtaa3prem+bb5tzm2+bb5xznHO9d713nHL2W5tvvHO8c3pqtE8XWxda9lrWV
+vZa1VLVVrRSlE60UtVWk1KUUrVWtVa1VrRWtVa1WrVWtVZzTpRStVa1VrVWtVaUU
+pRSlFJ0UnRStVa2WrZatlq2WrZetVq2Wtde+GL5Zvhm12K3Ytdit163XlNQYxAiC
+CEEIQQhBCEEIQQhBCEEIQQgBCAEIAghCCEMIQwhDCEOck5ySlFGMEYPQe4+DzoQP
+g85zTGrLaslqyWqJnFC1VZySlJGckr3Wvda9173XxdfGGMYYxditVb2XxdfGF84Y
+zljOWM5Z1lnOWdaZzlnOWc5Z1tre2+bb3tve297a3tvnG+8c3tve2+cc713vXfdd
+713nHN6arNLF1sXWvZW9lr2WtZW1VKUUrVWtVaUUrVW1Va0VrRStVbVVtVWtFKUU
+pRSlFK1VrVWlFJzTlJOlFa1WrVatVq1WpRWdFKVVrZa1lrWWtZatlbXXvhi+Wb4Z
+tdetl63XrZetl1LMGIMQQghCCEEIQQhBCEEIQQhBCEEIAQgBCAEIQghCCEMIQwhD
+nJOUkoxRjBCDz3uOg4+Lz4PPcwxiymqJaolqiaRQrRWckpSSnJLF173Wvde918XX
+xhfGF8YYvde9174YvdfGGL3XpNKtE72VzljWmdaa1prOWdaa1premt7a5tvm297b
+3prem+8c5xze2+cc713vXe9d5xzemqzTxda9lb2VrVS9lrVVrVS1VbVVrVW1VbVV
+rRWtFK1VrVWtFK1VpRStVa1VrVWc05zTpNSk1K1VrZWtVqVVpRSc05SSpRSlVa2W
+rZatlq2WrZa1lr3Yvhm+GbWXpVatl61WpRQhBBCCCEIIQQhBCEEIQQgBCAEIAQgB
+CAEIAQgBCEIIQghCCEMIQ5zTlJKMkYwQg897jnuOg46DzmsLYspqiWqJcsqkUK1V
+lJKMkZzSvda91r3WvdfF18XYvZe9l8XXzdjOGM4YzlnOGbWWpRWc061VvZW91sXW
+1prem96a3pvWWt6a3tvnHObc3tve2+bb7xznHOcc7133Xe8c3pqtE8XWxda1VLWV
+tVS1VbVVtRW1VrVVrRStFLVVtVW1Fa0UpRStVa1VrVSlVKUUpRStVa1VrVWlFKUU
+pRSlFKUUpRWtVq1WrZatlrWWtZa1lq2WtZa2GL5Zvhmt16WWpZallmMMGIMQQghC
+CEIIQghBCEEIAQgBCAEIAQgBCAEIAQhCCEIIQghCEEKU05SSjFGEEIPPe457joPO
+g85rC2KKaohqiGqJpFCtFJSRlJGc0r3Wvda9173Xvde92L2XtVa1lrWWtZbGGM4Y
+zhjOGM5ZzlnOWc5ZxhitFc4YvZbF19aa3pre2t7b3pve2+cc5xzWmt7b5tznHObb
+71zvHN6arRO91r2VvZW1VbVVtVWtFbVWtVWtFK0UrVWtFa0VrRWtVa1VpRSlVKUU
+pRStVa1VpRSlFK0VnNSlFa1WrVatVq1WpNWdFKVVrZatl62WrZatlq2Wthi+GL4Z
+tdidVp1WnRUhBBCCEEIIQghBCEEIAQgBCAEIAQgBCAEIAQABAAEIQQhCCEIIQghD
+lNKUkoxRhBB7z3OOc417jnuOawtiimJJaohyyaRPrRSUkpRRnNK1lr2Wvda918YX
+xdfF18XXxdfGGMYYxhjGGMXXxdfF184YzhjOWdaa1prWms5ZvdfOWbVW1lre3Obb
+5tvm297b5xvnHNaa5xzvHO8c7xzemq0TvZW9lb2VvZW1VbVUtZWtFK1VtVW1VaUU
+pRStVa1VrVWc06TTrVStVK1VpVWlFKUUpRStVa1VrVWtVaUUlJKc1JzUnRStVa2W
+tZa1lrWWtZa1lr4Xvhm+GbXYpVadFWNNGMMIQghCCEEAQQhBCEEIAQgBCAEIAQgB
+CAEIAQgBCAIQQxBDEEMIQ5yTnFKUEYwQg897jXuNg86DjmrLYoliSWqIcsqcUK0T
+lFGUUaTSvZa9lr2Wvde9173XrVa1lrWWvdfGGM4YzljOWc5ZzlnOWc5ZzhjGGNZZ
+zhjWmt7b3tvOWM5Z1pre297b5xznHN6a3trvHObb3pvvHObb3pqtFL2VvZW9lrWV
+tVW1la1VrRW1Va0VrRStFK1UrVWtVa1VrRWtVa1UpRStFKUUrVWtVbVWrVWtVaUV
+pRSlFaUVpVatVq2WrZatlrWWtZa1lq2WrZa1175Yvhi12KVVnNQpRRCCCEEIQQhB
+CEEIQQhBCAEIAQgBCAEIAQgBCAEIAQgBCEIIQhBDEIOckpRRjBCMEIPPc457jYOO
+g01qymKIYkdqiHLKpFGlE5SRlFGc072WvZa9l73Xvde9172XvZe917WWxdfF18XX
+xhfGF85YzljOWdZa1prWWs4YzlnWmdaa3tvm3Obc5tvWWt6b7xzvHd6b5tzvHebb
+5pvm3N5ZrRO9lb2VvZW1VbWVtVS1lbVUrRStFLVVtVWlFK1VrVWtVa1VrVSlFK1U
+rVWtVa1VpRStVaUVrVWtVq1WrVatV62WrZatlq2WrZat1q2WrZatlq2WtZe+GL4Y
+tdilVWuPGIMIQghBCEEIQQBBCEEIQQgBCAEIAQgBCAEIAQgBCAEIAQhCEEIQQxBE
+nJKUUYwQg9CDj3tOc02DjnuNYopaSWJIYolyyqRRpNKUUJRRpNO9lr2WvZbF173X
+vde91r3XxdfGGM4YzhjOGM4YzhjGGL2WtZa9ls4Y1lnemt6b3premtaa1pre2ubb
+7xzm3Obc5tznHO8c5tvvHOcc3pvWWbUUvZa9lb1VvZW1VbVVrVWtVa1VtVWtVaUU
+rVStVa1UpRStVa0VrVWtVa1VrVWlFaUUrVWtla2WrVWtVrWWrVatVq1WrVatlq2W
+rZatlq2WrZatlrXXvhi+Gb3YrVZKSghCCEIIAghBCEEIQQhBCEEIAQgBCAEIAQgB
+CAEIAQgBCAEIQghDCEMIRJRSjFGMEIQQe89zjXNNe457TWKKYkliSGJJcsqkkqTT
+lFCUUKzTvZa9lr2Xxde9173XtVa1Vb1WtZa918XXxhfGGM5YzlnOWc5ZzhnGGM5Z
+zlnOWc5Z3pre296b3tvem97b5tvnHO8c5tvvHObc5tzm3Obb3lmtFL2VvZW9lb2V
+vZW1VLVUtVStFK0UrRW1Va0UpNOtFK1UrVSlFKUUpRSlFK1VrVWtVa1VrVWtVa1V
+rVWtVq1WrVatVq1WrVa1lrWWtZa1lq2WrZa11r4Yvhi+GLXXKYYIQghCCEEIQQhB
+CEEIQQhBCAEIAQgBCAEIAQgBCAEIAQgBCEIQQxCDEISUUpRRjBCDz3uOc01zTHuN
+c0xiyVpIWgdiSIMLrRSc0pRRlFGs1L2WvZa9172Wvde918XXvdfF173Xvde918YX
+xdfGGMYYzhnOGNZZ1lnWmtaa1lnOWM4Y1pnWmeca5xznHN6b3pvm3O8c5xvWWecb
+5tvemtZarRO9VL2VtVW9lbVUtVS9Va0UrRS1FbVVrRWlFK0UrRWlFZyTlFKk1K0V
+rVWtVa1VrVWtVa1VrVatVa1WrValFa0VrRWtFZzUrVa1l62WrZatlq2Wrda+GL4Y
+vhi12ClGCEIIAghBCEEIQQgBCAEIAQgBCAEIAQgBCAEIAAgBCAEIAQhCEEMQQxCE
+lFGMEYwQg897jnNNc0yDjXtMYohaSGIHYkiLj60UnJKMUJRQrRO9lr2WvZa9lsXW
+xda1lbWWvZbF1sXXzhjOGM4YzhjOGM4YxdfOGNYZzhjWWd6a3tve297b1premt6b
+5tzvHO8c1premu8c5tvm2+cb5tvemrVUvVS9VL2VtVS1VbWVrVW1VbVVrRStFLVV
+rRWtFKTTpNOlFK1VtVW1Va1VrVWtVa1VrVWtVa1VpRSlFJzUnNSlFa1VrVatVq2X
+rZetl62WrZatlq2Wthe+GL4YtdhCCAhBCEEIQQhBCEEIQQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIQRCDEIMQhIxSjBGEEIPPe45zTXMMg01zDGJJWkhSB1pIi8+tFJyS
+jFGMUK0TvZa9lr2WvZa9lsXXrVWtFK0UpRO1Vb2WxdfGF84Y1lnWWdZZ1lrWWtZa
+zlnOWdZa3pre297b5xvm2+8c5tvm3O8c5tvm3O8c7x3m2+bb3pm1VL1UvZS1VLVV
+tRS1VbVVrRStFK0UtVWtVKTTpNOtFLVVtVWtVa1VrVWtVa1VrVWlFK1VpRSc05zT
+pRStVa1VrVatVq1WrVatVrWWtZa1lq2WrZatl7XYvhi+GLXXUssIQghCCEIAQQhB
+CEEIAQgBCAEIAQgBCAEIAQgBCAAIAQgBCAIQgxCDEIOUUYwQi9CDz3uOcw1rDHtN
+cwtiSFoHWgdaSJQOrVOckoxQjFGtFLWWvZa9lr2WvZa91r3Xvde9173Xvde9173X
+xde9185YzlnWWdZZ1premt6a3premuaa3prWWdaa5xznHOcc5tvemubc7xzm2+bc
+7xzemtZZtVS1VL1UtVS1Va0UtVW1Va0UtRW1VK0UrROtFLVVtVW1VbVVrVWtVa1U
+pVWtFKUUpRStVa1VrVWtVa1VrVWlFKUUrVWlFKUVrVa1VrWWtZa1lq2WrZa1174Y
+vhi112OOCEIAAggBCAEIQQhBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBEIMQgxCE
+jFGMEIPPe457TWsMawt7THMLWohSB1IHWkiUT60TnJGMUJRQrRS1lr2WvZa9lr2W
+vZa9lsXXxdfF18XYxhjOGM4YzhjOGdZZ3pnemt6a3prem96a5tvm2+bb5tvm2+bc
+5tvm2+8c7xzm2+bb7xzvHObb5pvWWbVUtRS9VbVUtVS9lbUUtVS1VK1UrRStFLVV
+tVW1VbVVrVWtVa1VpRSc05zTpRSlFK0VrVWtVa1VpRSlFKUUpRSlFa1VrZatlq2W
+rZa1lrWWtZa1lq2Wtde+GL4Ytdd8EAhCCEEIQQBBCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIARBDEIQQhJRRjBCDz4OOe01qzGrLc01zDFpIUgZSB1pIlFCtFJRR
+jBCMEK0UtVW1lrWWvda91r2WvZbFlr2WxdfF18YYxhjOGM4YzhjWWdZZ3pnWmt6a
+3pre2uba5tvm2+bb5tvm3Obb3tvemubb7tzvHObb5tvvHN6a1lm9la0UvZW1VL2V
+vZW1VLVVrRStFLVVtVW1VbVVtVW1Va0UpRSk05zTpNStFa1VpRWk1JySnJKlFKUV
+rVatVa1WrVatVa1VpRWlFK2WrZa1lq2WrZatlrXXvhi+GL4YlNMQQggBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEQQhCDEISMEIQQg897jnNNawtrCntM
+cstaSFIHUgZaR5QOrRSUkYwQjBCtFLWVvZW9lr2Wvda9lr2WxdfF18XXxdfF18YY
+xhjGGM4YzhjOGc5Z1lnWmt6a5tvm2+bb5tvm3Obc5tznHO8c7tzem9Za5tzvHN6b
+3tvm284YvZak07VUvVW9Vb2VvVW1FLVUtVW1VbVVrVW1Va1UrRSckq0UrRStFa1V
+rVWUUpSSnNOc1KUVrVWtVq1VpVWlVaUVnJOc1KUUrRWtlrWWtZa1lrWWrZa1174Y
+vhi+GKVVEIIIQQgBCAEIAQgBCAIIAQgBCAEIAQgBCAEIAQgBCAEIAQgBEEIQhBCE
+jBCED3vPe45zTWsLawtzDGrLUghRx1HGWgiDTK0TlFCUEIwQtVW1lbWWvZa9lr3W
+vZa9lr3XxdfF18XXzdfGGMYYzljOWM5ZzlnOWc5Z1lnWWd6a3pre2+bb5tvnHO8c
+7xzvHO8c91zvHObb1prnG+cc3tvOWbVWpNK9lb1UvZW1VbVVtVW1FLUUtVS1VLVU
+rROtFK0UrRS1FK0VpRSlFK1VnNOlFK0VrVWtVaUUrVWlFKUUrVWtVa1VrVWtVq1W
+rZatlq2WrZatlq2Wtde9174Yvhi1lxjECAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQhCEIQQhIwQg8+DznuOc01izGrMcw1ii1oIUcZRx2IIcoqtE5RQ
+jFCMULVUtVW1VbWWvZa9lr2WvZbF18XXxdfF2M4YxhjOGM4YzhjOGdZZ1lnWWdZZ
+1lnWmt6a3prem96b5tvu3O8c7xzvHO8c7x3vHebczhnm3Obb1pm9lpzStVS1VbWV
+tVW1VaTTrNO1FLVUrRSk06UTrRStVKUTpNOk1KTUrRWtVa1VpRSlFKUUrRWtFa1V
+rVWtVq1WrVatFaUUnNSlFK1VrZatlq2WrZatlq3Xtdi92L3YtdcpRgABCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAhCEEISMEIwPg857jnMMastqinsL
+aspaB0nGWcdaB2KIrROMUIwQlFG1VLWVtZW1lb2VvZa9lsWWxdfF18XXxdfOGM4Y
+zhjOGM4Z1lnWWdZZzhiDzaTR3ljemt6a3tvm2+bb5tvm2+8c7xzvHfcd9x33He8d
+1lre29Zavdackb2UvVS9Vb1UrNOs07VUtRStFK0UrRStVa0UpNSk06TUrRStFaUU
+pRSc05SSpNStFK1VrZWtVa1VpRSlFJzTnNOc1KUUpVWtVq2WrZatlq2WrZat17XX
+vhi+GLXXQkkIQQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEQhBCE
+jBCDz4OPe45rDGLLastrDGKKUghJxlHGWgh7DK0UjBCMEJQQtVS1VbVVtZW1lr2W
+vZbF1sXXxdfF18XXxhjOGM4YzhjOGNZY1lnWWZyScwxaioPP3trmmuab5tvm2+bb
+5tvm2+bc7xzvHe8d913vXe8d3tvWWr3XnJG9VL1UvVW1FLUUtVW1Fa0UrRS1FK0U
+rRStFK0UrRStFKTUnJOck6TTrRStFK1VrVWlFK1VrVWtVaUUpRWlVaUVrVatlq1W
+rZatlq2WrZatlq2WrZa117YYvhi111rMCAIIAQgBCAIIAQgBCAEIAQgACAEIAQgB
+CAEIAQgBCAEIAQgBGIQQhIQPg8+DjnNNasxiimLKawpaiUoHSgZJxlJHjA6UT4wP
+jA+MULVUtVW1VbVVtZa9lr2VvdbF1sXXxdfF18XYzhjOGM4Z1hnWWdZZ1lqDz4PP
+e45iy96a3trm2+bb7tzm2+bb7xzvHO8c7xzvHe8d7x3vXecc1lrF15xRvRS9VbVU
+tVS1FLUUtVW1VK0TrNOs060UtRSs1KTTnJKk06TUrRWtFa0UpNOk05zTlJKlFaUV
+rVWtVq1WrValFaVVpRWdFK1WtVa1lrWWtZatlq2Wtda+GL4YtdhrjwhCCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIARBEEISDz4OPg45zTWrMYotiimrL
+YklSB1HGUcZiSKSSpNOMEIQQjBC1VLVVtVW1VrVWvZa1Vr2WvZa91r3XxdfN184Y
+zhjOWNZY1lnWWdZZc46D0IPPYsvFluaa5pvm2+bb5tvnG+cc7xzvHO8c7xzvHO8c
+713nHN6axheUUL1UvVS9lbVUrRO1VLVUpJGk0q0UrRSk06STnJOk060UrVStVa0U
+pNOUUZzTpRSlFa0VrVWtVaUUpRSlFKUUnNSk1aUVpRWtVrVWtZa1lrWWrZatlbXW
+vde+F7XXhBAIQQhBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIQxCE
+g8+DznuNc01rC2KKYopqyWKIUgZRxUnFWkik06TTjBCMEJRRtVW1VbVVtVa9Vr2W
+tVW9lr2Wvda918XXxdfF2M4YzhjOWM5YzljWWaUUhBCEEHNNtVXm2+bb5pvm2+7c
+7tzvHO8c7xz3XO8c7xznHO8c7xzems4YlFC1VL2VvVW1VL1UtVStE60TtROs0qSS
+nFKk1K0VrRSk1KTTpNOk06TTpRSlVK1VrVWtFaUUpNOk05zTpRSlFa0VrVatlq1W
+rVatVq2WtZa1lq2WrZa11r3Xvde915STCEIIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCEMQhHvPe897jXNMastqimqKaopiSVHHScZJxlpIpNKk04wQ
+hA+UUbVVtVW1VbVWtVa9lr2WvZa9lsXWxdbF18YXzhjGGMYYzhnOGc4ZzlnWWr3X
+tVXOGN6a3prmmuab5tvm2+bb7tzvHO8c7xzvHO8c7xznHOcc3prOGJQQvVW9Vb1V
+vVW1VLUUtVS1FKzTpJKs07UUrRSc0pzSpNOk060UrRStVa0UrRSlFKUUpRSlFaVV
+rVWtVa1VrVWlFKUUpRSlFJzUrVatlq2WrZatlq2Wtda12L3YtdilVhCDCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgCEISDjoOOe01zDGrLYopiimKJ
+WkhRxkmFScVaB6TRpNKMDowPlFC1VbVVtVW1VbWWtZa1lb2WvZbFlsXXxdfF2MXY
+xdfF1s3XzhfOGM4Y1lnOWdZZ3premuba3pvem+bb5tvm3O7c5tzvHO8c7x3vHe8d
+7x3m3N5azhiMD71UvVW9Vb1VvVW1FKSSrNO1FLUUrRSkkqSSnJKtFK0VrRSk06TT
+pNOk060UrRStFa0VrVWtVaVUrVWlFJSShBCc06UUpVWlVa2WrZa1lrWWrZatlrWX
+tdi92LXYrZYYxAhBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAhiF
+g86DjXNMcwtqymKJYolqiWJIUgZJxknGWkWUDZQNi86MD5SQtVS1VLVVtVW1Vr1W
+vVa9lr2WvZbFlsXXxdfF2MXXxdjOGM4ZzhjOGM4YzhnOGdYZ3lremt6a3pvem+bb
+7tzu3O7c7xzvHO8c71zvHe8d5tzems4YjA+9lb2VtVS9VbUUnFGkkrUUrROk06ST
+pNOtFLVUrRStE6TTnFKk1KTUrRWtVa1VpVWlFKTUpNSc06VUpRWc1KUVrVatVq1W
+rZatlq2WrZetlq2WrZa1lrXXtdi92LWXKYYIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEQhHuOe41zTGsMWopiimKJYopaSFHGScZRhlpFk8yTy4vO
+i86UULVUtVS1VbVVtVW9VrVVvZa9lsWWxdbN18XXzde9lr2WzhjOGNYYzlnWWdZZ
+1lnWWdZZ1lneWt6a3pvmm+bb5tvnHO8c7xzvHO8c7xzvHObc3prOF5QPvVS9VL2U
+vVSs060TtVSs0qSSrNOtFK0UrRStFKUUpNSlFK0UrRWtFa0UrRStFaUUpRSlFKUU
+rVWtVa1VrVWtVaUVrRWlFaUVrVa1lrWWrZatlq2WrZa1lr3XvdetVjoICAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBEIN7jntNcwxrC2LJYoliSWKJ
+WkhRxkmFScVaRXuJg4mLzovOnFCtFLUVtVW1VbVVtVW1Vb1WvZa9lsWXxdfF16zT
+ewxqy6zTzljWWdZZ1lnWWdZZ3lnemt6a3pvem96b3premuab7tvu3O7c7xzvHO8d
+9x3u3N6azhiUD7VUvVW1FLUUtVS1FKzTrNO1E7UUrNOs06zTrNOtFK0UrRSk1KTT
+pNSc06UUrVStVa1VrVWtVa1VrVWlFJzTjFGc06UUrVWtVa2WrZatlq2WrZatlq2W
+rZa117XXrZZSiwhCCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIARBD
+e417THMLaspailpJWkhiSVoHUcZJhUmFYkaUDIvLg86LzpxRrRStFbVVtVW9Vb1W
+tRW9lr2WxZbF1sXXxddzTYwQjBBzTc5Y1ljWWdZZ1pneWd6Z3prmmuaa5prm2+bb
+5tve2+bb5tvvG+8c7xzvHe8d5xzem84YlA+1VLVUtVS1lbVUrROtFLVUrROk06zT
+rRStFK0UrRWUUpSSpNStFK0UrVStVa1VrVWtFZzUnNOlFKUUpRSlFaUVpVWtVrVW
+rZatlq2WrZatlq2WrZatlrXWtde116WXjJNKjAgCCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIQntOc01zC2LKYoliiGJIYkhaB1HGSYVJxmKJpNKUUIQO
+g8+UUa0UrRW1VbVVtVW1lbVVvZa9lr2Wvde9172WawyMEZQRg8+1VdZY1lnWWdZZ
+3lneWd6a5prmmuab5tvm2+bb5tvm3Obc5tvu3O8c7xzvHObc3prOF5QPtRO1E71V
+tVS1VLVUrRStE60TrRStFK0UpNOk06UUnNOlFK1UrRStFK0VpNSlFKUUpRStVa1V
+rVWtVa1VrZatVq1WrVatVq2WrZa1lrWWtZatlq2WrZatl7XYtditl50Va48IQQgB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCEJ7TXtMcwtqymKJYkhaSGJJ
+UgdJxUmFSYZiiaTSlFCDzoPOnFC1FLUUtVS1VbVVtVa1Fb2WvZa9lsWXxZa9lmsM
+jFGUUYQQtVXOWdZZ1lnWWd5Z3lreWt6a3tve2+bb5tvm2+bb7xzvHO7c5tvvHO8c
+7xzm296azdeUD7UTvVW9VL1UvVS1E60TrRO1E6zTnJKk0qTSrRStFK0UrRStFKTT
+pNOtVKUUrRStVa1VrVWtVa1VrVWtVa1WrVatVq1WtVetlq2WrZatlq2WrZatlq2W
+rZe117XXrZac1HvQCEEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgC
+c01zTXMMYspaiVqJWkhiCFoIUcZRhUmFYomk0ZRPg86DzpRQtRStFLVUtVW1VbVV
+tVW9lb2WvZbF172XtVVSCYvPlFFzDLVV1hjWGNZZ1lnWWd5Z3premt6a3pvmm+bb
+5tvm2+cc7tzWWc3Y7xzvHO8c7xzems4XlA61ErUTvVW1VK0UtRS1FKzTpNKckqST
+rRStFK0UpNOk06UTpNSlFKUUpVStVK0UrVWtVa1VrVWtVa1VrVWtVa1VrZatVq1W
+rVatVq2WrZatlq2WrZatlq2Wtde1163XnRSEUghCCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAXNNcwxqy2KKWklaSFJHWkhaB1GGUYVRhmKJpJKUEIPO
+g86cka1TrRS1FbUVtVW1VbVVtZa1lr2WvZa9lsXXasxiSmqKasq1E9YY1hjWGdYZ
+1lnemd6a3prmmuaa5pvm2+bb5tvm2+bcxZe9lu7c7xzvHObb3prOGJQPrNK9VL1V
+tRS1VLUUrNOk06zTrROs06SSpJKkkqTTpNOlFK0UrRSlE6TUpNOc06UUrRStVa1V
+rVWtVa1VrVWtVaVVpRSc1JzTnRStlq2WrZalVq1WrVatV7XXtdet1pUVjNMQQggB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAF7TXMMcstqimJJWklaCFoI
+UcdJxkmFSYZiiaSRjA+DzoPOnJGtE60UtRS1FLVUtVStVbWVtZa9lr2WvZa917WW
+lJKMUa0UzhjWGNYY1lnWWdZa1lreWt6a3premt6a5prmm+bc7xzm3L2WtVXemu8c
+7xzm296azhiMD6zTtVS1FLVVtRSs06zTtRS1FKSSlBCcUaTTrNOtFKzTpNOk05RS
+nJKck6UUpRStVa1VrVW1Va1VrVWlVaUVpRSc1JSSlJOc1KVVrZetlq2WrVatVq1V
+rVa1l7XXtdedFZ0VEEMIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+e01zDGrLYopailJIUgdSB1HGSYVJhEmFYomMD4POg86DzpyRrRStFK0UtRS1VLVU
+tVS1lbWVtZa9lr2WvZa918XXxdfF184YzhjOGdZZ1lnWWd6a3premt6a5prmm+ab
+5pvm3O7c5tu9lr2X1lnvHO8c7tvems4XlA+s0r1UvVS1E60UrRS1FK0UpNOkkqSS
+rNOs1KzTnJKUUZRRnJKk060UrRStFK0VrRSk06TUpRSlFKUUpRSlFaVWpRWtVq1X
+rVatlq1WrZatVq1WrVatVq1WrZe1l7WXnRadFhCEAAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAXMNasxiy1pKWklaSFoHUgdRxkmFSYVJxWrKpJKMD4PO
+g86k0q0UrRStFK0VtRW1VbVUvVW1Vb2VvZbF18XXxdfF18XXzdjN2M4YzhnWGdZZ
+1lrWWt6a3lremt6a5pvmm+7b5tvm296bxde9ltZZ7xzvHObb3prOGJQPpJG9VLUU
+tRS1FKzTrNOs06zTrNOs06STpNOc06TTpNOtFK0UrRSk06TTpNOk06TTpNOlFK1V
+rVWtVa1VrVWtVa1WrVatVqUVnNOlVa1WrVatVq1VrVatVq2WrZetlp0WnNYgxggB
+CAEIAAgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAFzDGrLYopaiVpIUkhSB1IH
+UcdJhkmFUcZyy6SSjA+DzoPOnNKtFK0UrRS1FLUVtRWtFbVVtVW9Vr2WvZa9lsXX
+xdfN183XzhjOGM4Y1hnWWdZZ3lneWd6a3premt6a3tvm2+bb5tvu29ZZvZbeWe7c
+7tzm3N5azhiUEJyRtRS1FLUUpJKkkq0TrROk06SSnJKk06TTrNStFK0UrNStFKTT
+lFKc06UUpRWlFa0VrRWtFa1VrVWtVa1WpRWc1KUUnNSc05STpRWtVq1WrVatVq1W
+rVatVq2XrZadFZTUKccIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+cwxqy2KKYklaCFoIUcdSB1HGUYVJhVqInJKk0oPPg86DzpzRrRStFK0UrVStVLVV
+rRW1VbVVtVa9Vr2WvZe9l8XXxdfF183YzhjOGM5Z1hnWWd5a3lreWt6a3premuaa
+5pvmm+bb5tvm285Z5tvm3Obc5tzems4XnFCcUL1UtVSckaTTrROtE6SSpJKskqzT
+rNOs06zTpJOck6TTpRSlFKUUpRWtFK0VpRSlFKUUnNOlFKUVrRWtFaUVpRWlVqVX
+rVetV61WrVatVq1WpValVqVWpZatlq2WpVWU1DpJCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAXMMastiSlpJWglSCFHHUcZRxlGFSYViiZySpJKDjoPO
+g86k0q0TtROtFK0UrRS1Fa0VtVW1VrVWvZa9lr2WvZbF18XXxdjOGM4YzhjOGNYY
+1hnWWdZZ3lneWt6a3prmm+ab5pvmm+ab5tvem+bc7tzu3Obc3prOGJxRlBC1FK0T
+rROtFKTTpJKsk6zTrNOkkqTSpNOk06TTpNOk1KUUpRSc06TTpRSlFKTUnNSk1KUV
+pRWlFaUVrVWtVq1WtZatl62WpVatVq1WrVatVa1VpRWlVaVVrZatlqVVlNNKiggB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAFrC2rKYolaSFpIWghRx1HG
+ScVJhUGEYoikkpzTg8+DzoPOpNKtFK0TrRStFK0VtRWtFLUVtVW1Vb2WvZa91sXW
+xdfF183XzhfOF84Y1hjWWNZZ1lneWd5a3lreWt6a3prm296a3pvemt6a3prm2+bc
+5tzm3N6azdeckYvPtRO9VL0UtNOs06zTrROk05ySlFGk06zUrNSs06zTpNOkk5yS
+nJKck6TUpRSlFKUUpRSlFKUUnNSk1KUVrValFa1WrValVqUVrVatlq1WpVWlVaVV
+nVWlVa2WrZallpTTWwwIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+astiilpJWkhaSVIHScZJxknGSYVJhVpHi86LzoONg46DzqTSrROlE60TrRS1FK0U
+rRS1VLVVtVW1Vr2WxZbF18XXxdfF18XXzhfOGM4Y1hnWGdZZ3lneWd6a3prem96b
+3pveWuab3prem9Za3prmm+bb5tvems4XpJKLzrUTtVStE7UUtROs06SSpJKkk6TT
+rNOk06TSpJKkkqSSpNOk1K0UpRSlFKUUpRSc06TTnJOc05SSjJKlFa1WrVatl62X
+rZetVq1WrVatVqVVpVWlFaUVpRWtVq2WpVWU02ONCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAWrMYopaSlIJUglJyEnGScZJxUmFSYViSJRSlJJ70HvO
+g86k0qzTpROlFKUUrRStFK0UrRW1VbVVtVa9lr2XvZfF18XXxdfF184YzhjOGM4Y
+1ljWWdZZ3lneWt5a5prmmuaa3lreWtYZzhjOGN6a5tvm2+bb3prOGKTTg461E7UU
+tRSs06SSpJKs06zTpJOkkZxQnFGckqSTpNOk1KUUpNSk1JzTnNOc05zTnNOUkpyT
+nNSlFaUVpRatVq1XrVetl62XpZelVq1WrVatVqVVpRWlFaUVrZatlqWWlNRzzwhB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAFiilpJWkhSCFIIUcdJhknG
+SYVBhUGFYomckpySg897jnuOpNOk06TTpRStFK0UrRStFLVVtVW1Vb2VvZW9lr2W
+xZbF18XXxdfN2M4YzhnWGdYZ3lnWWdZa3lreWt6a3prmmtYZzhjOGK0UjBHF196a
+5tvm296azhik03tNrNO1FKzTpJGs0qzTrNOkUZRQnFGkkqSTpNOk06TTpNOtE6TT
+nJKckqTTpNSk1KUUpRWlFaUVpRWlFaUVrVatFZzUnRSlFZ0UlNOlVq1WpRWlFaUV
+pRWlVa1VrZallZTThBEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+YopaSVoIWghRyFHHSYZRxkmFSYVJhWKJnJKckoPPe86DzqTSpNOk06TUrRStFK0U
+rRStFK1VrVW1Vr2WvZa9lr2WxZbFlsXXzdfOGM4YzhjWGdYZ1lnWWdaZ3lremt6a
+3prGGM4YzhitFK0UtRTWGN6a3tvWWs4YrNN7TbUUrNOs06zTpNKk0qSSnJKkkqTT
+pNKkkqSRnJGckZzSpNSk06TUpRSlFKUUpRSdFJySlFGckpyTlJKc06UVpRWc1KUV
+pValVqVWpZalVqVVpRWlFaUVpRWlVa2VrZac1IxSCAIIAAgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAWKKUkhSCFIIUghJx0GGSYZJhkmFSYViipySnJKDz4OO
+g86k0qUTpROlE60UrRStE60UrRStFbVVtVW1Vb2WvZa9lr2XxdfF18XYxdjOGM4Y
+zhjOGdYZ1hnWWdZa3premtZZxdfGGMYYpNSck5yTzhjWWebb3pnN2K0Tc0ytE60T
+tROkkpxQpJKkkqTSpJGUUZRQnJKckpySnNOk06TTpNOk06SSjBCck5zTnJOUUpRT
+nNSlFaUVpVatVq1WrVatVq2WrZatlqWWrValVqVVpRWdFaUVpRWtVq1WnNWUlAhC
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAFaSVoJUchSCFIIScdBhkGG
+QYVJhUGEYomUkZSRg857zoPPpNKk06TTpNOk1KUUpNOk060UrRStFbVVtVa9lr2W
+vZbFl8XXxdfGF84XzhjOGM5YzljWWNZZ1lnemt6a3prOGcXYzhjOGL2WpNOk1M4Y
+zhjemtZZxditFHMMrRO1FKzTpNKs06TTpJKckZRQnFGckqSTpNOk06TTnNOUUYQQ
+jBGck4xRnNOlFKUUpRStFa0VrRWtVa1VrVWtVa2WrVatVqUVpRWlVq1WpRalFaUV
+nRSlFKUVrValVp0VnRUQgwgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+WklaCEoHSgdJx0nHQYZJhUGFQYVBRWKJnJGcUYvOg46Lz6TTpNOk06TTpROlE6TT
+nNKtFK0UrRS1VbVVvVa9lr2WvZa9l8XXxdjF183YzhjOGNZY1lnWWdZZ1pneWd6a
+zhi9ls3YzhjF16TTrRTOGM4Y1lnWWcXYrRRrDKTSpNKs0qzTnJGckZxRpJKkk6TT
+pNOkkpySnJKckpSSlJGUkpzTnNOlFKUUpRSlFKUUpRSlFKUUpRWlFaUVpRWtVq1W
+pValFq1WrVatVqUWpRWdFJ0UnRSdVK2WrValFZ0VGMQIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAVpJUghRx1HHScdJhkGGQYZBhUGFQYVSB4ONe02DjoOO
+g8+k06TTpNOk06UTpROk06TTrROtFK0UtRW9Vb1VvZa9lr2WvZbF1sXXxdfF183X
+zhjOGNYZ1hnWWdZZ1lreWsWXlBG1Vs3YvZa1Vr1WzhjOGNZZ1lrF160Uawucka0T
+rNOckZRRnJKkk6TTpJOckpySnJKckpySnNOk06TTpNOk1KTTpNOk06TTnJOc1JzU
+pRWlFaUVpRalFq1WrVatV61XrVetV61WrValFqUVpRWdFJ0UnRStlaVVpRWc1ClG
+AAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAFSCVHIUgdJx0nHQYZBhUGF
+QYVBRTlFYkmckZxQg46DjYvPpNKk06TTpNOk060UpNOk06UTrRStFLUVtVW1Vb2V
+vZbFlsWWxdfF18XYxdjOGM4YzhjWGdYZ1lnWWdZZ1lm1VowQpNTF183XzhjOGM3Y
+zhjOGNZZzdetFGrLpJGs0pyRpJKkkqTSpJKkkqSSpJKkk6STpJOk05zTnJKc06TT
+nJKck5zTnNOc1JzUpRWtFaUVpRWlFaUVpVWtVq1WrVatVqUVpRWtFa1WrValFZ0V
+nRSdFJ0UpVWlVZ0VlJM6CAgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+SgdKB0nHScdBhkGFQUVBhUGFQYU5RGKIlJGUkXvOe46Lz6TTpNKk06TTpNOk05zT
+pROk06UTrRStVLVUtVW1Vb2WvZa9lsWXxdfF183XzdjOGM4Y1hjWWdZZ1lrWWtZa
+pNOk05zTxdjF2M4YzhjF17VVxdfOGMXWrRNiyqSRpNGk0qzTpNKcUaSSpJKkkqSS
+nJKkkpxRnFKckpySnNOc05zTpNOk1KUUpRSlFKUVpRSlFKUUpRSlFKUUnNSc1JzT
+nNOD0IxRpRWlVqUWpRWlFZ0UnNSdFK1VpVWlVYyTSooIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAVHHScdJx0nHQcZBhUGFQYVBRUFFQQViSpSSlFF7jnuO
+g8+k06TTpNOk06TTpNOc0qTTpNOs1K0UrRStFbVVtVa1Vr2WvZfFl8XXxdfF18XX
+zhjOGM4YzhjOGc4Z1lnWWaTTrRSk084YzhjOGM4YxddSSXuOzhjF1q0TYsqckKTS
+rNOkkqSSpJKkkqSSpFGcUZxRnFKckpyTnNOk06TTpNOkk6TTnNOc04xRlJKc05SS
+lJOck5zUlNSUk4xSjFCMT3rJgwqTTJwPrRWtFaUVnRSdE5zTnROlVaVVpVWUk2tO
+EEMAAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAFCCEnHScdJx0GGQYU5RTlF
+OUU5RTlFWkmcUZRQe457joQQpNOk06TTpNOk06TTnJOk06TTpNSk1K0VrRW1Vb1V
+vZa9lsWWxZbF1sXXxdjN2M3YzhjOGM4YzhnOGc5Zzhmck6TTpNPF18XXxdjN2L1W
+UglSSc4XxdatE2LJpJGs0qTSpJKkkqSSnJGUEJQQnJGckpySnJKckpySnJKUEZRR
+lFGUUpSSlJOUk5TTnNSc1KUUpRSk1JSSg9BzC2JIYghqB4LLiwyTTqUTpVWdFZzV
+nNSc1JzUpRWlVqVVlJOEEVJKIQUIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+QcdBhkHHScdBhjlFOUVBRDlEQUQ5RGJInFCUUIOOg42MD6TTpNOk06TTpNOk05yS
+pNOk06TTrRSlFK1VrVW1VbVVvZa9lr2WxZfF18XYzdfN2M4YzhjOGM4Y1hnWWdZZ
+rVWk06UUvZa9lr2WvZfFl2sNWoq9lsXXrRRaipxRpJKk0pyRnJKckZxSnFKkkqSS
+nJKckpySnJKckZRRhBCUkpSSnNOc05zUnNSk1KUUpRSlFJzTlJKEEHMLYkhaB2GG
+YceCzIMMi02UEKUVpRWdFJTUlNSU1J0VpRWlVZTThBFaSVpKQccQQggBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAUnHQYZBh0GHQYY5hTlFOUU5RDlEOUVaSYwPhA57jnuO
+hA+c0pzSpNOk06TTpNOkkpzSpNOk06TTrRStFK0VtVW1VbVWvZa9lsWWxdbF18XX
+xdfGGM4YzhjOGM4Y1hnWWcXXnJKtFM3XzdjF2MWXxdiD0HNNvZfF160UYomckKzS
+nJGUEKSSpJGkkaSRnJGMEIwPlFGUUpRSnJOck5zTnNOc06TTpNSlFKUUpRSlFKUU
+nNOck5RRe45iSVIGUcZRhWHHeoyDDINNg06ckqUUpRSc1JTTlNSdFKVVpVWU03wQ
+WYZqCHJJSccQgggBCAEIAQgBCAEIAQgBCAEIAQgBCAFBxzmGOcZBhkGFOUU5RTFE
+OQQ5BDlFUgiDz4PPe457jYwPpNKc0qTSpNOk06TTpJKk06TTpNOk1K0UrRWtFbVV
+tVW1Vr2WvZbFl8WXxdfF18XYxhjOGM4ZzhjWGM4Z1lnOWbWWvdbF18XXxdjF2MXY
+jBF7j8XXvdetFGKJnFCkkZxQnFGkkqSSnJGUEJRQlFCUUZySnJKck6STpNOk06TT
+pNOk1KTUpRSlFKUUpRSc05TTlJKMUXMNWgdRxlGFSURZhmpKgw2CzYLNesyc05zU
+lNOU05TUnNSdFaUVlJOD0FGGYgdqSGpIWkcgwwgBCAEIAQgBCAEIAQgBCAEIAQgB
+QYc5RjmGOYY5hjFFOUU5RTEEMUQ5RFpJlFGMEHuOe46MEKTSpNKk06TTpNOk05zS
+pNOk06TTrNStFK0UrRS1VbVVvVW9lb2WvZbF1sXXxdfF2MYYzhjOGNYYzhnWWdZZ
+1lnWGMXXxdfF18XXxdjF2JyThBDF2MXXrRRiipRQpJGkkqSSnFCcUZxRnFGcUaSS
+nJKckpyTpJOk06TTpNOk06TTpNOlFKTUpNSk1JzUnNOU05SSjFBrDFoHUYVJREjE
+WUZpyXpLgoxyimIIg0yc05zTlNKU05zTpRSlFJSTe9BBhVHGYgdiB2IHUgYoxAgB
+CAEIAQgBCAEIAQgBCAEIAUGGOUU5RUGGOUU5RDlFOUQxAzEDOQRaSZRRjBB7jnvO
+jBCc05zTnNOc05zTnNOckqTTpNOk06TTpNOs060UrRS1VbVVtVW1lb2WvZa9l8XX
+xdfF18XYzdjOGM4ZzhnWWdZZ1lnOGMXYxdjF2MXYxde916UUzlnF160UYoqMD6TS
+pJGkkpxRnFKckpySnJKckpySnJKk0qSSpJOkk6STpNOk06TTpNOk1KUUpRSc1JzT
+lNOUkowRcwxSB0mFSURAw0kEaghqCXJKYcdiB3KJi4yUkpSSlNOU06UUpRSU0nvP
+QQVJBElFUYZRx1nHUcc5hhjDCEEIAAgBCAEIAQgBCAE5hjlGOUY5RjlGOUY5RjlF
+OQQ5AzlEWkickIwPe457jowQnJOc0pzSnNKk06TTnJKk06TTpNOk06TTrRStFLVU
+tVW1Vb1VvZa9lr2WxdbF1sXXxdfF18XYzhjOGM4YzhnWWdZZ1lnF2MXXxdfF18XX
+xdfF2M4ZvZetFGLKjA+kkaSRpJKkkqSSpJKkkZyRnJGckZySnJKckpyTnJOc06TT
+pNOk1KTUpNSk1KTUnNSc1JSTjFKMEXMNSgdBhUFEQINAw1mGaghZhmHHakdqR2pH
+e0uUkpzSlNOdFJ0UlNJ8EDjEOMRBRUmFUYZRx1IHUgdKB0HGGIMIAQgBCAEIAQgB
+QYY5RTlGOUU5RTlFOUU5RDkEMQQ5RVpJlFCMEHuOe46MUJzTnNKc05zTnNOc05yT
+pNOk06TTpNSs1K0UrRS1FLVUtVW9Vb1WvZa9lsWXxZfF18XXxdfOGM4YzhjOGM4Z
+zhnWWdZZzhjF18XXxdfGF8XX1lnWWb3XpRRiyovOpJGkkpyRnFCckZyRnJGckZyR
+nJGckpySnJKck5yTnJOc05zTnNOdE5zTnNSc1JyUnNSUk4xSjBFzjlIIQUQ5BEDD
+MINBBFnHUcZaB2JHWgdaBlIGWkeDzYyRnRSdFJTThFExBDkEQQRBRFGGUcdSCEnG
+ScZKBknGKUUIQQgBCAEIAUGGOUU5RTlFOUU5RTlEMUQxAzEDOQRaSJRRhA97zXuN
+jBCck5ySnJOck5zTnNOUkpSSlJKckpySpJKk0qTTpNOk060UtRS1FLVVtVW9Vr2W
+xZbFlsXXxdfF184YzhjOGM4Z1hnWWdZZzhnGGMXXxdfOGdZZzhm9160UasqDjaSR
+pJGcUZxRnFGkUZyRnJGckZyRnJKckpSSnJKckpySnJOck5zUnNSc1JzUnNOUkpSS
+jJKEEXvPc45SCTlFOQQ4wzCCOMNRhlGGWcZRxlHGSYZBREnFUcVaBnsKlJCUkXvP
+MUU5BDkEOQRJRUFFQUVJxlHGScZBxjmFMUUYgggBCAE5hTlFMUUxRTFFMUUxRTFE
+MQQxAzEEQcdzTHNMe417jYwPnJKckpySnJKckpySjBGEEIxRlJGc0pyRjBCMD5RQ
+nJKk06TSpNOtFK0UrRS9lrVVrRW1Vr2WvZa9l8XXxdfN183YzhjOGdZZ1lnWWdZZ
+1lnWWc4ZvZetFGsKe0yUD5yQpJKkkqSSpFGcUZxRlFGcUZxRnFGcUpySnJKckpyS
+lJKUkpSSjFKMUZSShBGEEYQRhBGD0XvQYsw5hTkEMMMwgjCCQQRJRUlGSYZJhUEE
+QUVJhUmFUcVJxFHFWkhiiUFFOQQ5BDkDOQRBRUmGScZJhkGFQYVBhkGGOYYYgwgB
+OUY5RTlFOUUxRTFFMUUxRSkEKQMxRFJIlFCED3uNe42UUJySnJGUkIvNi82UDowQ
+g8+MEJRRpNOckoxRlFGUkqTTpROk1KUUrRStFKUUtVatVaUUpRS1VrVWvZa1VbVV
+vdbF18XYvdfF18YYzhjOGdZZ1lnOGb2XpRRrC2sLlFCk0qTSpJGckZxRnFGUUZRR
+lFGMUZRQnFGDz5RRjFGMUYxRjFGMUYxSlJOU1JTUlJSUlIxTjFKEEWtOQccxBDDD
+MIIwQjjDOQRBBEEEOQM5REGEQURBhUGFSYVJhUmGSYZJhkFGQUU5RTlFQUVBhUmG
+QUU5RDlEOUQ5RDlEOUQhBDGGMUQxRDFEMUQxRDFEMUQpAzEDMURSSJRQhA9zjXuN
+jA+UD4vNeohphnHGcgeKypyRnJKckpzTnNKckZyRpNKkkqTTpNOtE6TTrNO1VLVU
+tVW1Vb2WvZa918XXvde9173XvdfF172WvZbF18YXxdfGGM4YzhjF1q0Uc0tzC6SR
+rNKkkpyRnFGcUZQRlBCL0IQQg46Dz5RRjBCUUZSSlJKUk5zTnNOc1J0UnNSc05yT
+lJOMUoQQe9BzjkoIOQQwwzCCMIIwgzjEMMMwwzDDOQQxAzlEOUQ5REFEQURBRElF
+QUVBREFFQYVBhUGFQYVBRTlFOQQxBDEEMQQxBDEEMUQ5RTkFOUQ5RDFEMUQxRDFE
+KQMxAzFEUkiUUIPPe417TYwPg4tqiVGFUURZhWnGcgeTDJyRnJKckpSSlJKckpyT
+nJOck5zTnNSUk5zTpRStFK0VtVa1VbVVrRWtFaTUtVWtFL2WvZbGGMYYxhjGGMXY
+xdfF18WXtVak1HNMYsqckaTSpJKckZRQlBCLz4vPjBCEEIwQjFGUUpSSlJKUkpSS
+lJKUkpSSlJKUkpSTlJOUUpRShBGEEYPRe89SijlFMQMowyiCKIIwgzCDKMMwwzDD
+MMMxBDkEOQQ5RDkEOUQ5RDlEOUQ5BDkEOUQ5RDlFOUU5RTlFOUQ5RDlEOUQ5RDEE
+MUUxRCkEMUQxRDFEMUMxBDEEMQMxBFIIlBGDz3ONe42MDnsLagdJRFFEWYVhhmnH
+cgicD5ySnJKkkqSSpJKk0q0UpNOk06UTrVStVK1UtVW9Vb1WvZa9l72Xvde9172X
+tZa1lrWWvde1lr2WvZbF183Yzhi9160UnJJ7TGKJnFCkkpRQlFCUEIwQjBCMEIxQ
+lFCUUZRRlFKMUYwRjBCMUZSSjFKUkpSSnNOc05zUnNOUk5STjFKMUoQQa01BxzEE
+KQMowiiCKIIogiiCKIIogjDDMMM5AzkDOQQ5AzkDOQQ5AzEDMQMxBDEEOQQ5RDlF
+QUVBRTlFOUU5RTlEOUQ5RDFFMUUxRDEEMQQxBDEEMQQpAykEMURKCYwRe897jnON
+hA5rCloGSURJBFlFYYZpx2nHi0yckpySnJKUUZRSlJKc0pSSnJKck6TUpNSk1LUV
+rRWs1LVVvZa1la0UrRS1Vb2WvZbF18XXxdjGGL2XvZe1VsXYvZe1VqSTe01iiZRQ
+jFCMEJRRlFGMUIxQjA+MEIPPjBCD0IxRjFGMUYxSlFKUk5yTnNOc05zTnNSc1JzU
+lNOUk4yTjFGEEXuPUko5RSkDKMIggiCBIEEggiCCKIIogijDKMMwwzDDMMMwwzDD
+KMMwwyjDMMMxBDEEOQQ5RDlEOUQ5RTlFMUUxBDFEMUQxRTFEMQUxBTEFMQU5BTEF
+MMQwxDEEScZzDHNMc41zjYQOaspRhkEESQRRRWGGYYZhhnpJnJGckZySnJKckqTT
+pNOk06TTpRSlFK0UrVW1VbWVtVW1lrWXtZatVbVVvZa9lrWVtZatFbVVvde9172W
+xdfGGL3XrVWc03uNWkiUEJRQnFGUUIwPi8+DznuOg8+Dz4wQjFGUUZSSlJKckpzT
+nJOc05zTnNOc05zTnNOU1JTTlJOUkoxShBF7z2MNOYcwxCjDIIIgQSBBIEEogiiC
+KIIogjDCKMIowyDDKMMowyjDKMMpAyjDKQMxAjlEOYU5hTmFOYU5hTlFOUQxRDFE
+MQUxBDEFMQUxBTEFMQQxBCjDKQMxBEnHjA97jnuOc42Dz2rLQUVBBEkEUUVhhmFG
+aYZxx5wPnFGUEYvPlBCcUZxRlFGUUqzUpNOckq0UrRS1Vb2WvZe9l72XvdfF2MXX
+xdfF18XYxdi9mL3YtZe1VrVVvZa1lrVWnNN7jVJIlE+UkZRQjA97TYPOjBCMEIxQ
+jFGUUZRRlFGUUpRSlJKUkpSSlNOc05zTnNSc1JzTnNOUk5SSjFKMUYQRe9BrTkpJ
+MQQowyjDKIIYQSCCIIIggiBCIIIogiCCIIIggiDCIIIggiCCIIIowjEEMQQxRDFF
+OUU5hjmFQYU5RDlEOUQxRDEFMQUxBDEEMQQxBDEEMQQowyjDMQRJyIwRe49zjnNN
+g45iSTjEOMNJBFFFWUVZRmGHaceTz5RRlFGUUZSSnJKckpySpNOk1KUUpRStFLVV
+tVW9lr2WvZbFl72XxdfF18XXxdjF2MYYxhjGGMYZxhjF2MXYtZatFZySe41SR5QP
+lE+MEIwQjBCUEZQQlBCUUJRQlFGUUZRRlFKUkpSSlJKUkpSSlJOc05zTnJOUk5SS
+lJKMUoxRhFGEEHvQc05SijFGKMQowyCDIIIggSCBIIEgQSBBIEEgQSBBIIEggSCB
+IMEowjEDMUQ5RDlEOUU5RTlFQUU5hTmFOYU5hTlFOUUpRDEEMQQxBDDEMQQxBDEE
+KMMowzEESgeMEHuOc01zTHuNUcc4wzjDQMRJRFlFWUVphmnHk46ckZySnJKckqTT
+pNOk1KUUrRStFLVVtVW1Vb1VtVa9lr2WvZe9l8XXxdfF18XXxdfF2MXYxhjGGMYY
+xhjGGL3YtVac03uNSgeMD5RQlFGUUZQRlBCUEJQQlBCMEYxRjFGUUZRRlFKUUpSS
+lJKUkpSSlJOUk5STlFOUk5RSjFKMUYQRfBB7z2tOUoo5hikEIMMggiCCIEIYQRhB
+GEEYQRBBGEEYQRiBGIEggijDMQMxBDEEMUQxRDlEOUQ5RDlFOYU5hTmFOYU5RTlF
+KUQpBCkEKQQpBCkEKQQowyDCKMMpA0HHjA97jXNNawxrC0mFQQNJA0lEWYVhxmGF
+acZph5NNnFGcUpySnJKk06TTpNOlFK0UrRS1FbVVtVW1VrVWvZa9lr2WvZe9l8XX
+xdfF18XXxdfF2MXYxhjGGMYYxhnF2L1WpNODjUnGlA+cUZxRlFGUUZQQjBCMEIwQ
+jBCUEZQRlFGUUZRSlJKUkpSSlJKUkpSTlJOUU5RSjFKMUoxRhBGEEHvPc49rTVKK
+OccpRCDDIMIgwyCCGIIYQRhAGEEYARgBGAEYQSCCKMQowyjDKMMowyjDMQQxBDEE
+MQU5RTlFOUU5hTlFOUY5RSkEKQMpAykDKQMxAzEEIMMgwykEMUVKCIwPc01rTHLK
+YklJRUEESURZhWHFYcZhxmHGYcaLjJRQlFGckpySnJOk06TUpNSs1K0UtVStVbVV
+tVW9Vr2WvZa9lr2WvZe9l73XvdfF18XXxdfF18XYxdjGGMXYvde1lqUTg81JxowO
+nFGcUZQQlBCMEIwQjBCMEIwQjBCMEZRRlFGUUZRSlFKUkpSSlJKUkpSSlJKUUoxS
+hBKEEYQRe9B7j3OOa01ai0HIMUYoxCDDIMMgghiCGIIYgRBBEEAQARABIEIowyiD
+KIMoxCjDKMMowyjDMQQxBDEFMQUxRTlFOUU5RTlFOUUxBTEFKQQxBDEEMQQxAyjD
+KMMxBDEDQYVzC3MLcspqiVoHQURJRUlFUYZZxmoHagdiB2HHi02UEZxRnJKckpyS
+nNOk06TTpNStFK0UrVWtVbVVtVW1VrWWtZa1lr2WvZe9l73Xvde918XXxdfF18XX
+xdfF173XtVak04OOQcaMD5RQlFCMUIwQjA+MD4wPjA+MEIwQjBGMEYxRjFGMUYxS
+lFKUkpSSlJKUkoxSjFGMUYwRhBB8EHvQc49rTWMMUopCCDmGKQQgwyDDIMIggyCD
+IIIYQhBCEAEQASCDIIMggyCDIIMggyDDIMMowyjDMMMxBDEEMQQxBDFEMUU5RTlF
+MQUxBDEEMQQxBDEEMQQowyjDMQQ5BEGFcwtqymKJWgdRxlHGWgZhxlnGYcZqBnIG
+acZpx4tNlBCUEZRRnJKc0pzTnNOk06TUpNStFK1VrVW1VbVVtVa1lrWWtZa1lr2W
+vZa9l73Xvde9173Xvde9173Xvde91rVVpNODjkGGi86UUJRQlBCMEIvPi8+MD4wP
+jA+MEJRQjFCMUYxRjJGMUYxSjFKMUoxSjFGMEYQQe8+Dz3uOawxzTXOOa01jDFKK
+Qgg5hilFKMQgwyDDIMMYgxiCGIIQQRBBGIEggiCCIIIggijDKIMggyCDIIIgwyDD
+KMMpBCkEMQQxRDFFMUUxRTEEMMQpBCkDMQQxBDEEMQMxA0GFSYZZx2qJYgdiB2HG
+YcZiBmoGakdqh2oGagZqBmnGYcaLjpPQlBCUUZyRnJKkkqTTpNOlE6TUrRSlFK0U
+rVWtVbVWtVa1lrWWtZa1lr2WvZa9l73Xvde9173Xvde9173XtZe1VZyTg85BhYPO
+lE+UD5QPi86Lz4vPi8+Lz4vQjBCMUIxQjFGUUYxRjFGMUYxRjFGMEYQQe89rSmLJ
+YkhZRVFFUQRZxmLKWopSCUHIOYYxRSkEKQUpBSDDEEEQQQgBCAAQARhCGEEYQRhC
+IIMYgiCCIIIgwiCDIIMgwyDEKMQpBCkEMQQxBTFFOUUpBCkEKMQpBCkEMUQ5RUGF
+UcVZxmHGYgdqB2IHYgdqB2oHagdqR3JHcohyh2pHagdZxlnHi46Lz5QPestyipON
+nJKck6TTpNOk06TUrRStFK0VrVW1VbVVtVa1VrWWvZa9lr2WvZa9l72XvZfF172X
+vZe9l72WrVWc04POOYV7jZQPlA+Lz4vOi86LzovOg86Lz4wPjBCMEIwRjFGMUYxR
+jFGMUYxRhBB7zmLKUgdSBklEQQRJBEkEQQRBRDmGOYY5hjnHOcc5xznIMYcphxjE
+CEEIAQgBEAEYQhhBIIIgghiCGMIYgiCDGIMggyCDIMMgwyDDKMQoxDEEMQUxRTFF
+MQQxBCjDKQM5RElFUYVRhlnGWcZiB2IHagdqBmoHcgdyB3IHckdyR3JHckhqB2oH
+WYZhx4MMk0xqSGEEaUV5xotMpJOkk6TTpNOtFKUUrRStFa1VtVW1VbVVtVa1VrWW
+tZa1lrWWvda9lr2WvZa9lr2WtZa1Va0VpJODjkFEe0yMDowOhA+DzoPNg86DzoPO
+hA+ED4wQjBCMEIwQjFGUUYxRjFGEUYQQfBBrTUmFSURAwziDQMNJBEEFOMQggxBB
+EAEQARABEAEQQRCCGMMgwxiCCAEIAQgBEEEYQhiCIIMggyCDIIMggiCCGEIYgiCC
+IIMggyDDIMQoxCjEMQUxBSkDMQMpA0FESUVRhlGGWYZZxlnHYcdiB2JHYgdiB2IH
+YgdqB2oHckdyR2pHakhqB1nGUYZpyGoIQMNIw1kEYUVxx5wPnJKckpzTpNOlE6UU
+rRStFbVVtVW1VbVVtVa1VrWWtZa1lr2WvZa9lr2WvZa1lrWVtZWtFJxSe445hXNL
+i82LzoPOg86DzoPOg86LzowPg897joOPg8+EEIQQhBCEEYwShBGMUYxSWss5BDjD
+MIIwgjCDOMQ5BDDDKIIQQQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIARABGEIYQhhC
+GIIYghhCEEEYQhhCGEIYQhhCGEIYghiCIMMgwykEKQQpBDEDOURBRUmFUYZRxVnG
+WcZaBmIHYgdiB2IHYgdiB2IHYgdiB2IHYkdiB2IHYgdRxUlEUYVJBECCQMJIw1EE
+YYaLTZySnJKc06TTpNSlFK0UrVWtVa1VtVW1lbVWtZa1lrWWtZa1lrWWtZa1lrWW
+tZW1lbVVpRSUknuOOYRiyoONg42DjYONg4xzCmKIWgdRyGrMe4+D0HvQjFGMUoQR
+jBKMUoQRhBKMUknIMIIwQihBKEIoQiiDMMQwxCCCGEIIAQABCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIARABEAEYARhBGEEQQRBBEEEIQRBBEEIQghBCEIIYghjDGMMgwyEE
+OQRBREFESUVRhVmFWcZaBlnHWgdaB2IHYgdiB2HHYcdhx2HHYcZhxmHHWYZZhlmG
+SQQ4wzjDMIIwgTiDSMNRBFlFckh7C3MLaspyy2rKaopyynLKcspyynMLcwt7DINM
+g42LjYvOlA+cUKzStRO1VLWVrVWtFKTTlFF7TTmEYol7jHtLYohJhkFDOQRSimMN
+c4+EEYQRfBF70IxSjFKEEoRSjFKEEYxSjFJByChCKEEgACABIEEgQiiCKIIgQhgB
+CAEIAQABCAEIAQgBCAEIAQgBCAEIAQgBCAEQARABEEEQQRBBEEEQQRACEEEQQRBC
+EEIQQhiCGIIggxiDGMMgxEFFQURJhEmEScVRxlHGWcdZx1oHWgdiB2IHYgdiB1nG
+WcZhxlnGWcZZxlGFSUVBBCiCIAAgQDBBOIJJRVmGSUVJBVmIawxrDGrMYstiy2LK
+YolaSGJIYkhSB1IHWkhaSFIHUghaSFpJWklSCVHHUcdZx2qIewqDjIvOe01BRFoH
+UcY5AzEDOUVSi2uPhBFzj3OPhFGEEXwRe9CMUoxShBKMUoxThBKEUoxSSkooQigB
+IAAgACABIEEgQiBCIEEYARABEAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBEAEQARAB
+EAEQQRBBEEEQQRBBEEEQQRBBGIIYghiCGIIYghiDIMNBBElFSUVJRkmFScZRxlHG
+WcdZx1nHWcdZx1nHWcZZx1GGUYZRhVGFUUVRRUDEMIIYQRgBGAEoAUCEUQVZRlmG
+QQRJRUGGOYY5hjmGOYY5hkGGOYZBx0nHSYZBhlHHUcdJhkmGUghiimKLYstai1rM
+c05ai0oJScc5BTlFQUU5RUFHUchrDYQRc5Bzj4QRc49zj4QRhBGEEXvRjFKMUoQR
+hBKEUoQRhFKEUmNOIEIgQhgBEAAQARgBIAIgQhhCEAEQAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBEAEQARABEAEQARABEAEQARABEEEQQRBBEEIQQhCCGIMgwyDD
+QURJhUmFSYVJhVGGUcdRx1HGUcZZxlHGUcZRxlHGUcZJhkkFSQRJBUEEOMMwgxgB
+CAEIAQgBKAFAgkjDUQRZhkkESQRBhUGGOYY5hjmHOYdBh0GHSchJx0GGQYZKB0oI
+QcdCB1JIYspqy2LLYstiy3uOawxjC3OOc45jTWMMhBBrTmNOe9CEEXuQc4+EEXPP
+c4+EEYQShBF70IxSjFKEEoQSjFKEEoQShFKEUylHGEIYARAAEAAQARgBGEEYARAA
+EAEQARABCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEQARABEAEQARAB
+EAEQQRBBEEEQQhiCGIIYgkFESUVJRUlFSYZRhlHGUcZRxknGUYZRhlHHWcdZx1HG
+SYVBRDjDQQQ5BDDDGEIQAQgBCAEIASgBMII4g0kEUUZJBUEFQcdBhzmGQcdBx0HH
+ScdBh0oISghBx0HHSghSSEoHSghSSmLLYwxizGLMWstzjmsMYsxzTnuPc05jDYPQ
+a05rTnvQhBF70HOPhBJzkHOQhBKEEoQRe9CEUoxShBGEEoxSfBGEUoRSfFJ0EUJK
+GMQQARABEAEYARgBGAEQARgBEAEIAQgBCAEIAQABCAEQARABEAEQAQgBCAEIAQgB
+CAEIAQgBCAEIARABEAEQARABEAEQQhBBEEIQQRBCGIJBRUFFSUVJhUmFUYZRhlHG
+WcZRxlHGSYZRhlGGUYdZx0mGOUUwwzDDMMMgghAACAEIAQgBEAEoATBCOINAxEkE
+SQVBBkHIQchByEHIQghKCEoIQchSSVJJSghBx1JJUklKCUoJUopjDGtMawxiy1rL
+e45rDWLMa05zj2tOYwyEEGtNa0170IQRe5Bzj4QRc49zj4QShBKEEnvRhFOMU3wR
+hBGEUnwRhBF8EXvRc5BrkGNOQksphyFGEEIQARABEAEQARABCAEIAQgBCAEIAQgB
+EAEQARABEAEQAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEQQhBCEEIQQhCC
+QURBREmFUYZRhlGGUcZRxlGFUYVRhVGGUYZRhlGGUcZRxkmFMMMowiCCEAEIAQAB
+CAEIARgBIAEwQjiDOMNAxEkFQUZKCUoIQchCCEpISklKSEIISklSikpJSghSilqK
+UklSiVrLawxrTWtNYsxay3OOaw1izWtOe49zTmLNe9BrTmMNe9CEEXPQa4+EEnvQ
+c4+EEoQSfBF70YRShFJ8EXwRfBFr0HPQc9BrjmMNWsxSikJKQgk5yCEFEAEQARAB
+EAEQAQgBCAEIAQgBCAEIARABEAEQARAACAAIAQgBCAEQAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIQQhCEIIQgkFESUVJRUlFSUVJRUmGUYZJhklGSUVJhVGGUYZRhkmF
+SYVJhTkEKIIYQRABCAEIAQgBCAEQASABKEEwgjiDOMM5BElGSklKSUIJSglKSlJK
+UkpKCVJKWotSSkoJWktii1JKUopay2tNa01rTWMMWstzjmsNYwxzTnuQc05izHvQ
+a05jDXPPfBF70GuPhBF7z2uPfBGEEXwRc9B8EnwRa89zj3OPYw1jDWMMUotKSkIJ
+OccxximGKUUpBCDDEEEQABABCAEIAQgBCAEIAQgBCAAQARABEAEQAAgACAAIAAgB
+CAEIAAgBCAEIAQgBCAEIARABCAEIAQgBCAEIQRBBEEFBRUFFSUVJRUFEQQRBREGF
+QUVBRUlGSYZJhkmGSYVJhUmFQUVBBSiDEEIQQQgBCAAIABABEAEgAShBKIIwgjjD
+OQRBRVJKUopKSVJKUotai1JLSkpSi1qMUopKSVqKYstailqKYwxrTWtOaw5jDVrM
+c49rTlsMa05zz3OOWsxzz2tNYwxzj4PRc5BrToPRc5BrTnvQe9Bzj2tOc49zj2MN
+Wwxay0pJSglKCDnHOYYxRTFFMQQpBCkEKQQpBBiDCAEIAQgACAAIAQgBCAEIAQgB
+EAEQARABCAAIAAgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQhB
+SUVJRUlFSUVJRUFFQUVBRUFFQUZBRklFSUVJRUlFSURJRUFFOQUogxhCEAEIAQgA
+CAAIARABGAEgAShCMII4gjjDQQRSilqLSkpSS1KLWotSi0pKUotai1KKSkpai1rL
+UotSi1rMa01rTmtNYwxazHOPa05jDGtOc49rTlrMc49rTlsMa0570HOPYw1zz2tO
+Yw1zjmtOYw1Sy1rMUstKSUIIQgc5hjmGOYYxRTEFMQQxBDEEKQQpBCkEKQQowxhC
+CAAIAAgACAEIAQgBCAAIARABCAEQARABEAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAUlESURJRUlFQURBREFEQURBRUFFQUVJRUFFQUVBRUEE
+QQRBBDjDIIMgQhhBEAEIAQgBCAEQARABGAEoAShCMIIwwzkEUopaylKKUopay1rL
+WstSSlqLYstai1JKWsxazFKLUotizGtNa05rTmMNWoxzj2tOWwxrTnOPa05azHNO
+aw1ai2tNe49rTVrLa05izFJKWstSi1JJQghCCEIIOYY5hkGFOUQ5RDlFOUU5RTFE
+MQQxBDEEKQQpBCkDKMMgwxiCEAAIAAgBCAEIAQgACAAQARABEAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAFJRUmFQYRBRUFGQUVJRUlF
+SUVJRUEFQQRBBEEEQQQ5BDEEMQQowyiCIEIQARABEAEIARABEAEYARgBKAIoQjBC
+MMM4xFJKWoxKS1JLWoxazFKMUktai1rLUopKSVKKWstSi1rLYsxrTmtOa05jDVLL
+c09rTVrLY01zjmtNWotrTWMMUopazGsNWstKSVrLUklCB0oIQcc5hjmGOYVBhUFF
+OUQ5RDlEOUQ5RDlEMUQxRDEEMQQxBCkEKQMowyjDIMMggxhCCAEIAQgBCAEIARAB
+EAIQARABCAEIAQgBEAEQARABEAEQAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+SUVJRUFFQUVBRTlFQUVBRUFFQUVBRUlFSUVBBDkEOQQxBDDDKMMggxhCEAEYQhhC
+EAEQARABGAEYARgBIAEoQjCDOMRSSlrMUkpSilrLWstSi0pKUotajFqKSklSi1rM
+UotSi1rMYw1rTmtNYwxaymtNYwxSilrMa01izFJKYsxSSkIISklSikpJQcdKCEHH
+OYVBhkGFOUU5RDlEOUQ5REFEQQRBRDlEOUQ5RDFEMQQxBDEEKQMpBCkDKQMowijC
+IMIYwhBBCAAIAQgBCAEIAQgBEAEIAQgBCAEIAQgBEAEQARBBEAEQARABCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAUFEOUQ5BDkEOQQ5BTlFOQU5BTkFOQQ5BEEFOQQwxDjE
+OMQwxCiDIIMYQhhBGEIYQhABCAAQABgBIEIggyCDIIMggyjESkpSi0pKSkpSi1KL
+UopKSlKLUsxSi0JKUotazFKLUotay2MMY01jDFLKSopjDVrLSklSilrLSopCCEpJ
+Qgg5xznHSghBxzlGQYU5RDkEOQRBREFEQURBREFEQUVBRTlFOUQ5RDlEOUQ5RDkE
+MQMxBCkEKQQowyjDIMMgwyCDIMMgghBBCAAIAAgBCAEQARABCAEIAQgACAEIARAB
+EAEQARABEAEQAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAFBRTlFQUVBBTkEOMQ5BDkE
+OQQ4xDjDOMM4xDjEOMQwwzDDMMMowijDKMQogyCDGEIQAQgAEAAYQSCCKMMxAzkE
+OQQ5BVKKUotKSkpKUopSilKKSklKSVKLSkpCCVKLWotKSkpJSopay1rLWotSSkoJ
+WotSi0IJSglSSUoIOYZBxzmGMUU5hTmFOUQ5AzlEOUQ5RDlEQURBREFEOURBREFE
+OUQ5RDlEOUQ5RDFEMQQpBDEEKQMpAykDKQMowyDDIMMYghiCGIIYghABCAAIAQgB
+CAEIARABCAAIAAgACAEQQRABEEEQQRBBEAEQAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+QURBREFEQURBREEEQQQ5BEEFQQQ5BDjEOMMwwzDDMMIwwjDCKMMwxDDEKIMggxiC
+CAEIABABGAEgQjCDMMQ4xTkFOQVKiVKLSklKSVKKUotKSkoJSklSikpJQghKSUqJ
+QkhCCEIIUopSilKKSklByFJJSgg5hkHGScdBhTlEOUQ5RDkDOQM5RDlEOUQ5RDlE
+OUQ5RDlEQUQ5RDlEOUQ5RDlEOUQ5RDlEOUQxRCkDKQMpBCkEKQQpAyDDIMMgwyCC
+IIIggSCBGIEYgQhBCAAIABAAEAAIAQgBCAEIARABEAEQARBBCEEQQRBBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAUFEQURBRDlEQURBREFEQURBRUFFOUQ5BDDEMMQwwzDC
+MIIwgjDCOMMxBCjEIIMYQhABEAEYQRgBIEIogzDDMMQ5BDlFSkpKSkIJQglKSkpK
+SglCCEIISklCCDnHQghKSUIIQchCCEpJSklKCEHHOYZBx0GGMUQxRDlDOQM5AjkD
+OQM5BDkDOQM5AzkDOUQ5REFEQUQ5RDlEOQQxBDlEOUQ5RDlEOUQ5RDlEMUMxBDEE
+KQQpBCkDIMMgwyDCIMIgwiDCIIEggRhBGIEQQQhACAEIAQgBCAEIAQgBCAEQARAB
+EAEQARBBEEEQQRABEAEQAQgBCAEIAQgBCAEIAQgBCAFBREFEQURBREEEQQRBBUFF
+QURBBDkDOMMwwzDDMMMwwyiCMMIwwzDDMMMogyiCGEIQARBCIIMgghhBIIIowyjD
+MMQ5RkoJSklCCEIISkhKSUIJOchByEoJQcg5h0HHSgg5xzmGOYZBx0HHOYYxRTEE
+OUQ5AzjDOQM5AzkDOQM5AzkDOQM5AzlDQUNBQ0FDOUM5QzkDOQM5AzkEOQQ5BDlE
+OUQ5RDlEOQQxAzkEOQQ5BDEEMQMpAyjCIMIgwiDCIMEgwRiBGIEYgRiBEIEQQQhB
+CAEIAQgBCAEIARABEAEQARBBEAEQAQhBEAAQARABEAEQARABCAEIAQgBCAEIAQgB
+QURBREFEQURBBDkEQQQ5BDkFOQQ4wzDDMMMwwjDDMMMwwzDDMMMwwjjDOMMwgyCD
+EAEYQiiDKIMgQhhCIIMowyjEMYZCCEIIOcc5x0IIQghBxznHOcdCCDnHOYU5hkGH
+OYYxRTlFOYQxQzEDMQIxAjECMQI5AjkDOQM5AzkDOQM5AzkDOQM5AzkDOQM5AzkD
+OQQ5AzkEOUQ5AzkDOQQ5AzlDMUMxAzEDMQQxBCkEMQQxAzEDKMIpAykCIMIgwiDC
+IIIYghiCGIEYghiCEEEQQQgBCAEIAQgBEAEQARABEAEQAQgAEAEQARABEAEQARAB
+EAEQAQgBCAEIAQgBCAEIATlEOURBREFEQUQ5BDkEOQQ4wzjDOMQ4xDDEMMMogyiC
+KIIogjDDMMQ4xDkEOQQwxCBCIEIogzCDMMQggiCCKMMxBDmGQchByEGHOcdCCEII
+Ocg5hzmGQcc5hjFEMUQxRCkDKMIowijBKMIowijCKMIwwjEDMQM5AzkDOQM5AzkD
+OQM5AzkDOQNBAzkDQQM5AzkDOQM5AzkDOQM5AzkEMQQxAzEEMQQxBDEEMQQxAzED
+KMMowijDKMMowyjDIMIgwiCCIIIggSCBGIEYgBiBGIEYQQgBCAEIAQgBEAEQARAB
+EEEQARABEAEQARABEAEQARABCAEIAQgBCAEIAQgBCAFBBEEEQQRBBEEEQQQ4xDkD
+MMMwwzjDMMMwwzDDKIMogiiCKMMwwzjEOQRBBEEEOQQwwyCCKIMwwzDEMMQwwyiC
+IMM5hkHHQcc5hjmGQcdBxzmGMUUxRDlEMQMowijCIMIggiCBIIIggijCKMIowikC
+KMIowijCKMIxAzEDMQMxAjECMQI5AjkDOQM5AzkDOQM5AzkDOQM5AzEDMQMxAzED
+KQMxAzEDMQMxAzEDMQMxAykDKMIowijCKMIgwiDCGIEggSCCIIIggSCBGIEYgRhB
+GEEYQQgBCAEIAQgBEAEQARABEAEQARABEAEIAQgBEAEIAQgBCAEIAQgBCAEIAQgB
+QQQ5BDkDOQM5BDkEOQQ4xDDDMMMwwzDDKMIogyiCIIIogiiDMMMww0EEQQRBBEEE
+OQQwgyiCKIMwxDkFOUUxBSjEOUY5hjmGOYUxRTmFMUQpAyDCIMIggSCCIIIggiDC
+IIMggiCCIIIowijCKMIowijCKMMowijCKMIwwjDCMMIwwzEDOQM5AzkDOQM5QzED
+OQMxAzEDMQMxBDEDMMMxBDEDMQMxAzEDMQMpAyjDKMMowyjDKMMowiCCIIIYgRiC
+GIIYghiBGIEYgRiBGIEYgRhBEEEQQQgBCAEIARABEAEQARABEAEQAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAUEEOQQ5BDDDMMMwwyjDMMMwwzDDKMMogiiCKIIogiCB
+IIIogyiDMIM4xEEEQQRBBEEEOQMwgjCCOMQ5BEEFOQQxBDFEMUUpBCjDIMMggiCB
+IIIggiCCIIIggiCCIIIggiCCIIIggiCCIIIggyCCIIIgwiCCIMIgwhjCIMIxAjkD
+MQM5AzkDOQM5AzkDOQM5AzEDMQM5BDEDMQMxAzEDKQMpAykDKQMpAykCKQMowyjD
+IMMgwiDCIMEYghiCGIIYghiCGIIYQhhBGEEQARBBEEEQQRBBEEEIQQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAE5BDkEOQQ5BDjDMMMwwzDD
+MMMogjDDKIMogyiDKEIogiiCKIIowjCDOMRBBEFEQQRBREEFMMMowzDEOQUxBDDE
+KMMgghiCIIEggSCBIIEggSCBIIIggiCCIIIggSiBIIIggiCCIIIggiCCIIIggiCC
+IMMowyjCKMIgwijCMMI5AzkDOQM5AzkDOQMxAzEDMQMxAzEDMQMxAzEDKQMxAzED
+MQMxAykDKMMowyjDIMMgwyDDGMIYghiCGIIYQhhCGEIQQRBBEEEQQRABEEEQQQhB
+CEEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQAB
+OQQ5BDkEOQQxAzDDMMMogzDDMMMwwzDDKMMogiCBKIEowiiCKIIwgjjDQQRBBEEF
+QUVBBTkFKMMwwzDEMMQowyCCGIEYgRiBIIEggiCCIIIggiCCIIIggiCBIIEggSCB
+IIEggiCCIIIggiDCIIIgwiDCIMIgwiDCKMIowijCKMIwwjDDMMMxAzEDMQMxAzED
+MQMxAzEDMQMxAzEDMQMpAykDIMMgwyDDIMMYwyDDGIIggxiDGIIYghCCGIEQgRBB
+EEEQQRBBCEEIQQhBCAEIAQgBCAEIAQgBCAEAAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIATkEOQM5BDkEOMQwxDDEMIMwxDEEMMQwwyiDKIMogjDC
+MMIwwjCCMII4wzkDQQRBRUFEQUVBRDEDMMMwxCjDIMIYgRiCGIEYgRiBGIEggSCB
+IIEggiCCGIIgghiBIIEggiCCIIIggiCBIIIggiCCKIIogiiCKMIowijCKMIowijC
+KMIowijCKMMowyjDMMMwwzDDMQMxAzEDKMMgwyDDIMMgwyDCIMMgwyCDIMIgwxiC
+GIIYghCCGEEQQRBCEEIIQRABCEEIAQgBCAEIAQABCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEAAQgBCAEQAQgBCAEIAQgBCAEIAQgBCAE=
+END m9
+frame    86 :  an opened book -1.25  a closed book -8.89   led   0/255 h0.00 lvl-5.07   -
+frame    87 :  an opened book -0.81  a closed book -8.38   led   0/255 h0.00 lvl-4.59   -
+frame    88 :  an opened book -0.02  a closed book -7.65   led   0/255 h0.00 lvl-3.83   -
+frame    89 :  an opened book -0.53  a closed book -7.92   led   0/255 h0.00 lvl-4.22   -
+frame    90 :  an opened book -1.04  a closed book -7.64   led   0/255 h0.00 lvl-4.34   -
+frame    91 :  an opened book -1.46  a closed book -7.67   led   0/255 h0.00 lvl-4.57   -
+frame    92 :  an opened book -1.58  a closed book -7.57   led   0/255 h0.00 lvl-4.58   -
+enrol     : an opened book, level -3.29, scatter 0.60 (20 frames)
+frame    93 :  an opened book -1.63  a closed book -7.64   led   0/255 h0.00 lvl-4.64   -
+frame    94 :  an opened book -1.05  a closed book -7.10   led   0/255 h0.00 lvl-4.08   -
+frame    95 :  an opened book -0.53  a closed book -6.51   led   0/255 h0.00 lvl-3.52   -
+frame    96 :  an opened book +0.25  a closed book -5.51   led   7/156 h0.20 lvl-2.63   -
+frame    97 :  an opened book +0.08  a closed book -5.83   led   1/222 h0.06 lvl-2.88   -
+frame    98 :  an opened book +0.43  a closed book -5.66   led  26/ 98 h0.35 lvl-2.61   -
+frame    99 :  an opened book +0.41  a closed book -6.69   led  23/104 h0.34 lvl-3.14   -
+background: after 30 frames (frozen, room spread), this room reads  an opened book -0.106 +-0.0045 (COCO -0.151 +-0.0303)  a closed book -0.100 +-0.0036 (COCO -0.159 +-0.0351)
+frame   100 :  an opened book +0.76  a closed book -5.98   led  87/ 31 h0.61 lvl-2.61   -
+frame   101 :  an opened book +0.20  a closed book -6.81   led   5/172 h0.16 lvl-3.30   -
+frame   102 :  an opened book +0.86  a closed book -6.49   led 116/ 18 h0.70 lvl-2.81   -
+frame   103 :  an opened book +1.22  a closed book -5.55   led 253/  0 h1.00 lvl-2.16   -
+frame   104 :  an opened book +1.83*  a closed book -4.90   led 255/  0 h1.00 lvl-1.54   MATCH an opened book (cos -0.092)
+frame   105 :  an opened book +1.64*  a closed book -5.20   led 255/  0 h1.00 lvl-1.78   MATCH an opened book (cos -0.100)
+frame   106 :  an opened book +0.33  a closed book -7.44   led  14/128 h0.27 lvl-3.56   -
+frame   107 :  an opened book +1.80*  a closed book -5.23   led 255/  0 h1.00 lvl-1.71   MATCH an opened book (cos -0.085)
+frame   108 :  an opened book +2.11*  a closed book -3.43   led 255/  0 h1.00 lvl-0.66   MATCH an opened book (cos -0.094)
+frame   109 :  an opened book -0.08  a closed book -3.80   led   0/255 h0.00 lvl-1.94   -
+frame   110 :  an opened book -1.27  a closed book -3.83   led   0/255 h0.00 lvl-2.55   -
+frame   111 :  an opened book -2.07  a closed book -4.41   led   0/255 h0.00 lvl-3.24   -
+frame   112 :  an opened book -1.92  a closed book -4.31   led   0/255 h0.00 lvl-3.12   -
+frame   113 :  an opened book -1.89  a closed book -4.14   led   0/255 h0.00 lvl-3.01   -
+
+enrol     : the next 20 frames are 'a closed book'. HOLD THE SCENE STILL until it lands.
+frame   114 :  an opened book -0.88  a closed book -2.53   led   0/255 h0.00 lvl-1.70   -
+frame   115 :  an opened book -0.95  a closed book -2.33   led   0/255 h0.00 lvl-1.64   -
+frame   116 :  an opened book -0.10  a closed book -1.27   led   0/255 h0.00 lvl-0.69   -
+frame   117 :  an opened book -0.56  a closed book -1.48   led   0/255 h0.00 lvl-1.02   -
+frame   118 :  an opened book -0.50  a closed book -1.16   led   0/255 h0.00 lvl-0.83   -
+frame   119 :  an opened book -0.44  a closed book -1.41   led   0/255 h0.00 lvl-0.92   -
+frame   120 :  a closed book -0.18  an opened book -0.37   led   0/255 h0.00 lvl-0.27   -
+frame   121 :  an opened book -1.00  a closed book -1.03   led   0/255 h0.00 lvl-1.01   -
+frame   122 :  a closed book -0.35  an opened book -1.38   led   0/255 h0.00 lvl-0.87   -
+frame   123 :  a closed book -1.99  an opened book -2.66   led   0/255 h0.00 lvl-2.32   -
+frame   124 :  a closed book -0.59  an opened book -1.95   led   0/255 h0.00 lvl-1.27   -
+frame   125 :  a closed book +0.72  an opened book -0.77   led  78/ 37 h0.58 lvl-0.02   -
+frame   126 :  a closed book +1.69*  an opened book -0.03   led 255/  0 h1.00 lvl+0.83   MATCH a closed book (cos -0.087)
+
+snapshot  : frame 127, mean RGB 129 116 121
+BEGIN m9 128 128 32768 01691b9d
+tZa1lq1VrVWlFKUUtZa917WWrVWtlr3Xvhe917WWrVW918YYtZatVr3XzlnOWcYY
+vdfOWdaazlm92M5Z1pvWm9abzlrGGdab3tze3M5a1pve3N8c1prW2+cd5x3e3Nab
+5x3fHNab5x3vHt7c3tznHude3x3e3Oce5x3e3Ocd717vX+de3x3nXudd3x3nXuce
+3x3fHd8d1t3W3dbd1t3W3dbdzpq117XW3lnmWYySe9HnHdcd1t3W3Nbc1t3O3Nbc
+ztzO3M7dxpzO3M7cxpzGnMacztzGW8abvlrGWr5avlu+Wr5avlq+Wr5atlm2GbYZ
+rdhSiylFGMMQgxCDEIMQg7WWtZa1lq1VpRSc07WWvde1lq1VtVa9173Yvdi1l61W
+xhjGGbWXtZa9185ZzlrGGb3XxlnWms5ZvdjOWdab1pvWm85axhnWm97b3tzOWtab
+3tzfHM6a1tvnHecd3tzWm+ce3x3Wm+cd713e3N7c717nXucd3tznHucd3t3nHece
+517fHt7d3t7e3t7d3t3W3dad1t3W3taczlq+Gdbc3tze3M5XvdW91eaa5pqM02uO
+313XHdbd1t3W3d8e1t3XHc7dzt3W3c6czpzOnM6bzpzGnMacvlvGnL5bvlu+Wsab
+vlq+Wr5avlq+Wr4Zthm12EoKIQUQgxCCEIMQgxCCEIK1lq2WrZatVaUUnRO1lr3X
+tZatVa2Wvde+GL3XtZetVr4Yxhm1lq2WvdfOWs5axli918ZZzpvOWr3ZxlnWm9ab
+1prOmsYZ1pve3N7czlrWm97c5xzWm97c5x3nHd7c1pznHecd1pvnHe9e3t3e3ece
+517nHd7d5t3e3dbc3t3e3d7d3t3e3dbd1t3W3dbd1t3XHdbd1t3Omr3VvdXOl97b
+3tvWmsYYxhjenN6cnRWEEt7d1x3W3dbd1t3W3c7czt3O3c7c1t3OnM6czpzOm86c
+xpvOnMZbzpu+W8abvlu+W75avlq+Gr5avlq2GbYZSkohBBCDEEMQQxCDEIMQgxCD
+tZa1lq2WrVWlFZ0TtZa917WWrVW1Vr3Yxdi92LWXrVa92MYZtZatVr3XzlnOWcZY
+vdfGWdaazpnF2M5Z1pvem9abzlrGGdab3tze3M5b1pve3ecd1pvW298d5x3e3Nac
+5x7nHtac5x3nXt7d3tznHd7d3t3W3Nbd1t3W3Nac1t3e3dbd1t3W3dbd1t3W3dbd
+1t3W3dbd1ty+Fb3VzlfW3dbd1t3W3dbdzt3O3c7dzt3fHt8d1t3W3dbd3x7W3dbd
+zt3O3dbdzpzOnM6czpvOnMabxpzGW8abvlrGW75axlu+Wr5avlq+Wr5athlz0CEE
+GMMQgxCDEIMQgxCDEIMQQ7WWtZa1lq1VpRWc07WWtde1lq1VtVW9174Yvdi1l61W
+vhjGGbWWrVa9l85azlrOGb3YxlnOms6avhnGWdab1pvWm85axhnWm97c5tzWW9Zb
+5tznHdab1tvnHecd3tzWm+cd5x3em97c3tzWm9ab1pzWnNac1pzWnNac1pzWndad
+1t3W3dbd1t3W3dbd1t3W3dbd1t3W3dbcxpzOnNbd1t3W3c7d1t3O3dbdzt3OnM6d
+3x7fHtbd1t3W3d7e1t3W3c7dzt3PHc7czpzOnc6czpzGm8acxpvGm75axlu+Wr5b
+vlu+Wr4avlq+Wq2XKQUgxBCDEEIQghCDEIMQgxCDEEO1lrWWtZatVaUUnNO1lr3X
+tZatVbWWvdfGGL3YtZetVb4Yxhm1lq1WvZfOWc5Zxlm92MYZ1prOWsXYzhnWm9ab
+1pvOW8YZ1pve3N7czlrWm97c5x3Wm9ab5x3nHd7c1pvenNac1lvWm9ab1pzWnNac
+1pzWnNac3p3Wndad1p3W3dbd1t3W3dbd1t3W3dbd1t3W3dbd1t3W3dbd1t3W3dbd
+1t3W3dbd1t3W3dZcnFCUD9YX3x3W3dbd1t3XHtbd1t3W3c6c1t3O3M6czpzGnM6c
+xpvOnMZbxpu+W8abvlrGW75avlq+Gr4avlpjThjEEIMQgxCDEIMQgxCDEIMQgxCD
+tZa1VrVWrVWlFZzTtZa917WXrVWtVr3Xxhi917WXrVa92MYZtZetVrWXzlnOWcZY
+vdfGGdZb1lrF2M4Z1prWm9abzlrGGdab3tzm3NZb1pve3Occ1prWmtab1prWW9Zb
+1lvOm86bzpvWm9ac1pzW3Nac1pzWnN6d1p3Wndbd1t3W3dbd1tzW3d7d3t3W3d7d
+1t3W3dbd1t7W3dbd1t3W3dbd1t3W3dbd1t3OXHtMe0zNlt8e1t3W3c7d1x3PHdbd
+1t3W3Ncd1t3OnM6dxpzOnMabxpzGnMabvlvGW75avlu+Wr5avlq+Wr5aMUcYxBCD
+EIMQgxCDEIMQgxCDEIMQQ7WWtZatVa1VpRSc07WWvde1l61VrVa9174Yvdi1l61W
+vdjGGbWXtZa9l85azlrGWb3YxlnWmtaaxhjOWd7b3tvWm85azhnWm97c3tzOWs5a
+1pvWW85azlrOW85bzlvOW85bzlvWm9ab1pvWnNac1pzWnNac1pzWndbd1p3W3dbd
+1t3W3d7d3t7e3d7d3t3e3d7d3t3W3dbd1t3W3dbd1t3O3c7d1t3W3dbdzpyDTYNN
+zZXfHtbdzt3W3dce1x3W3dbdzt3W3dbdzpzO3caczpzGm86czpzGnL5bxpu+W8ab
+vlq2Wr5avlqEUhjEGIQQgxCDEIMQgxCDEIMQgxBDEEO1lrWWrVatVaUUnNO1lr3X
+tZalVa1VvdfF2L3YtZetVb3Yxhm1l7WWvZfOWs5Zxlm918ZY1prWmsYYzlnWm96b
+1pvOWsYZ1pve3ObcxhnOWs5azlrOWs5azlrOWs5azlrOW85axhm92M4Z1pzWnNac
+1pzWnNac1pzW3dbd1t3W3d7d3t7e3d7d3t3e3dbd3t3e3dbd3t3e3dbd1t3W3dbc
+1t3OnM6czpzO3c7cxhvGW86c3x6+GsZbzt3XHdcdztzXHM7c1xzO3caczt3GnM6c
+xpvOnMacxpzGW8ZbvlrGm75bvhq+Gr4aQgoYhBCDEIMQgxCDEIMQgxCCEIIQQhBC
+tVa1lrWWrVWlFJzTtZa917WWrVWtVb3Xxhi92LWXrVa92MYZvZe1lr3YzlrOWsYZ
+vdjGGdZb1lrF2M4Z3pvem9ab1lrOGdab3tznHL3XzlnOWs5azlrOWsZazhm9l71V
+1hjFVsVXxZjWnNac3tzWnNac1pzWnNbc1tzW3dbd3t3e3d7d3t3e3d7d3t3e3dbd
+1t3W3tbd1t3W3c6ZxhjWmc7VjNKVE7ZXzt22GqXYthq2W6WYfFOt2c7c1t3XHc7c
+1t3O3Nbd1t3OnNbdzpzOnMaczpzOnMabxlvGm75bxlvGW74avhqM0yEFEIMQgxBD
+EIMQgxCDEIMQQhBDEEMQQ7VWtZa1Vq1VpRSc07VWvde1lqUVrVW118YYvdi1l61W
+vdjGGb3XtZW9185azlrGGb3YxhnWmtaaxhjOWdab3pvWm9ZazlnWmt7b3ty92M4Z
+zlrOWcWWxVW006xRzVWsUs2XvRXN2M4Z1pzWnNac1pzWnNac1pzW3Nbd1t3e3d7d
+3t3e3d7d3t3e3d7d3t3e3dbd1t3W3dbd1pq91L3UzpTG1I0QjNKuWMbdlVeNFpXZ
+plt81GwSlZfWndbd1t3O3NbdztzW3dbdzpzW3M6cztzGm86cxpzGW8abxlrGWsZb
+xlu+Gr4aSosZBRCDCEMIQxBDEEMQQxCCEEIQgxBDEEO1lrWWtZatVaUUnNOtVr3X
+tZetFa1VtZfGGL3YvZetVr3Yxhm9l7VWvZfOWc5axhm92MYZzlrWmsYYzhnWm96b
+1pvOWs4Z1pve3N7bvdfOWc5avVa9VsWWrNO1FMWWxZbFls4ZxdnF2dac1pzWnNac
+1pzWnN6c3t3e3d7d3tze3d7d3t3e3d7d3t3e3d7d3t3W3dbd1t3W3dbcxdLF0s4U
+vpSVT40TvpjG3JWXjRaV2K7chRVkUoUVztzXHd8dztzXHc7c1t3W3c6c1pzOnM6c
+zpzOnM6cxlzGnMabxlvGW8ZbvhqlVyDFGMQQQxBCEEIQQhBCEEMQgxBDEEMQQxBD
+tZW1lrVWrVWlFJzTrVW9173XrVWtVbXXxhi+GL2XrVa92MYZvdi1lr2XzlnOWsYZ
+vdfGGNZa1lrF2MYZ1pvWm9abzlrGGc5a3tze273YzhnOWrVXtVbOGM3YxdjOGcXY
+xdjF2M5azlrWm9ab1pzWnN6c3pzenN6c3t3e3d7d3t3e3d7d3t3e3d7d3t3e3d7d
+3t3e3d7d3t3W3cZYxljOmdaa1prGFcYVzla12q3ZtlvG3YWXXFNklM7c1x3XHdbc
+1tzW3Nbc1tzOnM6dzpzOnM6czpzOnMZbxpu+W8ZbvlvGW74aWw4YxBCDEIIIgghC
+EEIQQhBDEEMQQxBDEEMQQ7WWtZa1lq1VpRSc061WvZe9lq1VrVW1l8YYvdi9l61W
+vdjGGb3YtZa9l85ZzlrGGb3XxhjOmtaaxhjGGdaa1prWms5ZxhjOWd7b1pu92M4Z
+zlnFl8WXvZbF18YYzlrOW85b1lvWm9ac1pzWnNbc1pzWnNac1pze3N7d3t3e3d7d
+3t3e3d7d3t3e3d7d3t3e3d7d3t3e3d7d1t3W3M5VxhTWVObTxdHF0c4S5pfelnPS
+a5GVWHRUnVjW3dcd3x3W3Nbd1tzW3NbczpvWnM6czpzOnM6czpzGW8abxlvGW75a
+xlutmCEGEIMQgxCDCEIIQghCEEIQgxCDEIMQgxCDEIO1lrWWtZatVa0UnNOtVb3X
+vZetFa1VtdfGGMYYvZetVr3Yxhm92K2WtZfOWc5Zxhm92MXY1prWmsXXxhjOWs5Z
+zlnGGL3XvdfOWc5ZvdfOGc5avdjOWs5azlrOWtZa1lvWW9Zb1pvWm9ac1pzWnNac
+1pzWnNac3t3e3d7d3t3e3d7e3t3e3d7d3t3e3d7d3t3e3d7d3t3e3dbd1t3N0M2Q
+zdDeUs3QvZDF0d6WxdNjDGLMrZfGWtbc1tzW3d7d1tzW3c7c1tzW3c6czp3OnM6c
+zpzOm86cxlvGnL5bxlvGWsZbc5AYxBCDCIIQgwhCCEIIQgiCEIMQQxCDEIMQgxCD
+tZa1lrWWrValFZzUrVa9l72WrVWtVbXXxhi92L2XrVa92MYZvdi1VrWXzlrOWsYZ
+vdjF2daazlq92L3YxhnOWc4Zxdi1lr2WxhjGGL4YzlrOWs5azlvOW85bzlvOW9Zb
+1lzWnNac1pvWm9ac1pzOW84atVaEENab3t3e3d7d3t3e3t7d3t3e3d7d3t3W3d7d
+3t3e3d7d3t3W3dbczhPN0s3RxVDFU62TrZbWmr1Wcslqyb0S3tzW3Nbc1tzXHdbc
+1t3OnNbc1t3OnNaczpzOnM6czlvOnMZbxpu+W8abvlq+WilGGMQQgxCCEIIIQQhC
+CEIIgwiDEIMQgxCDEIMQg7WVtZatVa1VpRSc061Vvde9161VrVW118YYvhi9l61V
+vdjGGb3XtZa1l85azlrGGb3YxhnOms5avde918YYxhjGGL2WrRStFLVWvZa92M4Z
+zlrOWs5bzlvOW85bzlvOW9Zb1pvWm61WtZfWWdZZg9BzTlJKpRXWm97d3t3e3d7d
+3t3e3d7d3t3e3d7d3p3e3d7d3t3e3dZbzlnWms5ZzlnWms5ZrVWtVq0W1lvF2ILI
+esi0j9bd1t3OnNbc3x3W3NbcztzO3NbczpzOnM6czpzOnM6bzpzGW8acvlvGnL5a
+fBAYxBCDEIIIQghCEEIIQghCCEMIQxBDEIMQgxCDEIO1lrWWrVatVaUUnNOtVbXX
+vdetVa1VtdfGGL3YvZe1Vr3Yxhm917WWtZbOWc5Zxhi918YY1prOWb2XvZfF2L3X
+vde1VaTTpNGtErUTxdjOGs5azlrOWs5azlrOWs5alFPWW9aatZZiipxRg8+9lsYY
+jFK92a1W3pze3d7d3t3e3d7d3t3e3d7d3t3e3d7d3t3e3d7d3tzOWc5Z1lre29aa
+xhXNlMWUxVW9VcWWxVWTC4KJq87e3dbdzpzW3Nbc1tzW3Nbc1tzW3c6czpzOnM6c
+zpzOnM6cxlvOnL5bxlu2GTmIGMMQghCCEEIQghBCCEIIQQhCEIMIgwiDEIMQgxCD
+tZa1lq1WrVWlFZzUrVW9173XrVWtVb3XxhjF2L2XtVa918YZvdetlrWWxlnOWcYZ
+vdjF2NZazlm9172Xxde9lr1WrRSckZRQnJGk08YYzlrOWs5atZiUk85azlq92HuQ
+zlvWW8XZYw61l6UVzlvWm2LN1pzWnN6d3t3e3d7d3t3e3d7d3t3e3dbd3t3e3d7d
+3t3e3d7dzlnOWdaa3tvWmr3VvdTFlMWWxZbFVcUVo9CCi5uO1tzW3Nbc1tzW3c6c
+ztzOnM6cztzGm86czpzOnM6cxlvGnMabzpzGW8abhJMYxBCDCEIIQghCCEIIQghB
+CEIIQhCDEIMQgxCDEIMQg7WWtZatVq1VpRSc061Vvde9161VrVa9l8YYxdi9l7VV
+vdfOGL3XtZW1ls5YzlnOGL3YxdjWWs5Zvde9l72XvZa1VaTUlFGUEJQQnJHF2M4Z
+zlrGGWNNe8+MUd5YjA9jDL3Y1lm9l3uOe06D0M5a1puUknOQzhre3N7d3t3e3d7d
+3t3e3d7d3t3e3d7d3t3WnNac1pze3c6b1pzW3N7c1pu91L3UzlbWnNaczlvF2LST
+m9C0Ut7c1pvWm9ac1tzWnM6czpvOnM6czpvOm86bzpvOnMZbzpvGW8abvlrGm0IK
+GMQQgxCCEIIIQghCCEIIQghCCEIQgxCDEIMIgwiDEIO1lrWWtZatVaUUnNOtFb3X
+vdetVa1VvZfGGMXYvZe1Vr3Xxhm9162WtZbGWc5Zzli92MXYzlnGGbWWvZa9lr1W
+tVWk0pRQlA+UD5yRxhjOWs5axhlzjmMMUknWGWsMg46k05RRtVV7jnuPg9DOGd6c
+1pzF2tad3t3e3d7d3t3e3d7d3t3e3d7d3t3e3d7dzprOWdaa1tze3d7d3t3e3dac
+zlrWm9ab1pzWnM6cxdjE1MTUxNTWm9ab1pvOm9bczpvOm86bzpvO286bxpvGm8ab
+xpvGm8abxlvGW75anVYhBRCDCEIIQghCCEIIQhCCCEIAQghCCIMIQxCDEIMQgxCD
+tVa1lq1WrValFZzTrVW9173XrVWtVb2WxhjF2L2XtVa9184YvdetVbWWxlnOWcZZ
+vdjF2NZazhm9l7VWvZa9VrVVpNOUUJQPlA+kUcXYzhnOWXvQawyUUWsMnNOUEZSS
+aw21mNacxhu92dac1pzWnN6c3pzenN7c1pvWnN7d1prOWc4Z3t3e3d7d3t3e3NZZ
+1lnWWd7c3tzWnNac1p3WndadzpnGWM5W3tbOFs1VxNTE1MTU1lrWm86bzlvWnM5b
+zpvOW8ZbzpzOm8ZbxpvGW8abxlrGm8Zaxlu+GlLMGMQQghBCEEIQQghCCEIIgwhC
+AAIIAghCEEMQgxCDEIMQg7WWtZatVq1VpRWc1K0Vvde9161VrVW9lsYYxhi917VW
+vdfOGb3YtVa1l8ZZzlrGGb3YvdjOWsYZtZe1lrWWtVWtFZySjBCMD4wPnJG+GM5Z
+zlprDaTUe4/OGr3YxhrOW85b1pzWnNac1pzW3N7c3pzend7c3tze3IPRrRTe2lqJ
+lJKMUdac3t3e3d7d3t3Wms5Z1pnm2taXxdXF1dac1tzW3M4RxdDOEebU1hbNVcUT
+xNTE1M5ZzlvOWsZazlrOWsZaxlrGWsaaxlrGWsZbvlrGW74axlvGWsZarZchBRDD
+CEIIQghCCEIIQQhBEIIIQggBCAEIQhCDCIMIgxCDEIO1lrWWrVatVaUUnNSlFb2X
+vZetVa1VtZbF2L3YtZetVr2Xxhm92LVWtZbGWc5Zxlm92L3YzhnOGbWWtVa1VrVW
+rRWckowQi8+Lz6SRxhjOWc5azlrOW8YazlvOWs5azlrOWtZbxdnWW96c1pvWnNac
+3pzenN6bpNVizd6b3tw5yJzUhA/OW73Z3t3e3d7d1tze3N7d3t3eVsXUxdPW297b
+3tvWEsXRxdLmlN4YxVXE1MTTxNTN2M5azlrGWsZbxlrGWsZaxlrGWsZavhm+Wr5Z
+vlq+GcZavhq+WmuOGMMQggiCCEIIQghCCEIIQQhCCEIIAQgBCEIQgxCDEIMQgxCE
+tZa1lq1VrVWlFJzTpRS1lr3XrVWtVbWXvdi92L2XrVa1lsYZvdetVbWWzlnOWcYZ
+vdi918YZxhi1lrWWtVa1Vq0UnJKUEIvOi86kkMYYzlnOWs5azlrOWc5azlrOWpzU
+pRTOWYQQ1lrem5zU1prOGdaa3puk1DFGvZfe297dOcmlE3uOe46lFN7d3t3e3d7d
+3t3e3d7d1lfF1cXV1pve3N7czlbGFc5W1pzWnM5bvNW81MTUzZfGGcYZxhnGGcYZ
+xhm+Gb4Zvlm+Gb3Zvhm92b4athm+Gb4ZtZgpRhCDCEMIQghCCEIIQggCCEIIQghC
+CEEAQQhBEIMQhBCEEIQQhLVVtVW1Vq1VpRSc06UUtZe9161VrVW1l73Yvdi1l61W
+tZfGGb3YrVa1l84ZzlrGWb3YvdfGGMXYtZa1VbVWtVWk05RRjBCLzovOpJHGGM4Z
+zlnOWcYXrRSUUHNMzhilFJSTzlqk1M4a1ltaCYuPUgnWGJQRc01air3Y3tzGGVKM
+vVVJx3OQ3t3e3d7d3t3e3d7c3t3e3dabzlrWmt6d3p3W3dac1pzWm9ZazlnWmsTU
+vNS81MWWxhnGGb4Zvhm+GbXYvdi92L4Zvhm12L4Ztdi2GbXYvhm+GXOPIMQQgxBD
+EEIIQghCCEIIAghCCEIIQghCCEEAARBDEIMQhBCEEIS1VbVWrVatVaUVnNSlFbWX
+vZetFa1VtZe+GL3YtdetVrWXxhm92K1WtZfOGc5axhm92L3XxhjF2LWWrVW1VbVV
+pNOcUYwPi86LzqSRxhnOWc5Zg89ai1pKe49SSbWVWsvGGM5ZWsvN2IvQWkqUEXvP
+3ty92NabYw61l96be4+tFcWXa07WXN7d3t3e3d7d3tze3d7d3t3W3c5azlvWnNad
+1p3WndacxdLF0dYT5lnFFLzUvNTFFb3Yvdi9173Yvdi1l73YtZe92LXYrZe12LXX
+tdi12LXYtdgpBhiEEIMIgwhCCEIIQgBCCEIIQghCCEIIQghBCAEIQhCDEIMQhBCE
+tVW1VbVVrRWlFJzTpRS1lr3XrVWtVbWWxhjF2L3XtVa1lsYYvditVrWXzhnOWcZZ
+vdi918YYvdi1lq1VtVW1FaTTlFCMD4vNi86kkcYZxlrOWsYZzlpKCXuPpRTOWa0V
+zll7j5RS1pvOGZzVlFPWW96c3pzenHOQrVfe3cYa3t3W3dac3t3e3d7d3tze3d7d
+3t3e3d7d3t2jjaONzRLWmtabzprWmsXQxZDN0e5VxRCzi6tKu8y9173XvZe1l7WX
+rVa1l61WtZe1l61WrZetlrWXrZetl3PQGMUIgxCDCEIIQghCCEIIQghBCEEIQQhB
+CEEIQQgBCEIQgxCDEIQQhLVVtVW1Va0VpRSc06UUtZe9l6UVrRW1lsXYvdi9l61W
+vZfGGb3YrVa1VsYZzlnGWb3XvZbGGL3XtVa1FbVVrRSk05RQjA+DzovOrNLGGM5Z
+zlnOWsYZUoulFdZb1lvOGnvQc4/WWtab1pu92YPR3pze3N7c3ty92M5b3tze3d7d
+3t3e3d7d3t3e3d7d3t3e3d7d3tze3dZbk02LTM0T3ljWF9YX3lnN0sWRzdLulMUP
+soayhsMIvZa1lrWWtVa1lq1VrVatFa1WrVatFa1WpRatVq1WrVY5yBiDEEIQQghB
+CEIIQghCCAIIQghCCEEIQQhCAEEAAQhCEIMQhBCEEIStVa1VrVWlFaUUnNSlFLWW
+vZelFK1VtZbF2MXYvZe1VbWXxhm92K1WtVbGGc5Zzhm92LWXxdi917VVrRS1Va0U
+pJKcUIvPi46LzqzSxhjOWc5ZzlmUkowRzlrWWs5aa05zz85a1pvWm9ab1lvOGt6c
+3pzenN7c3tze3N7c3t3e3d7d3t3e3d7d3tze3d7d3t3e3d7d3tzN2ZQQi4/V195Y
+1hjOF9YXxZbOGNZYzhi8kqqHqofDSrWWrVWtVa0UrVWlFKUUnRSlFKUUnNSlFZ0U
+pRSlFYQRGMQQgghCCEIIQghBCEIIAgBCCEIIQgBBCEEIQQhBCAEIARCEEIQQhBCE
+rVWtVa1VpRWlFKTTpRS91r3WrVStVbWWxdi92L2XtVa1V8YZvditVrVWzhnOGc4Z
+vZe1lr3YvdetVa0VrRWtFJySlBCLz4ONi86s0sYYzhnOWb2XWovGGc5azlrOWqUV
+zlvWW9ac1pvWm9ab1pvWm9ab3pzend7d3t3e3d7d3t3e3d7d3t3e3d7d3t3e3d7d
+3t3e3d7d1p3OXL3Z1lzem9YZ1hjMkpMMm03d19WWvJOiyJqIxA21laUUpRSc05zT
+lJKUkpSSlJKUkoxRlJKUkpSSlNRSixCDCEMIQghCCEIIQghBCEEAQQhCCEIIQQhB
+CEEIQQgBCAEQgxCEEIQQhK2VrVWtVaUUpRSc06UUtZe1l60VrRW1VsXYxdi9l61V
+tVfGGb3YrVa1VsYYzlnGGL3XtZa9173XrVWtFLUUrROckZQQi8+DjYvOrNLF2M4Z
+zhm92LVXzlrWWtZa1lrWW9Zb1lvWW96b1lrOWsYZxhm9mMYZ3tze3N7c3tze3d7d
+3t3e3d7d3t3e3d7d3t3e3d7d3t3W3dadzlvGGs5b1pzWnNacxFCbC5sM5lnVl7zU
+soayRsMItVWk05zTlJKUkoxRjFGED4QPhA97znvOe857z4RQMYYIQghBCEEIQghC
+CEIIQghCCAIIQghCCEEIQghCCEIIAQgBEEMQhBCEEIStVa1VrVWlVaUUnNOlFLWX
+tZetFaUVrVa92L3YtZetVrWXxhm92K1WrVbGGc5Zxhi917WWxde9lq1VrRS1FKzU
+pFKUD5POg42LjazSxdjOGc4ZzhrOWs5azlrOWs5axhnGGb4ZrVe+Ga1Wvhmc1LWX
+rVe1l9ac3pze3N7c3t3W3N7d3tze3d7d3t3e3N7d3t3e3d7d1t3GnJ0XnNa+Gtad
+1pzWnLxRo06z0OZa1hi9VcJHuka6h6yQnJKckpRRjFGED4POe45zjHNMawprCmLJ
+YolzSyDECEIIAghCCEIIQghCCEIIQghCCEIIQghCCEEIQggBAAEAAQhCEIQQhBCE
+rVWtVa1VpRSlFJzTnNS1lr2XrRWlFa1Wvde917WWrVW1VsYYxde1VbVWxhjOWcYY
+vde1lr3XvZe1Fa0UtRSs05xRlA+LzoONi82s0sXYzhnGGcYYxdi92L2Xvdi9mK2W
+lNStVqVWvhm92M6btZfGGc5azhrenNac1pzWW9aczlrWm73Y1lve3d7c3t3e3d7d
+3t3e3d7dxp2VFpUWtdnWnNZbzlvWWs4axhrWXNZatVaqiLsKwwqzzZSRlJGMUIwQ
+g897jXtMcwtqymKJYolah1qHWogYgxBCCEIIQghCAEIIQghCCEIIQghCCEIIQghC
+CAIIAQgBCAEQQhCEEIQQhK1VrVWtVaUUpRSc06TTtZa1lq0UpRS1Vb3Xvde1l61V
+tZbGGL3XrVWtVcXYxhnGGLWXtVa9l72WrVWlFK0UpNKcUZQPi86DjYvOtRLF184Z
+xhmUk6TUpRWtFa1WtZe1l61Wvdi1l8YazlvOWs5azlrWWsYZ1prF2MYZvdm+GaUV
+vditl8Ya3t3e3d6d3t3e3d7d3t3e3c6cnVelV74Y1hTF0s3T1pvWnNacpZOlkp0R
+iwrET8yQo9CUUYxRjBCDz3vOc41rS2sLYslaiFqIUkdSB1JHGIMIQghCCEIIQghC
+CEIIQQhBCEEIQQhBCAEIQQhBCEEIAQABCEIQxBDEEMW1Va1VrVWlFaUUnNOk1LWW
+tZetFaUUtVa9173XtZetVrWWxhjF161VtZbGGM4Zxdi9lrVVvZe1lq0UrNS1FKTS
+lFCUD4vOg42LzrUTxdjOGcYZlJSlFrWYrVbGGcYazlrOWs5avdi92aUWpRW1l61W
+xhnGGb3YtdjOW7XYxlu1mM6cxhrOG97d3t3e3d7d3tzW3N7c3t3WnM5b1pzWnNYT
+zdLNktZa1prOmozNhIyMjXOJxJDllIwQlFGMUIQQg897jnNMastqylpIWkdaiFJH
+SgdKCCEECEEIQQhCCEIAQghCCEIIQQhBCEEIQQhBCEEIQQgBCAEIAQgBGIQQxBjF
+rVWtVa1VrRWlFKTTpRO1lrXWpRSlFK1Vvde117WXrVatlsYYvditVa1VxdjOGcXY
+vZe1Vr2XtZatFKTTrNSkkpQQi8+LjoNMi42s08XYxhnOGb2XvdjF2L2Xxhi1VsYZ
+tVa1l4RSrZeEk4yTrZe1mNabxhnWm85b1pzWnN6d3pze3N7d3t3e3d7d3t3e3d7d
+3tze3N6bzlvOW9ab3pvWV8XVxZXOWM6ZvliEzYTMlQ1zysTR9hickpRRlFGEEHvP
+e45zDGrKYolaSFJHWkhSB1IHUgcpBAhBCEEIQQhCCEEIQQBBCEEIQQhBCEEIQQhB
+CEEIAQgBCAEIARiEGMQYxa1VrVWtVaUVpRSc05zTtZa1lqUUpRStVb3Xvde1l61W
+rVbGGMXYrVWtVb3XxhjF17WWrVW9lrVWrRSk06zTpJGUD4vOi417TIuNtNPF184Z
+xhmUk5yUjJOUk6VWlJO1l6UWrZeU1LXYvdi92dZb1pvenN6c3pzenN6c3tze3N7c
+3tze3N7d3t3e3d7d3t3e3dbd1pylkZUPrZLenN6c1pvOGtZb1pyll40VhNCNEK2S
+e8vMkO3VlFGUUYwRg897jnONawtiyWKJWkhSB1JIUgdJxkoHKUUIAQhBCEEIQQhB
+CEIIQQhBCEEIQQhBCEEIQQgBCAEIAQgBCAEQhBjFGMWtVa1VrVWtVaUUnNSc07WW
+tZalFKUUrVW9173XtZetVq1VxdjF17UVtVW918YYvdi1lq1VvZa1Va0UpNOk06RR
+lA+LzoOMe0uDja0TxhjOGcZZfBGUk5zUnNTGGr3YzlrF2c5b1lvWW95b3pvem96b
+3pzenN6c3pzenN6c3pze3N7c3tze3N7c3tze3N7d3t3W3daclQ+MzZ1Q1pvenNac
+1pzWnNacjZd9FYVWxpvGGIPOlFC1FLVWlFKMEYPPe857jWsLYopaiVJISgZSB0oG
+QcZKBzFGCAEIAQhBCEEIQQhBCEEIQQhBCEEIQQgBCAEIAQgBCAEIAQgBEEMYxRjF
+rVWtVa1VpRSlFJzTnNO1lrWWpRSlFK1Vvde9172WrVWtVcXYxditFa1VvdfGGL3X
+tVWtFb1WtVWtFKzTpNOckZQPi86DjXtMg42tFMXYzhnGGaVVvdjGGc4a1lrWWtZa
+1lrWW9Zb1lvWW96b3pvem96b3pzenOac3pzenN6c3pze3N7d3t3e3d7d3t3W3d7d
+3p3enKVRlM2dDsZTzlXWnNac1pzOXJWXhRWNVs5bzheEDoxPxhbWmpSTjBGDz3uO
+c01qymKJWkhSB0nGUgdKB0HGSgc5hghBCEEIAQhBCAEIAQgBCAEIQQgBCAEIQQgB
+AAEIAQgBCAEIARBCGMUYxa1VrVWtVa0VpRSc05zTtZa1lqUUpRStVb3Xvde9l61V
+rVW92L3XrRWtVb3Xxhi917VWrRW1VrUVrRSk06SSnFCUDovNg4x7S4OMrRPF2M4Z
+zhnOGc4ZzhrOGs5a1lrWWtZa1lrWW9Zb1lvenN6c3pzenN6c3pzenN6c3pzenN6c
+3pzenN7c3t3e3d7d3t3W3N6c3py9173XxY7Fj83Q1lzWnM5czly9mbWYrZPOE8XS
+lEucjM4W3pqk04wQg897jnNNastaiVpIUgZJxUnGSgZBxUoGQcUIQQhBCEEIQQgB
+CAEIQQhBCEEIAQgBCAEIAQgBCAEIAQgBCAEIQRjFGMWtFa1VpVWlVaUUnNOc07WW
+tZalFaTUpVW9l73XtZetVa1Vvhi92K0VrVW918YYvde1Va0UtVW1VazUpJOkkpxQ
+lA+LzYOMe0uLjLUUxdfN2M4YzhnOGc4azhrOWtZa1lrWWtZa1lrWW95b3lvem96b
+3pvem97c3pzenN6c3pzenN6c3pzenN7c1tze3N7c3tzenN6c3pzWm83QzY/V0PZU
+zM+rz7wQ7lXuFMWQzU/VT6xLpE/OWdaapRSMEIPPe45zTWrLWkhSR1IHScZJxknG
+QYVJxkGGEEIIAQgBCAEIQRBCCEEIQQhBCEEIAQgBCAEAAQgBCAEIAQgBCAEYxRjF
+rRWtFaVVpRWlFJzTnNO1lrWWpRSlFK1Vvde917WWrVWtVcYYxdetFa0VvZbF172W
+tVWtFLVVrVSs1KSSnFGcT5POi86LjINLi4y1FMXXzhjOGM4YzhnOGc4ZzhrOWtZa
+1prWWt5a1lvWW9Zb3pvem96b3pvem96c3pzenN6c3pzenN6c3pze3N6c3pzenN6c
+3pzenNac1pvN08XS1hPulsONoom7C+aT5pPFkMVQzdGsj6yT1lvWm60WhBCDznON
+c0xqylpIWkhSB0nGScZJx0GFScY5hRiDAAEIAQgBCAIIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAAIAQgBGMQYxaUVrVWtVaUVpRSc05zTtZa1l6UVpNStVbWWtda1lq1V
+rVW9173XrRStFb2Wxde9lq1VpRStVK0UrNOkkpxRlA+TzouNg0x7C4uNtVTF2M4Y
+zhnOGc4ZzhnOGc4ZzhrOGc5a1lrWWtZa3pveW96b3pvem96b3pvenN6c3pzenN6c
+3pzenN6c3pzenN6c3pzem96b1pvWmtZW1hbWFt5Y5ljD0KKLqwzeU+ZTxZHFktWS
+tRGkk86b1putV4QQe85zjXMMaspaSFJHUgZJxUnFScZBhUnGQYUgwwgACAEIAQgB
+CAIIAQgBCAEIAQgBCAEIAQABCAAIAQgBCAEIARiEGMWtFa1VrVWlFZzUnNOUk7VW
+tZalFKUUrVW9l72XtZatVa1Vxde92KUVpRW1lr2XtZatVaUUrRWtFKTUpFKcUJwP
+k86LzYNMewuLjbUUxdfGGMXYzhjOGMXXzhm9172WjA+1VLUT3lmklN5b3lveW96b
+3pvem96b5pzenN6c3pzenN6c3pzenN6c3pzWm96c3hfN09WO5lDVjc2N1Y3l1eXV
+xJK0EcST1lnOWc4ZzlnOWZzTnNTOWcYYrVWEEHvPc01rTGLKWkhSB0oGQcVJxUnG
+QYRJxjmFKQQIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAIIAQgBCAAIAQgBCAEQgxjF
+rRStVa0VrRWk1JzTnNO1lrWWrRSk1K0VvZe9l7VXrRWtFb3YvdilFaUVtVa9l7VW
+rRWk1K0UpNSk05xSnFGUD5PNi8yLS4MKi0y1VMXXxdi9l4PPrRSDz8XXrRSUUZRR
+rRS1VdZaxhnWWtZa1lrWWtab3pvem96b3pvenN6c3pzenN6c3pzenN6c3pzenNYW
+xZPVjeYP1YzVjNWM1YzVjdZZ1pzWXNZczdHFkM3R1hqtFa1Wtde92K1VhBB7znNN
+c0xiylJISghJx0GFQYVBxjmFQcY5hSlFCEEIAQgBCAIIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAAIAQgBEEMYxqUUrRStVK0UpNOck5yTtVa1lq0VpNStFb2XvZe1lq1V
+rRXF18XXrRStFLVWvZa1Vq0VpNSs1KzUpNOcUZQQlA6LzYuMg0t7CouMtRTF18XY
+vZeEEKTUrRXF2b3YxhnOGc5azhnOGL2Wxdekk6zUpFPeW95a3pvem96b3pzenN6c
+3pzenN6c1pzenN6c3pzWFsWT1Y3mD9WM1YzVjNWM1YzOGMYYxhjOWcWPxY7Fj85a
+vdnF2s5bzlu92YPQe45rTGsLYspaSFIHSgZBxUGFScY5hEGFOUQxRAgBCAEIAQgB
+CAEIAQgBCAEIAgABCAEIAQgBCAEIAQgBCAEIARBCGMalFK0UpRWlFJzUnNOck7VV
+tValFKTTrRS9lr2WtVatVa0Vxde916UUpRS1VbWWtVWtFKTTrRSs1KzTnFGUUJPO
+k42LjINLewqLjLUVxdjF2cXYxdjF2MXYtVa9lrVVjBHOGM3YnFKUEbUWnJOtFbVW
+1lq1Vd6b3pzenN6c3pzem96c3pzenN6c3pzenN6c3hnN19YV3hXV0tXS1ZDNj82P
+rEtiAotHzY3Njc2NzdDmk9YRtVO9lc4WzhmEEHuPc01rC2LKUkhKBknGQYVBRUnG
+OUVBhTlFOYUIAQgBCAEIAQgCCAEIAQgBCAEIAAgBCAEIAQgBCAEIAQgACAEIARjG
+pVStVK0UpRSc05zTlJKtVrWWpRWc1KUVtZa9l7VWrRWlFL2XvdelFKUUtVW9VbVV
+rNSk06zTrNOkkpQQlA+TzouNi0yDS3sKi421FcXYzdjFl5xSnJG1FHNNpNSk1JyS
+xdjGGb2XxdjOGc4Z1lrWW9ZbxdnWW96c3pvenN6c3pzenN6c3pvem96b3pvem96b
+3pzWnNac1pzWm85azlrOWaRRakZ6yM0RzdPN1MYW1pjF1q0TtVTF1tZajBF7j3MN
+awtiylJIUgdJxkGFOYRBxjmEQYU5REGFEEEIAQgBCAEIAQgBCAEIAQgACAEIAQgB
+CAEIAQgBCAEIAQgBCAEYxqVUrRSlFKUUnROc05SSrVW1Vq0UpNOtFLWWvZa1Vq1V
+pRS9l73XpRSlFK1VtVW1Va0UpNKs06zTpJKUEJPPm82LjIuLg0qDCouMtRXF2MXY
+xdeUUq1WvZe9lr3YxdjOGbVVrNSkk6zUlBGs1M5Z3lreW95b3lvem96b3pvem96c
+3pzWnN6c3pzeFdXU1dTWmt6b3pvWnNab1pvWnNZa1lqsUnrHgwi8z84Y1lrOW85b
+xdStErVTxhjWWYxRe45rDGsLYopSSEoHQcZBhTlESYU5RDmFOUQ5hRCCCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgACAEIAQgBGMWtVK0UrRSlFKTTnNOckq1V
+tVWlFJzTpRS1lrWXtVatVaUUvde9160VpRStFbVWrRWk1JyTpJOk06SSlBCTz5PO
+i4yLi4MLewqLjLUVxdjF2MXYrNStFL1Vg02Tz6ySzhmk1KTUtVbF2L2XxdjWWt5b
+3lveW95b3pvem96b3pvem96b3pvemt6a3hLNkc2R3lbeWdYY1lnml9YUxdPNktZa
+tVaMUZSSnNO1lsWXlA+1EcWStRK9lc4azlqUU3uOc0xrC2KKUghJx0nGQYVBhEnF
+OURBhTlFOYUYwwgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAAIAQgBCAEIARCE
+rRStFKUUpRSc1JSTlJKtVa2WpRWc06UUtZa1lrWWrVWlFb3XvZetFKTUrRS1VbUV
+rNSck6STpNOkkpQQk86TzYuMg4t7CnsKi4y1VcXXxdi9loPQlFK1FqSUtVa9l84Z
+zhnOGs4a1lrWWtZb1lvWW95b3lveW96b3pvem96b3pveFc3U1dLukt4QzZHVjeYP
+1Y3Fkt4T7pXV0s2RzZHGGJTWhNaE1oTVhNW0k3rLesu8061VtZa1lrWWlJJ7j2sM
+YstailIIScdJh0GFOURBhjFFOYU5RTlFIMQIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEQhK0UrRSlFKUUpNOc0pSSrVWtlaUUnNOk1bWWtZa1lq0V
+pRS9lr2XpRSk06zUtRWtFaTUnJKkkqSSpFGLz4uOi42LjINLewt7CouMtRXF2MXY
+vde9l8XYxdnF2MXYxdjOGcWXvZa1Fb2W3lreW9Zb1lveW95b3lveW96b3pvem96b
+3dLNkM2Q7lTd082U1dLmU82QxZDWEeaU1hLFUr0RnRSElYTVhJWEloSWo02SipKK
+xZetlsYaxlrOWp0Vc45rDGLKWolKB0nGQcZBhTlEQcU5RDmFOUQ5RSlECAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBEEOlFKUUpRSlFKTTlJKUkq1V
+rZWlFJzUpRW1lrWWtZatFaUUvZe9l6TUpNOs1K0VrRSk05xSpJKkkpxRi8+LjYuN
+i4yDS3sLewqLjLVVxdfF2L2XrNS1Fb1WjBCkkqzUxdetFbWXvdjOGdZa1lreW95b
+3lveW95b3lvem96b3pveW9XS1VC0C7xM1NHeWt5b3lvNkM2Q1dDmU9XSxZS1EpTV
+hJWE1YTVhNWE1ZwQnEykTM3RxZDN0cXRxdG1lHOOawxiylqJUgdJxknGQYQ5REGF
+OUQ5RDlEMUQxBAgBAAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQhC
+pRSlFKUUpRSc1JyTlJOtVbWWrRWc06TUtVa1l7VWrRWk1LWXvZak1JzTpNStFa0U
+pNOckaSSpJKcUIvOi42TjIuLi0uDCnsJi8y1VcXXxde914xRrRW9Vq0VvZfF2NZZ
+1lrWWtZa1lrWW9Za1lvWWt5b3lveW95b3lveWd4X3hfd1dWRqwirCNRN1lrWWtZa
+zhfWFtWQ1ZDVkM4UpRWMlYTVhJWElYSVhJSlFc2QvU/FjM2MxUzFT8WQvZZ7jmsM
+YspaiVIHScZBxjmFOURBhTlEOUQ5RTlEMYUIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAqUUpRSlFKTUpNOckpSSrVW1VqUVnNOlFK2VtZatla0V
+pNS9l72WpNOk06TTrRStFKSTnFKkUqSSnFCLzoONi4yLi4NKg0p7CYuMvRXF18XY
+xdjF2M4YzhjOGNYZ1hnWGdYa1hrWWtZa1lrWWtZa1preW95b3lveW95b1ZHVUN3R
+7ljuGLSRvNLVlN3T1dPV0+ZW5pXN08VRxVG1UIyUhJWElYSVhJV8lYSVnNTFkb1Q
+vU/Fj72RvZHF0r3We45rDGLLWolSCEHGQcY5hTFEQYU5RDlEMUUxRDmFCEEIAQgB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAGlFKUUpRSlFJzTnJOUUq0V
+tVatFaSTpNS1VrVWtValFaTUvZe1lqTUnNOk060UrRSck5RRnJGkkpwQi42DTItM
+i0uDCoMKesmLjL0VxdfF18XXxhjN2M4YzhnOGc4Z1hrWGtYa1hreWtZa1lrWWtZa
+3lveW95b3lveW9XU1ZPV1NZa3lvWWtZa1lnNj82O1Y/mV+ZX1dXNlM2UnNKU0ozV
+hJWElYSVhJWElZzTxdW9lL2Uvda1la1VrVWtVHuOawxiy1qJUgdJxknGQUU5RTmF
+MUUxRDFEMUQ5hRBCCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+pNSlFKUUpRSc05yTlFKtFbVWrRWck6TUtVa1VrVWrRWk1L1WtVac05ySnNOlFKTU
+nJKUUZxRnJGUEINNe0yLS4NLgwqDCXrJi4y1VcXXxdfF18XYzdjOGM4YzhnOWdYZ
+1hnWGdZa1lrWWtZa1lrWWtZa1lrWW9Za1lrWWtZa1lrWWtXVzZTWFO6T1Y/NT9WP
+1lrWW9Zb1lu1V4PPrRSc1YSVhJWElYSVhJWclc4azhrOGr3ZtVi+GsYbxht7j2MM
+WspaSVIHQcVBxjlFMUQ5hTFEMUQxRSkEOUUQQggBCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAaUTrRSlFKUUnNOUkpRSpRStVaUUnNOlFLVWtVa1Vq0V
+pNS1VrVVnNOckpySpNSk05ySlFGcUKRRk8+DTYNLi0uDS4NKewp6ypOMvVXF18XX
+xdfF183YzhjOGM4YzlnWGdYZ1hnWGdZZ1lnWWc3UzdTWFdZa1lrWWtZa1lvWW9Zb
+1lrNj82P1dDmVdXTzdXOFt5Y3ljN1c3Wi83F2LVXpVaElYSVhJWElYSVnJTGGc4X
+vde1lrWWxhvOW85bg9BrC2LJWklKB0HGQYYxRTlEOUU5RDFEOUQxBDGFGIIIAAgB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAGk1KUUpRSlFJzTlJOUUq0V
+rVWlFJzTnNS1VrVWtVatFaTUtVatVZzTlJKc0qTTpNOckpRRlFCcUYwPe017C4tL
+gwqDCnsKesmTjb1VxdfF18XXxdfN2M3YzhjOGM4ZzhnWWtYZ1hneGdZa1lnNj81P
+1ZDeWdZZ1hnWGdZa1prWWtZa1Y7NTtWO1lrWWtZb1pvWW84YxVO80bzR1lu9mLXY
+hNWElYSVhJWElZyUzhfOFbVUtVS1lM5bzlvOW4QQawtiilJJScdBhkGFQUU5BDlF
+MUQxRDFFKQQ5RhiDCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+pROlFKUTpRSc05zSlJKlFa1WpRWc06TUtVa1VrVWrRWclK1WrRWck5SSnJOk06ST
+nFKUEZwRnFCLzoNMgwqLSoMKgwp7CXsJk821VcXXxdfF18XXxdjN2M3YzhjOGc4Z
+zhnOWc4Z1lnWGtYZxVHFUNWS5hfeF83XzdfWWdZa1lrWWtWRzVDVkdZa1lvWW9Zb
+1lvN1MVRxVHN1tZbvdm12YTVfJV8lXyVhJWclMYYzhW1U7VTvU/OEb3VvZWMEGLM
+WopSSUHHQYZBhjlFMQQ5RTlFMQQ5RCkDOYUYwwgACAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAaTTpRSlFKUUnNOc0pRSrRStVaUUnNOc061VtVa1Vq0V
+nNStVa0UnJKUUpySpJKkkpxRlBCUEJwPi857C3sKg0qDSYMJgwl6yZPNtVXFl8XX
+xdfF18XXxhjOGM4Yzhi1Va1WvZeck60V1hnWGMVSxVLV1OYX3hbN183X1lneW9Zb
+1lvOGs4Z1lrWWtZb1lvWW9YbzZOkTcVR1hjOWr3ZtdmE1nyVfJV8lYSVnJTGGMYW
+tVS1Ub1NzY69Ub1RlFBjC1qJUkhKB0GFQYU5RTEEOUU5RTEEOUUpBDFFIMMIAQgB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAGdE6UUpRSk1JzTlJKUUqUU
+rVWlFJTSnNOtVa2WrValFZzUrVWtFZyTlFKUUpyTnJKUUZQQlFCUD4uNewt6yosK
+gwmDCXrIesmTzb0TxVSsk70UvZackrVVvde9l73XnNOUk7WXrRW1VtZa1lnWGM4Y
+1hjeWdYYzdfN19ZZ1lvWW9Zb1lvWWtZa1lrWW9Zb1lvWW84ac0+9mNZazlq92L4Z
+hJR8lXyWfJWElZzSvZXFlsXWzde1Vb2UrRKtEoxPYstaiVJJScdBhUGGOYUxBDlF
+OUUxBDFEKQMxRSkECAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+nNSk1KTUpNSc05SSjFGk1K1VrRWck5zUrVW1Vq1VpRSc06UVpNSUk5RRlFKckpxS
+lFGMEJQQlBCDjXsLcsqDCoMKesl6yXrIm87FE6OOisu8UZSTe9Cc1ZSTnNStVpzU
+g9GtVqUVnNTOGdYa1hrWGtYa1lrOGc4ZzhnWGtZa1lvWWtZZzhjOGM4Z1lvWW9Zb
+1lvGGnOQzhvOW85bvdnGGlsNa9GEk4SUUw6SiZLKksrF2M4ZrRWtFKTSpNKUUGLL
+WolSSUoHQYZBhTlFMQQxRDFEKQMxRCkEMUUpBAhBCAAIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAZzTpRSlFJzTnNOUkoxRpNStFaUUnJOc061VtVatVaUU
+nNOlFKUUnJKUUZSRnJGcUZQRjBCMEJPPi41zCnLJewp7CnrKesl6yZvNzRKzzrPQ
+tBG9lowRtRbN2c3ZxdjF2MXYxdnOGc4ZzhnWGtYa1hrWGtZb1hrF2cXY1lrWWt5a
+1lrOGcXXxdfOGNZb1lvWW9ZbxdlzkM5bzlvOW73ZtdhSjCFHfBJSzSlDisqTC4rK
+zdjGGa2Wxhm92MYZrVVqy1qKUklJx0GFQYU5RDEEMQQ5RSkEMUQowzFEKQQQQggB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAGk06TUpNSc05yTlJKMUqTU
+rRWlFJSSnNOlVa1WrVWk1JyTpNSk05ySlFGUUZxRnFGUEJQQjA+LzoNMcwlyyYMK
+gwp6yXrJesmbzsUTtJOkUsVWxde9lsXYzhjOGM4YzhjOGM4Zxdi9mM4ZzhnOGa0V
+zhnOGb2XjBGtFtZa1lrWW9Za1hjN183X1hjWWtZb1lvWW60We5DOW85bzlu+GaUW
+WowhR3wTW1A5Q3qJkwuKysWXxhqtWL4axhrGG61YYwxSilJJQcc5hjmFOUUxRDEE
+MUUpBDFEIQMxRCkEEEIIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+nNOlFKTUpNSck5SSlFKk1K0VpNSckpyTrRWtVa0VpNSckqTTpNOUUowRlBGUUpRR
+jBGL0IvPi86DTHLKcoh7CnsKesl6yXrJlA61Vb2XvZfFl8WXxZfF18XYxdjF2KST
+tVa915zTnNPGGLWXrVe92L3YpNWlFaUVxdjWWtZa1lrWWdYYzdfN19YZ1lvWW85b
+1luclIPRzhvOW85bxhq9mWtPKUaElnwQOQV6zKPQo9DFmMYarZe92sYbxhu9mWsM
+WkpSSEHHOYU5RTlFMQQxBDlFKMQxBSjDMUQpBBiCCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAZzTpRSc1JzUlNOUkoxRnNSlFaUUlJKUk6UUrVWtFJzT
+nJKk05zTlFGMEYwRlFGMUYwRjA+Lz4uOg0xyyXLJewl7CXrJcsh6yZwOxRK00ZPN
+vRKckowQpJK1Vq0VtVaMU3wSrZeUk5yUvdiMEsYZvdiclMYZvhmk1M5a1lrWWtZa
+1lrWGs4azhrOGs4azhrOGs4ae9GMEs4azhvOW8YatZhzkCFFlJWUkylGhBGtWMYa
+xhrGGrWYvdrGG8YbvdprDVJKSglBxzlFOUU5RTEEMQQ5BSkEMQQowzEEKQQQgggB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAGc05zTnNOc05TSlJKMUZzT
+pRSlFJSSnNOlFa1VpRWc1JSTnJOck5RRjBCMEZQRjBGMEIPPg46LjYMLcolyiHrJ
+esl6iXqJesmcDsUSm4yTjLyQrVaEEa2XlJSc1bWYrValFcYZnJTF2c4ZtVbOGbVX
+xdnOGsXZzdnWGtYa1lrWGtYZzhjN2NZazhrWWpzUnFLd2HrMlFLOWs5azlrGGrWY
+e9EpSK2ZrVgpRoPRrVfGGsYaxhq1l7XZvhq+Gr4aa05KSUoIQccxRTFEMUUxBCkE
+MQUowykEIQMpRCEEGMMIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+nJKk05zTnNOc05SSjFGc06UUpRSUkpzSpRSlVaUVnNOUkpySnJKUUYwQjBCUUIwQ
+jBCDz4OOg42DC3KJcomCyXrJeshyyHqIpA3FEavNm0u8T8WWnJPF18XXxdjF2LVW
+xdjN2cXYzhnOGc4ZzhnOGc4ZzhnOGc4a1hrWGtYa1hnNkMVPzZDOGs4axdgxBDCC
+vRJiSJyQzlvOWs5azhq1mIPSIUe1mrXaMYh7kK1XxhrGGsXatZic050UpRSlVWtN
+SglKCEHHMUUxRTFFKQQpBDFEKQMpBCjDKQUpBCDDCAEIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAZySnNOc05zTlJOMUoxRnJKlFKUUlJKUkqUUrRWlFZzT
+lJKckpySlFGMEIwQlA+MEIwPg8+DjYNMewtqiWqJcsl6yHrIcsh6yJwPvRWsk60U
+vZa9l8WXxdfF18XXzdjF173Xxde9l7VVtVa9l5yStVbOGc4ZzhnF2MXZzdnWGs4Z
+zU3NDc1N1hjWGbVWKMQog5wPk86sks4azhrOGs4atVeEEilIvdq92znJa1ClF8Xa
+vdq92rWZrVi12r3axht70FIJSghBxzFEMUUxRSkEKQQxRCEDKQQgwykEKQQgwwgB
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAGckpzTnNOc05STlFKMUZzS
+pRSlFJSSlNKlFKUVpNSc05RSnJKckpRRhBCL0IwQi9CL0IOPg02DTHrKaohqR3LI
+esh6iHqIeoicD7UVvVa9lr2XvZa1Vb3XpRSEEK1VfBBrj5UUhFJrkHxThFRjTpzU
+xhmlFZzUtZec1M4ZzlrOGs2RxRDFEM3W1hrOGTmIKIKs0b0SxZTOWs4azhrOGq0X
+hBIhRrXZvhlCSWMOpRe92r3avdq1maUYtdq92sYahBFKSUIIOccxRTFEMUUpBCkE
+MUUhBCkEIQMpBCkEIQMIQQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+lNOc05zTnJOUk5RSjFGc060UpRSUkpSSpRSlFKUUnNOUUpSSnJKMUYPQg9CMEIPP
+i8+DjnsMg0x7CnKIaohyyHrJeslyiHKIpA7FEqQPg0y9E7WWhBCtVWNNbBCElGvQ
+a5CM1YQTfBKE1XyUc9CU1cYZpRWUk6UVrVbF2c4ZzhnF1b1UxZXOGdYazhpqzTCB
+tJDFEcXUxhvOG84bzhuc1nOQKQac1qUWUktKS6TWvdq92r3atZmlF7Xavdm92pST
+YstKSUHHMUUpRTFFKQQpBDFFIMQpBCEEKQQpBCEECEIIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAZSSnNOU05zTlJKMUoxRlJOlFKTTlJKUkp0TpRSdFJyT
+lFKUUpRSjBGDz4PPi8+Lz4vOg417C4MLeslqSGpHeoh6yHqIeohyiKQOxRKLC5NM
+vNG1l4QRrVZjDltPjRWEk3OQnRaMU3wRjJSdFoxSnNXGGr3ZtVfF2b2ZzhrOGs4a
+zhnN2c4azhrOGs3WrM2cCMUMxQ3F1c4azhvOGs4arReMVClIvdrGG2tPUs2lFr3a
+vdq92rWanRe12bXZvdmk04OOew1iSTlFMQQxRCkDKQMxRCjDKQMgwyjDKQQgxBiD
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAGUkpzTnNOc05STlFKMUZSS
+pRSlE5SSlJKc1KUUnNSUk4xRjFGUUYwQg8+Dj4PPg4+Dz4OOe0t7S3LKYohyR3LI
+esh6iHKIcomsD8TSk416yqyQjFF7z5zUhBGMU6VWpRak1bWXxdi9mMXZxhnGGc4Z
+xhnOGc4ZzhnOGcYZxhnF2cXYzhnOGs4ZzdbNTM1LxQvFC8ULzdXOG84axhrGGq0X
+lJQpSL3bxhp70UpMpNa92r3avdq1mpzWtZm1mLXZpNSLC4sLiwtqikGGMUUpBCkD
+MUUhAykDKMMowykEIMMYwwgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+lJKc05zTnJOUk4xSjBGUkqUUpNOUkpSSpNOlFJzUlJKMUYxRjFGMEIPPg46Dz4OO
+g457TXMLewtyymqHakdyiHqIeohyiHKIpBC1FayTtRW9V7VWvZe918WXvZfFl8XX
+xdjN2MXYvdjFl84YxhjF2L2XrRW9160VrVaMUpzUlJSc1cYaxhrOGs2SxUvFC8UL
+xQvFC8XWxhrGGsYaxhqtF5SVKUi92r4ajFNCCqUWvdq92b3Ztdmc05zUnJOc05xS
+ismKyYrKkwt6yknHMUQpAylEKQMpBCjEKMMpBCDDIMQIAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAZySnNOc05TTlJKUkYwRlJKk1KTUlFKUkpzTpNSc05SS
+jBGMUZRRhA97znuOg46DjouOe0xyynrKcsliSGpHcohyiHKIcohqiJxQtRW9Vr1W
+vVa1Vr2XtVa1Vq0UtVaUkq1VjJGc06UVpRWc07VWjFK92IQRnNSlFb3XnNOlVpST
+jFLF2cYZxhm0jMULxQvFC8ULxQvF1cYaxhrGGsYarVec1TFHvdrF2pzVOcmlFr3Z
+vdm92b3ZnNWtV62YtZitV4pKioiKiYrJisqDCmJIMUQxRCjDIMMowyjDKQQgwyEE
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAGUkpzTlJOUk5SSlFKMEZSS
+pNSk1JRSlFKck5zUnJOUUowRjBGMEYPQe457jXuNg46DjntMcsp6ynKJakhiRnKI
+cshyiHKIcoicka0UhBGEEXvQc46MknPQjFJrTpzUe5C1VpSTtZec1K2XnNS92ZzV
+tZilFrWYpRatV7WYxdq9mbWYxhrGGsYZgsnFC8ULxQvFC70LxZTGGsYaxhrGGq1X
+nNUpiL3axhqtVzGJnRa92b3Zvdm12ZzWtZi1mLWYrVeCSYJIgomKiYqJiomCyWpI
+QYUpAyjDIMMgwykEIMMpBAgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+lJKc05STlJOUUoxShBGUUqTUpNSUUoxSlJOc05yTlFKEEIwRjBGDz3tOe417jXuN
+g81zTGrKeslyiWpIagdyh3KIcohyiHKIpJClFFLLc9BbDmNOlRV0EZTUfBGlVoQR
+rVatVr3YtVbF2MWYxdnF2cXZxdnGGcYZxhnGGc4ZzhnGGcYZxhnF2VFEtIjFCsUK
+xQrFCs2SxdrGGsYaxhqtV50WQgq92cXatZc5yZTVvdm92b3Ztdic1q2YrZitmK2Y
+ekl6CIIHegeCCIJIgoh6yXKIUcc5BSkEIMMpBCDDKUUAAQgBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAZRSlJOUk5STlFKMUYQRjFKc1JzUjFKMUpSTnNOUkoxR
+hBCEEIwQg897jntNe02DjYONcwxqynLJcolqR2IGcod6iHKIckhyiJxRpRVzkIxT
+lJWUlKTWpRa1l72XvZi9mMWYxZjF2MXYxdjGGMXZxdnF2cXZxdnF2cXZzhnN2c3Z
+xdnF2cXZrRZJArzJxQrFCsUKxUvFkcYaxhrGGsYapRaUlJRTnNWc1JSTc5CUlLXY
+vdm92bWZnNWtV61YrVe1mHJJcchxx3HHacZyB3pIeoh6iHKHakhSBzEFKQUgwykE
+CAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAGMUZSSlJKUkoySjFGEUIxR
+nNOc04xRjFGUUpzTlJKMUYQQhA+EEIPPe417TXtNe017jXMLaolyiXKIagdqBmpH
+cohyiHJHaoicka0VtVa1VrVWtVa9lr2XxZfFl8WXxZfFl8XYxdjF2MXYxdjF2MXZ
+xdnF2cXZxdnF2cXZxdnF2sXZxdnF2YvQagO8ysUKxQrFCsUKxU/F2cXZvdm92a0V
+rRWtFb3Xvdm92b3ZpRe1mbWZtZm1mZzUlI+c0LUSzZVySWGHYYZZRWGGacdqCHpI
+ekhyR2oHakhiCEGGKQQpBAhBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+jFGUkpSSlFKMUoxShBGMUpzUnNOMUoxRlJKck5SSjFGEEIPQi9B7j3NNcwx7THtN
+e0xyymqIcolyiWpHYkdqSHKIcodySGqIpJGtFbVWtVa1VrVWvZe9l72XvZe9l72X
+vZe9l8WYxZjF2MXYxdjF2MXYxdjF2MXYxdi9V8XZxdnF2cXZxdh6i5NHxMrFCsUK
+vQq9Cr0OvZa1Va0VrRSkD6POpA+sEL1VvhnF2aUWtZi9mb2YtZic05RNjA2cDaxQ
+YghRRUkEUUVZhmGGYcdqCGHGYcZyR3JHakhiSFIHQYYQQggBCAEIAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAYxRlJKUkpSSlJKMUYwQjFGc05zTjFGEUZSRlJKUUYwR
+g9CDz4PQe45zDWsMcwx7THsMaspiiGqIcohqR2IGakdyiGpHakdqiJyRrRW1VrVW
+tVa1V72WvZe9l72XvZe9l72XvdatVb2WrRW1lpzTrRWMUZzUjFGlFa1WhBG9mMXZ
+xdnF2cXZUcbEzbzKvQq8yrzKtMm0zLTSpA+LjYsMiwujzqvPrA+r0L1VvdmtV7WY
+tdm1mbWZnJCMDpRPrNO9VWrLSQRAw1FFUUVRhVnGWcZRhWIHYgdqB2JHYkhiSFJI
+IMMIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAGEUZSSlJKUkpRSjFGEEYxR
+nNOc04xRjFGUUpSTjFKEEXvPe8+Dz3uOc0xrDHMLc0x7C2qJYohqiGqIYkdiBmpH
+ckhyR3JHcoicka0UrRWtFaTUrRa1VrVWpNOk1KUUlJKUk72XlJOc1aUWlJOdFIyT
+fBGU1IQSnRW1mIxSvZi92cXZxdmtF2JIxQ+8ybzJvIm0iKxIpEqcDoNLewp6iYLK
+m4+j0KvQq9Cbj7UVrVa1V72ZtZm1WJyRlA+UUKzUtVVzDTiDSQRJBEkESUVJRUEE
+WcdZx1nGWcZiB2JHYkdiiFIIEEIIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+jFGUkpSSlJKUkoxRhBCEUZzTnNOMUYxRjFKUkoxRhBB7z3uOe897TWsLastzC3ML
+cwtqiWJIaohqSGIHWgdiR2qIakhqSHJJnFKlFXvQjFKUk5zUe9Cc1JSTlJOEEoxS
+nNS1VpRRpNKckKTRnJKc0pyTpNStFK0VvZe9V72YvZi92cXYjBCTzr0QvMq8ybSJ
+rEikB5QJk416ynrKckh6SZtOo5Cj0JuPk06LDaRRrVW1mLWYrZilFpTTnNSlFa0W
+aw4wg0kFSQVJBEkFQMNZhVnGUcVRhVHFUcVRxloGWgdaRznHCEEAAQgBCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAYxRlJKUkpSSjFKMUYQQhBCck5yTjFGMEYxSlFGMEYQQ
+e897j3uOc01qy2rLcstzC3MLYoliSGqIakhiR2IGakdyiGpHakdqiZySpRWUk6UV
+lFOtVqTVtVelFa1WrZa1l62WtVa1VrWXvZe9l72XvZe1lrVWpRSlFJzUrVatVr2Y
+vZi92GMMvRW9D7zJvMm0iKxHpAabyItLesl6iWnHcgiTDZuPm4+bj5NMiwuTTKPO
+tVW1l7VXrRaUlKUWpRalFnNPMIJAw0DDQMNAw1GGWcdRhklESURJhFHFUcVaBloG
+WkdaBzmHCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAGMUZSSlJKUUoxRhFCEEIQQ
+lJOUkoQRhBGMEYxRhBGD0HuPe457jnNNYstii2rKcwpyymJIYkdiSGJIYgdZx2IG
+aohqR2pHcomcUa0VrRWtVbVWtVa1VbVWtRWtFKTTrVSck60VnJOlFYxSnRWMUqUV
+e9GMk2uQhJR0EZzVpRa9mL2YvdhSitWVxQ+0ybSIrEekR5wGk8iDC3KJckhhhmnH
+goqbTZuOm016iIrJkwmLCZMKpFCtFaUVjFSk1pzVnNVrTzCDOIM4gziESUVZx1GF
+SUVJRUlFSUVJhVGGUcZZx1oHWgdaBzFFCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgB
+jBGUUpRSlFKMUowRhBCEEJyTlJOEEYQRhBGMEYQRg897jnuNe45zDWLKYopqy3MK
+cspiSFoGYkdiSGIHWcZiB2pHakdqB3KJnFGc03vQlJJ7z5zTlJKMUmtOhBJjTpzU
+hFGdFIQRrRaMEaTVe9CdFXwRlNRz0YyUhBKc1bVXvZi9mL2YnJS9mLUQtImsiKyH
+pEecBpPKgwxqimpIWYZhRnoIgkqSzIKLeoeKyYKIekh6R3pIisqLjYPOjA97znuN
+awswwzCDMII4w1GGSUVBRElESUVRhUmFSYVRxlHGUcZaBloGWgdRxykFCAEIAQgB
+CAEIAQgBCAEIAQgBCAEIAYwRjFKMUoxSjFGMEIQQhBCUk5SSjFGEEIQQjFGEEHvP
+e45zTXtNcwxiimKKaopqymqJWkhaB2IIYkhiB1nGWgdqSGpHakdyyZxRlJNazYxS
+a06MU4yUjJNrkHwRfBGlFZSTrVaMUqUVpRWtFqUVtVetFrVXtVe1V7WYtZi1l7WY
+tZi9mLWYtZi1EqyOpE6kTZwNlAyTznsLWgdRxlFFUQRpx3oIcchxx4JIgol6B2oH
+YYVqBnJGckZyh3qIe0yDTnLMQQU4xDjDUUVRRUkESUVJRVGGUYZRxlHGWcZRxlHG
+UYZZx0nGUgdJxxjDCAEIAQgBCAEIAQgBCAEIAQgBCAGEEIxRjFKMUYwRhBGD0IPQ
+lFKUUoQRg9CD0IwRhBCDz3uOc01zTWsMYopiiWrKaspiiWIIWgdiCGJIWgZZxmIH
+ckhyB2nGekicUpSTe9Gc1ZzVrRalFaUVpValFq1WrVa1VrVWtVe1VrVWtVa1VrVW
+tVa1Vq1WrRWtFa0VrNSk1KTUpNSk1KTUnJSUk5RTjFKMEYPQg9BzTlHHOUU5BEiD
+UQRpx2oHacZySHIHacZZhVmFYcZhxmoGagZqBmoGagdiB2IHYcdZx1nHWcdZx1oH
+WcZRxlHGUcZRxlHGUcZRhVGGUcZRxlHGUcdJxxBCCAEIAQgBCAEIAQgBCAEIAQgB
+hBCMUYxRjFGEUYQQe9B70IxSjFKEEXvQe9CD0IPPe45zTWsMcw1qy2JJYoliiWqJ
+YkhaB1nGWgZiB2IHageCiIrJisl6B3IGnFKs1K0VrRWtFa0VrRWlFa0UrRStFKzU
+pNSk1KTUpNSk05yTnJOlFZzTlJOUk5SSlJOUk4xThBKEEXuQhBOEUnPQfBJz0XOQ
+c9BjDYPRg9BaSjlFKQQwg0DEUQVhh1mGYcdZx1mGSURRhVGEUYVZhVmGWcZhxmHG
+WcZZxlnGYgdiB2IHYgdiB1nHWcdZxlnGWcZRxlHGUcZRxlHGUcZRxlHGUcc5hghB
+CAEIAQgBCAEIAQgBCAEIAYQQjFGMUYxRhFCEEHvPe8+MUYxRfBB7z3vPg897zntO
+a0xiy2sLYspaSVpIWkhiSFoHUcZJhVnFekeCR4pIkomSyZLKegdxxpxRpJKckpxR
+lFKUUZQRlFGUUZRRlFKUUpRSjFKUkowSlJOUk5STpRWUlFtOa5BjT2uQc9Bz0UtO
+W5BDDWwRfBNjT3PRc9Jz0nvSYw6D0YQRYw1BxzFFKMQ4gziDUQVRRVFFUUVJBEkE
+SUVJREmFUYVRhVGFUYVRhVGFWcVRxVGFUcVRxlnGWcZZx1nGWcZRxlHGUcZRxknG
+SYZRhUmFSYVJhknHQgchBAgBCAEIAQgBCAEIAQgBCAGEEIxRjFGMUYQQg9B7z3vP
+jFGMUXvPc45zjnOOa01rDGKLWklaSVqJWkliimqKaopyiWpIeoiKiYrJisiKiJMK
+kwqTCoKJacackZySlFGMUoxSYw1rT2MOa09z0GNOa49rkGNOe9Bzj5STlJOUk6TU
+lJRrkXPRa9F70oxUfBN8EnwTfBOEVIxUhFOMU5RTjFOME4QThBKMEnuQYsxBhzkF
+OMM4g0DESQRAxEEEOMNBBDjEQQRBRElESURJRElEUUVJREEEQURBRElESYVRhVHG
+UcZRxlHGUcZRxlHGUcVRxVHFScVJxUmFSYZJhkmGQYYYgwgBCAEIAQgBCAEIAQgB
+hBCMEYwQhBCD0IPPc49zTXuOe49zTmtNYwxay2MMawtrC3NMc0xqymKIaol6iYKJ
+ismKyYrKkwqTCpMKgomKyZLLkwuCiWnHnJGckowSjBKEEkJLW05bDWuQdBFr0HwR
+e9F8EoxThBKUk5STlJOc1ZyUlFOUU5RTnJSclJyUnJSc1ZzVpNWk1pzWhBJ8UpVX
+fFNzkJSUnJSUU4QRYoxBhyjEOIQ4g0DEQMM4wzDCOQMwwzkEQQRBBEEEQQRJBElE
+QQRBBEEEQQVBRUFESYVRxlHGUYZRxlHHUcZRxlHGUcZRxlHGUcZJhUmFSYVJhkGG
+OUYQQggBCAEIAQgBCAEIAXNOhBCEEHvPc45zjoPPc45zjnOOc457z3OOa01zTWsM
+YstiymqKaklySIJIgomKyYrJismSypMKkwqTCoqJgomKiYrKckhhxpySlJKMUYxR
+hBKEEYQRhBGEEYxSjFKUU5SUlJSclJyUnNSc1aTVrRatFq0WrRatVq1XrVetV61X
+rVetV61XrVelF3PRbFKVmHSTa4+MlJzVlJSMEnuQUck5BEEFOIM4gziDMIMwgjCC
+MII4wzkDOQM5BDkEQQQ4wzkEOQQ5BEEEQQVJREmFUYVRxVHFUcZRxlHGUcZRxlHG
+UcZRxlHGSYZJhkmGSYVBhUGFKUUIQQgBCAEIAQgBCAFrTYwQjBCEEHuOawyDz3vP
+c45rTWMMc01zTWsMYstiy1qKakhyCHoHgkeCiIKIkwqKyZLKksqSypLKisqCiXpI
+ekl6SWnHYYacUZySnJKck5yTnJSc1JzVnNWlFaUVrRatFq0WrRatFrVWrVatVq1W
+rVatVq1XrVetV61XrVetV61XrVetV61XpVdz0WxSlVd8lGtPjJOclZSUjFOEEmMO
+MUVBRjjEMIIwgiiCMIIogjCCOMMwwzjDOMM4wzjDOMM4wzjDOMM5A0EESYVJhUmF
+SYVRxlHGScZJxlHGUcZRxlHGUcZJhkmFSYVJhUmFSYVBhkGGKQQIAQgBCAEIAQgB
+Yw17z4PQe89zTWMMc45zjnNOYwxay2sMawtqymqJakhqB3IHekiCSIKIismCSXpI
+goqKy4rLioqKioqKgklxx2nHacdRRVmGpA+bzpPOpFGs1aUVrRWtFa0VrRWtFq1V
+rVatFq0WrRatFq1WrVatVq1WrVatVq1WrVatVq1WrVatV61XrVetV6VXc5FsEpVX
+hNRjT4RTnJSUlIxThBJ70UHIQYY5RTDEKEIoQShBMIIwgjCCMIMwgzDDMMMwwzDD
+MMMwwyjCOQRBREFEQURJhUmFScZRxkmGUcZRxlGGScZJxknGScZJxkGGSYVJhUmG
+QYZBhjlGGMQIAQgBCAEIAWLMc457z3uOa0xay2tMc01rDGLLWopiymJIYkZqR3pI
+ckdpxmnGekiCyYrKgolpxnJIgsqCyoKKgomCiXpIacZhhVFFOIJZRorKiomSiZsL
+pFGk1KTUrRSk1aUVrRWtFq0WrRatFq0WrRa1Fq0WrVatV61WrVatVqVWrVatVq1W
+rVatVq1WrVatFnuQc9GNFoSUYw58EpSUjFOMEoQSg9FSS0oKOUYxBSiEIEIgQiiD
+KIIogiiCKIIggiiCKIIogiiCMII5BEEEQQRBRUmFSYZJhlGGUcZRxknGScZJhkmG
+SYZJhkmGSYZJhUGFSYZJhkGGQYZBhTmGGIMIAQgBCAFay2tNc45zTWMMWopjC2ML
+YwtSiVJIUgZZxmoGcgZyR3KIgoh6SHIHgomKyoKKekhhRWnHcghyCHoIeghxyGGH
+SQU4gzBBWUWCSIqJkomSypuMpJOk1KUVrNWtFa0VrRWtFa0VrRWtFa0VrRWtFa0V
+rRWtFa0VrNSsUaRQpA+kD5vPpFGlFqUWpRZ70WOQfRaMlFsNc9CUk4xTjBKEEnvR
+Wo1ajEGHOQUxBCjDIEIgQiiCKIIogiiCIIIggiCCIIIowzkEQQRBRUFFQYVBhUmF
+SYVRhkmGSYZJhkmGSYZJhkGGQYZBhUGFQYVBhUHFSYZJhkGGQYY5hjFFEIIIAQgB
+WoprDHNNawxailJJWolailqJUghJxlHGWcZiBmIGagZqBnJHckhySHJIeomCinpJ
+WYVhRWGGaYZphmmGaYZRRTiCKAE4gnGGgkiKSZKKkoqTDKQPrJGckZRRpNOk1KTU
+pNWk1IxThBKUlIxSlFKc06UVrRWtFaSTowqjCqMKmwqbC6STpRalFp0WhBJzkJST
+lFJizHKKcklySXqLe01rDFJJQccxBCCCGEIYQRhBIIIgASBBIEEgASBBIEEoQSiC
+OQQ5BDEDOQM5BDkEQUVBRUFFSYZJhkmGSYZJhkmGSYZBhkGGQYZBhUGFQYVBhUmG
+QYZJhkGGQYY5RjEFCEIIAVJKYsxqzGLLWklSCFJJUklKCEmGSYVRxVHFWcVZxmHG
+YcZqBmoGagdqB3IHckhySHJHagdqCGHHYYZhRlmGOMMgACiCWUZpx3oJgkqKiorK
+m01qCEkFUYZJh5QQpNStFaUVnNWEEnPRjJR8EoQSnNSlFaUVpRalFYOQg4+Lj4uP
+g46cUJwQi8+DjWrLYkliSVoHYcdph2mHYUZZRlFGQQUogxhBEAEQAQgBCAEIAQgB
+CAEQARABGAEYARgBKII5AzDDMMMxBDDDMQQ5BTkFOUVBRUFFSYVJhUmFSYVJhUmF
+SYVBhUGGQYZBRUFFQUVBhUGFQYVBxjmGQYY5RjEFEEJSSWKKYotiilIISchKCEnH
+QcZJRUlEUYRRhVmGWcZZxmIGagZiBmoHagdqB3JHckh6iHqJeol6iXKKYghBBTCD
+OMNZRWmGaYd6CHoJgkqKy5LMcglJyFpKSciDz5zUpNSk1JyTlFKMEIxRi9CDjouN
+g02DDHLLaopiCVoJWgpqi2KLYsx7j4QRjBKUU6UWpRWEEVmGaUZpRmEGUQVIxTjE
+MMQgghhBEAEQAQgBCAEIAQgBCAEIAQgBEAEgASiDKIMogyjEKMMxBDEEMQQ5BTkE
+QUVBRUFFQUVJRUFFQYVBhUGGQYY5hUFFQUVBRUFFQUVBhUGGQYZBhkGGQUY5RSkE
+UghaSVqJWkhJx0mGScZJhUFESURRRFFEUYVZhVnFWcZiBmIGagZqR3JHckdySHJI
+eol6iXrJesl6yXrJWcU4wVFEacZxxnHGegeCSYpKist6CXpJcspiiUGFYgdySHpI
+cghpx1nIYgliSmqLYsxrDXvQe9B70ZSUnNWclJRSpRWMUoxSpNWtFaTVpNWtV6UV
+cs1ZBllGWUZZRlFGSMVAhDCDIEIgQhgCEAEIAQgBCAEIAQgBCAEIAQgBGAIggyiD
+KIMogzDEMMMwxDDDMMMwxDEEOQQ5BTlFQUVBRkGGQYZBhkGFOUU5RTlFOUVBRUFF
+QUVBRkGFQUVBRTlFOUU5RUnHUgdSCFHHSYZBhUFFOURBRElEUURRhVGFWcVZxmnH
+agdqB3JHckdyR3KIeol6iHqIesmCyYLKesqCynrJeolySHIHegeCSHoHegiKi3pK
+cklAwygBKAE4g2FFacd6CHIIagiL0IxRjBGEEIPQg9Cck4wSjBKclKTVnJOMUqUV
+jFKMUqTVrRak1aTVrVelFWKMSMVJBVFFWUZRRkDFOIM4xDDDIEIQARABCAEIAQgB
+CAEIAQgBCAEIARgBIEEgQSiCKMMowyjDKMMogyjEKMQxBDEEMQQ5RTlFQUVBRUGG
+QYU5RTlFOUU5RTlFOUY5RTlFOUU5RTlFOUU5RTlFOUVBh0nHScdJx0GGQUZBBUEE
+SURJRVGFUYVZxVnGYcdiBmoHakdyR2pHcohyiHKIeol6yYLJgwmCyYLKgsqCynrK
+gsmCyXqIgoiCiIKJekh6SWnHKAEgADBCWQRxhnnHeceCCGnIg46MUIwRjBCD0IPQ
+nJOMEYwRnJSk1ZyUjFKk1YxSjFKc1a0WpNak1bVXpRZjDkCFSMRIxEjEQMQ4QkDD
+UYVRRTjEIAIQAQgBCAEIAQgBEAEQARAACAAQARgBIEIggiCDIIIggiiDKIMowyjD
+KMMowzDEOQQ5RUFFOUU5RTlFMUQ5RTlFOUU5RTlFOUU5RTlFOUU5RTlFOUQxRDFE
+QYZJxknGScZBhUFEQQRBRElEUYVRhVnGYcZhxmHGYcZqBmoHagdqR3JIckhyiHrJ
+esmCyoLKgsp6ynrKesp6ynrKgsmCiIKIgoiCiXpIcglJBSAAKAFAg1kFaUVpRXoH
+gkiKiYLJjBGMEYQQe9CD0JSTjFKEEZSTnNSUk4wSpRWMUoxTnNWtFqUVnNStVqUW
+hBIwQziEOIQ4gzBCKAFRBVFFUUVJBCiCEAAIAAgBCAEQARABCAEIAQgBCAEYAiCC
+IIIggiiDKMMowyCDIIMogyjEKMQpBDEEMQQ5RDlFOUU5RTlFOUUxRTFEMUQxRDFE
+MUUxBTEEMQQxBDEDMQQxBEGFScZJxkmGQUQ5BEEESQRRRFGFWcZZxmHGYcZiBmIG
+akdiR2pHakdyR3JIcolyyXrJewp7CnsKesp6ynqJeomCiYKKgol6iXpJeklyCWGH
+KEIgAChCQINIg1EEacd6CHoIgkh6CIvPjBGEEYPQe9CUk4xShBKUk5zUlJOMUqUV
+jFKMUpzVpRalFZzVrVelFpzWQckwgzCDKEIgASABQMRAxUkFQMUwgxABCAAIAAgB
+CAEIAQgACAAQARABGAIYQiCCIIIggiCCIEMggiCCIIMggyCDIMMgwyjEMQQxBDEF
+MQUxBTEFKQQxBDEEMQQxBDEEKMQxBDEEMQQxBDEEMQRBRUmFSYVJhTkEOQRBREmF
+UYVRhVmFWcZZxmIGYgZiB2IHYghqR2pHckhySHqJeol6yXrKewp6ynrKesp6ynKJ
+eol6iXqJekhySHJIaghBBSABIAEoAjBCQINphnHHccd6CIIIeciDTowRhBCD0HuP
+lJOMUoQSlJOc1JSThBKk1YxTjFKc1aUWpRWc1a1XpRak1aUWSkoggxhBGAEYADCD
+OIM4wzjDMIMYQRAACAAIAQgBCAEIAQgBGAEYARgBGAEgQSCBIIIgQhhCGEIYghiC
+GIIYghiDIMMgxCjEKMQpBCkEKQQxBDEEMQQpBCkEKQQxAzEEKMMowyjDKMMpAzDE
+OUVBhkGFQURBA0EESURRhFGFUYZZhlnGWcZhx2HGYgdqB2pHckdySHJIckhyiXqJ
+eol6iXrJesp6ynrJeslyiXJIckhyCHIIcghpx1mGMIMYARgBIAEwQllFYUVhhmnH
+ccdxyGmHe06MEYwRe9B70JSTjFKEEZRTnNSUk4RSnNWUU4xTnNWtVp0VnNWtV6UW
+nNalV6VXlNVrkUILMUcwxDCDMIMwgyiDGAEQAAgBCAEIAQgBCAEIARgBGAEYARgB
+GAEYQRhBGEEYQRhBGEIYQhhCGIMYgyCDIIMggyjDKMQoxCjEKMQoxCjEKMQowyjE
+KMMowyjDKMMowzEDKMMowzlFQYVBREEDQQRJREmEUYRRhVGGWYVZxlnGWcZiB2IH
+YgdqCHIIckhySHJIcolyiXKJcolyiXLKcolyiXKIakhqSGpIagdqB2oHYcZJBCBC
+GAEYASABUQVhhllFWUVphmnHYUZRRoPPjBGMEXvQe4+UkoxRhBGMkpzUlJOEEpzU
+jJOMUpzUpRac1ZSUpVelFpzVpVelFp0VlJSc1ZzVSgooQihCKEIgQhgBEAEQARAB
+CAEIAQgBCAEYARgBGAEYABgBIEEYQRhBGEEYQRhCGIIYghiCGIIggyCDIIMoxCjE
+KMQgxCDEIMQoxCjEKMMowyjDKMMowyjDKMMowyjDKMM5RDlEQURBREFESURJRElE
+UYVZhVnFWcZZxlnGWcZZxmHGYgdiB2oIakhySHJIcklySGpIaklyiWpJcklySHJI
+aghqB2HHYcdhx1FFMIIgQiABGAFIg1EFWUZZBVlFWUZZRlEFWciMEYQRhBF70HOP
+lJKMUYQRjFKclJRThBGUlJRThBKUlKUWnNWUlKUWnNWMlJzWnNWUlIxTlJOMU0pK
+GEIgQiBCGEEQARABEAEQABABEAEIABABEAEYARgBGAEQARgBGAEYARhBGEEYQRhB
+GEIYQhhCGIMYgyDDIMMgwyDDIMMgwyDDIMMgwyDDIMMgwyDDIMIowyjDKMMowyjD
+OUQ5REEEQURBRElESYRRhFGFUYVZxlnGWcZZxlnGWcZhxmHHYgdiB2IHakhqSHKI
+cklqSWpJakhqSGpIYgdiCGIHYgdhx1nGUYZAxCBBIEEgQTiDSQRRBFEFUQVRBVEF
+SQVBBWsNg9CMEYQQe9Bzj4xThBKD0YxSlJSUU4QSlJSMU4QSlFSc1ZyUjFOc1ZSU
+jFOUlIxThBJ70XvRe9BSixhCGEEYARABEAAQABAAEAAQAQgBEAEQARgBGEEYQRAB
+EAEQARABEAEQARBBEEEQQRhBGEEYQhhCIIMYgxiDGIIggxiDIIMggyCDIIMggyCD
+IMIgwyDDIMMgwyDCIMIgwzlEQQRBBElFSURJREmEUYVRxVGFUcVRxlHGWcZZxlnG
+WcZZxlnHYgdiB1oIaklqSWpJYkhiCFoHUcdZx1nHWcdZx1nGWYZZhlFFKEIgAShB
+SQRRRUEESQRJBUkFSQVJBUEFUghzjoQQhBGEEHvQc4+MUoQSe9CMUpSTjFJ70YyT
+jFJ70YxTlNSMU4QRjJOMUnvQhBF70GuOYwxjDFrLUkkggxgBGAEQABABEAEQARAB
+EAEQARAAEAEYARhBGEEYARAAEAAQARABEAEQARABEEEQQRBBGEEYQhhCGEIYQhiC
+GIIYghiCIIMggyCDIIMggyCDIIMgwyDDIMMgwiDDIMM5REFDSURJRElFSYRRhVGF
+UcVRhlGFUYVZhlnGWgZZxlnGWgZZxlnGYgdaB1oHYkhaSGIIYghZyFHHScdRx1HH
+UYZRRVFFUUUwgxgAIEFBA1FEWYZJBUjFSMRAxEDEQMRBBWsMe06EEIQQhBF70HOP
+jFKMEXvQhBGMU4QSe9GMEoPQc4970YxShBF7j4QQe45rDWtNYwxailJJUklSCEoH
+QYYYQRgBEAAQARABEAEQARABEAEQARABGAEYQRhBEEEQAQgAEAEQARAAEAEQARAB
+EAEQQRBBEEEQgRhCGEIYQhiCGIIYghiCGIIggiCCIIIggiDDIMMgwyDDIMMgwyDD
+SUNJQ0lESURRRFGFWYVRhVHGUYVRhVnFUYVRxVnGWcZZxlnHWcdRx1HHWghRx1HH
+WgdaB1nHWcdZx1nHUcdRxlGGSQVBBTjEIAAoQEDDUURRRlmGUUZJBUDEQMRAxEDE
+YsxrTXOOhBCEEXvQc49rToQRg9Bzj3vRjBF70HNOe9BrjmMNa057z3NNYstrDGLL
+UklaSVpIUgdRx1IHUcZSB1IHQYUYQRBBEAEQARAAEAEQARABEAEQARgBGAEYARgB
+EAAQABABEAEQARABGAEQARABEAEQARBBEEEYQRhCGIIQQhBCGEIYQhiCIIIggiCC
+IIIggyCDIIMggiDCIMIgw0FESURJRElEUUVRhFmFWYVZhVGFUYVRxlHGUcZRxlnG
+WcZaBloHWgdiB1nHWghRxkmGUcdRxlHGUcdRxlGGUYdJhjjEKEIYACABMIJBBElF
+UYZRx1nISUY4xDjEOMRay2tNa01zTnvPe9Bzj2tOYw170HPPa01zjnvPc45jDGtN
+YstSSlqLYsxaikoIWkhSB1HHWgdSB1oHWgdaB1oHWgdaB1IHQYYgQhABEAEQARAB
+EAEQARAAEAAYARhBGEEQARABEAEQARABEAEQARABEAEQARABEAEQQRBBEEEYQRBB
+EEEQQRBCGEIYghiCGIIYghiCIIIggiCCIIIggyCDIINJRElEUYRRhFGEUYRZhVGF
+UYVRxVGFUYVRhlHGWcdZx1nHWcdaB2IIYkhaR1HHUcdJhklFSYZJhkmGSYZJRUmG
+SYYgQhgBIEIwgziEQMRJBVFGWYdZyElGMMQwxFJJc45rTWMMa017jnOOa01jDFrK
+a01rTVrLYsxzTWLLUkpailJJScdJx1oHUgdRxlnGWcdaBloHWgdaB1oGWgZaB1IH
+UgdRx1HHSccogxABEAEQARABCAEIAQgAEAEYARhBEAEIAQgBEAEQARABEAEIAQgB
+CAEIAQgBEAEQARBBEEEQQRBBGEEQQRhBGEEYghiCGIMYghiCIIIggiCDIIMggyCD
+SURJREmFSYVRhVGFUYVRhVGFUcVRxVHGScZRxlHGUcZRxlHHUcdZx1oIWkhaB1HG
+UcZJhklFSUVRhlGHSUZJRkEGGAEgAjjEQQU4xDjEQQVJRlGHUYdBBSiDQYZqy3NN
+Ystai2LLcw1rDGLLWopSSWLLYstSCVJJWopSSUHHScZRxkmFSYZRxlHGUcZSBlIG
+UgZSBloGWgZSBlIGUgZSBlHGUcZJxknHScYpBAgBEAEQARABEAEQARABGAEYARAB
+EAEQARABEAEQAQgACAEIAQgBCAEIAQgBCAEIAQgBCAEIARABEEEQQRBCEEIYQhiC
+GIIYghiCGIIYgxiDIIMgg0lESURJRElEUUVRhVGFUYVRhVGGUcZRxlHGUcZZxlHG
+UcZRx1HHWcdRx1HHWcdZx1HHUcdJhkmGSYZJhkmGSUZBRSiDMIJBBElFQUU4xEEF
+SUVJRklGOQU5hlJJWopjDFqKUklaimLLYotSSkoIQchSSVJIQcZJxVHGUcVJhUmF
+UYVRxVHFUcVRxlHGUcZSBlIGWgZaBlIGUcZRxlHGUcZRxlHGUcZRxknGQcY5RSCC
+EAEQARAAEAAYARgBEAEQAQgBCAEQARABEAEQARABCAEIAQgBCAEIAQgBCAEIAQgB
+CAEQARABEEEQQRhBGEIYQhhCGIMYghiDGIMYgyCDIINJRElESURJRFGEUYRRhFGF
+UYVRhVGFUcZRxlnGUcdRxlHGUcdRx1HHUcdRh0mHSYdJx1HHUcZJxkmGQYVJhkFF
+QUU4xDCDQQVRh0mHOQQwxDkFOQVBBTkFUklSCVJKWotSSUoISghSSVJISgdBxkGG
+SYVJhUmFSYVJhVGFSYVRhVGFUYVRxVHFUcZRxlHGUcZRxlHGUcZRxlHGUcZZxlHG
+UcZRxlHGScVJxUnGScZBhijDEAEIAQgAEAEQARABEAEQAQgBEAEQARBBEEAQARAB
+EAEIAQgBCAEIAQgBCAEIAQgBEAEQARBBEEEYQRhBGEEYQhhCGEIYghiCGIIggyCD
+SURJRFFEUURRRElESYRRhVGFUYZRhlHGUcZZxlHGUcZRxlIHUcdRx1HHScdJhklF
+SUZJhkmGScZBhUGFQUVBRUmGQUY4w0FFUYdJhzkFMMQ5BTjEOMRJx1JISghKCFJJ
+Sgg5x0HHScZJhkFFQURBRElESYRJhEmESYRJhUmFUYZRhVGFUcVRxVHFUcVRxVHG
+UcZRxlIGUcZRxlHGUcZRxlHGScZJxknGScZJxkGFQYU5hSkEEEIIABABEAEQARAB
+EAEQARABEAEQQRBBEAEQARABEAEIAQgBCAEIARABEAEQAQgBCAEQARBBEEEQQRBB
+EEEQQRBCGEIYghiCGIIYgklFSUVJRUlFSUVJRUlFSYVRhlGGUYZRxlHHUcZRxlHG
+UcZRx1HHUcdRx1HHUcZJhkFFQUVBRUlFSYZBRUFFQUVRx1HHQMRJBVmHUYdBBTjE
+MMQwwzkFSglJyEGGQcZBxjmEOURBREFEQURJRElESURJREmEUYRJhEmESYVJhUmF
+UYVRhVGFSYVJhUmFUcZRxlHGUcZRxlHGUYZJxknGScZJxknGScZJhkmFQYVBhUGF
+QYVBRDEEIIIQARABEAEQAQgAEAEQARABGAEQQRABEAEQARABEAEIAQgBCAEIAQgB
+CAEIAQgBCAEQARBBEEEQQRBBGEEYgRhCGEIYghiCGIJJRElESURJRElESURJREmF
+UYVRhVGFUYVRxVHGUcZZxlHGUcdRhlGGUYZRhlGGSYZJhklGQUVBBEFFQUVBRElF
+WcdZx0EESQVRh1GHQUYwxDDEMQRBhkmGOUQxAzEDMQMxAzkDOQNBQ0FEQYRJhEmE
+SYRJhEmESYRJhEmFSYVJhUmESYRJhEmFUcVRxVHFUcVRxVHFSYZJxUnFScVJxUnG
+SYZBhkGFQYVBhUFEQYVBhUFFOUQ5RDEDIMMIAAgBCAAIABABEAEQQRBBEEEQQRAA
+EAEQARABCAEIAQgBCAEAAQgBEAEQARABEAEQARBBEEEQQRBBEEEQgRhCGEIYQhhC
+SURJhEmESYRJhElESYVRhVGFUYRJhUmGSYZJhlGGUYZRh1HHUcdRhkmGSYVJhUmF
+SYVJhUmGOQQ5BDkFQQVRhlnHYcdJBEEESUZJh0FGKMQowzDDMMMwwjDDMMMxAzEE
+MQMxAzlDOQM5QzlEOURBREFESURJRElEQURBREFEQURBRUFFSYVRhVHFUcVRxUnF
+ScVJhUmFSYVJhUGFQYVBhUGFQYVBhEGFQYVBhTlFOUQ5RDlEMUQxBDEEKMMQAQgA
+CAAIABABEEEQQRBBEEEQARAAEAEQARABCAEIAAgBCAEIAQgBCAEQARABEAEQARAB
+EEEQQRBBEEEYQRBCGEIYQklESURJREmFSUVJRUmGSYVJhUlFSYVJhUmFSYVJhknG
+ScZJx0nGSYZJhkmFSUVJRUlFSUVJRUEEOQQ5BElGWYdZx2HHQQVBBVFHSYdBRSjD
+KMMpAyjDMMMwwzDDMQMxAzkEOQQ5AzkDOQQ5BDEEMQMxBDEEOQQ5RDkEQURBRUGF
+QYVJhUmFSYVJhUmFSYVBhUmFSYVJhUGFQYVBhkGFQUVBRUGFQYVBhDmEOUQ5RTlE
+OUQ5BDkEMQMxAykDKQMQAQgBEAEQARBBEEEQQRBBEEEQARABEAEQARABCAEIAQgB
+CAEIAQgBCAEIAQgBCAEQARABEAEQQRBBEEEQQRiCGEJJRElESYRJRElEQURJhUmF
+SYVJhUmFSYVJhkmGSYZJhkmGSUVJhUmFSYZJhUmFSUVBRDkEOQQxBDjEOQRRhlmG
+WcdZx0lFQQRJRUFFOQQowyjDKMMowzDDMMMwwzEDMQMxAzEDMQMxAzEDMQMxAzEE
+OUQ5RDkEOQQxBDlEOUVBhUGFQYVJhUmFSYVBhUGFQYVBhUGFQUVBRTlFOUU5RTlF
+OUUxRTEFMUUxRTEEMQQxBDEEMQQxBDEEMQQpBCkDIMIIAAgAEEAQQRBBEEEQQRBB
+EAEQARABEAEQARABCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBEEEQQRBBEEEQQRhC
+SURJRFFESURJRElFSUVJRUlFQUVJhUmFUYVJhUmFSYVJhUGFQUVBRUFFQUU5RTkF
+MQQxBDDEMMMwwzkESYZRx1HHUcdBRjkEOUU5BTDEMMMowyjDKMMowyjDMMMwwzDD
+MMMxAzEEMQMxAzEEOQQxBDEEMQQxBDEEOQQ5RDlEOUQ5RDlEOQQ5RDlFOUU5RTlF
+MQUxRTlFOUUxRTFFMUUxRTFFMUUxRTEFKQUpBCkEKQQpBCkEKMMowyjDKMMgwyDD
+GIMIARABEAEQARABEAEQARAAEAEQARABEAEQARABEAEIAQgBCAEIAQgBCAEIAQgB
+CAEIARABEAEQQRBBGEEQQUlFQURJRUlFSURJRElFSUVJRUmFSYVJhUmFSUVBRUlF
+QUVBRUEEOQQwxDDEMMQwxDDDMMQwwzDDOMM5BElGUYdRx0mHQUYwxDEEMMQowyjD
+KMIowijCMMMwwzDDMMMwwzDDMQMxAzEDMQMxAzEEMQMxBDkEOQQ5RDlEOUQxRDlE
+OUQ5RTlFOUU5RTFFMUUxRTFFMUUxRTFFMUQxRTEFMUUxBSkEKQQpBCkEKQQpBCDE
+KQQgwyDDIMMgwyDDIMMgwhiCGEIQARABEAEQARABEAEQARABEAEQARABEAEQARAB
+CAEIAQgBCAEIAQgBCAEIAQgBEAEQARABEEIQQRBBEEE=
+END m9
+frame   127 :  a closed book +2.12*  an opened book +0.23   led 255/  0 h1.00 lvl+1.17   MATCH a closed book (cos -0.089)
+frame   128 :  a closed book +2.72*  an opened book +0.41   led 255/  0 h1.00 lvl+1.56   MATCH a closed book (cos -0.086)
+frame   129 :  a closed book +3.01*  an opened book +0.68   led 255/  0 h1.00 lvl+1.85   MATCH a closed book (cos -0.087)
+frame   130 :  a closed book +2.82*  an opened book +0.59   led 255/  0 h1.00 lvl+1.70   MATCH a closed book (cos -0.091)
+frame   131 :  a closed book +2.28*  an opened book +0.10   led 255/  0 h1.00 lvl+1.19   MATCH a closed book (cos -0.095)
+frame   132 :  a closed book +3.28*  an opened book +0.71   led 255/  0 h1.00 lvl+1.99   MATCH a closed book (cos -0.081)
+enrol     : a closed book, level -0.02, scatter 1.04 (20 frames)
+enrol     : 2 classes, nearest pair 5.28 apart, scatter 1.04 (5.1x), absent beyond 10.56 (2.0 sep)
+            'a closed book' SITS 0.11 SEP FROM THE ORIGIN, which is where a scene identical to
+            the frozen background lands. Presence cannot separate the two, so an empty
+            desk will read as that class. Re-freeze the background ('N') on a scene
+            that is actually empty, or enrol a class that looks less like it.
+frame   133 :  a closed book +3.32*  an opened book +0.25   led   0/178 h0.00 b0.85 lvl+1.78 d0.30   MATCH a closed book (cos -0.087, nearer by 5.28)
+frame   134 :  a closed book +4.25*  an opened book +0.34   led   0/153 h0.00 b0.79 lvl+2.29 d0.41   MATCH a closed book (cos -0.078, nearer by 5.28)
+frame   135 :  a closed book +2.89*  an opened book -0.53   led   0/167 h0.00 b0.83 lvl+1.18 d0.35   MATCH a closed book (cos -0.098, nearer by 5.28)
+frame   136 :  a closed book +0.88  an opened book -1.41   led   0/203 h0.00 b0.90 lvl-0.26 d0.20   MATCH a closed book (cos -0.110, nearer by 5.28)
+frame   137 :  a closed book +1.60*  an opened book -0.96   led   0/194 h0.00 b0.88 lvl+0.32 d0.23   MATCH a closed book (cos -0.089, nearer by 5.28)
+frame   138 :  a closed book +1.97*  an opened book -0.99   led   0/181 h0.00 b0.86 lvl+0.49 d0.29   MATCH a closed book (cos -0.090, nearer by 5.28)
+frame   139 :  a closed book +1.35*  an opened book -1.20   led   0/194 h0.00 b0.88 lvl+0.07 d0.23   MATCH a closed book (cos -0.099, nearer by 5.28)
+frame   140 :  a closed book +1.37*  an opened book -1.35   led   0/189 h0.00 b0.87 lvl+0.01 d0.25   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   141 :  a closed book +1.38*  an opened book -1.26   led   0/191 h0.00 b0.88 lvl+0.06 d0.25   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   142 :  a closed book +1.42*  an opened book -1.63   led   0/179 h0.00 b0.85 lvl-0.10 d0.30   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   143 :  a closed book +0.72  an opened book -1.92   led   0/192 h0.00 b0.88 lvl-0.60 d0.24   MATCH a closed book (cos -0.102, nearer by 5.28)
+frame   144 :  a closed book +0.33  an opened book -2.14   led   0/197 h0.00 b0.89 lvl-0.91 d0.22   MATCH a closed book (cos -0.101, nearer by 5.28)
+frame   145 :  a closed book -0.33  an opened book -2.09   led   0/221 h0.00 b0.94 lvl-1.21 d0.13   MATCH a closed book (cos -0.105, nearer by 5.28)
+frame   146 :  a closed book -0.83  an opened book -2.24   led   0/233 h0.00 b0.96 lvl-1.53 d0.08   MATCH a closed book (cos -0.106, nearer by 5.28)
+frame   147 :  a closed book -0.04  an opened book -2.16   led   0/209 h0.00 b0.91 lvl-1.10 d0.17   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   148 :  an opened book -0.73  a closed book -0.94   led   3/158 h0.14 b0.93 lvl-0.83 d0.14   MATCH a closed book (cos -0.109, nearer by 3.83)
+frame   149 :  a closed book +0.09  an opened book -0.02   led   1/185 h0.09 b0.95 lvl+0.03 d0.09   MATCH a closed book (cos -0.092, nearer by 4.29)
+frame   150 :  an opened book +0.79  a closed book +0.69   led   2/166 h0.12 b0.94 lvl+0.74 d0.12   MATCH a closed book (cos -0.093, nearer by 3.98)
+frame   151 :  a closed book +0.83  an opened book +0.77   led   1/180 h0.10 b0.95 lvl+0.80 d0.10   MATCH a closed book (cos -0.096, nearer by 4.21)
+frame   152 :  a closed book +0.40  an opened book +0.23   led   1/190 h0.09 b0.96 lvl+0.31 d0.09   MATCH a closed book (cos -0.101, nearer by 4.38)
+frame   153 :  a closed book +0.84  an opened book +0.26   led   0/229 h0.03 b0.98 lvl+0.55 d0.03   MATCH a closed book (cos -0.094, nearer by 4.94)
+frame   154 :  a closed book +0.96  an opened book +0.01   led   0/250 h0.00 b0.99 lvl+0.48 d0.02   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   155 :  a closed book +0.97  an opened book +0.05   led   0/251 h0.00 b0.99 lvl+0.51 d0.01   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   156 :  a closed book +0.73  an opened book -0.22   led   0/250 h0.00 b0.99 lvl+0.26 d0.02   MATCH a closed book (cos -0.099, nearer by 5.28)
+frame   157 :  a closed book +0.45  an opened book -0.16   led   0/232 h0.03 b0.99 lvl+0.15 d0.03   MATCH a closed book (cos -0.100, nearer by 4.98)
+frame   158 :  a closed book +0.09  an opened book -0.32   led   0/213 h0.05 b0.97 lvl-0.12 d0.05   MATCH a closed book (cos -0.102, nearer by 4.71)
+frame   159 :  a closed book +0.59  an opened book -0.20   led   0/252 h0.00 b1.00 lvl+0.19 d0.00   MATCH a closed book (cos -0.094, nearer by 5.25)
+frame   160 :  a closed book +0.45  an opened book -0.42   led   0/253 h0.00 b1.00 lvl+0.01 d0.01   MATCH a closed book (cos -0.099, nearer by 5.28)
+frame   161 :  a closed book +0.68  an opened book -0.14   led   0/255 h0.00 b1.00 lvl+0.27 d0.00   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   162 :  a closed book +0.80  an opened book -0.27   led   0/245 h0.00 b0.98 lvl+0.26 d0.03   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   163 :  a closed book +0.90  an opened book -0.06   led   0/250 h0.00 b0.99 lvl+0.42 d0.02   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   164 :  a closed book +0.87  an opened book -0.19   led   0/246 h0.00 b0.98 lvl+0.34 d0.03   MATCH a closed book (cos -0.097, nearer by 5.28)
+frame   165 :  a closed book +1.22  an opened book -0.03   led   0/239 h0.00 b0.97 lvl+0.60 d0.06   MATCH a closed book (cos -0.093, nearer by 5.28)
+frame   166 :  a closed book +1.29*  an opened book -0.07   led   0/235 h0.00 b0.96 lvl+0.61 d0.07   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   167 :  a closed book +1.58*  an opened book -0.02   led   0/227 h0.00 b0.95 lvl+0.78 d0.10   MATCH a closed book (cos -0.092, nearer by 5.28)
+frame   168 :  a closed book +0.92  an opened book -0.36   led   0/238 h0.00 b0.97 lvl+0.28 d0.06   MATCH a closed book (cos -0.101, nearer by 5.28)
+frame   169 :  a closed book +1.13  an opened book -0.16   led   0/237 h0.00 b0.97 lvl+0.48 d0.06   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   170 :  a closed book +0.94  an opened book -0.49   led   0/233 h0.00 b0.96 lvl+0.22 d0.08   MATCH a closed book (cos -0.098, nearer by 5.28)
+frame   171 :  a closed book +0.96  an opened book -0.64   led   0/226 h0.00 b0.95 lvl+0.16 d0.11   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   172 :  a closed book +1.05  an opened book -0.18   led   0/239 h0.00 b0.97 lvl+0.44 d0.06   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   173 :  a closed book +1.11  an opened book -0.36   led   0/231 h0.00 b0.96 lvl+0.37 d0.09   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   174 :  a closed book +1.15  an opened book -0.30   led   0/232 h0.00 b0.96 lvl+0.43 d0.08   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   175 :  a closed book +0.98  an opened book -0.26   led   0/239 h0.00 b0.97 lvl+0.36 d0.06   MATCH a closed book (cos -0.097, nearer by 5.28)
+frame   176 :  a closed book +1.15  an opened book -0.34   led   0/230 h0.00 b0.95 lvl+0.41 d0.09   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   177 :  a closed book +1.19  an opened book -0.35   led   0/228 h0.00 b0.95 lvl+0.42 d0.10   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   178 :  a closed book +1.14  an opened book -0.64   led   0/220 h0.00 b0.94 lvl+0.25 d0.13   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   179 :  a closed book +1.17  an opened book -0.67   led   0/218 h0.00 b0.93 lvl+0.25 d0.14   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   180 :  a closed book +0.79  an opened book -0.75   led   0/228 h0.00 b0.95 lvl+0.02 d0.10   MATCH a closed book (cos -0.099, nearer by 5.28)
+frame   181 :  a closed book +0.35  an opened book -0.84   led   0/241 h0.00 b0.97 lvl-0.24 d0.05   MATCH a closed book (cos -0.101, nearer by 5.28)
+frame   182 :  a closed book +0.29  an opened book -0.79   led   0/245 h0.00 b0.98 lvl-0.25 d0.04   MATCH a closed book (cos -0.099, nearer by 5.28)
+frame   183 :  a closed book +0.40  an opened book -0.46   led   0/253 h0.00 b1.00 lvl-0.03 d0.01   MATCH a closed book (cos -0.097, nearer by 5.28)
+frame   184 :  a closed book +0.67  an opened book -0.44   led   0/244 h0.00 b0.98 lvl+0.11 d0.04   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   185 :  a closed book +0.83  an opened book -0.04   led   0/253 h0.00 b1.00 lvl+0.39 d0.01   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   186 :  a closed book +0.91  an opened book -0.18   led   0/245 h0.00 b0.98 lvl+0.36 d0.04   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   187 :  a closed book +1.10  an opened book -0.48   led   0/227 h0.00 b0.95 lvl+0.31 d0.10   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   188 :  a closed book +1.26*  an opened book -0.34   led   0/226 h0.00 b0.95 lvl+0.46 d0.11   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   189 :  a closed book +0.86  an opened book -0.17   led   0/247 h0.00 b0.99 lvl+0.35 d0.03   MATCH a closed book (cos -0.099, nearer by 5.28)
+frame   190 :  a closed book +0.95  an opened book +0.11   led   0/254 h0.00 b1.00 lvl+0.53 d0.00   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   191 :  a closed book +1.84*  an opened book -0.42   led   0/204 h0.00 b0.90 lvl+0.71 d0.19   MATCH a closed book (cos -0.087, nearer by 5.28)
+frame   192 :  a closed book +1.13  an opened book -0.35   led   0/231 h0.00 b0.96 lvl+0.39 d0.09   MATCH a closed book (cos -0.100, nearer by 5.28)
+frame   193 :  an opened book -0.75  a closed book -2.89   led  20/ 52 h0.40 b0.80 lvl-1.82 d0.40   MATCH a closed book (cos -0.137, nearer by 1.10)
+frame   194 :  an opened book -0.62  a closed book -4.56   led  61/ 18 h0.64 b0.82 lvl-2.59 d0.36   MATCH an opened book (cos -0.107, nearer by 1.44)
+frame   195 :  an opened book -1.13  a closed book -6.27   led 122/  6 h0.80 b0.90 lvl-3.70 d0.20   MATCH an opened book (cos -0.115, nearer by 3.14)
+frame   196 :  an opened book -1.25  a closed book -6.83   led 154/  3 h0.86 b0.93 lvl-4.04 d0.14   MATCH an opened book (cos -0.112, nearer by 3.76)
+frame   197 :  an opened book -0.91  a closed book -6.51   led 156/  3 h0.86 b0.93 lvl-3.71 d0.14   MATCH an opened book (cos -0.107, nearer by 3.79)
+frame   198 :  an opened book -1.44  a closed book -7.16   led 165/  2 h0.88 b0.94 lvl-4.30 d0.12   MATCH an opened book (cos -0.116, nearer by 3.96)
+frame   199 :  an opened book -0.55  a closed book -6.82   led 213/  0 h0.95 b0.97 lvl-3.68 d0.05   MATCH an opened book (cos -0.101, nearer by 4.72)
+background: after 30 frames (frozen, room spread), this room reads  an opened book -0.106 +-0.0045 (COCO -0.151 +-0.0303)  a closed book -0.100 +-0.0036 (COCO -0.159 +-0.0351)
+frame   200 :  an opened book +0.58  a closed book -5.05   led 158/  3 h0.86 b0.93 lvl-2.23 d0.14   MATCH an opened book (cos -0.094, nearer by 3.84)
+frame   201 :  an opened book +1.52*  a closed book -4.14   led 160/  3 h0.87 b0.93 lvl-1.31 d0.13   MATCH an opened book (cos -0.091, nearer by 3.87)
+frame   202 :  an opened book +1.69*  a closed book -3.07   led  99/  9 h0.75 b0.87 lvl-0.69 d0.25   MATCH an opened book (cos -0.097, nearer by 2.60)
+frame   203 :  an opened book +1.84*  a closed book -3.37   led 128/  5 h0.81 b0.90 lvl-0.76 d0.19   MATCH an opened book (cos -0.096, nearer by 3.25)
+frame   204 :  an opened book +1.84*  a closed book -3.11   led 110/  8 h0.77 b0.89 lvl-0.63 d0.23   MATCH an opened book (cos -0.097, nearer by 2.87)
+frame   205 :  an opened book +1.09  a closed book -3.65   led  98/  9 h0.74 b0.87 lvl-1.28 d0.26   MATCH an opened book (cos -0.107, nearer by 2.57)
+frame   206 :  an opened book +1.87*  a closed book -3.13   led 114/  7 h0.78 b0.89 lvl-0.63 d0.22   MATCH an opened book (cos -0.091, nearer by 2.95)
+frame   207 :  an opened book +2.64*  a closed book -2.21   led 105/  8 h0.76 b0.88 lvl+0.21 d0.24   MATCH an opened book (cos -0.087, nearer by 2.74)
+frame   208 :  an opened book +2.28*  a closed book -2.66   led 110/  8 h0.77 b0.89 lvl-0.19 d0.23   MATCH an opened book (cos -0.098, nearer by 2.86)
+frame   209 :  an opened book +1.51*  a closed book -3.59   led 120/  6 h0.79 b0.90 lvl-1.04 d0.21   MATCH an opened book (cos -0.105, nearer by 3.09)
+frame   210 :  an opened book +1.36*  a closed book -3.72   led 119/  6 h0.79 b0.89 lvl-1.18 d0.21   MATCH an opened book (cos -0.101, nearer by 3.05)
+frame   211 :  an opened book +1.47*  a closed book -3.13   led  91/ 11 h0.72 b0.86 lvl-0.83 d0.28   MATCH an opened book (cos -0.098, nearer by 2.38)
+frame   212 :  an opened book +2.51*  a closed book -2.34   led 105/  8 h0.76 b0.88 lvl+0.09 d0.24   MATCH an opened book (cos -0.086, nearer by 2.74)
+frame   213 :  an opened book +3.27*  a closed book -1.49   led  99/  9 h0.75 b0.87 lvl+0.89 d0.25   MATCH an opened book (cos -0.085, nearer by 2.60)
+frame   214 :  an opened book +2.70*  a closed book -2.30   led 113/  7 h0.78 b0.89 lvl+0.20 d0.22   MATCH an opened book (cos -0.098, nearer by 2.94)
+frame   215 :  an opened book +2.22*  a closed book -3.84   led 194/  1 h0.92 b0.96 lvl-0.81 d0.08   MATCH an opened book (cos -0.100, nearer by 4.44)
+frame   216 :  an opened book +2.28*  a closed book -4.17   led 232/  0 h0.97 b0.99 lvl-0.94 d0.03   MATCH an opened book (cos -0.095, nearer by 4.98)
+frame   217 :  an opened book +2.21*  a closed book -4.61   led 249/  0 h1.00 b0.99 lvl-1.20 d0.02   MATCH an opened book (cos -0.096, nearer by 5.28)
+frame   218 :  an opened book +1.68*  a closed book -5.37   led 241/  0 h1.00 b0.97 lvl-1.84 d0.05   MATCH an opened book (cos -0.102, nearer by 5.28)
+frame   219 :  an opened book +0.60  a closed book -5.92   led 240/  0 h0.98 b0.99 lvl-2.66 d0.02   MATCH an opened book (cos -0.112, nearer by 5.09)
+frame   220 :  an opened book +1.03  a closed book -5.95   led 243/  0 h1.00 b0.98 lvl-2.46 d0.04   MATCH an opened book (cos -0.097, nearer by 5.28)
+frame   221 :  an opened book +0.54  a closed book -6.20   led 252/  0 h1.00 b0.99 lvl-2.83 d0.01   MATCH an opened book (cos -0.107, nearer by 5.28)
+frame   222 :  an opened book +0.64  a closed book -5.64   led 216/  0 h0.95 b0.98 lvl-2.50 d0.05   MATCH an opened book (cos -0.102, nearer by 4.76)
+frame   223 :  an opened book +0.35  a closed book -5.22   led 153/  3 h0.85 b0.93 lvl-2.43 d0.15   MATCH an opened book (cos -0.106, nearer by 3.75)
+frame   224 :  an opened book +0.35  a closed book -5.09   led 143/  4 h0.84 b0.92 lvl-2.37 d0.16   MATCH an opened book (cos -0.104, nearer by 3.55)
+frame   225 :  an opened book +0.77  a closed book -4.68   led 144/  4 h0.84 b0.92 lvl-1.96 d0.16   MATCH an opened book (cos -0.099, nearer by 3.58)
+frame   226 :  an opened book +0.54  a closed book -4.76   led 133/  5 h0.82 b0.91 lvl-2.11 d0.18   MATCH an opened book (cos -0.105, nearer by 3.36)
+frame   227 :  an opened book +3.06*  a closed book -0.68   led  53/ 20 h0.61 b0.81 lvl+1.19 d0.39   MATCH an opened book (cos -0.071, nearer by 1.17)
+frame   228 :  an opened book +4.11*  a closed book +1.68*   led  24/ 43 h0.43 b0.78 lvl+2.89 d0.43   MATCH a closed book (cos -0.078, nearer by 0.70)
+frame   229 :  an opened book +2.62*  a closed book +0.80   led  17/ 64 h0.35 b0.82 lvl+1.71 d0.35   MATCH a closed book (cos -0.103, nearer by 1.55)
+frame   230 :  an opened book +1.03  a closed book -1.40   led  24/ 42 h0.44 b0.78 lvl-0.19 d0.44   MATCH a closed book (cos -0.120, nearer by 0.68)
+frame   231 :  an opened book +0.67  a closed book -1.75   led  24/ 43 h0.43 b0.78 lvl-0.54 d0.43   MATCH a closed book (cos -0.108, nearer by 0.71)
+frame   232 :  an opened book -1.04  a closed book -4.42   led  42/ 24 h0.56 b0.78 lvl-2.73 d0.44   MATCH an opened book (cos -0.124, nearer by 0.65)
+frame   233 :  an opened book -1.87  a closed book -5.58   led  52/ 20 h0.61 b0.80 lvl-3.73 d0.39   MATCH an opened book (cos -0.121, nearer by 1.12)
+frame   234 :  an opened book -2.25  a closed book -6.42   led  70/ 15 h0.67 b0.83 lvl-4.34 d0.33   MATCH an opened book (cos -0.119, nearer by 1.77)
+frame   235 :  an opened book -2.73  a closed book -7.16   led  82/ 12 h0.70 b0.85 lvl-4.94 d0.30   MATCH an opened book (cos -0.122, nearer by 2.13)
+frame   236 :  an opened book -2.73  a closed book -6.64   led  60/ 18 h0.63 b0.82 lvl-4.68 d0.37   MATCH an opened book (cos -0.118, nearer by 1.40)
+frame   237 :  an opened book -2.33  a closed book -5.60   led  38/ 25 h0.55 b0.77 lvl-3.97 d0.45   MATCH an opened book (cos -0.113, nearer by 0.49)
+frame   238 :  an opened book -1.80  a closed book -5.53   led  53/ 20 h0.61 b0.80 lvl-3.66 d0.39   MATCH an opened book (cos -0.109, nearer by 1.15)
+frame   239 :  an opened book -2.04  a closed book -6.45   led  81/ 13 h0.70 b0.85 lvl-4.24 d0.30   MATCH an opened book (cos -0.117, nearer by 2.10)
+frame   240 :  an opened book -2.08  a closed book -7.27   led 126/  6 h0.80 b0.90 lvl-4.67 d0.20   MATCH an opened book (cos -0.115, nearer by 3.21)
+frame   241 :  an opened book -2.43  a closed book -7.96   led 149/  3 h0.85 b0.92 lvl-5.20 d0.15   MATCH an opened book (cos -0.119, nearer by 3.68)
+frame   242 :  an opened book -2.58  a closed book -8.02   led 143/  4 h0.84 b0.92 lvl-5.30 d0.16   MATCH an opened book (cos -0.118, nearer by 3.57)
+frame   243 :  an opened book -2.57  a closed book -7.68   led 120/  6 h0.79 b0.90 lvl-5.13 d0.21   MATCH an opened book (cos -0.117, nearer by 3.09)
+frame   244 :  an opened book -2.99  a closed book -6.92   led  60/ 18 h0.63 b0.82 lvl-4.95 d0.37   MATCH an opened book (cos -0.122, nearer by 1.42)
+frame   245 :  an opened book -1.81  a closed book -5.60   led  55/ 19 h0.62 b0.81 lvl-3.71 d0.38   MATCH an opened book (cos -0.104, nearer by 1.22)
+frame   246 :  an opened book -0.56  a closed book -4.28   led  53/ 20 h0.61 b0.80 lvl-2.42 d0.39   MATCH an opened book (cos -0.098, nearer by 1.14)
+frame   247 :  an opened book -0.35  a closed book -4.24   led  59/ 18 h0.63 b0.82 lvl-2.29 d0.37   MATCH an opened book (cos -0.105, nearer by 1.38)
+frame   248 :  an opened book -0.84  a closed book -5.24   led  81/ 13 h0.70 b0.85 lvl-3.04 d0.30   MATCH an opened book (cos -0.113, nearer by 2.09)
+frame   249 :  an opened book -1.07  a closed book -4.75   led  51/ 21 h0.60 b0.80 lvl-2.91 d0.40   MATCH an opened book (cos -0.112, nearer by 1.07)
+frame   250 :  an opened book -0.33  a closed book -1.98   led  15/ 71 h0.33 b0.83 lvl-1.16 d0.33   MATCH a closed book (cos -0.088, nearer by 1.79)
+frame   251 :  an opened book +0.67  a closed book +0.66   led   2/174 h0.11 b0.94 lvl+0.67 d0.11   MATCH a closed book (cos -0.079, nearer by 4.11)
+frame   252 :  a closed book +0.88  an opened book +0.16   led   0/245 h0.01 b0.99 lvl+0.52 d0.01   MATCH a closed book (cos -0.095, nearer by 5.15)
+frame   253 :  a closed book +2.70*  an opened book +1.07   led   0/225 h0.00 b0.95 lvl+1.89 d0.11   MATCH a closed book (cos -0.077, nearer by 5.28)
+frame   254 :  a closed book +3.48*  an opened book +1.23   led   0/204 h0.00 b0.90 lvl+2.36 d0.19   MATCH a closed book (cos -0.082, nearer by 5.28)
+frame   255 :  a closed book +3.50*  an opened book +1.34*   led   0/207 h0.00 b0.91 lvl+2.42 d0.18   MATCH a closed book (cos -0.087, nearer by 5.28)
+frame   256 :  a closed book +3.46*  an opened book +1.27*   led   0/206 h0.00 b0.91 lvl+2.37 d0.18   MATCH a closed book (cos -0.087, nearer by 5.28)
+frame   257 :  a closed book +2.64*  an opened book +0.68   led   0/214 h0.00 b0.92 lvl+1.66 d0.15   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   258 :  a closed book +1.32*  an opened book -0.03   led   0/235 h0.00 b0.96 lvl+0.64 d0.07   MATCH a closed book (cos -0.104, nearer by 5.28)
+frame   259 :  a closed book +1.24*  an opened book -0.12   led   0/235 h0.00 b0.96 lvl+0.56 d0.07   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   260 :  a closed book +1.20  an opened book -0.26   led   0/232 h0.00 b0.96 lvl+0.47 d0.09   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   261 :  a closed book +0.45  an opened book -0.61   led   0/246 h0.00 b0.98 lvl-0.08 d0.03   MATCH a closed book (cos -0.103, nearer by 5.28)
+frame   262 :  a closed book +0.13  an opened book -1.43   led   0/228 h0.00 b0.95 lvl-0.65 d0.10   MATCH a closed book (cos -0.101, nearer by 5.28)
+frame   263 :  a closed book -0.58  an opened book -1.77   led   0/241 h0.00 b0.97 lvl-1.18 d0.05   MATCH a closed book (cos -0.107, nearer by 5.28)
+frame   264 :  a closed book -0.19  an opened book -1.16   led   0/249 h0.00 b0.99 lvl-0.68 d0.02   MATCH a closed book (cos -0.098, nearer by 5.28)
+frame   265 :  a closed book -0.24  an opened book -0.90   led   0/238 h0.02 b0.99 lvl-0.57 d0.02   MATCH a closed book (cos -0.101, nearer by 5.06)
+frame   266 :  a closed book +0.32  an opened book -1.18   led   0/230 h0.00 b0.95 lvl-0.43 d0.09   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   267 :  a closed book +1.16  an opened book -0.17   led   0/236 h0.00 b0.96 lvl+0.50 d0.07   MATCH a closed book (cos -0.090, nearer by 5.28)
+frame   268 :  a closed book +1.71*  an opened book +0.77   led   0/250 h0.00 b0.99 lvl+1.24 d0.02   MATCH a closed book (cos -0.090, nearer by 5.28)
+frame   269 :  a closed book +1.83*  an opened book +1.07   led   0/249 h0.01 b1.00 lvl+1.45 d0.01   MATCH a closed book (cos -0.092, nearer by 5.21)
+frame   270 :  a closed book +1.68*  an opened book +1.24*   led   0/216 h0.05 b0.98 lvl+1.46 d0.05   MATCH a closed book (cos -0.094, nearer by 4.76)
+frame   271 :  a closed book +1.55*  an opened book +0.83   led   0/245 h0.01 b0.99 lvl+1.19 d0.01   MATCH a closed book (cos -0.095, nearer by 5.16)
+frame   272 :  a closed book +1.35*  an opened book +0.55   led   0/253 h0.00 b1.00 lvl+0.95 d0.00   MATCH a closed book (cos -0.096, nearer by 5.26)
+frame   273 :  a closed book +0.70  an opened book +0.08   led   0/234 h0.03 b0.99 lvl+0.39 d0.03   MATCH a closed book (cos -0.101, nearer by 5.01)
+frame   274 :  a closed book +0.35  an opened book -0.30   led   0/236 h0.02 b0.99 lvl+0.02 d0.02   MATCH a closed book (cos -0.101, nearer by 5.04)
+frame   275 :  a closed book +0.62  an opened book -0.30   led   0/251 h0.00 b0.99 lvl+0.16 d0.01   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   276 :  a closed book +0.31  an opened book -0.56   led   0/253 h0.00 b1.00 lvl-0.12 d0.01   MATCH a closed book (cos -0.100, nearer by 5.28)
+frame   277 :  a closed book +0.82  an opened book -0.50   led   0/237 h0.00 b0.97 lvl+0.16 d0.07   MATCH a closed book (cos -0.093, nearer by 5.28)
+frame   278 :  a closed book +1.01  an opened book -0.45   led   0/231 h0.00 b0.96 lvl+0.28 d0.09   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   279 :  a closed book +0.62  an opened book -0.44   led   0/246 h0.00 b0.98 lvl+0.09 d0.03   MATCH a closed book (cos -0.100, nearer by 5.28)
+frame   280 :  a closed book +1.08  an opened book -0.16   led   0/239 h0.00 b0.97 lvl+0.46 d0.06   MATCH a closed book (cos -0.093, nearer by 5.28)
+frame   281 :  a closed book +0.47  an opened book -0.67   led   0/243 h0.00 b0.98 lvl-0.10 d0.04   MATCH a closed book (cos -0.102, nearer by 5.28)
+frame   282 :  a closed book +0.59  an opened book -0.71   led   0/237 h0.00 b0.97 lvl-0.06 d0.06   MATCH a closed book (cos -0.097, nearer by 5.28)
+frame   283 :  a closed book +0.61  an opened book -0.50   led   0/244 h0.00 b0.98 lvl+0.05 d0.04   MATCH a closed book (cos -0.097, nearer by 5.28)
+frame   284 :  a closed book +0.89  an opened book -0.45   led   0/236 h0.00 b0.96 lvl+0.22 d0.07   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   285 :  a closed book +0.74  an opened book -0.61   led   0/236 h0.00 b0.96 lvl+0.06 d0.07   MATCH a closed book (cos -0.098, nearer by 5.28)
+frame   286 :  a closed book +0.66  an opened book -0.58   led   0/239 h0.00 b0.97 lvl+0.04 d0.06   MATCH a closed book (cos -0.098, nearer by 5.28)
+frame   287 :  a closed book +0.81  an opened book -0.37   led   0/241 h0.00 b0.98 lvl+0.22 d0.05   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   288 :  a closed book +0.84  an opened book -0.41   led   0/239 h0.00 b0.97 lvl+0.21 d0.06   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   289 :  a closed book +0.61  an opened book -0.45   led   0/246 h0.00 b0.98 lvl+0.08 d0.03   MATCH a closed book (cos -0.099, nearer by 5.28)
+frame   290 :  a closed book +0.61  an opened book -0.46   led   0/245 h0.00 b0.98 lvl+0.07 d0.03   MATCH a closed book (cos -0.097, nearer by 5.28)
+frame   291 :  a closed book +0.72  an opened book -0.49   led   0/241 h0.00 b0.97 lvl+0.12 d0.05   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   292 :  a closed book +1.05  an opened book -0.44   led   0/230 h0.00 b0.95 lvl+0.31 d0.09   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   293 :  a closed book +0.68  an opened book -0.84   led   0/229 h0.00 b0.95 lvl-0.08 d0.09   MATCH a closed book (cos -0.100, nearer by 5.28)
+frame   294 :  a closed book +0.64  an opened book -0.72   led   0/235 h0.00 b0.96 lvl-0.04 d0.07   MATCH a closed book (cos -0.098, nearer by 5.28)
+frame   295 :  a closed book +1.02  an opened book -0.41   led   0/232 h0.00 b0.96 lvl+0.30 d0.08   MATCH a closed book (cos -0.093, nearer by 5.28)
+frame   296 :  a closed book +1.18  an opened book -0.59   led   0/220 h0.00 b0.94 lvl+0.29 d0.13   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   297 :  a closed book +0.57  an opened book -0.91   led   0/231 h0.00 b0.96 lvl-0.17 d0.09   MATCH a closed book (cos -0.102, nearer by 5.28)
+frame   298 :  a closed book +0.58  an opened book -0.77   led   0/235 h0.00 b0.96 lvl-0.09 d0.07   MATCH a closed book (cos -0.097, nearer by 5.28)
+frame   299 :  a closed book +0.73  an opened book -0.49   led   0/240 h0.00 b0.97 lvl+0.12 d0.06   MATCH a closed book (cos -0.096, nearer by 5.28)
+background: after 30 frames (frozen, room spread), this room reads  an opened book -0.106 +-0.0045 (COCO -0.151 +-0.0303)  a closed book -0.100 +-0.0036 (COCO -0.159 +-0.0351)
+frame   300 :  a closed book +0.90  an opened book -0.21   led   0/244 h0.00 b0.98 lvl+0.34 d0.04   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   301 :  a closed book +1.21  an opened book -0.02   led   0/240 h0.00 b0.97 lvl+0.60 d0.06   MATCH a closed book (cos -0.093, nearer by 5.28)
+frame   302 :  a closed book +1.37*  an opened book +0.07   led   0/237 h0.00 b0.97 lvl+0.72 d0.07   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   303 :  a closed book +1.45*  an opened book +0.08   led   0/234 h0.00 b0.96 lvl+0.76 d0.08   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   304 :  a closed book +1.62*  an opened book +0.19   led   0/233 h0.00 b0.96 lvl+0.90 d0.08   MATCH a closed book (cos -0.093, nearer by 5.28)
+frame   305 :  a closed book +0.95  an opened book -0.21   led   0/242 h0.00 b0.98 lvl+0.37 d0.05   MATCH a closed book (cos -0.101, nearer by 5.28)
+frame   306 :  a closed book +0.96  an opened book -0.09   led   0/246 h0.00 b0.98 lvl+0.44 d0.03   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   307 :  a closed book +1.10  an opened book +0.18   led   0/251 h0.00 b0.99 lvl+0.64 d0.01   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   308 :  a closed book +1.16  an opened book +0.16   led   0/248 h0.00 b0.99 lvl+0.66 d0.03   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   309 :  a closed book +0.84  an opened book +0.08   led   0/249 h0.01 b1.00 lvl+0.46 d0.01   MATCH a closed book (cos -0.099, nearer by 5.21)
+frame   310 :  a closed book +0.58  an opened book +0.18   led   0/211 h0.06 b0.97 lvl+0.38 d0.06   MATCH a closed book (cos -0.099, nearer by 4.69)
+frame   311 :  a closed book +0.80  an opened book +0.02   led   0/251 h0.01 b1.00 lvl+0.41 d0.01   MATCH a closed book (cos -0.095, nearer by 5.23)
+frame   312 :  a closed book +0.89  an opened book -0.31   led   0/241 h0.00 b0.97 lvl+0.29 d0.05   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   313 :  a closed book +3.35*  an opened book +2.13*   led   0/240 h0.00 b0.97 lvl+2.74 d0.05   MATCH a closed book (cos -0.071, nearer by 5.28)
+frame   314 :  a closed book +4.42*  an opened book +4.25*   led   1/190 h0.09 b0.96 lvl+4.33 d0.09   MATCH a closed book (cos -0.076, nearer by 4.37)
+frame   315 :  an opened book +4.33*  a closed book +1.72*   led  26/ 37 h0.46 b0.77 lvl+3.02 d0.46   MATCH a closed book (cos -0.112, nearer by 0.43)
+frame   316 :  an opened book +5.12*  a closed book +3.04*   led  20/ 54 h0.39 b0.81 lvl+4.08 d0.39   MATCH a closed book (cos -0.080, nearer by 1.18)
+frame   317 :  an opened book +5.67*  a closed book +4.16*   led  13/ 78 h0.31 b0.84 lvl+4.92 d0.31   MATCH a closed book (cos -0.077, nearer by 2.00)
+frame   318 :  an opened book +6.99*  a closed book +4.28*   led  27/ 35 h0.47 b0.76 lvl+5.64 d0.47   MATCH a closed book (cos -0.083, nearer by 0.30)
+frame   319 :  an opened book +7.22*  a closed book +2.86*   led  79/ 13 h0.69 b0.85 lvl+5.04 d0.31   MATCH an opened book (cos -0.071, nearer by 2.03)
+frame   320 :  an opened book +7.81*  a closed book +2.11*   led 163/  2 h0.87 b0.94 lvl+4.96 d0.13   MATCH an opened book (cos -0.066, nearer by 3.93)
+frame   321 :  an opened book +7.63*  a closed book +1.10   led 241/  0 h0.98 b0.99 lvl+4.37 d0.02   MATCH an opened book (cos -0.073, nearer by 5.10)
+frame   322 :  an opened book +8.35*  a closed book +1.24*   led 238/  0 h1.00 b0.97 lvl+4.80 d0.06   MATCH an opened book (cos -0.062, nearer by 5.28)
+frame   323 :  an opened book +8.07*  a closed book +0.97   led 238/  0 h1.00 b0.97 lvl+4.52 d0.06   MATCH an opened book (cos -0.072, nearer by 5.28)
+frame   324 :  an opened book +8.10*  a closed book +0.88   led 234/  0 h1.00 b0.96 lvl+4.49 d0.08   MATCH an opened book (cos -0.069, nearer by 5.28)
+frame   325 :  an opened book +7.99*  a closed book +0.76   led 234/  0 h1.00 b0.96 lvl+4.37 d0.08   MATCH an opened book (cos -0.071, nearer by 5.28)
+frame   326 :  an opened book +7.78*  a closed book +0.89   led 246/  0 h1.00 b0.98 lvl+4.33 d0.03   MATCH an opened book (cos -0.073, nearer by 5.28)
+frame   327 :  an opened book +7.44*  a closed book +0.22   led 234/  0 h1.00 b0.96 lvl+3.83 d0.08   MATCH an opened book (cos -0.075, nearer by 5.28)
+frame   328 :  an opened book +7.88*  a closed book +0.32   led 222/  0 h1.00 b0.94 lvl+4.10 d0.12   MATCH an opened book (cos -0.067, nearer by 5.28)
+frame   329 :  an opened book +7.70*  a closed book -0.16   led 212/  0 h1.00 b0.92 lvl+3.77 d0.16   MATCH an opened book (cos -0.073, nearer by 5.28)
+frame   330 :  an opened book +8.04*  a closed book +0.06   led 208/  0 h1.00 b0.91 lvl+4.05 d0.18   MATCH an opened book (cos -0.067, nearer by 5.28)
+frame   331 :  an opened book +8.40*  a closed book +0.30   led 204/  0 h1.00 b0.90 lvl+4.35 d0.19   MATCH an opened book (cos -0.065, nearer by 5.28)
+frame   332 :  an opened book +7.62*  a closed book -0.00   led 220/  0 h1.00 b0.94 lvl+3.81 d0.13   MATCH an opened book (cos -0.078, nearer by 5.28)
+frame   333 :  an opened book +6.34*  a closed book +0.13   led 208/  0 h0.94 b0.97 lvl+3.24 d0.06   MATCH an opened book (cos -0.088, nearer by 4.65)
+frame   334 :  an opened book +6.14*  a closed book +0.26   led 179/  2 h0.90 b0.95 lvl+3.20 d0.10   MATCH an opened book (cos -0.080, nearer by 4.19)
+frame   335 :  an opened book +5.65*  a closed book -0.08   led 166/  2 h0.88 b0.94 lvl+2.79 d0.12   MATCH an opened book (cos -0.084, nearer by 3.98)
+frame   336 :  an opened book +6.05*  a closed book -0.13   led 206/  1 h0.94 b0.97 lvl+2.96 d0.06   MATCH an opened book (cos -0.075, nearer by 4.61)
+frame   337 :  an opened book +5.52*  a closed book -0.52   led 193/  1 h0.92 b0.96 lvl+2.50 d0.08   MATCH an opened book (cos -0.085, nearer by 4.42)
+frame   338 :  an opened book +5.21*  a closed book -0.72   led 183/  1 h0.90 b0.95 lvl+2.25 d0.10   MATCH an opened book (cos -0.085, nearer by 4.26)
+frame   339 :  an opened book +4.86*  a closed book -0.84   led 163/  2 h0.87 b0.94 lvl+2.01 d0.13   MATCH an opened book (cos -0.087, nearer by 3.93)
+frame   340 :  an opened book +4.92*  a closed book -1.22   led 202/  1 h0.93 b0.97 lvl+1.85 d0.07   MATCH an opened book (cos -0.083, nearer by 4.55)
+frame   341 :  an opened book +4.61*  a closed book -1.58   led 207/  1 h0.94 b0.97 lvl+1.52 d0.06   MATCH an opened book (cos -0.087, nearer by 4.62)
+frame   342 :  an opened book +4.58*  a closed book -1.85   led 230/  0 h0.97 b0.98 lvl+1.36 d0.03   MATCH an opened book (cos -0.085, nearer by 4.96)
+frame   343 :  an opened book +5.22*  a closed book -1.09   led 218/  0 h0.95 b0.98 lvl+2.07 d0.05   MATCH an opened book (cos -0.077, nearer by 4.79)
+frame   344 :  an opened book +5.21*  a closed book -0.44   led 159/  3 h0.87 b0.93 lvl+2.38 d0.13   MATCH an opened book (cos -0.082, nearer by 3.86)
+frame   345 :  an opened book +5.20*  a closed book -0.94   led 202/  1 h0.93 b0.97 lvl+2.13 d0.07   MATCH an opened book (cos -0.082, nearer by 4.55)
+frame   346 :  an opened book +4.66*  a closed book -1.40   led 195/  1 h0.92 b0.96 lvl+1.63 d0.08   MATCH an opened book (cos -0.089, nearer by 4.45)
+frame   347 :  an opened book +5.80*  a closed book +0.05   led 168/  2 h0.88 b0.94 lvl+2.93 d0.12   MATCH an opened book (cos -0.070, nearer by 4.01)
+frame   348 :  an opened book +4.77*  a closed book +1.96*   led  28/ 32 h0.48 b0.76 lvl+3.37 d0.48   MATCH a closed book (cos -0.080, nearer by 0.16)
+frame   349 :  an opened book +2.42*  a closed book -1.16   led  48/ 22 h0.59 b0.79 lvl+0.63 d0.41   MATCH an opened book (cos -0.114, nearer by 0.94)
+frame   350 :  an opened book -0.65  a closed book -2.41   led  16/ 66 h0.34 b0.83 lvl-1.53 d0.34   MATCH a closed book (cos -0.117, nearer by 1.64)
+frame   351 :  an opened book -1.67  a closed book -1.79   led   2/165 h0.12 b0.94 lvl-1.73 d0.12   MATCH a closed book (cos -0.102, nearer by 3.96)
+frame   352 :  a closed book -1.98  an opened book -2.22   led   1/196 h0.08 b0.96 lvl-2.10 d0.08   MATCH a closed book (cos -0.108, nearer by 4.46)
+frame   353 :  a closed book -1.30  an opened book -1.90   led   0/232 h0.03 b0.99 lvl-1.60 d0.03   MATCH a closed book (cos -0.100, nearer by 4.97)
+frame   354 :  an opened book -1.80  a closed book -1.85   led   2/170 h0.12 b0.94 lvl-1.83 d0.12   MATCH a closed book (cos -0.110, nearer by 4.05)
+frame   355 :  a closed book -1.26  an opened book -1.42   led   1/189 h0.09 b0.96 lvl-1.34 d0.09   MATCH a closed book (cos -0.100, nearer by 4.36)
+frame   356 :  an opened book -1.24  a closed book -1.36   led   2/165 h0.12 b0.94 lvl-1.30 d0.12   MATCH a closed book (cos -0.105, nearer by 3.96)
+frame   357 :  a closed book -0.92  an opened book -1.21   led   1/201 h0.07 b0.96 lvl-1.07 d0.07   MATCH a closed book (cos -0.100, nearer by 4.54)
+frame   358 :  a closed book -0.30  an opened book -0.89   led   0/231 h0.03 b0.99 lvl-0.59 d0.03   MATCH a closed book (cos -0.096, nearer by 4.96)
+frame   359 :  a closed book -0.39  an opened book -0.89   led   0/222 h0.04 b0.98 lvl-0.64 d0.04   MATCH a closed book (cos -0.102, nearer by 4.84)
+frame   360 :  a closed book +0.16  an opened book -0.49   led   0/238 h0.02 b0.99 lvl-0.17 d0.02   MATCH a closed book (cos -0.095, nearer by 5.06)
+frame   361 :  a closed book +0.59  an opened book -0.53   led   0/244 h0.00 b0.98 lvl+0.03 d0.04   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   362 :  a closed book +0.71  an opened book -0.44   led   0/242 h0.00 b0.98 lvl+0.13 d0.05   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   363 :  a closed book +0.07  an opened book -0.78   led   0/253 h0.00 b1.00 lvl-0.36 d0.01   MATCH a closed book (cos -0.104, nearer by 5.28)
+frame   364 :  a closed book -0.09  an opened book -0.74   led   0/237 h0.02 b0.99 lvl-0.41 d0.02   MATCH a closed book (cos -0.101, nearer by 5.05)
+frame   365 :  a closed book -0.32  an opened book -0.42   led   1/184 h0.10 b0.95 lvl-0.37 d0.10   MATCH a closed book (cos -0.102, nearer by 4.27)
+frame   366 :  an opened book -0.65  a closed book -0.89   led   3/156 h0.14 b0.93 lvl-0.77 d0.14   MATCH a closed book (cos -0.107, nearer by 3.79)
+frame   367 :  an opened book -0.88  a closed book -1.37   led   5/136 h0.18 b0.91 lvl-1.13 d0.18   MATCH a closed book (cos -0.108, nearer by 3.43)
+frame   368 :  a closed book -1.27  an opened book -1.30   led   2/177 h0.10 b0.95 lvl-1.29 d0.10   MATCH a closed book (cos -0.104, nearer by 4.17)
+frame   369 :  a closed book -0.89  an opened book -1.26   led   0/209 h0.06 b0.97 lvl-1.07 d0.06   MATCH a closed book (cos -0.100, nearer by 4.66)
+frame   370 :  a closed book -1.60  an opened book -1.79   led   1/191 h0.08 b0.96 lvl-1.69 d0.08   MATCH a closed book (cos -0.110, nearer by 4.39)
+frame   371 :  a closed book -1.32  an opened book -1.83   led   0/222 h0.04 b0.98 lvl-1.57 d0.04   MATCH a closed book (cos -0.102, nearer by 4.85)
+frame   372 :  a closed book -1.12  an opened book -2.04   led   0/251 h0.00 b0.99 lvl-1.58 d0.01   MATCH a closed book (cos -0.102, nearer by 5.28)
+frame   373 :  a closed book -0.71  an opened book -1.40   led   0/242 h0.02 b0.99 lvl-1.05 d0.02   MATCH a closed book (cos -0.099, nearer by 5.11)
+frame   374 :  a closed book -0.19  an opened book -0.97   led   0/252 h0.00 b1.00 lvl-0.58 d0.00   MATCH a closed book (cos -0.097, nearer by 5.24)
+frame   375 :  a closed book +0.43  an opened book -0.71   led   0/243 h0.00 b0.98 lvl-0.14 d0.04   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   376 :  a closed book +0.46  an opened book -0.78   led   0/239 h0.00 b0.97 lvl-0.16 d0.06   MATCH a closed book (cos -0.098, nearer by 5.28)
+frame   377 :  a closed book +0.46  an opened book -0.49   led   0/250 h0.00 b0.99 lvl-0.01 d0.02   MATCH a closed book (cos -0.098, nearer by 5.28)
+frame   378 :  a closed book +0.92  an opened book +0.12   led   0/253 h0.00 b1.00 lvl+0.52 d0.00   MATCH a closed book (cos -0.093, nearer by 5.26)
+frame   379 :  a closed book +0.45  an opened book +0.10   led   1/206 h0.06 b0.97 lvl+0.28 d0.06   MATCH a closed book (cos -0.101, nearer by 4.62)
+frame   380 :  a closed book +0.13  an opened book -0.35   led   0/220 h0.04 b0.98 lvl-0.11 d0.04   MATCH a closed book (cos -0.101, nearer by 4.81)
+frame   381 :  a closed book +0.28  an opened book -0.36   led   0/235 h0.02 b0.99 lvl-0.04 d0.02   MATCH a closed book (cos -0.098, nearer by 5.02)
+frame   382 :  a closed book -0.29  an opened book -0.54   led   1/197 h0.08 b0.96 lvl-0.42 d0.08   MATCH a closed book (cos -0.104, nearer by 4.48)
+frame   383 :  a closed book -0.19  an opened book -0.89   led   0/243 h0.01 b0.99 lvl-0.54 d0.01   MATCH a closed book (cos -0.100, nearer by 5.13)
+frame   384 :  a closed book -0.10  an opened book -1.03   led   0/251 h0.00 b0.99 lvl-0.56 d0.02   MATCH a closed book (cos -0.099, nearer by 5.28)
+frame   385 :  a closed book -0.44  an opened book -1.28   led   0/254 h0.00 b1.00 lvl-0.86 d0.00   MATCH a closed book (cos -0.104, nearer by 5.28)
+frame   386 :  an opened book -0.26  a closed book -1.73   led  13/ 79 h0.31 b0.85 lvl-0.99 d0.31   MATCH a closed book (cos -0.115, nearer by 2.05)
+frame   387 :  an opened book +0.61  a closed book +0.54   led   2/168 h0.12 b0.94 lvl+0.57 d0.12   MATCH a closed book (cos -0.082, nearer by 4.02)
+frame   388 :  a closed book +1.73*  an opened book +1.67*   led   1/180 h0.10 b0.95 lvl+1.70 d0.10   MATCH a closed book (cos -0.085, nearer by 4.21)
+frame   389 :  a closed book +2.28*  an opened book +2.27*   led   2/176 h0.11 b0.95 lvl+2.28 d0.11   MATCH a closed book (cos -0.088, nearer by 4.15)
+frame   390 :  a closed book +2.34*  an opened book +1.71*   led   0/235 h0.02 b0.99 lvl+2.02 d0.02   MATCH a closed book (cos -0.091, nearer by 5.02)
+frame   391 :  a closed book +1.60*  an opened book +1.16   led   0/216 h0.05 b0.98 lvl+1.38 d0.05   MATCH a closed book (cos -0.099, nearer by 4.75)
+frame   392 :  a closed book +1.23  an opened book +0.76   led   0/218 h0.05 b0.98 lvl+0.99 d0.05   MATCH a closed book (cos -0.098, nearer by 4.79)
+frame   393 :  a closed book +1.06  an opened book +0.71   led   1/206 h0.06 b0.97 lvl+0.88 d0.06   MATCH a closed book (cos -0.097, nearer by 4.62)
+frame   394 :  a closed book +0.91  an opened book +0.16   led   0/247 h0.01 b1.00 lvl+0.53 d0.01   MATCH a closed book (cos -0.097, nearer by 5.18)
+frame   395 :  a closed book +1.37*  an opened book +0.14   led   0/240 h0.00 b0.97 lvl+0.76 d0.06   MATCH a closed book (cos -0.091, nearer by 5.28)
+frame   396 :  a closed book +1.47*  an opened book -0.17   led   0/225 h0.00 b0.94 lvl+0.65 d0.11   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   397 :  a closed book +1.21  an opened book -0.21   led   0/233 h0.00 b0.96 lvl+0.50 d0.08   MATCH a closed book (cos -0.097, nearer by 5.28)
+frame   398 :  a closed book +1.38*  an opened book -0.25   led   0/225 h0.00 b0.95 lvl+0.57 d0.11   MATCH a closed book (cos -0.093, nearer by 5.28)
+frame   399 :  a closed book +1.32*  an opened book -0.02   led   0/236 h0.00 b0.96 lvl+0.65 d0.07   MATCH a closed book (cos -0.095, nearer by 5.28)
+background: after 30 frames (frozen, room spread), this room reads  an opened book -0.106 +-0.0045 (COCO -0.151 +-0.0303)  a closed book -0.100 +-0.0036 (COCO -0.159 +-0.0351)
+frame   400 :  a closed book +1.08  an opened book -0.05   led   0/243 h0.00 b0.98 lvl+0.51 d0.04   MATCH a closed book (cos -0.097, nearer by 5.28)
+frame   401 :  a closed book +0.91  an opened book -0.14   led   0/246 h0.00 b0.98 lvl+0.38 d0.03   MATCH a closed book (cos -0.097, nearer by 5.28)
+frame   402 :  a closed book +1.02  an opened book -0.15   led   0/242 h0.00 b0.98 lvl+0.43 d0.05   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   403 :  a closed book +1.26*  an opened book +0.21   led   0/246 h0.00 b0.98 lvl+0.74 d0.03   MATCH a closed book (cos -0.093, nearer by 5.28)
+frame   404 :  a closed book +1.57*  an opened book +0.32   led   0/239 h0.00 b0.97 lvl+0.95 d0.06   MATCH a closed book (cos -0.092, nearer by 5.28)
+frame   405 :  a closed book +1.41*  an opened book -0.12   led   0/229 h0.00 b0.95 lvl+0.65 d0.10   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   406 :  a closed book +1.46*  an opened book -0.10   led   0/228 h0.00 b0.95 lvl+0.68 d0.10   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   407 :  a closed book +1.08  an opened book -0.08   led   0/242 h0.00 b0.98 lvl+0.50 d0.05   MATCH a closed book (cos -0.098, nearer by 5.28)
+frame   408 :  a closed book +1.13  an opened book -0.19   led   0/237 h0.00 b0.97 lvl+0.47 d0.07   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   409 :  a closed book +1.05  an opened book -0.17   led   0/240 h0.00 b0.97 lvl+0.44 d0.05   MATCH a closed book (cos -0.096, nearer by 5.28)
+frame   410 :  a closed book +1.26*  an opened book -0.08   led   0/236 h0.00 b0.96 lvl+0.59 d0.07   MATCH a closed book (cos -0.094, nearer by 5.28)
+frame   411 :  a closed book +1.56*  an opened book -0.05   led   0/226 h0.00 b0.95 lvl+0.75 d0.11   MATCH a closed book (cos -0.092, nearer by 5.28)
+frame   412 :  a closed book +1.70*  an opened book +0.12   led   0/227 h0.00 b0.95 lvl+0.91 d0.10   MATCH a closed book (cos -0.092, nearer by 5.28)
+frame   413 :  a closed book +1.88*  an opened book +0.19   led   0/223 h0.00 b0.94 lvl+1.04 d0.12   MATCH a closed book (cos -0.091, nearer by 5.28)
+frame   414 :  a closed book +2.02*  an opened book +0.07   led   0/214 h0.00 b0.92 lvl+1.05 d0.15   MATCH a closed book (cos -0.091, nearer by 5.28)
+frame   415 :  a closed book +2.13*  an opened book +0.23   led   0/216 h0.00 b0.93 lvl+1.18 d0.15   MATCH a closed book (cos -0.091, nearer by 5.28)
+frame   416 :  a closed book +1.61*  an opened book -0.20   led   0/219 h0.00 b0.93 lvl+0.70 d0.13   MATCH a closed book (cos -0.097, nearer by 5.28)
+frame   417 :  a closed book +2.01*  an opened book -0.19   led   0/206 h0.00 b0.91 lvl+0.91 d0.19   MATCH a closed book (cos -0.090, nearer by 5.28)
+frame   418 :  a closed book +1.75*  an opened book -0.33   led   0/210 h0.00 b0.92 lvl+0.71 d0.17   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   419 :  a closed book +1.35*  an opened book -0.33   led   0/224 h0.00 b0.94 lvl+0.51 d0.12   MATCH a closed book (cos -0.097, nearer by 5.28)
+frame   420 :  a closed book +1.73*  an opened book -0.10   led   0/219 h0.00 b0.93 lvl+0.81 d0.14   MATCH a closed book (cos -0.091, nearer by 5.28)
+frame   421 :  a closed book +1.78*  an opened book +0.05   led   0/222 h0.00 b0.94 lvl+0.91 d0.12   MATCH a closed book (cos -0.093, nearer by 5.28)
+frame   422 :  a closed book +1.63*  an opened book -0.07   led   0/223 h0.00 b0.94 lvl+0.78 d0.12   MATCH a closed book (cos -0.095, nearer by 5.28)
+frame   423 :  a closed book +1.81*  an opened book +0.24   led   0/227 h0.00 b0.95 lvl+1.03 d0.10   MATCH a closed book (cos -0.092, nearer by 5.28)
+frame   424 :  a closed book +1.96*  an opened book +0.27   led   0/223 h0.00 b0.94 lvl+1.12 d0.12   MATCH a closed book (cos -0.091, nearer by 5.28)
+frame   425 :  a closed book +1.70*  an opened book +0.01   led   0/223 h0.00 b0.94 lvl+0.85 d0.12   MATCH a closed book (cos -0.095, nearer by 5.28)
+
+stopped   : 426 frames, 426 good, capture overlapped with the compute, configuration C
+            426 frames timed, 279 ms/frame mean (capture included)
+            262 ms encode + 0 ms waiting for the sensor + 16 ms burst; 289 ms/frame by the clock
+            371 ms shutter to LED, arming with 85 ms of compute left
+            last frame mean RGB 122 117 126
+            camera bus: worst gap 19 us against the 2000 us deadline (#12)
+            usb: 0 outages, 0 ms off the bus, 0 re-attaches (#9)

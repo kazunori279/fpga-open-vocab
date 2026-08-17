@@ -279,7 +279,11 @@ static bool  m21_present;                 // the presence stage's sticky state
 // scene was held, and a scene can be held perfectly still in the wrong place;
 // measured over FGX_ENROL_V visits it also sees how far the object moves when
 // it is staged again, which is the term that actually decides runs. Every cue
-// bench there is, sorted by the two-visit ratio, scored by tools/score_cue.py:
+// bench there is, sorted by the two-visit ratio, scored by the live HELD OUT
+// line that tools/score_cue.py reprints - NOT by its one-visit replay column,
+// which is a different measurement and disagrees by up to 83 points. Two rows
+// here were briefly filled in from the wrong one; bench/README.md carries both
+// columns for every log so that cannot happen again.
 //
 //     run          held out   sep(1 visit)  ratio(1)  ratio(2)  ratio(all)
 //     08-17 07:33    96.7 %       2.40         2.52      3.24      3.03
@@ -296,16 +300,16 @@ static bool  m21_present;                 // the presence stage's sticky state
 // THE VOID IN THAT TABLE WAS FILLED BY THE FIRST RUN THAT TESTED IT, and this
 // is the retraction. 08-17 11:26 is the first bench whose references the BOARD
 // built from two visits, rather than a log replayed afterwards, and it read
-// 1.12 - inside the void, on the reject side. It scored 91.7% on the table's
-// column above, and 92.5% by its own two-visit rule, the best in the project.
-// The board printed THE CLASSES OVERLAP and told the operator to throw it away.
-// The next run read 0.92 and scored 76.1% (68.3% live). Eleven runs now:
+// 1.12 - inside the void, on the reject side. It scored 92.5% held out, the
+// best in the project, while the board printed THE CLASSES OVERLAP and told the
+// operator to throw it away. The next run read 0.92 and scored 68.3%. Eleven
+// runs now:
 //
 //     3.24 -> 96.7 %      0.94 -> 74.2 %
-//     2.94 -> 100.0 %     0.92 -> 76.1 %   <- 08-17 11:44
+//     2.94 -> 100.0 %     0.92 -> 68.3 %   <- 08-17 11:44
 //     2.64 -> 91.7 %      0.87 -> 76.7 %
 //     1.24 -> 59.2 %      0.44 -> 47.5 %
-//     1.12 -> 91.7 %      0.22 -> 58.3 %   <- 08-17 11:26, the one that broke it
+//     1.12 -> 92.5 %      0.22 -> 58.3 %   <- 08-17 11:26, the one that broke it
 //                         0.15 -> 57.5 %
 //
 // THAT IS THE THIRD QUANTITY MEASURABLE AT ENROLMENT TO FAIL THE SAME WAY -
@@ -317,7 +321,7 @@ static bool  m21_present;                 // the presence stage's sticky state
 //
 // SO THIS IS NOW ONE-SIDED. High still means something - 2.64, 2.94 and 3.24
 // scored 91.7%, 100.0% and 96.7%, three for three - and the board says so. Low
-// means nothing at all: below the bar the eleven runs span 91.7% to 47.5%, so
+// means nothing at all: below the bar the eight runs span 92.5% to 47.5%, so
 // the message says that and stops, instead of telling the operator to throw
 // away an enrolment that may be the best one they will get today. The constant
 // is 2.6 rather than the 2.0 it was, because 2.64 is the lowest ratio that has
@@ -1811,7 +1815,7 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
             // claimed either way until there are two. This comes before the bar
             // rather than after it: 08-17 09:33 passed at 2.71 on one visit and
             // scored 59.2%, and 08-17 11:26 read 0.9x on one visit and went on
-            // to score 91.7%, so on one visit the ratio is wrong in both
+            // to score 92.5%, so on one visit the ratio is wrong in both
             // directions and the only honest output is to say so.
             if (vmin < FGX_ENROL_V)
                 printf("            Measured over %u visit%s, so this ratio "
@@ -1824,7 +1828,7 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
             // THE BAR, AND IT ONLY EVER SAYS THE GOOD NEWS. See FGX_ENROL_SNR
             // for why this stopped being a rejection: three benches have
             // cleared it and all three scored above 91%, while below it the
-            // eleven runs measured so far span 91.7% to 47.5%.
+            // eight runs measured so far span 92.5% to 47.5%.
             else if (sep >= FGX_ENROL_SNR * scat)
                 printf("            This enrolment clears the bar: %.2f apart "
                        "against %.2f of spread within\n"
@@ -1835,14 +1839,14 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
                        (double)sep, (double)scat, (unsigned)vmin);
             // AND BELOW THE BAR, DELIBERATELY NO ADVICE. The version that told
             // the operator to enrol again threw away 08-17 11:26, which scored
-            // 91.7% - as high as any run that cleared the bar - because it read
-            // 1.12 here. The numbers are still printed; what is removed is the
-            // instruction that was wrong.
+            // 92.5% - higher than one of the three that cleared the bar -
+            // because it read 1.12 here. The numbers are still printed; what is
+            // removed is the instruction that was wrong.
             else
                 printf("            Below the bar (%.2f apart against %.2f of "
                        "spread), which on its own\n"
                        "            predicts nothing: benches below this line "
-                       "have scored 91.7%% and 47.5%%.\n"
+                       "have scored 92.5%% and 47.5%%.\n"
                        "            Look at the enrolment pictures before "
                        "re-enrolling on this number.\n",
                        (double)sep, (double)scat);

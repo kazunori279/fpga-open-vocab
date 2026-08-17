@@ -11,6 +11,48 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-17 — the benches move into the repository, and two rows of the table turn out to be the wrong column
+
+Every number in this project that says how well the appliance recognises
+anything came out of one of twenty-five log files, and until this afternoon all
+twenty-five lived in `/tmp`. `FGX_ENROL_SNR`, the eleven-run table, the argument
+in the entry below that three enrolment-time quantities have each failed the
+same way — all of it rested on files macOS deletes. A bench costs a morning of
+daylight and cannot be regenerated from anything on disk. They are in
+`bench/cue/` now, 2.8 MB, with `bench/README.md` as the manifest.
+
+**Writing that manifest is what caught the error.** `tools/score_cue.py` prints
+two held-out figures and they are not the same measurement: the live `HELD OUT`
+line, which is what the board's own rule did, and `one visit per state, then
+held out`, an offline replay under a different enrolment. Scoring all
+twenty-five logs to fill the manifest showed the two disagreeing by as much as
+83 points — `m9_cue-20260817-085504.log` is 0.0% live and 83.3% replayed.
+
+Re-scored, the **nine original rows of the table match the live figure exactly,
+all nine.** The two rows added this morning were filled in from the replay
+column, and the "metric inconsistency" corrected just before `2e48d86` was
+corrected the wrong way round:
+
+| | in `2e48d86` | correct |
+|---|---|---|
+| 08-17 11:26 | 91.7 % | **92.5 %** |
+| 08-17 11:44 | 76.1 % | **68.3 %** |
+
+Nothing in the argument moves. 11:26 still read 1.12, still sat on the reject
+side, and is still the best bench in the project — by a wider margin than
+claimed, since 92.5% beats the 91.7% of the worst run *above* the bar rather
+than tying it. What does change is a count repeated in five places: below the
+bar there are **eight** runs, not eleven, and they span **92.5% to 47.5%**. The
+firmware's printed message said 91.7% and now says 92.5%; `m9.c`,
+`probe_sepscale.py`, `probe_reject.py`, `architecture.md` and the README are all
+corrected, and each now names which of the two columns it means.
+
+This is a fourth thing got wrong about the same eleven numbers in one day, and
+it is the reason the manifest carries both columns for every log rather than the
+one that happened to be in use.
+
+---
+
 ### 2026-08-17 — the two-visit guard's first prospective test rejects the best run of the day
 
 The entry below shipped `FGX_ENROL_V = 2` on a nine-bench table with a void in

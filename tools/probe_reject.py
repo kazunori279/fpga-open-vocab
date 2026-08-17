@@ -178,7 +178,7 @@ def score(log: Path) -> None:
           f"rule settled at frame {engage}")
     # ONE-SIDED, mirroring m9.c's FGX_ENROL_SNR since 2026-08-17. This used to
     # print THE CLASSES OVERLAP below 2x and call the run noise; the 11:26 bench
-    # read 1.12 and scored 91.7%, so the low side says nothing now.
+    # read 1.12 and scored 92.5%, so the low side says nothing now.
     if vmin < 2:
         print("      ^ measured over one visit, so it says how still the scene "
               "was held and not\n"
@@ -192,8 +192,8 @@ def score(log: Path) -> None:
               "        three runs is all it rests on.")
     else:
         print("      ^ below the bar, which on its own predicts nothing: the "
-              "eleven benches under\n"
-              "        this line run from 91.7% down to 47.5%. See "
+              "eight benches under\n"
+              "        this line run from 92.5% down to 47.5%. See "
               "FGX_ENROL_SNR in m9.c.")
     # WHERE THE ORIGIN IS, because it is not an arbitrary point. c[] = 0 means
     # every query moved together, which is what "nothing has changed since the

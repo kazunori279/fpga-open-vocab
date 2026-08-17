@@ -1,0 +1,2 @@
+
+[host] /dev/cu.usbmodem21101 vanished mid-run. That is what m9's watchdog reboot looks like from this end; the board should come back in a few seconds and say why. Following it.

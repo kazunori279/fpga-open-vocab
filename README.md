@@ -115,9 +115,10 @@ class's digit again later and both windows fold into one reference.
 **Then the first run to test that prospectively rejected the best bench of the
 day, and the guard is one-sided as a result.** Measured over two visits the
 ratio put nine benches on the correct side of 2.0 with nothing between 1.24 and
-2.64 — and the tenth read 1.12 and scored 91.7%, with the board telling the
-operator to throw it away. Eleven runs now: above 2.6 there are three and they
-scored 91.7%, 96.7% and 100.0%; below it they run from 91.7% down to 47.5%. So
+2.64 — and the tenth read 1.12 and scored 92.5%, the best in the project, with
+the board telling the operator to throw it away. Eleven runs now: above 2.6
+there are three and they scored 91.7%, 96.7% and 100.0%; the eight below it run
+from 92.5% down to 47.5%. So
 the bar only ever says the good news, and below it the board prints the numbers
 and no advice. **Three quantities measurable at enrolment have now failed the
 same way** — `sep`, the one-window ratio, the two-visit ratio — because what
@@ -177,6 +178,11 @@ fpga-open-vocab/
 ├── pyproject.toml     # host tooling deps (uv sync / uv run)
 ├── schematic.pdf      # local only — *.pdf is gitignored; re-fetch from the
 │                      #   Bitbucket link below (Forgix rev 2026-02-24)
+├── bench/             # the cue benches themselves — every accuracy number in
+│   ├── README.md      #   this repo came out of one of these logs, and they
+│   └── cue/           #   lived in /tmp until 2026-08-17. The README is the
+│                      #   manifest: which run is which, and which of the two
+│                      #   held-out figures each table quotes
 ├── docs/              # architecture, building, history, milestones, bring-up
 │   ├── diagrams/      #   wire.json — WaveDrom source
 │   ├── img/           #   wire.svg — generated from it, committed

@@ -1,0 +1,13 @@
+frame   423 :  an opened book~ +11.95*  a closed book~ -11.95   led 255/  0 h1.00 lvl+0.00   MATCH an opened book~ (cos 0.008)
+
+stopped   : 424 frames, 424 good, capture overlapped with the compute, configuration C
+            424 frames timed, 282 ms/frame mean (capture included)
+            265 ms encode + 0 ms waiting for the sensor + 16 ms burst; 293 ms/frame by the clock
+            377 ms shutter to LED, arming with 93 ms of compute left
+            last frame mean RGB 133 129 138
+            camera bus: worst gap 37 us against the 2000 us deadline (#12)
+            usb: 0 outages, 0 ms off the bus, 0 re-attaches (#9)
+
+[host] /dev/cu.usbmodem21101 vanished mid-run. That is what m9's watchdog reboot looks like from this end; the board should come back in a few seconds and say why. Following it.
+[host] nothing with VID 2E8A came back within 45s, so the board is not enumerating at all and the watchdog did not get it either.
+[host] uhubctl -l 2-1 -p 1 -a cycle   # then wait ~9 s and retry

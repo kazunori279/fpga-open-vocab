@@ -15,7 +15,10 @@ is the gap between two arbitrary points of two clouds. It can read large when
 the clouds overlap and small when they do not.
 
 It does exactly that. Every cue bench there is, sorted by the ratio this tool
-proposes, scored with the board's own held-out figure from tools/score_cue.py:
+proposes, scored with the board's own held-out figure - the live `HELD OUT` line
+that tools/score_cue.py reprints, NOT the `one visit per state` replay under it,
+which is a different measurement and disagrees by up to 83 points. The logs
+themselves are in bench/cue/ and bench/README.md lists both columns for each:
 
     run          held out   sep(1 visit)  ratio(1)  ratio(2)  ratio(all)
     08-17 07:33    96.7 %       2.40         2.52      3.24      3.03
@@ -23,9 +26,9 @@ proposes, scored with the board's own held-out figure from tools/score_cue.py:
     08-17 09:18    91.7 %       3.61         2.17      2.64      2.29
     ------------------ 2.6, and everything above it worked ----------------
     08-17 09:33    59.2 %       3.83         2.71      1.24      1.06
-    08-17 11:26    91.7 %       0.07         0.09      1.12      2.15
+    08-17 11:26    92.5 %       0.07         0.09      1.12      2.15
     08-17 09:57    74.2 %       3.69         1.81      0.94      1.05
-    08-17 11:44    76.1 %       0.55         0.24      0.92      0.58
+    08-17 11:44    68.3 %       0.55         0.24      0.92      0.58
     08-17 08:57    76.7 %       5.83         3.69      0.87      0.95
     08-17 09:55    47.5 %       0.84         0.67      0.44      0.04
     08-16 17:22    58.3 %       0.17         0.05      0.22      0.28
@@ -35,16 +38,16 @@ THIS TABLE HAD A VOID IN IT AND 11:26 FILLED IT. Written on the first nine rows,
 this tool claimed ratio(2) put every run on the correct side with nothing
 between 1.24 and 2.64. 11:26 is the first bench whose references the board
 itself built from two visits - the first prospective test rather than a replay -
-and it read 1.12 and scored 91.7%, as high as anything above the line. The board
-printed THE CLASSES OVERLAP and told the operator to throw it away.
+and it read 1.12 and scored 92.5%, the best in the project. The board printed
+THE CLASSES OVERLAP and told the operator to throw it away.
 
 SO READ IT ONE-SIDED. Above 2.6: three runs, 91.7%, 96.7%, 100.0%. Below it:
-nothing, the eleven rows there running from 91.7% down to 47.5%. That is a
+nothing, the eight rows there running from 92.5% down to 47.5%. That is a
 sufficient condition and not a necessary one, and the guard in m9.c used to have
 it backwards.
 
 `sep` on its own is worse still - its largest value, 5.83, belongs to a 76.7%
-run and 11:26 scored 91.7% at 0.07 - and so is ratio(1), which puts 08:57 (3.69)
+run and 11:26 scored 92.5% at 0.07 - and so is ratio(1), which puts 08:57 (3.69)
 above 09:18 (2.17) and scores them 76.7% against 91.7%. Three quantities
 measurable at enrolment, three failures of the same shape: what decides a run is
 where the object lands on visits that have not happened yet.
@@ -133,8 +136,8 @@ def score(log: Path) -> None:
               "that rests on.")
     else:
         print("      the two-visit ratio is under 2.6, which on its own says "
-              "nothing: the\n      eleven benches below that line run from "
-              "91.7% down to 47.5%.")
+              "nothing: the\n      eight benches below that line run from "
+              "92.5% down to 47.5%.")
 
 
 def main() -> int:
