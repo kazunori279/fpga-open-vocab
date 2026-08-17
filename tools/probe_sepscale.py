@@ -21,10 +21,11 @@ which is a different measurement and disagrees by up to 83 points. The logs
 themselves are in bench/cue/ and bench/README.md lists both columns for each:
 
     run          held out   sep(1 visit)  ratio(1)  ratio(2)  ratio(all)
+    08-17 15:20    95.8 %       2.87         4.75      5.01      3.82
     08-17 07:33    96.7 %       2.40         2.52      3.24      3.03
     08-11 07:22   100.0 %       2.28        13.91      2.94      3.49
     08-17 09:18    91.7 %       3.61         2.17      2.64      2.29
-    ------------------ 2.6, and everything above it worked ----------------
+    ---------- 2.6, and everything above it worked, for nine hours ---------
     08-17 13:35    57.5 %       5.46         2.49      2.08      1.70
     08-17 09:33    59.2 %       3.83         2.71      1.24      1.06
     08-17 11:26    92.5 %       0.07         0.09      1.12      2.15
@@ -32,7 +33,10 @@ themselves are in bench/cue/ and bench/README.md lists both columns for each:
     08-17 11:44    68.3 %       0.55         0.24      0.92      0.58
     08-17 13:39    74.2 %       3.73         2.93      1.89      1.73
     08-17 08:57    76.7 %       5.83         3.69      0.87      0.95
+    08-17 15:42    90.8 %       2.43         1.29      1.38      1.36
     08-17 09:55    47.5 %       0.84         0.67      0.44      0.04
+    08-17 15:37    50.0 %       0.51         0.78      0.35      0.95
+    08-17 15:27    34.2 %       0.68         1.01      0.39      0.61
     08-16 17:22    58.3 %       0.17         0.05      0.22      0.28
     08-16 17:35    57.5 %       0.26         0.10      0.15      0.09
 
@@ -48,21 +52,43 @@ SO IT WAS READ ONE-SIDED FOR HALF A DAY - above 2.6 three runs had scored 91.7%,
 TOO. Beware which column you check that against: the bar lived in the firmware
 and ran on the BOARD's ratio, from the 20 frames after the key press, not on
 this tool's, which pools the first 20 of each cued span. 11:26 replays at 1.12
-here and the board printed 1.8x. Four benches have ever produced a board-side
-two-visit ratio - every prospective test the bar has had - and they run
-3.7 -> 57.5%, 2.3 -> 74.2%, 1.8 -> 92.5%, 1.2 -> 68.3%: backwards at both ends.
-So this tool no longer prints a verdict either, and m9.c has no constant.
+here and the board printed 1.8x. Eight benches have now produced a board-side
+two-visit ratio - every prospective test the bar has had:
+
+    5.5 -> 95.8 %   certify, right     3.7 -> 57.5 %   certify, WRONG
+    2.4 -> 90.8 %   reject,  WRONG     2.3 -> 74.2 %   reject,  right
+    1.8 -> 92.5 %   reject,  WRONG     1.2 -> 68.3 %   reject,  right
+    0.5 -> 50.0 %   reject,  right     0.4 -> 34.2 %   reject,  right
+
+Four of those eight are runs the bar would have decided something about that
+mattered - the two best and the two worst calls - and it got ONE of the four
+right. 15:42 is the one to remember: it read 2.4, two tenths under the bar, and
+scored 90.8%. So this tool no longer prints a verdict either, and m9.c has no
+constant. The extremes do line up now, and that is exactly the shape the last
+four mistakes had at the moment they were made.
 
 `sep` on its own is worse still - its largest value, 5.83, belongs to a 76.7%
 run and 11:26 scored 92.5% at 0.07 - and so is ratio(1), which puts 08:57 (3.69)
 above 09:18 (2.17) and scores them 76.7% against 91.7%. Four quantities
 measurable at enrolment now, four failures of the same shape: what decides a run
-is where the object lands on visits that have not happened yet. 13:35 is the
-cleanest demonstration in the tree, and it is in the visit centres this tool
-prints first rather than in any ratio below them - its opened book walked +1.96,
-+3.25, +4.64, +4.39 across four visits while its closed book sat at +5.8, so the
-reference built from visits 1 and 2 described neither of the visits it was
-scored on. Read those rows before the ratios.
+is where the object lands on visits that have not happened yet.
+
+READ THE VISIT CENTRES BEFORE ANY RATIO. They are printed first for a reason:
+the two runs the ratios cannot explain are both explained there, and in two
+different ways.
+
+  13:35, 57.5%, and the ratio's highest reading ever. The opened book walked
+  +1.96, +3.25, +4.64, +4.39 across four visits while the closed book sat at
+  +5.8. Enrolment pooled visits 1 and 2, so the reference described neither of
+  the visits it was scored on. DRIFT: the centres move in one direction.
+
+  15:37, 50.0%, ratio 0.35. `a person, hands up` went -0.77, +0.77, +0.91,
+  +1.22 against `a person standing` flat near -0.3. The pooled reference landed
+  at ~0.0, where NEITHER visit was, and the run scored 0 of 6 on the frames it
+  was taught from. VARIANCE: the centres scatter around a mean that is empty.
+
+Both are "the reference does not describe the object", and neither is a small
+gap. A ratio cannot tell them apart from a run that is merely tight.
 
 WHAT THE RATIO IS. Pool the first N visits of a class and take the mean: that
 is the class centre rather than one visit's accident, and `sep` becomes the gap

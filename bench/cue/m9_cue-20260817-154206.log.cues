@@ -1,0 +1,25 @@
+# host/cue.py, settle 10, hold 30, baseline 30, bg-tau 30
+# demo.py (no extra flags)
+# log /tmp/m9_cue.log
+# enrol-window 20
+# enrol 72 1
+# enrol 112 2
+# enrol 192 1
+# enrol 232 2
+# snap 84
+# snap 124
+# snap 204
+# snap 244
+30	59	baseline
+60	99	a small bag
+100	139	a big bag
+140	179	empty
+180	219	a small bag
+220	259	a big bag
+260	299	empty
+300	339	a small bag
+340	379	a big bag
+380	419	empty
+420	459	a small bag
+460	499	a big bag
+500	539	empty

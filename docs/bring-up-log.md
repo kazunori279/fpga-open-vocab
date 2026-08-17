@@ -11,6 +11,133 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-17 — four object pairs in twenty-two minutes, and the appliance has a shape
+
+Everything before this entry is two books. Four benches at 15:20, 15:27, 15:37
+and 15:42 — hands, a glass, a person, bags — same board, same light, same
+schedule, four different things to tell apart. All four clean: 546 frames each,
+no dropped frames, no USB outage, worst camera-bus gap 15–22 µs against a
+2,000 µs deadline. `bench/cue/m9_cue-20260817-1520*.log` through `-1542*.log`.
+
+| bench | pair | held out | margin AUC | sep(2) | spread | ratio | enrolled from | presence AUC |
+|---|---|---|---|---|---|---|---|---|
+| 15:20 | an opened / a closed hand | **95.8 %** | 0.999 | 2.92 | 0.54 | 5.5x | 6/6 | 0.349 |
+| 15:27 | a glass with tea / an empty glass | **34.2 %** | 0.301 | 0.23 | 0.56 | 0.4x | 2/6 | 0.754 |
+| 15:37 | a person standing / hands up | **50.0 %** | 0.771 | 0.69 | 1.37 | 0.5x | **0/6** | 0.241 |
+| 15:42 | a small / a big bag | **90.8 %** | 0.928 | 4.06 | 1.68 | 2.4x | 6/6 | 0.482 |
+
+**Two of the four work, and 08-11 is no longer alone.** 95.8% and 90.8% are the
+second and third best figures in the project, they are the first 90%+ since
+2026-08-11, and they are on pairs that are not the book. Whatever went wrong
+between 08-11 and 08-16, the appliance does still do this.
+
+**And the two that failed, failed in two different ways, neither of them the
+one #19 is about.**
+
+*The glass is the model's fault, not the rule's.* Margin AUC **0.301** — best
+cut 67.5% and pointing the wrong way. The encoder does not carry "is there tea
+in it". Visit centres sit on top of each other (`a glass with tea` −0.26, +0.16,
+−0.24, +0.09 against `an empty glass` +0.22, +0.02, +0.38, +0.15) and `sep` over
+two visits is 0.23. The rule did what it could with references a quarter of a
+unit apart. This is the first bench that fails for a reason that is not staging,
+and it is worth having: 1.40 M int4 parameters through a 512-d PCA is not a
+fine-grained attribute detector, and now there is a number for that.
+
+*The person is staging, but a different staging failure from 13:35's.*
+Margin AUC 0.771, best cut 80.4% — the model **does** separate them. But:
+
+```
+a person standing   -0.41  -0.24  -0.60  +0.03
+a person, hands up  -0.77  +0.77  +0.91  +1.22
+```
+
+Spread 1.37 against a `sep` of 0.46. Visit 1 at −0.77 and visit 2 at +0.77, so
+the pooled reference lands at ≈0.0, where **neither visit was**. 13:35's opened
+book walked in one direction; this one scatters. Both come out as "the reference
+does not describe the object", and `tools/probe_sepscale.py` now says so in the
+visit-centre rows rather than in any ratio.
+
+Its tell is new and blunt: **`enrolled from 0/6`.** The rule cannot classify the
+frames the reference was built from.
+
+**15:42 finished off the enrolment bar.** It read **2.4x** — two tenths under the
+2.6 deleted three hours earlier — and scored 90.8%. Eight board-side prospective
+tests now exist, which is every one the bar ever had:
+
+| ratio | held out | what 2.6 would have done |
+|---|---|---|
+| 5.5 | 95.8 % | certify — right |
+| 3.7 | 57.5 % | certify — **wrong** |
+| 2.4 | 90.8 % | reject — **wrong** |
+| 2.3 | 74.2 % | reject — right |
+| 1.8 | 92.5 % | reject — **wrong** |
+| 1.2 | 68.3 % | reject — right |
+| 0.5 | 50.0 % | reject — right |
+| 0.4 | 34.2 % | reject — right |
+
+Four of the eight are calls that would have mattered — the two best runs and the
+two worst calls — and it gets **one of the four right**. Spearman ρ over all
+eight is 0.69 and the extremes do line up, which is precisely the shape the last
+four mistakes had at the moment each was made. Nothing goes back.
+
+**`enrolled from` is the fifth statistic and it is not being shipped either, but
+it is a different kind of thing.** Over all eighteen scoreable benches:
+
+```
+below 6/6  (5 benches)   4/6 -> 58.3 %   0/6 -> 57.5 %   0/6 -> 0.0 %
+                         2/6 -> 34.2 %   0/6 -> 50.0 %
+at 6/6    (13 benches)   47.5 % ... 100.0 %
+```
+
+Every run that missed a single one is at 58.3% or below, with no exception; 6/6
+says nothing. Three things make it unlike the four that failed: **there is no
+constant to fit** (the threshold is "perfect", not a tuned number), it is a
+self-consistency check rather than a forecast of staging that has not happened,
+and it is free on the board, which already holds both the references and the
+frames they came from. Against that: the deleted bar was also one-sided with
+three supporting benches on the day it shipped and died on the fourth, this has
+five, and it is **structurally blind to drift** — 13:35 scored 6/6 and 57.5%. So
+it stays out of the firmware and goes in an issue, to be watched on the next
+bench that fires it rather than fitted to the eighteen in hand.
+
+**#18, on fourteen benches: the gain is gone.** The leave-one-bench-out replay
+as benches accumulate — blind mean of the best unit against the shipped
+`FGX_ABSENT_TRIP = 2.0 sep`, and the cost of not having seen the bench:
+
+```
+benches    best blind   shipped    gain    cost
+   10         64.3 %     58.3 %     6.0    10.7
+   12         61.9 %     58.0 %     3.9    11.4
+   13         59.0 %     56.7 %     2.3    12.5
+   14         58.7 %     56.2 %     2.5    12.0
+```
+
+The cost has not moved and the gain has collapsed. The per-bench optimum now
+spans **0.15 to 3.60** in absolute distance, 24× — 15:20 wants 0.15 and 08:55
+wants 3.60. There is no radius to retune to, and this is no longer a sweep that
+has not been run. Six of the fourteen are genuinely inverted (AUC < 0.5), which
+is what remains of #18.
+
+**Both stages fail on the same geometric fact, from opposite sides.** 15:20 is
+the clearest statement of it in the tree: state 95.8%, presence 0/90. The two
+references are 2.92 apart, which is what state needs — and `an opened hand`
+enrolled **0.08 sep from the origin**, which is where "nothing has changed since
+the background froze" lands, so every empty frame was called that class. The
+board printed exactly that at enrolment, class name included, before the first
+held-out frame. 15:42 did the same thing with `a big bag` at 0.26 sep and 90/90.
+Origin warnings now stand at **five right, two wrong, one missed** over eight
+benches that could have had one.
+
+15:27 is the inverse and it makes the `sep`-is-not-a-scale argument concrete for
+the presence radius. Its `sep` is 0.26, so the shipped 2.0 sep trip lands at 0.52
+absolute against an ideal 0.35 — close, and it is the only bench since 08-16
+where the shipped constant clears the floor (63.3%). 15:20's `sep` is 2.90, so
+the same constant lands at 5.80 absolute against an ideal 0.15: **39× too big**.
+The constant is only ever right when `sep` happens to fall near the right
+absolute radius.
+
+---
+
 ### 2026-08-17 — the control run says #19 is not the schedule, and the bar certified the run it settles
 
 Two benches at 13:35 and 13:39, same light, same phrases, same board, four

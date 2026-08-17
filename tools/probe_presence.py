@@ -8,11 +8,20 @@
 PASS IT BENCHES, NOT THE GLOB, if you want the figures the docs quote. `*.log`
 picks up four scoreable things that are not benches - the 10:48 and 10:52 smoke
 tests, `m9_cue-smoke-2e48d86.log`, and the synthetic `m9_cue_fake_d.log`, which
-is a doctored copy of an 08-16 run and would vote twice. The ten real benches
-with a held-out empty rotation are 08-16 17:22 and 17:35 and 08-17 07:33, 08:55,
-09:18, 09:55, 09:57, 11:26, 11:33 and 13:39; `bench/README.md` is the manifest.
-On those ten the answer is `scat` at 64.3% blind against 58.3% shipped, for a
-leave-one-out cost of 10.7 - the cost exceeds the gain, so nothing changes.
+is a doctored copy of an 08-16 run and would vote twice. The fourteen real
+benches with a held-out empty rotation are 08-16 17:22 and 17:35 and 08-17
+07:33, 08:55, 09:18, 09:55, 09:57, 11:26, 11:33, 13:39, 15:20, 15:27, 15:37 and
+15:42; `bench/README.md` is the manifest. On those fourteen the best unit is
+absolute distance at 58.7% blind against 56.2% for the shipped constant, for a
+leave-one-out cost of 12.0.
+
+THE GAIN SHRINKS EVERY TIME A BENCH IS ADDED, and that is the answer. Ten
+benches: 6.0 points of gain against 10.7 of cost. Twelve: 3.9 against 11.4.
+Thirteen: 2.3 against 12.5. Fourteen: 2.5 against 12.0. The cost has never
+moved and the gain has collapsed, so the shipped `FGX_ABSENT_TRIP = 2.0 sep`
+is not a constant waiting to be retuned - there is no radius to retune it to.
+What is left of #18 is why some scenes invert (six of the fourteen do), which
+is a geometry question and not a threshold one.
 
 WHY THIS EXISTS. On 2026-08-17 three benches were read as showing the empty desk
 sitting FURTHER from the class references than the class frames do, and that was
@@ -163,6 +172,14 @@ def main() -> int:
     UNITS = (("sep, as FGX_ABSENT_TRIP does", FRACS, lambda s, c: s),
              ("scat, the enrolment spread", FRACS, lambda s, c: c),
              ("absolute distance", ABSOL, lambda s, c: 1.0))
+    # One bench cannot be left out of itself, and the per-bench table above is
+    # the whole answer in that case. Say so rather than dividing by zero.
+    if len(runs) < 2:
+        print("\nonly one scoreable bench - leave-one-out needs something to "
+              "leave it out of.\nPass the fourteen named above to get the "
+              "figures the docs quote.")
+        return 0
+
     summary = []
     for unit, grid, scale in UNITS:
         print(f"\nleave-one-out, radius in {unit}")
