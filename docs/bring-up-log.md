@@ -11,6 +11,95 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-17, later — measure the ceiling first, and half of #19 goes away
+
+The entry below reads four benches off one number each and gets two of them
+wrong. `tools/probe_ceiling.py`, written for [#23](https://github.com/kazunori279/fpga-open-vocab/issues/23),
+is the correction: it separates **what a bench could ever have scored** from
+**what the decision rule got**, and once those are two columns instead of one,
+several months of "the rule regressed" turns out to be three different things.
+
+**The ceiling is exact, which is why it is worth having.** The board decides in
+the centred space `c[i] = z[i] − mean(z)`. With two queries that space is
+one-dimensional — `c = [+D/2, −D/2]` for the margin `D = z[A] − z[B]` — so `D`
+carries *everything* the board could use. No enrolment, rule or threshold beats
+`D`'s own separability. Call it `|sep|`, folded so direction does not count.
+
+| bench | \|sep\| | within | best | state | lost | pair |
+|---|---|---|---|---|---|---|
+| 08-11 07:22 | 1.000 | 1.000 | 100.0% | 100.0% | 0.0 | book |
+| 08-17 15:20 | 0.999 | 0.999 | 98.8% | 95.8% | 2.9 | hand |
+| 08-17 07:33 | 0.994 | 0.995 | 99.4% | 96.7% | 2.8 | book |
+| 08-17 09:18 | 0.971 | 0.975 | 94.4% | 91.7% | 2.8 | book |
+| 08-17 13:35 | 0.970 | 0.975 | 93.8% | 57.5% | **36.3** | book |
+| 08-17 11:26 | 0.932 | 0.915 | 88.3% | 92.5% | −4.2 | book |
+| 08-17 15:42 | 0.928 | 0.948 | 89.6% | 90.8% | −1.2 | bag |
+| 08-17 13:39 | 0.916 | 0.956 | 82.1% | 74.2% | 7.9 | book |
+| 08-17 09:57 | 0.895 | 0.887 | 86.7% | 74.2% | 12.5 | book |
+| 08-17 08:55 | 0.873 | 0.836 | 88.9% | 25.8% | **63.1** | book |
+| 08-17 09:33 | 0.838 | 0.803 | 77.8% | 59.2% | **18.6** | book |
+| 08-16 17:22 | 0.824 ! | 0.819 | 85.6% | 58.3% | **27.2** | book |
+| 08-17 08:57 | 0.787 | 0.894 | 85.0% | 76.7% | 8.3 | book |
+| 08-17 15:37 | 0.771 ! | 0.863 | 80.4% | 78.3% | 2.1 | person |
+| 08-17 11:44 | 0.746 | 0.769 | 72.5% | 68.3% | 4.2 | book |
+| 08-17 15:27 | 0.699 ! | 0.699 | 67.5% | 60.0% | 7.5 | glass |
+| 08-16 17:35 | 0.599 ! | 0.593 | 62.2% | 56.7% | 5.6 | book |
+| 08-17 09:55 | 0.579 | 0.654 | 59.4% | 47.5% | 11.9 | book |
+
+`best` is the best any threshold on the margin could do, `state` is the
+nearest-reference rule held out with no presence gate, and **`lost` = best −
+state is what the decision rule cost.** `!` marks an inverted margin.
+
+**#19 is four benches, not everything since 08-11.** Only 08:55, 13:35, 17:22
+and 09:33 threw away a ceiling they had — 63, 36, 27 and 19 points. Every other
+low score collected what was on offer to within about a dozen points and was low
+because *the ceiling was low that morning*. That is a much better issue than the
+one that was open: four clean cases instead of a drift.
+
+**The book pair's ceiling swings from 1.000 to 0.579 across the same desk.**
+Fourteen runs, two phrases, one book, and the ceiling alone spans 42 points
+before any rule is reached. This is the same lesson as `sep`-is-not-a-scale
+arriving from the other side: a bench measures the staging at least as much as
+it measures the appliance. One of #19's own two founding runs — 08-16 17:35, at
+0.599 — is on that list, so it never tested the rule at all.
+
+**Two corrections to the entry below.**
+
+*The glass is not proven to be the model.* Its margin reads 0.301, which the
+entry below calls "the encoder does not carry it". 0.301 is 0.199 from chance
+**in the inverted direction** — a real signal named backwards, not an absent
+one — and folded it is 0.699. That is low, but the book pair has read 0.599 on a
+morning when the encoder was demonstrably fine. **One run cannot tell a model
+limit from a bad morning**, and the glass has exactly one. It is a candidate,
+recorded in #23, and not a finding.
+
+*The person bench is not a state-stage failure.* The entry below reads its 50.0%
+as staging variance, on the strength of visit centres at −0.77/+0.77/+0.91/+1.22
+and `enrolled from 0/6`. The variance is real; it cost **2.1 points**. The state
+stage collected 78.3% of an 80.4% ceiling. What took it from 78.3% to the 50.0%
+that was quoted is **#18's presence gate**, which called 34 held-out class frames
+absent. `enrolled from 0/6` is the same artefact — the board's MATCH is gated, so
+that column cannot see the state stage on its own either.
+
+**Which makes the gate's cost measurable for the first time, and it is narrow.**
+Comparing every bench's live `HELD OUT` against its ungated state stage, the gate
+costs class frames on exactly three of the eighteen — 08:55, 15:27 and 15:37, at
+25.8, 25.8 and 28.3 points — and nothing at all on the other fifteen. It is not a
+tax spread across the appliance; it is a cliff that three benches fell off. Both
+of the benches whose *presence* half inverted worst (15:20 and 15:42, 90/90 empty
+frames absorbed) paid nothing here, which is the asymmetry
+[#21](https://github.com/kazunori279/fpga-open-vocab/issues/21) is about: a
+reference on the origin swallows the empty desk without touching the classes.
+
+**This is a diagnostic and can never be a guard.** `|sep|` needs held-out frames
+of both classes, so it does not exist until the run is over — unlike `sep`, the
+two ratios and `enrolled from`, all of which were available at enrolment and all
+of which were wrong. There is no constant here to fit and nothing for `m9.c` to
+do with it. `probe_ceiling.py` has no threshold in it for the same reason: an
+absolute floor would have called half the book runs a model limitation.
+
+---
+
 ### 2026-08-17 — four object pairs in twenty-two minutes, and the appliance has a shape
 
 Everything before this entry is two books. Four benches at 15:20, 15:27, 15:37
