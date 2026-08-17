@@ -98,15 +98,14 @@ import json
 import sys
 from pathlib import Path
 
-import numpy as np
-import torch
-from torch.utils.data import DataLoader
-
 import data
 import distill
+import numpy as np
 import quantize as quant_mod
 import student as student_mod
 import teacher as teacher_mod
+import torch
+from torch.utils.data import DataLoader
 
 # Below this many positives (or negatives) an AUC is noise, so the query is
 # dropped and the count of dropped queries is printed. Never silently.
@@ -165,7 +164,7 @@ def teacher_bundle(tag: str, split: str, trained_on: str, device):
     # such string; for those the name comes off the tag, which is where the
     # convention started.
     raw_name = side.get("raw") or (
-        f"emb_{side['split']}_{tag.split('_')[2].split('-')[0]}.raw.npy")
+        f"emb_{side['split']}_{tag.split('_')[2].split('-', maxsplit=1)[0]}.raw.npy")
     raw = data.CACHE / raw_name.replace(side["split"], split)
     if not raw.exists():
         raise SystemExit(

@@ -81,10 +81,9 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import open_clip
 import torch
 from PIL import Image
-
-import open_clip
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import probe_teacher as pt

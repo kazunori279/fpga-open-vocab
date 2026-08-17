@@ -58,8 +58,9 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "model"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import data  # noqa: E402  - model/data.py, for the canonical image order
-from cam import parse  # noqa: E402  - one BEGIN/END parser, not two
+# Below the inserts above, necessarily.
+import data  # model/data.py, for the canonical image order
+from cam import parse  # one BEGIN/END parser, not two
 
 TAG = "m9emb"
 # m9.c prints this immediately before the block. cam.py's SNAPAT deliberately
@@ -131,8 +132,8 @@ def load_bank(bank: Path):
     caps = [by_id.get(int(Path(nm).stem), []) for nm in names]
     mu = vecs.mean(axis=0)
     return (vecs, mu, caps, names,
-            f"{vecs.shape[0]} {split} images, {meta['model']}, "
-            f"mean direction |mu| = {np.linalg.norm(mu):.3f}")
+            (f"{vecs.shape[0]} {split} images, {meta['model']}, "
+             f"mean direction |mu| = {np.linalg.norm(mu):.3f}"))
 
 
 def vectors_from_log(log: Path):
@@ -177,7 +178,7 @@ def report(label, v, vecs, caps, names, k, show):
                     words[w] += 1
     common = [f"{w}({n})" for w, n in words.most_common(show) if n > 1]
     print(f"  consensus : {' '.join(common) if common else '(nothing repeats)'}")
-    return {w: n for w, n in words.items()}
+    return dict(words.items())
 
 
 def main() -> int:

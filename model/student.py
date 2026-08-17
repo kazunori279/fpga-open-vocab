@@ -64,7 +64,7 @@ class Student(nn.Module):
         cin = 3
         blocks = []
         for cout, stride in stages:
-            cout = max(8, int(round(cout * width / 8)) * 8)
+            cout = max(8, round(cout * width / 8) * 8)
             blocks.append(ConvBNReLU(cin, cout, stride))
             cin = cout
         self.features = nn.Sequential(*blocks)

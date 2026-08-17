@@ -125,8 +125,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "model"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from board import (RP2350_VID, recover, find_port,  # noqa: E402
-                   pick_port, ports as bus_ports)
+import contextlib
+
+from board import RP2350_VID, find_port, pick_port, recover
+from board import ports as bus_ports
 
 MAGIC_B = b"FGXB"
 MAGIC_Q = b"FGXQ"
@@ -394,7 +396,7 @@ class Encoder:
             self.device = teacher.pick_device()
             print(f"teacher   : {self.spec}, {len(teacher.TEMPLATES)} templates,"
                   f" on {self.device}", file=sys.stderr)
-            print(f"space     : "
+            print("space     : "
                   + (f"projected by {self.export['basis']}"
                      if self.basis is not None
                      else "the teacher's own, no projection")
@@ -442,7 +444,7 @@ class Encoder:
         s = bank @ vec
         return float(s.mean()), float(s.std())
 
-    def encode(self, specs: list[str], gate_specs: list[str] = []):
+    def encode(self, specs: list[str], gate_specs: list[str] | None = None):
         """(display names, vectors, calibration, roles), provenance each.
 
         A spec is either a plain query, which behaves exactly as it did before
@@ -466,6 +468,7 @@ class Encoder:
         import teacher
 
         model = self._clip()
+        gate_specs = list(gate_specs or [])
         specs = list(specs) + list(gate_specs)
         n_plain = len(specs) - len(gate_specs)
 
@@ -504,8 +507,8 @@ class Encoder:
             entry = None if negs else self.table.get(pos)
             if entry is not None:
                 note = (f"AUC {entry['auc']:.3f} on {entry['n_pos']} positives"
-                        + (f"  <- weak: the student barely separates this class,"
-                           f" so this threshold means little"
+                        + ("  <- weak: the student barely separates this class,"
+                           " so this threshold means little"
                            if entry["auc"] < WEAK_AUC else ""))
                 if entry["auc"] < WEAK_AUC:
                     weak.append(name)
@@ -558,7 +561,7 @@ class Encoder:
         # decision - the board gates and then ranks the states, and this one is
         # neither. It still appears on every frame line, so it looks like it is
         # doing something. Say that it is not.
-        idle = [n for n, r in zip(names, roles) if r == Q_PLAIN] if gate_specs else []
+        idle = [n for n, r in zip(names, roles, strict=False) if r == Q_PLAIN] if gate_specs else []
         if idle:
             print(f"            {len(idle)} query in a two-stage set is neither "
                   f"presence nor state ({', '.join(idle)}) - it will be scored "
@@ -593,7 +596,7 @@ def pack_queries(names: list[str], vecs, cal, roles=None,
     body = struct.pack("<IIII", len(names), vecs.shape[1], bg_tau, bg_flags)
     if roles is None:
         roles = [Q_PLAIN] * len(names)
-    for name, vec, (zthr, mu, sd), role in zip(names, vecs, cal, roles):
+    for name, vec, (zthr, mu, sd), role in zip(names, vecs, cal, roles, strict=False):
         raw = name.encode("utf-8")[:NAME_LEN - 1]
         body += raw + b"\0" * (NAME_LEN - len(raw))
         body += struct.pack("<fffI", zthr, mu, sd, role)
@@ -941,10 +944,8 @@ def main() -> int:
             emit(f"\n[host] {port} vanished mid-run. That is what m9's watchdog "
                  f"reboot looks like from this end; the board should come back "
                  f"in a few seconds and say why. Following it.\n")
-            try:
+            with contextlib.suppress(OSError, serial.SerialException):
                 s.close()
-            except (OSError, serial.SerialException):
-                pass
             deadline = time.monotonic() + REOPEN_S
             while time.monotonic() < deadline:
                 time.sleep(0.5)
@@ -1042,7 +1043,7 @@ def main() -> int:
             # that vanished and did not come back. It cost a bench session. The
             # firmware side is fixed (m9.c's quiet-time guard), and this is the
             # other half: a running board gets 'R' and starts a clean run.
-            if re.search(r"^frame\s+\d+", "".join(transcript), re.M):
+            if re.search(r"^frame\s+\d+", "".join(transcript), re.MULTILINE):
                 print("\n(the board is still in the frame loop from an earlier "
                       "run - pressing 'R' to restart it rather than sending a "
                       "bitstream into a running loop.)", file=sys.stderr)
@@ -1080,9 +1081,9 @@ def main() -> int:
                     log.writelines(transcript)
                     log.flush()
             else:
-                print(f"\n(no banner in 10s - it was probably printed "
-                      f"before this end opened the port, which stdio_usb drops. "
-                      f"Sending the bitstream anyway.)", file=sys.stderr)
+                print("\n(no banner in 10s - it was probably printed "
+                      "before this end opened the port, which stdio_usb drops. "
+                      "Sending the bitstream anyway.)", file=sys.stderr)
         send(MAGIC_B, image)
 
         if not await_line("waiting for a query set",
@@ -1340,7 +1341,7 @@ def main() -> int:
                    and "what survives is this line." not in "".join(transcript)):
                 pump()
             found = re.search(r"^hang\s+:[^\r\n]*(?:\r?\n[ \t]{2,}[^\r\n]*)*",
-                              "".join(transcript), re.M)
+                              "".join(transcript), re.MULTILINE)
             hang = found.group(0).replace("\r", "") if found else ""
 
         # Leave the board in BOOTSEL, for m8.py's reason: m9 never stops on its
@@ -1402,7 +1403,7 @@ def main() -> int:
             return 3
         if gone:
             print(f"\n(the board left the bus and never came back - see the "
-                  f"[host] lines above. {args.frames and 'The run is void. ' or ''}"
+                  f"[host] lines above. {(args.frames and 'The run is void. ') or ''}"
                   f"That is issue #9's shape, but a board that is still gone "
                   f"cannot be asked which of its two exits it took, so recover "
                   f"it first and read the next banner: `usb :` means it saw the "
@@ -1415,7 +1416,7 @@ def main() -> int:
         # board's own line rather than inferred here, for wd_report_last()'s
         # reason - a deliberate reboot must not read as a hang.
         why = re.search(r"^usb\s+: the last run rebooted[^\r\n]*"
-                        r"(?:\r?\n[ \t]{2,}[^\r\n]*)*", text, re.M)
+                        r"(?:\r?\n[ \t]{2,}[^\r\n]*)*", text, re.MULTILINE)
         if why:
             asked = bool(args.usb_drop_hard)
             print(f"\n({'as asked: ' if asked else ''}the board rebooted itself "
@@ -1439,12 +1440,12 @@ def main() -> int:
                   f"The frames inside that window were computed and their "
                   f"lines are gone.)", file=sys.stderr)
             return 0 if asked else 3
-        print(f"\n(the board vanished and came back, which is a watchdog "
-              f"reboot, but it never printed the `hang :` line that names the "
-              f"stage. Either the reboot was not the watchdog's - a brown-out "
-              f"or a USB re-enumeration on its own would look identical from "
-              f"here - or this end reattached and the board is still waiting "
-              f"on something. The log has whatever it did say.)",
+        print("\n(the board vanished and came back, which is a watchdog "
+              "reboot, but it never printed the `hang :` line that names the "
+              "stage. Either the reboot was not the watchdog's - a brown-out "
+              "or a USB re-enumeration on its own would look identical from "
+              "here - or this end reattached and the board is still waiting "
+              "on something. The log has whatever it did say.)",
               file=sys.stderr)
         return 3
     if stalled:

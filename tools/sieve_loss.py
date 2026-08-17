@@ -92,7 +92,8 @@ def main():
         log = ROOT / "model" / "runs" / f"{run}.log"
         log.parent.mkdir(parents=True, exist_ok=True)
         with log.open("w") as fh:
-            p = subprocess.run(cmd, cwd=ROOT, stdout=fh, stderr=subprocess.STDOUT)
+            p = subprocess.run(cmd, cwd=ROOT, stdout=fh,
+                               stderr=subprocess.STDOUT, check=False)
         text = log.read_text()
         # The per-epoch lines are the useful trace; the step heartbeat is
         # carriage-return spam and would bury it.

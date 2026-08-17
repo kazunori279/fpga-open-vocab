@@ -164,7 +164,7 @@ import distill
 import quantize as quant_mod
 import student as student_mod
 import teacher as teacher_mod
-from evaluate import auc, embed_students, teacher_bundle, AUC_CLEARS, MIN_POS
+from evaluate import AUC_CLEARS, MIN_POS, auc, embed_students, teacher_bundle
 
 SPLIT = "val2017"
 # The recorded per-frame weight transfer at 8 bits, from the M9 timing. Every
@@ -255,7 +255,7 @@ def main():
     print(f"teacher  : {teacher_label}")
     print(f"eval     : {len(eval_idx)} {SPLIT} images, geometry crop "
           f"(model/evaluate.py's default, so the int8 row is comparable to it)")
-    print(f"activations held at 8 bits throughout; only the weights move\n")
+    print("activations held at 8 bits throughout; only the weights move\n")
 
     tf = distill.student_transform(False, False)
     query_names = [q["name"] for q in queries["queries"]]
@@ -290,7 +290,7 @@ def main():
         cos32 = float((emb * fp32).sum(axis=1).mean())
         cost = "" if bits is None else f"{WGT_MB_INT8 * bits / 8:>9.3f}"
         print(f"{name:<20}{good:>5} /{len(a):3}{np.mean(list(a.values())):>10.3f}"
-              f"{ret:>11.0%}{cos32:>11.4f}{bits if bits else 8:>9.2f}{cost}")
+              f"{ret:>11.0%}{cos32:>11.4f}{bits or 8:>9.2f}{cost}")
         return np.mean(list(a.values())), ret
 
     print(f"{'weights':<20}{'AUC>=0.80':>9}{'mean AUC':>10}{'retention':>11}"

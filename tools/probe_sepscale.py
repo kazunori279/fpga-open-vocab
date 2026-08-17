@@ -116,8 +116,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from probe_multivisit import WINDOW, mean_of, visits  # noqa: E402
-from probe_reject import dist, load  # noqa: E402
+from probe_multivisit import WINDOW, mean_of, visits
+from probe_reject import dist, load
 
 
 def geometry(vis, labs, pick):

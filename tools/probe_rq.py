@@ -60,8 +60,7 @@ import distill
 import export as export_mod
 import quantize as quant_mod
 import student as student_mod
-import teacher as teacher_mod
-from evaluate import auc, teacher_bundle, AUC_CLEARS, MIN_POS
+from evaluate import AUC_CLEARS, MIN_POS, auc, teacher_bundle
 
 SPLIT = "val2017"
 ENDS = ("conv0", "head")
@@ -133,9 +132,9 @@ def main():
     print(f"weights  : {cfg}   (M14's shipped configuration)")
     print(f"eval     : {len(eval_idx)} of {len(all_idx)} {SPLIT} images, geometry crop")
     print(f"int8 act : calibrated on {n_calib} training images")
-    print(f"pipeline : export.run_int(), the numpy integer reference - so the "
-          f"absolute AUC\n           is not model/evaluate.py's number; the "
-          f"column-to-column gap is\n")
+    print("pipeline : export.run_int(), the numpy integer reference - so the "
+          "absolute AUC\n           is not model/evaluate.py's number; the "
+          "column-to-column gap is\n")
 
     # The (M, s) table the fabric would hold, and what it costs in precision
     # before a single image is run. A layer whose M fell below 2^17 would mean

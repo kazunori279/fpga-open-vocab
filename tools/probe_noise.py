@@ -92,15 +92,14 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(ROOT / "model"))
 
+import distill
 import numpy as np
+import student as student_mod
+import teacher as teacher_mod
 import torch
 from PIL import Image
-from torchvision import transforms
-
-import teacher as teacher_mod
-import student as student_mod
-import distill
 from probe_inherit import resolve
+from torchvision import transforms
 
 PROMPTS = ["an opened book", "a closed book",
            "two pages of an open book", "the front cover of a closed book",
@@ -178,7 +177,7 @@ def main():
         print(f"\n{name}: mean {v.mean():+.4f}  sd {v.std():.4f}  "
               f"5-95% [{lo:+.4f}, {hi:+.4f}]  range [{v.min():+.4f}, {v.max():+.4f}]")
         marks = {}
-        for f, val in zip(files, v):
+        for f, val in zip(files, v, strict=False):
             if f.name in MARKED:
                 marks[MARKED[f.name]] = val
                 print(f"    {MARKED[f.name]:7} {val:+.4f}   "

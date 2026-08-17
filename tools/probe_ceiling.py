@@ -207,7 +207,7 @@ def ceiling(log: Path):
     # cancellation, and folding first is what makes the average say so.
     va = [xs for lab, xs in per_span if lab == a_lab]
     vb = [xs for lab, xs in per_span if lab == b_lab]
-    pairs = [fold(auc(p, n)) for p, n in zip(va, vb)]
+    pairs = [fold(auc(p, n)) for p, n in zip(va, vb, strict=False)]
     within = st.mean(pairs) if pairs else float("nan")
 
     # WHAT THE RULE GOT: nearest reference in the centred space, held out, and

@@ -132,11 +132,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(ROOT / "model"))
 
+import distill
 import open_clip
-
 import probe_teacher as pt
 import student as student_mod
-import distill
 
 CACHE = ROOT / "model" / "cache"
 # The two axes tools/probe_noise.py scores, by their index into pt.PROMPTS.
@@ -147,7 +146,7 @@ SD_AXES = [("opened-closed", "an opened book", "a closed book"),
 # resolve() started here and moved to model/spaces.py when model/export.py and
 # host/demo.py needed the same lookup - see that module for why one copy matters
 # more than usual. Re-exported so --teacher / --basis below read unchanged.
-from spaces import resolve  # noqa: E402
+from spaces import resolve
 
 
 def main():
@@ -231,7 +230,7 @@ def main():
         d = tv[allp.index(pos)] - tv[allp.index(neg)]
         d = d / np.linalg.norm(d)
         v, hits = ev @ d, {}
-        for f, val in zip(files, v):
+        for f, val in zip(files, v, strict=False):
             if f.name in marked:
                 hits[marked[f.name]] = val
         gap = hits[0] - hits[1]

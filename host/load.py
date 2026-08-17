@@ -102,7 +102,7 @@ def main() -> int:
             print("\nRESULT : FAIL - FPGA rejected the bitstream")
             return 1
 
-        cdone, status = r.pins
+        cdone, _status = r.pins
         print(f"end    : {r.describe()}")
         print()
         print("RESULT : " + ("PASS - FPGA configured and in user mode" if cdone else "FAIL"))

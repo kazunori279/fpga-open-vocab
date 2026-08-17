@@ -74,10 +74,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(ROOT / "model"))
 
-import probe_project as pp
-import probe_teacher as pt
 import data as data_mod
 import distill as distill_mod
+import probe_project as pp
+import probe_teacher as pt
 
 
 def main():

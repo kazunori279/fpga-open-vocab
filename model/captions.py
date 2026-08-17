@@ -28,14 +28,12 @@ host/caption.py centres each bank on its own mean, which is what makes the
 """
 import argparse
 import json
-import sys
-
-import numpy as np
-import open_clip
-import torch
 
 import data
+import numpy as np
+import open_clip
 import teacher
+import torch
 
 
 @torch.no_grad()

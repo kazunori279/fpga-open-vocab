@@ -59,10 +59,12 @@ _WHERE: tuple[str, str] | None = None
 
 def note_where() -> tuple[str, str] | None:
     """Remember which hub port the board is on. Call it while it is still on."""
-    global _WHERE
+    global _WHERE  # noqa: PLW0603  - a process-wide cache is the point: the
+    # whole reason this exists is that the answer must outlive the board leaving
+    # the bus, so it cannot live on anything the caller holds.
     try:
         out = subprocess.run(["uhubctl"], capture_output=True, text=True,
-                             timeout=20).stdout
+                             timeout=20, check=False).stdout
     except (FileNotFoundError, subprocess.SubprocessError):
         return _WHERE
     hub = None

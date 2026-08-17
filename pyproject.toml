@@ -9,3 +9,64 @@ dependencies = [
 
 [tool.uv]
 package = false
+
+# Pinned so that "ruff-clean" is a statement about this repo and not about
+# whichever ruff `uvx` happened to download. Until 2026-08-17 there was no
+# config here at all, so the enforced set was ruff's built-in default - which
+# moves between releases. It had already moved: fifteen `# noqa: E402` comments
+# in host/ and tools/ were flagged as unused, because E402 is no longer on by
+# default, and `--fix` deleted them along with the sentences explaining why the
+# import sat below a sys.path.insert.
+#
+# The list below is the set that was in force on that date, written out. Adding
+# a family is a deliberate act with its own commit; nobody should wake up to new
+# errors because ruff shipped.
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "F",     # pyflakes
+    "E9",    # syntax / IO errors
+    "I",     # import sorting
+    "B",     # bugbear
+    "C4",    # comprehensions
+    "UP",    # pyupgrade
+    "SIM",   # simplify
+    "RUF",   # ruff's own
+    "PLE",   # pylint: errors
+    "PLW",   # pylint: warnings
+    "PLC",   # pylint: conventions
+    "ISC",   # implicit str concat
+    "EXE",   # shebangs
+    "DTZ",   # naive datetimes
+    "FURB",  # refurb
+    "BLE",   # blind except
+    "YTT",   # sys.version checks
+]
+
+ignore = [
+    # A deferred import inside a function is how the heavy optional deps
+    # (torch, PIL, numpy) stay optional - `--help` must work without them.
+    "PLC0415",  # import-outside-top-level
+    # `[*a, *b]` over `a + b`: the concatenations here are short and read fine.
+    "RUF005",   # collection-literal-concatenation
+    # `for pixels, target in loader: pixels = pixels.to(device)` - all seven
+    # sites are that idiom, where the rebind IS the meaning and a second name
+    # would only invite using the wrong one.
+    "PLW2901",  # redefined-loop-name
+]
+
+# PLR is deliberately absent as a family. Its useful half is style opinion that
+# does not fit an analysis repo: 86 magic-value-comparison hits on things like
+# `if len(parts) == 3`, and the too-many-statements / too-many-branches pack
+# firing on the probe scripts, which are long on purpose because each one is a
+# single argument written out.
+
+# E402 (import not at top) is deliberately absent. Nearly every script here is a
+# PEP 723 single file that inserts model/ or tools/ on sys.path and then imports
+# from it; the import cannot move above the insert. Sixty-four sites, all the
+# same shape, all correct.
+#
+# E731 (lambda assignment) is absent for the same reason: the one site is a
+# quantile helper where the lambda reads better than a def.

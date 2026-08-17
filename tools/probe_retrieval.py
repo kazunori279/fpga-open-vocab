@@ -97,7 +97,7 @@ def main():
         sim_nn = sim.copy()
         np.fill_diagonal(sim_nn, -2.0)
         snn = np.argpartition(-sim_nn, K, axis=1)[:, :K]
-        overlap = np.mean([len(set(a) & set(b)) for a, b in zip(snn, tnn)])
+        overlap = np.mean([len(set(a) & set(b)) for a, b in zip(snn, tnn, strict=False)])
         print(f"{p.stem:22}{(rank == 0).mean():>8.3f}{(rank < 10).mean():>8.3f}"
               f"{np.median(rank) + 1:>10.0f}{overlap:>9.2f}/{K}"
               f"{np.linalg.norm(s.mean(axis=0)):>8.4f}")

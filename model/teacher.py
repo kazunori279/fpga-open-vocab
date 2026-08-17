@@ -24,13 +24,12 @@ import argparse
 import json
 import sys
 
+import data
 import numpy as np
 import open_clip
 import torch
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
-
-import data
 
 MODEL = "ViT-B-16"
 PRETRAINED = "openai"

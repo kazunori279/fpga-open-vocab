@@ -126,11 +126,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(ROOT / "model"))
 
+import data
 import open_clip
-
 import probe_project as pp
 import probe_teacher as pt
-import data
 import teacher as teacher_mod
 from evaluate import auc
 
@@ -216,11 +215,11 @@ def main():
     mu, w = b["mu"], b["w"]
 
     print(f"\n{'space':34}{'AUC>=0.80':>11}{'mean AUC':>10}{'vs ViT-B/16':>13}")
-    rows = [(f"ViT-B/16 512 (incumbent)", ref)]
+    rows = [("ViT-B/16 512 (incumbent)", ref)]
     rows.append(("SO400M 1152, unprojected", score_table(
         so_img, so_text, qnames, pos_of, excl_of, len(names))))
     for a in ALPHAS:
-        def proj(v):
+        def proj(v, a=a):  # a bound here, not captured: this is used in-loop
             p = (v - a * mu) @ w
             return p / np.linalg.norm(p, axis=-1, keepdims=True)
         rows.append((f"SO400M pca512, alpha {a:.2f}", score_table(
@@ -239,7 +238,7 @@ def main():
     best = max(rows[2:], key=lambda r: np.mean(list(r[1].values())))
     print(f"\nbest projected teacher : {best[0]}  "
           f"{np.mean(list(best[1].values())):.3f}")
-    print(f"so400m-s30k student    : 0.800 (tools/probe_retention.py)")
+    print("so400m-s30k student    : 0.800 (tools/probe_retention.py)")
 
     if bench_img is None:
         return 0
@@ -249,7 +248,7 @@ def main():
     io, ic = pt.IMAGES[0][0], pt.IMAGES[1][0]
     print(f"{'alpha':>7}{'opened->OPEN':>16}{'closed->CLOSED':>17}{'margin':>10}")
     for a in ALPHAS:
-        def proj(v):
+        def proj(v, a=a):  # a bound here, not captured: this is used in-loop
             p = (v - a * mu) @ w
             return p / np.linalg.norm(p, axis=-1, keepdims=True)
         pi, ptx = proj(bench_img), proj(bench_txt)

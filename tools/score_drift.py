@@ -32,8 +32,8 @@ def main(path: Path) -> None:
                 frozen_at = int(m.group(1))
         m = FRAME.match(line)
         if m:
-            rows.append((int(m.group(1)), dict(
-                (n, float(v)) for n, v in SCORE.findall(m.group(2)))))
+            rows.append((int(m.group(1)), {
+                n: float(v) for n, v in SCORE.findall(m.group(2))}))
 
     if frozen_at is None:
         print("no frozen background line - was --bg-tau reached?")

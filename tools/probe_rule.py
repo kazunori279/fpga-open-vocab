@@ -223,9 +223,22 @@ def score(log: Path) -> None:
         if lab in classes:
             visits.setdefault(lab, []).append(vecs)
     folds = min(len(v) for v in visits.values())
+
+    # Pooled over folds, not averaged over them: the folds do not all have the
+    # same number of held-out frames, so a mean of per-fold percentages would
+    # weight a short visit like a long one.
+    #
+    # This is a named function rather than an expression inside the f-string
+    # because the expression needed a line break to fit, and a line break inside
+    # a replacement field is Python 3.12 syntax (PEP 701). This file declares
+    # >=3.11 and was a SyntaxError on it - i.e. it did not run at all on the
+    # version it advertises. Keep the arithmetic out here.
+    def held_out_pct(k):
+        hit = sum(cv_hits(visits, names, ctr, k, f) for f in range(folds))
+        return 100 * hit / sum(cv_total(visits, f) for f in range(folds))
+
     print(f"    {'enrolment frames':<22} " + "   ".join(
-        f"{k}f {100 * sum(cv_hits(visits, names, ctr, k, f) for f in range(folds))
-                / sum(cv_total(visits, f) for f in range(folds)):.0f}%"
+        f"{k}f {held_out_pct(k):.0f}%"
         for k in (1, 2, 5, 10, 20, 30)
         if all(len(vv) >= k for v in visits.values() for vv in v))
         + f"   ({folds}-fold, each visit used as the enrolment in turn)")
@@ -251,7 +264,7 @@ def score(log: Path) -> None:
         # at all" IS the overall level, so the state axis and the presence axis
         # are not the same axis and cannot share a rule. Measured rather than
         # argued: the mean z across queries, empty scene against object scenes.
-        lvl = lambda v: st.mean(v[k] for k in names)  # noqa: E731
+        lvl = lambda v: st.mean(v[k] for k in names)
         empty = [lvl(v) for v in base[0]]
         obj = [lvl(v) for lab, vecs in segs if lab in classes for v in vecs]
         cut = (st.mean(empty) + st.mean(obj)) / 2
@@ -282,7 +295,7 @@ def score(log: Path) -> None:
     for lab, c in cents.items():
         print(f"      {lab:<18} " + "  ".join(f"{k}={c[k]:+.2f}" for k in names))
     if len(cents) == 2:
-        (x, cx), (y, cy) = cents.items()
+        (_x, cx), (_y, cy) = cents.items()
         sep = dist(cx, cy, names) ** 0.5
         spread = st.mean(dist(v, cents[lab], names) ** 0.5
                          for lab, v in held)

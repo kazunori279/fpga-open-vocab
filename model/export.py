@@ -76,14 +76,12 @@ import sys
 import zlib
 from pathlib import Path
 
-import numpy as np
-import torch
-from torch.nn import functional as F
-
 import distill
+import numpy as np
 import quantize as q_mod
 import spaces
 import student as student_mod
+import torch
 
 MAGIC = b"FGX5"
 # 2 spends the trailing `reserved` float on a per-layer weight width. See
@@ -114,7 +112,7 @@ def _grid(qlayer):
     policy expressed that way arrives here without export.py having to know
     what the policy was.
     """
-    qmax = int(round(float(qlayer.w_qmax)))
+    qmax = round(float(qlayer.w_qmax))
     if qmax not in WIDTHS:
         raise SystemExit(
             f"export: w_qmax {qmax} has no packing; supported: "
@@ -194,7 +192,7 @@ def build_layers(qmodel) -> tuple[list[Layer], float]:
         bias_q = np.round(bias / step).astype(np.int32)
         mult = (step / out_scale).astype(np.float32)
 
-        cin, k = w.shape[1], w.shape[2]
+        cin, _k = w.shape[1], w.shape[2]
         layers.append(Layer(KIND_CONV, w_q, bias_q, mult, (cin, 0, 0), (w.shape[0], 0, 0),
                             layer.layer.stride[0], True, i > 0, w_bits))
 
@@ -301,7 +299,7 @@ def run_int(x_codes: np.ndarray, layers: list[Layer], head_in_scale: float,
     f32 = np.float32
     x = x_codes.astype(np.int32)
     for i, layer in enumerate(layers[:-1]):
-        acc, oh, ow = conv_int(x, layer)
+        acc, _oh, _ow = conv_int(x, layer)
         emits_codes = i + 1 < len(layers) - 1
 
         if fixed and emits_codes:
@@ -320,10 +318,8 @@ def run_int(x_codes: np.ndarray, layers: list[Layer], head_in_scale: float,
         out = (acc + layer.bias_q[:, None, None]).astype(f32) \
             * layer.mult[:, None, None].astype(f32)
         out = np.maximum(out, f32(0.0))
-        if emits_codes:
-            x = np.clip(np.rint(out), 0, 255).astype(np.int32)
-        else:
-            x = out                              # conv7 stays float32
+        # conv7 does not emit codes and stays float32.
+        x = np.clip(np.rint(out), 0, 255).astype(np.int32) if emits_codes else out
 
     # fgx_pool_head() runs a scalar float32 accumulator over the hw positions in
     # order. np.sum would use pairwise summation and np.mean would divide in
@@ -476,7 +472,7 @@ def main() -> int:
     saved = json.loads((run / "quant.json").read_text())
     drift = max(abs(float(l.in_scale) - saved["activation_scales"][n])
                 for n, l in zip(list(saved["activation_scales"]),
-                                list(qmodel.features) + [qmodel.head]))
+                                list(qmodel.features) + [qmodel.head], strict=False))
     print(f"scales    : max drift vs quant.json {drift:.3e}")
 
     layers, head_in_scale = build_layers(qmodel)

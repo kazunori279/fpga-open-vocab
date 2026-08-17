@@ -42,14 +42,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "model"))
 
-import numpy as np
-import torch
-from torch.utils.data import DataLoader
-
 import data
 import distill
+import numpy as np
 import student as student_mod
 import teacher as teacher_mod
+import torch
+from torch.utils.data import DataLoader
 
 SPLIT = "train2017"
 EMPTY = "an empty scene with nothing in it"

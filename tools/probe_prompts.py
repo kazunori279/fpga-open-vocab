@@ -52,10 +52,11 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "host"))
 sys.path.insert(0, str(ROOT / "model"))
 
-import json                                        # noqa: E402
-from caption import vectors_from_log               # noqa: E402
-import teacher                                     # noqa: E402
-import spaces                                      # noqa: E402
+import json
+
+import spaces
+import teacher
+from caption import vectors_from_log
 
 NEG_SEP = "/"          # demo.py:173, and it must stay the same character
 
@@ -207,7 +208,7 @@ def main() -> int:
     if args.log:
         for ln in args.log.read_text(errors="replace").splitlines():
             if ln.startswith("background:") and "frozen" in ln:
-                for nm, tilde, mu, sd in BG.findall(ln):
+                for nm, _tilde, mu, sd in BG.findall(ln):
                     board_bg[nm.strip()] = (float(mu), float(sd))
     if board_bg and bg is not None:
         print("board check: its frozen background against this baseline bank")
@@ -224,7 +225,7 @@ def main() -> int:
         print()
 
     rows = []
-    for line, ps in zip(lines, parts):
+    for line, ps in zip(lines, parts, strict=False):
         pos, negs = ps[0], ps[1:]
         forms = [("bare", T[idx[pos]])]
         if negs:

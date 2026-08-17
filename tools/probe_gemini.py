@@ -120,7 +120,7 @@ def axes(title, img, qv, prompts):
         d = qv[idx[pos]] - qv[idx[neg]]
         d = d / np.linalg.norm(d)
         vals = img @ d
-        cells = "  ".join(f"{lab.strip()} {v:+.4f}" for (lab, _), v in zip(IMAGES, vals))
+        cells = "  ".join(f"{lab.strip()} {v:+.4f}" for (lab, _), v in zip(IMAGES, vals, strict=False))
         # The two book-free frames are the only noise estimate available with
         # four images, so the gap is reported against their span rather than
         # against a standard deviation that four points cannot support.

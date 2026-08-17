@@ -14,9 +14,8 @@ programming attempt finished with CDONE asserted.
 import sys
 import time
 
-import serial
-
 import forge
+import serial
 
 DEFAULT_DEV = "/dev/cu.usbmodem21201"
 

@@ -96,7 +96,7 @@ def centred(z, names):
 
 
 def dist(a, b):
-    return sum((x - y) ** 2 for x, y in zip(a, b)) ** 0.5
+    return sum((x - y) ** 2 for x, y in zip(a, b, strict=False)) ** 0.5
 
 
 def auc(pos, neg):
@@ -108,7 +108,7 @@ def auc(pos, neg):
 
 def quart(xs):
     s = sorted(xs)
-    q = lambda f: s[min(len(s) - 1, int(f * len(s)))]  # noqa: E731
+    q = lambda f: s[min(len(s) - 1, int(f * len(s)))]
     return q(0.0), q(0.25), q(0.5), q(0.75), s[-1]
 
 
@@ -188,7 +188,7 @@ def score(log: Path) -> None:
     keys = sorted(refs)
     worst = max(scat[k] for k in keys)
     vmin = min(nvis[k] for k in keys)
-    print(f"    references, in the centred space, and their frames' spread:")
+    print("    references, in the centred space, and their frames' spread:")
     for k in keys:
         print(f"      {ref_lab[k]:<18} " +
               "  ".join(f"{v:+.2f}" for v in refs[k]) +
@@ -280,16 +280,16 @@ def score(log: Path) -> None:
     db = [r[2] for r in blank]
     dc = [r[2] for r in cls]
     if blank_lab.startswith(BASELINE):
-        print(f"\n    NOTE: this run has no empty scene after the classes are "
-              f"enrolled, so the\n"
-              f"    only 'nothing there' frames are the baseline - which sits "
-              f"where the background\n"
-              f"    was just frozen, i.e. AT THE ORIGIN by construction. That "
-              f"is the degenerate\n"
-              f"    case for a distance rule and not a test of an empty desk. "
-              f"Read the figures\n"
-              f"    below as the origin question only; #15's rotation is what "
-              f"produces the real one.")
+        print("\n    NOTE: this run has no empty scene after the classes are "
+              "enrolled, so the\n"
+              "    only 'nothing there' frames are the baseline - which sits "
+              "where the background\n"
+              "    was just frozen, i.e. AT THE ORIGIN by construction. That "
+              "is the degenerate\n"
+              "    case for a distance rule and not a test of an empty desk. "
+              "Read the figures\n"
+              "    below as the origin question only; #15's rotation is what "
+              "produces the real one.")
     print(f"\n    distance to the nearest reference, in units of sep={sep:.2f}")
     print(f"      {'':<10} {'n':>4}  {'min':>6} {'q1':>6} {'med':>6} "
           f"{'q3':>6} {'max':>6}")
@@ -313,10 +313,10 @@ def score(log: Path) -> None:
     # A distance in the centred space should not move at all, and if it does
     # this redesign has inherited the same disease under a new name.
     visits = {}
-    for i, lab, d, _, _ in blank:
+    for i, _lab, d, _, _ in blank:
         visits.setdefault(next(a for a, b, _ in spans if a <= i <= b), []).append(d)
     if len(visits) > 1:
-        print(f"\n    per visit to the empty scene, mean distance in sep")
+        print("\n    per visit to the empty scene, mean distance in sep")
         for a in sorted(visits):
             print(f"      from frame {a:>4}   {st.mean(visits[a])/sep:5.2f} sep"
                   f"   ({len(visits[a])} frames)")
@@ -333,7 +333,7 @@ def score(log: Path) -> None:
     # the two populations are different sizes and the interesting failure is
     # asymmetric: M21 scores 62% balanced by keeping every class frame and
     # holding almost no empty one.
-    print(f"\n    single radius, no hysteresis")
+    print("\n    single radius, no hysteresis")
     print(f"      {'r/sep':>6}  {'empty held':>16}  {'class kept':>16}   balanced")
     best = None
     for frac in (0.25, 0.375, 0.50, 0.75, 1.0, 1.5, 2.0, 2.5, 3.0, 3.6):
@@ -357,8 +357,8 @@ def score(log: Path) -> None:
     # one-edge-new against two-edge-old would be comparing two changes at once.
     # STAY is the lower edge: once the board has said absent it keeps saying it
     # until the frame comes back inside STAY. TRIP is the higher one.
-    print(f"\n    two edges, in units of sep - TRIP to go absent, back inside "
-          f"STAY to return")
+    print("\n    two edges, in units of sep - TRIP to go absent, back inside "
+          "STAY to return")
     order = sorted(blank + cls)
     print(f"      {'STAY':>5} {'TRIP':>5}  {'empty held':>16}  {'class kept':>16}"
           f"   balanced")
@@ -400,7 +400,7 @@ def score(log: Path) -> None:
             else:
                 m_kept += present
         bal = (m_held / len(db) + m_kept / len(dc)) / 2
-        print(f"\n    M21 as shipped, replayed on these same frames")
+        print("\n    M21 as shipped, replayed on these same frames")
         print(f"      absent_lvl {absent_lvl:+.2f}, objects {obj:+.2f}, "
               f"span {span:+.2f}, edges 0.50 / 0.15")
         print(f"      {'':<11} {m_held:>6}/{len(db)} {100*m_held/len(db):5.1f}%"

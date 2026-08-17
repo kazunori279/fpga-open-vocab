@@ -11,6 +11,49 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-17, tooling — a probe that never ran on the version it advertises, and a lint set that was nobody's
+
+Board-free work, and one of the two things found is not cosmetic.
+
+**`tools/probe_rule.py` was a `SyntaxError` on Python 3.11, which its own PEP 723
+header declares as the floor.** The held-out percentage line put a line break
+inside an f-string replacement field — legal from 3.12 (PEP 701), a parse error
+before it. So on 3.11 the file did not run at all: not a wrong number, no number.
+It went unseen because `uv run` picks the newest interpreter it can, and this Mac
+has 3.13. The arithmetic is now a named `held_out_pct()` outside the f-string,
+and the output is byte-identical on `m9_cue-20260817-073335.log`. Every `.py` in
+the repo now parses under 3.10, checked rather than assumed.
+
+The general lesson is that `requires-python` is a claim like any other and this
+repo had never tested it. There is no CI running the tools, so nothing would
+have caught this except somebody with an older interpreter — i.e. nobody, until
+the day it matters.
+
+**`ruff` was being run with no configuration, which meant the rule set was
+whichever version `uvx` fetched.** It had already drifted: fifteen
+`# noqa: E402` comments were flagged as unused because E402 is no longer on by
+default, and `--fix` deleted them — along with the sentences beside them saying
+*why* an import sits below a `sys.path.insert`. A cleanup that removes
+documentation is not a cleanup. `pyproject.toml` now pins `[tool.ruff.lint]`
+explicitly, with each omission argued in place: E402 and E731 are out because
+nearly every script here is a single PEP 723 file that inserts `model/` or
+`tools/` on the path first (sixty-four sites, all the same shape, all correct),
+PLR is out because 86 `magic-value-comparison` hits on `if len(parts) == 3` is
+not a finding, and PLC0415 is out because the deferred `import torch` is what
+keeps `--help` working without it.
+
+The repo is `ruff check` clean at that set. Getting there was 128 findings, of
+which the ones worth naming are three `ISC004`s — implicit string concatenation
+inside a collection literal, which is the shape a missing comma makes. One of
+them, `host/caption.py`'s five-tuple return, was correct but one keystroke away
+from silently returning six elements. The rest were mechanical: explicit
+`check=False` on twelve `subprocess.run` calls, `strict=False` on nineteen
+`zip`s, `re.M` spelled out. Behaviour is unchanged — seven log tools were run
+against the same bench log before and after and diffed byte-for-byte, and every
+entry point's `--help` still imports.
+
+---
+
 ### 2026-08-17, housekeeping — the last logs out of `/tmp`, and the CS park stops being m9's
 
 Two things that were owed rather than discovered, done while the board was idle.

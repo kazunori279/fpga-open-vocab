@@ -116,10 +116,9 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(ROOT / "model"))
 
-import open_clip
-
 import data
 import distill
+import open_clip
 import student as student_mod
 import teacher as teacher_mod
 from evaluate import auc

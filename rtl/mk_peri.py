@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 sys.path.append(os.environ["EFXPT_HOME"] + "/bin")
-from api_service.design import DesignAPI  # noqa: E402
+from api_service.design import DesignAPI
 
 
 def main(top: str, device: str) -> int:

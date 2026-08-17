@@ -44,7 +44,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from probe_reject import EMPTY, BASELINE, centred, dist, load  # noqa: E402
+from probe_reject import BASELINE, EMPTY, centred, dist, load
 
 WINDOW = 20                 # MUST MATCH FGX_ENROL_N in firmware/m9.c
 

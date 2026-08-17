@@ -79,15 +79,15 @@ def capture_args(dev: str, size: str) -> list[str]:
 
 def aim(dev: str, size: str, crop: str, zoom: int) -> int:
     """One full frame and one cropped frame, so you can check what it is seeing."""
-    w, h = crop.split(":")[0], crop.split(":")[1]
+    w, h = crop.split(":", maxsplit=1)[0], crop.split(":")[1]
     full, close = Path("/tmp/meter_aim_full.jpg"), Path("/tmp/meter_aim_crop.jpg")
     for path, vf in ((full, "null"),
-                     (close, f"crop={crop},"
-                             f"scale={int(w) * zoom}:{int(h) * zoom}:flags=lanczos")):
+                     (close, (f"crop={crop},"
+                             f"scale={int(w) * zoom}:{int(h) * zoom}:flags=lanczos"))):
         r = subprocess.run(capture_args(dev, size)
                            + ["-vf", vf, "-frames:v", str(AIM_WARMUP_FRAMES),
                               "-update", "1", str(path)],
-                           capture_output=True, text=True)
+                           capture_output=True, text=True, check=False)
         if r.returncode != 0:
             sys.exit(f"ffmpeg failed on {path.name}:\n{r.stderr.strip()}")
     print(f"whole frame  {full}\ncrop         {close}   (crop={crop})")
@@ -135,8 +135,8 @@ def main() -> int:
     args.out.mkdir(parents=True, exist_ok=True)
 
     cmd = capture_args(args.device, args.size) + [
-        "-vf", f"crop={args.crop},"
-               f"scale={int(w) * args.zoom}:{int(h) * args.zoom}:flags=lanczos",
+        "-vf", (f"crop={args.crop},"
+               f"scale={int(w) * args.zoom}:{int(h) * args.zoom}:flags=lanczos"),
         "-r", f"1/{args.interval:g}",
         "-qscale:v", "7",
         "-f", "image2", "-strftime", "1",

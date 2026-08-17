@@ -16,9 +16,9 @@ PDF (GPIO1=FPGA.CS, GPIO12=UART0_TX, ...) - see --check.
 """
 
 import argparse
+import itertools
 import sys
 from pathlib import Path
-
 
 # ---------------------------------------------------------------- s-expression
 
@@ -148,7 +148,7 @@ class Sheet:
         for tag in ("wire", "bus"):
             for w in kids(self.root, tag):
                 pts = [rnd((float(p[1]), float(p[2]))) for p in kids(kid(w, "pts"), "xy")]
-                for a, b in zip(pts, pts[1:]):
+                for a, b in itertools.pairwise(pts):
                     self.u.join(a, b)
 
     def _add_name(self, pt, name):
@@ -173,7 +173,7 @@ class Sheet:
         Without this, every rail reads as an unnamed net and a 10k pull-up is
         indistinguishable from a 10k pull-down.
         """
-        for ref, value, lib_id, pins in self.symbols():
+        for _ref, value, lib_id, pins in self.symbols():
             if lib_id.startswith("power:") and not lib_id.endswith("PWR_FLAG"):
                 for _num, _nam, pt in pins:
                     self._add_name(pt, value)

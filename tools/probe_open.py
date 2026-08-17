@@ -42,13 +42,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "model"))
 
+import distill
 import numpy as np
+import student as student_mod
+import teacher as teacher_mod
 import torch
 from PIL import Image
-
-import teacher as teacher_mod
-import student as student_mod
-import distill
 
 # The two labelled frames from the 2026-08-07 bench run, plus a close-up and an
 # empty frame for scale. host/cam.py names these <tag>-<block>-f<frame>-hi.png;
@@ -92,7 +91,7 @@ def axes(title, img, qv, prompts):
         d = qv[idx[pos]] - qv[idx[neg]]
         d = d / np.linalg.norm(d)
         vals = img @ d
-        cells = "  ".join(f"{lab.strip()} {v:+.4f}" for (lab, _), v in zip(IMAGES, vals))
+        cells = "  ".join(f"{lab.strip()} {v:+.4f}" for (lab, _), v in zip(IMAGES, vals, strict=False))
         print(f"  {name:16} {cells}")
 
 
@@ -157,9 +156,9 @@ def main():
     # The diagnostic line: 0.710/0.700 on the two books against 0.855/0.883 on
     # the empty frames and 0.843 holdout. The student tracks the teacher on the
     # easy frames and comes apart on exactly the ones the question is about.
-    print(f"teacher-student cosine per image: "
+    print("teacher-student cosine per image: "
           + "  ".join(f"{lab.strip()} {float(a @ b):+.4f}"
-                      for (lab, _), a, b in zip(IMAGES, te, se)))
+                      for (lab, _), a, b in zip(IMAGES, te, se, strict=False)))
 
     table("STUDENT cosine (fp32, 128px)", se @ qv.T, labels, PROMPTS)
     axes("STUDENT", se, qv, PROMPTS)

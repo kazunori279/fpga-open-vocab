@@ -62,8 +62,8 @@ is the way out; nothing in userspace will release it.
 """
 
 import argparse
+import contextlib
 import re
-
 import subprocess
 import sys
 import time
@@ -105,7 +105,7 @@ def find_hub_port() -> tuple[str, str] | None:
     """
     try:
         out = subprocess.run(["uhubctl"], capture_output=True, text=True,
-                             timeout=20).stdout
+                             timeout=20, check=False).stdout
     except (FileNotFoundError, subprocess.SubprocessError):
         return None
     hub = None
@@ -180,17 +180,16 @@ def eject_bootsel() -> None:
     """
     if not BOOTSEL_VOL.is_dir():
         return
-    try:
+    with contextlib.suppress(subprocess.SubprocessError, FileNotFoundError):
         subprocess.run(["diskutil", "unmount", str(BOOTSEL_VOL)],
-                       capture_output=True, text=True, timeout=15)
-    except (subprocess.SubprocessError, FileNotFoundError):
-        pass
+                       capture_output=True, text=True, timeout=15, check=False)
 
 
 def reboot_to_app() -> None:
     """picotool reboot, with the volume put away first. Always use this."""
     eject_bootsel()
-    subprocess.run(["picotool", "reboot"], capture_output=True, timeout=30)
+    subprocess.run(["picotool", "reboot"], capture_output=True, timeout=30,
+                   check=False)
 
 
 def nudge(port: str) -> None:
@@ -275,12 +274,14 @@ def flash(image: Path) -> bool:
         t0 = time.monotonic()
         try:
             r = subprocess.run(["picotool", "load", "-f", str(image)],
-                               capture_output=True, text=True, timeout=300)
+                               capture_output=True, text=True, timeout=300,
+                               check=False)
         except FileNotFoundError:
             print("  no picotool; falling back to the mass-storage copy")
             r = subprocess.run(["cp", "-X", str(image),
                                 str(BOOTSEL_VOL / image.name)],
-                               capture_output=True, text=True, timeout=180)
+                               capture_output=True, text=True, timeout=180,
+                               check=False)
             print(f"  wrote in {time.monotonic() - t0:.1f} s (unverified - the "
                   f"copy path cannot check itself)")
             return r.returncode == 0
@@ -290,7 +291,8 @@ def flash(image: Path) -> bool:
             return False
         secs = time.monotonic() - t0
         v = subprocess.run(["picotool", "verify", str(image)],
-                           capture_output=True, text=True, timeout=300)
+                           capture_output=True, text=True, timeout=300,
+                           check=False)
         if v.returncode == 0:
             print(f"  wrote in {secs:.1f} s, verified")
             reboot_to_app()
@@ -333,7 +335,8 @@ def main() -> int:
                          "`power` with no `connect`")
     args = ap.parse_args()
 
-    global HUB_OVERRIDE
+    global HUB_OVERRIDE  # noqa: PLW0603  - --hub has to reach the recovery
+    # paths, which are called from library entry points that never see argv.
     HUB_OVERRIDE = args.hub
 
     if args.power_cycle:

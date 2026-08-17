@@ -242,7 +242,7 @@ def cmd_queries(split: str, threshold: float) -> int:
     usable = [q for q in queries if len(q["pos"]) >= 10]
     print(f"classes: {len(queries)}, {len(usable)} with >= 10 positives")
     print(f"images : {len(names)}")
-    print("\nprominent-object counts (>= {:.0%} of frame):".format(threshold))
+    print(f"\nprominent-object counts (>= {threshold:.0%} of frame):")
     ranked = sorted(queries, key=lambda q: -len(q["pos"]))
     for q in ranked[:5]:
         print(f"         {q['name']:<16} {len(q['pos']):>5} pos  {len(q['excluded']):>5} excluded")

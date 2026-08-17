@@ -68,7 +68,7 @@ def read_ports() -> dict[str, str] | str:
     """
     try:
         r = subprocess.run(["uhubctl"], capture_output=True, text=True,
-                           timeout=UHUBCTL_TIMEOUT_S)
+                           timeout=UHUBCTL_TIMEOUT_S, check=False)
     except FileNotFoundError:
         return "uhubctl not installed"
     except subprocess.TimeoutExpired:
@@ -102,7 +102,9 @@ def wanted(key: str, sel: str | None) -> bool:
 
 
 def stamp() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    # .astimezone() only to make the local zone explicit - the format string
+    # prints no offset, so the stamp is byte-for-byte what it always was.
+    return datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
 
 def main() -> int:

@@ -38,15 +38,14 @@ import sys
 import time
 from pathlib import Path
 
+import data
 import numpy as np
+import student as student_mod
+import teacher as teacher_mod
 import torch
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
-
-import data
-import student as student_mod
-import teacher as teacher_mod
 
 RUNS = Path(__file__).resolve().parent / "runs"
 
@@ -79,9 +78,9 @@ def _crop_to_4x3(img):
     """The widest 4:3 window the image allows, centered - the sensor's field."""
     w, h = img.size
     if w * 3 >= h * 4:
-        nw, nh = int(round(h * 4 / 3)), h
+        nw, nh = round(h * 4 / 3), h
     else:
-        nw, nh = w, int(round(w * 3 / 4))
+        nw, nh = w, round(w * 3 / 4)
     return transforms.functional.center_crop(img, [nh, nw])
 
 
@@ -345,7 +344,7 @@ def main() -> int:
     print(f"epochs   : {args.epochs}   batch {args.batch}   lr {args.lr}")
     extra = ([f"infonce {args.infonce} (tau {args.tau})"] if args.infonce else []) \
         + ([f"rkd {args.rkd}"] if args.rkd else [])
-    print(f"loss     : 1-cos" + ("  +  " + "  +  ".join(extra) if extra
+    print("loss     : 1-cos" + ("  +  " + "  +  ".join(extra) if extra
                                  else "   (M9 objective, no repulsion)"))
     print()
 
@@ -367,9 +366,9 @@ def main() -> int:
     raw0, cen0, top0, cone0 = holdout_metrics(model, hold_loader, device, mean)
     # The teacher's own cone norm, the number the student's should be moving
     # toward rather than past. Printed here so the per-epoch column has a target.
+    tvec = targets[train_idx].astype(np.float32)
     tcone = float(np.linalg.norm(
-        (lambda v: v / np.linalg.norm(v, axis=1, keepdims=True))(
-            targets[train_idx].astype(np.float32)).mean(axis=0)))
+        (tvec / np.linalg.norm(tvec, axis=1, keepdims=True)).mean(axis=0)))
     print(f"constant : raw {constant:+.4f}   centered +0.0000  (always predict the mean)")
     print(f"teacher  : cone {tcone:.4f}  (the student's cone should approach this, "
           f"not exceed it)")

@@ -41,7 +41,6 @@ followed it, and so its anchor is `#-pad-number--silkscreen-number` with a
 The `--check-figures` half is the same argument applied to `docs/img/wire.svg`:
 a committed artifact that nothing regenerates is a claim nobody is checking.
 """
-import json
 import os
 import re
 import subprocess
@@ -102,7 +101,8 @@ def check_links():
     for f in MD_FILES:
         p = os.path.join(ROOT, f)
         if os.path.exists(p):
-            texts[f] = open(p).read()
+            with open(p) as fh:
+                texts[f] = fh.read()
 
     anc = {f: anchors(t) for f, t in texts.items()}
     bad, n = [], 0
@@ -142,11 +142,12 @@ def check_figures():
         return ['docs/img/wire.svg is missing; run `make -C docs`']
     tmp = '/tmp/wire.check.svg'
     r = subprocess.run(['npx', '--yes', 'wavedrom-cli', '-i', src, '-s', tmp],
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, check=False)
     if r.returncode != 0:
         return [f'wavedrom-cli failed (is node installed?): {r.stderr.strip()[:200]}']
-    if open(tmp).read() != open(svg).read():
-        return ['docs/img/wire.svg is stale -- run `make -C docs` and commit it']
+    with open(tmp) as a, open(svg) as b:
+        if a.read() != b.read():
+            return ['docs/img/wire.svg is stale -- run `make -C docs` and commit it']
     return []
 
 

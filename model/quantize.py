@@ -31,11 +31,10 @@ import json
 import sys
 from pathlib import Path
 
+import student as student_mod
 import torch
 from torch import nn
 from torch.nn import functional as F
-
-import student as student_mod
 
 QMAX = 127.0
 # Post-ReLU activations are non-negative, so quantizing them into the symmetric
@@ -225,17 +224,17 @@ def layer_cosines(folded: nn.Module, qmodel: nn.Module, pixels: torch.Tensor) ->
     # The folded hooks fire before ReLU and the quant hooks after it, so compare
     # on the post-ReLU value in both cases.
     out = []
-    for i, (a, b) in enumerate(zip(fp_out, q_out)):
+    for i, (a, b) in enumerate(zip(fp_out, q_out, strict=False)):
         a = F.relu(a) if i < len(fp_out) - 1 else a
         out.append(float(F.cosine_similarity(a.flatten(1), b.flatten(1), dim=-1).mean()))
     return out
 
 
 def main() -> int:
-    import distill
-    import teacher as teacher_mod
     import data
+    import distill
     import numpy as np
+    import teacher as teacher_mod
     from torch.utils.data import DataLoader
 
     ap = argparse.ArgumentParser()
@@ -283,7 +282,7 @@ def main() -> int:
     print()
     print(f"{'layer':<8} {'int8 vs fp32':>14} {'act scale':>12}")
     layers = list(qmodel.features) + [qmodel.head]
-    for i, (cos, layer) in enumerate(zip(cosines, layers)):
+    for i, (cos, layer) in enumerate(zip(cosines, layers, strict=False)):
         name = "head" if i == len(cosines) - 1 else f"conv{i}"
         print(f"{name:<8} {cos:>14.5f} {float(layer.in_scale):>12.6f}")
 

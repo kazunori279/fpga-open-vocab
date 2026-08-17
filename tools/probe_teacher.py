@@ -84,10 +84,9 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import open_clip
 import torch
 from PIL import Image
-
-import open_clip
 
 # "-quickgelu", not plain "ViT-B-16". The OpenAI weights were trained with
 # QuickGELU and open_clip's plain ViT-B-16 config uses nn.GELU, so pairing them
@@ -229,7 +228,8 @@ def main():
     for spec in (args.models or DEFAULT_MODELS):
         try:
             run(spec, args.snaps, device)
-        except Exception as e:  # a bad spec should not lose the other results
+        except Exception as e:  # noqa: BLE001  - a bad spec should not lose the
+            # other results, and open_clip raises anything at all on one
             print(f"\n{'='*78}\n{spec}   FAILED TO RUN: {type(e).__name__}: {e}")
     return 0
 

@@ -48,6 +48,7 @@ answer it.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import math
 import queue
 import re
@@ -62,8 +63,9 @@ from statistics import mean
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import board  # noqa: E402  (after the path insert)
-import bootsel  # noqa: E402  (for its power cycle, which knows where the board is)
+# Below the insert above, necessarily.
+import board
+import bootsel  # for its power cycle, which knows where the board is
 
 # demo.py's frame line, e.g.
 #   frame   125 :  an opened book~ +1.35*  a closed book~ -1.86   led 255/  0 ...
@@ -159,11 +161,10 @@ def cue(text: str, *, speak: bool) -> None:
     sys.stdout.write("\a")
     sys.stdout.flush()
     if speak:
-        try:
+        # FileNotFoundError means not macOS; the banner and the bell still fired.
+        with contextlib.suppress(FileNotFoundError):
             subprocess.Popen(["say", text],
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except FileNotFoundError:
-            pass  # not macOS; the banner and the bell still fired
 
 
 def parse_scores(body: str) -> dict[str, float]:
@@ -298,7 +299,7 @@ class Bars:
         return [x / s for x in e], z
 
     def bar(self, frac: float, glyph: str = GLYPH_EMPTY) -> str:
-        fill = max(0, min(self.width, int(round(frac * self.width))))
+        fill = max(0, min(self.width, round(frac * self.width)))
         return self.GLYPH_FULL * fill + glyph * (self.width - fill)
 
     def enrolled(self, line: str) -> None:
@@ -324,7 +325,7 @@ class Bars:
         else:
             p, z = self.shares(self.names)
             lead = max(range(len(p)), key=p.__getitem__)
-            for i, (n, pi, zi) in enumerate(zip(self.names, p, z)):
+            for i, (n, pi, zi) in enumerate(zip(self.names, p, z, strict=False)):
                 lines.append(f"  {n:<{self.label_w}} |{self.bar(pi)}| "
                              f"{pi * 100:5.1f}% {'<' if i == lead else ' '}"
                              f"   z {zi:+6.2f}")
@@ -385,7 +386,7 @@ class Bars:
                         f"{'THERE' if ok else '  -  '}    z {z:+6.2f} > {t:.2f}")
         p, z = self.shares(self.states)
         lead = max(range(len(p)), key=p.__getitem__) if p else -1
-        for i, (n, pi, zi) in enumerate(zip(self.states, p, z)):
+        for i, (n, pi, zi) in enumerate(zip(self.states, p, z, strict=False)):
             if shut:
                 rows.append(f"  {n:<{self.label_w}} |"
                             f"{self.GLYPH_SHUT * self.width}|   --      "
@@ -468,7 +469,7 @@ def report(scores: dict[int, dict[str, float]],
     print(" " * (w + 18) + "".join(f"{'share    z':>24}" for _ in names))
     for label, lo, hi, n, m in rows:
         best = max(shared, key=lambda nm: m[nm])
-        p = dict(zip(shared, softmax([m[nm] for nm in shared], temp)))
+        p = dict(zip(shared, softmax([m[nm] for nm in shared], temp), strict=False))
         line = f"{label:<{w}}{f'{lo}-{hi}':>12}{n:>6}"
         line += "".join(f"{p[nm] * 100:>17.0f}% {m[nm]:>+6.2f}" if nm in p
                         else f"{'-':>18} {m[nm]:>+6.2f}" for nm in names)
@@ -509,7 +510,7 @@ def report(scores: dict[int, dict[str, float]],
     if len(order) != 2:
         return
     la, lb = order
-    pairs = list(zip([r for r in ab if r[0] == la], [r for r in ab if r[0] == lb]))
+    pairs = list(zip([r for r in ab if r[0] == la], [r for r in ab if r[0] == lb], strict=False))
     if not pairs:
         return
 
@@ -662,7 +663,7 @@ class Preview:
             r = subprocess.run(
                 ["uv", "run", "--script", str(ROOT / "host/cam.py"),
                  "--preview", str(self.png), str(frag)],
-                cwd=ROOT, capture_output=True, text=True)
+                cwd=ROOT, capture_output=True, text=True, check=False)
             lines = [ln for ln in (r.stdout + r.stderr).splitlines() if ln.strip()]
             msg = lines[-1] if lines else f"preview   : cam.py said nothing (rc {r.returncode})"
             if skipped:
@@ -984,7 +985,7 @@ def main() -> int:
     if args.enrol:
         visits = min(ENROL_VISITS, max(1, args.repeat))
         for v in range(visits):
-            for k, label in enumerate(base):
+            for k, _label in enumerate(base):
                 scene = v * len(rotation) + k
                 start = (args.bg_tau + args.baseline
                          + scene * (args.settle + args.hold))
@@ -1010,7 +1011,7 @@ def main() -> int:
         # and nothing downstream can see that it did - the reference is just
         # quietly wrong. Only this side knows the schedule, so only this side
         # can say so.
-        if ENROL_FRAMES + 2 > args.hold:
+        if args.hold < ENROL_FRAMES + 2:
             print(f"--enrol: --hold {args.hold} is too short for the board's "
                   f"{ENROL_FRAMES}-frame window; each reference will average in "
                   f"the start of the next scene. Use --hold {ENROL_FRAMES + 2} "
@@ -1048,7 +1049,7 @@ def main() -> int:
         held = args.repeat - visits
         print(f"            the first {visits} visit{'' if visits == 1 else 's'} "
               f"to each scene teach the board and fold into one reference; "
-              f"{held if held else 'none'} {'is' if held == 1 else 'are'} "
+              f"{held or 'none'} {'is' if held == 1 else 'are'} "
               f"held out")
         if args.revisit_empty:
             print(f"            the {args.repeat} '{EMPTY}' visits are held out "

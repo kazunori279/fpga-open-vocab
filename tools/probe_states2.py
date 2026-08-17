@@ -39,9 +39,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "model"))
 
-import numpy as np
-
 import data
+import numpy as np
 import teacher as teacher_mod
 
 SPLIT = "train2017"

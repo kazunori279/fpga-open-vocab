@@ -40,6 +40,18 @@ inline dependency blocks and are run with `uv run --script <file>` instead, so a
 one-off probe that needs `torch` does not pull `torch` into the shared
 environment.
 
+`uvx ruff check .` should print `All checks passed!`. The rule set is pinned in
+`pyproject.toml` rather than left to ruff's default, because the default moves
+between releases and once already deleted a batch of `# noqa: E402` comments —
+and the explanations written beside them — on a version where E402 had been
+turned off. Every omission from the set is argued in a comment there. Adding a
+rule family is a deliberate change with its own commit; nobody should find new
+errors waiting because ruff shipped.
+
+The declared floor is Python 3.10 and it is worth honouring: `tools/probe_rule.py`
+spent a while as a `SyntaxError` on 3.11, which nothing noticed because `uv run`
+reaches for the newest interpreter installed.
+
 ## Building the firmware
 
 **Do not use Homebrew's `arm-none-eabi-gcc`.** It ships without newlib and there
