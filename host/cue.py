@@ -1134,12 +1134,30 @@ def main() -> int:
         # why the failure read as "cues are broken" and not "wrong session".
         # Dropping the record and re-arming is right either way: if this was a
         # real mid-run wedge, demo.py voids the measurement regardless.
+        #
+        # THE BARS BELONG TO THE OLD SESSION TOO, and that is not cosmetic. The
+        # first book bench of 2026-08-20 opened on a board still looping the
+        # previous run's glass queries, so `bars` was built with names
+        # "an empty glass~" / "a glass with tea~". After the reboot the board
+        # scored the book queries, `smooth()` filed those under their own keys,
+        # and `shares()` went on reading `self.names` - which still said glass.
+        # The rows then showed the last glass EMA, frozen, for the whole run:
+        # 97.3% / 2.7% at z +-1.79 identical thirty-three frames apart, while
+        # the board's own `background:` line named the books correctly. A
+        # display that keeps a dead session's labels and never moves is worse
+        # than no display, because it reads as a confident measurement.
+        # `enrol_lines` goes with it: those references were enrolled against
+        # queries that are no longer loaded.
         if i < last_i:
             scores.clear()
             segments.clear()
             pending = list(scenes)
             open_seg = None
             scene_now = "empty (leave it that way until the cue)"
+            enrol_lines.clear()
+            if bars is not None:
+                bars.release()
+                bars = None
         last_i = i
 
         scores[i] = parse_scores(m.group(2))
@@ -1149,6 +1167,15 @@ def main() -> int:
             open_seg = ("baseline", i)
 
         if drawing and scores[i]:
+            # Belt as well as braces: the labels have to be the queries the
+            # board is scoring *now*, and the frame counter going backwards is
+            # only the way that was observed to break. Any change of the key set
+            # rebuilds - the EMA is five frames deep, so the cost of being wrong
+            # here is a couple of seconds of settling, against a run's worth of
+            # a stale name over somebody else's number.
+            if bars is not None and set(bars.names) != set(scores[i]):
+                bars.release()
+                bars = None
             if bars is None:
                 bars = Bars(list(scores[i]), temp=args.temp, alpha=args.smooth,
                             roles=roles, thr=thr)

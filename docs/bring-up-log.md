@@ -11,6 +11,89 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-20, bench — the book control on both sides of the glass, and a display that kept a dead session's labels
+
+Four benches at 280 MHz in thirteen minutes, deliberately interleaved
+book / glass / glass / book so that the pair that works brackets the pair that
+does not. Same desk, same daylight, same board, same image, same operator, same
+enrolment schedule, four minutes apart.
+
+    time      pair    HELD OUT /120    |sep|    ceiling   state    lost
+    06:24:06  book     116/120 96.7%   1.000     100.0%   95.0%     5.0
+    06:29:32  glass     61/120 50.8%   0.591!     61.7%   51.7%     5.0
+    06:33:24  glass     58/120 48.3%   0.680      67.9%   49.2%    10.8
+    06:37:04  book     118/120 98.3%   0.950      94.6%   97.5%     1.7
+
+**The glass failure is a property of the pair, and the "that run was bad"
+explanation is now spent.** It was always the weakest thing said about glass and
+it survived only because no glass run had ever been fenced. Two book controls
+either side, thirteen minutes apart, both at ceiling — there is no window left
+for the desk, the light, the clock, the staging or the operator to have been the
+difference. Whatever is wrong was wrong for five minutes in the middle and
+nowhere else, which no environmental cause can do.
+
+**Nor can a decision rule fix it.** Measured on the same held-out frames the
+rule sees, the best any threshold on the margin could reach is 56.7% and 60.0%,
+against a chance of 50.0%. So glass is #23 and not #19; #19 costs 5.0 and 10.8
+points on top of a ceiling that was already almost nothing. A pair whose ceiling
+is 60% does not have a rule problem.
+
+**The new fact is that the glass axis does not keep its sign.** The two runs read
+AUC 0.409 and 0.680 on the same phrase order, the same glass, the same tea, four
+minutes apart — inverted in one and not in the other. Inverted is not absent, and
+a backwards axis is repairable by naming it the other way round; an axis that
+changes direction between runs is not an axis, and there is nothing to name. That
+rules out the phrase-swap repair for glass specifically, and it is not something
+the book pair has ever done.
+
+**The staging is not it, and the tool's verdict line says otherwise.** All four
+archived frames of the 06:33 run and two of the 06:29 run were rendered and
+looked at: the same glass in the same place at the same angle, tea a dark amber
+full of ice and empty plainly empty, obvious at 128x128 and consistent across
+visits. `probe_ceiling.py` reads the within-visit / across-visit gap
+(0.867 against 0.680) as "the staging moved". Here it did not move. What is left
+is drift in the embedding between visits minutes apart, which is #22's question
+and not a staging failure — the verdict line is honest about the number and
+wrong about the cause, and should be read as one.
+
+**`probe_ceiling.py`'s `lost` column compares two different frame sets.** `best`
+is computed over all 240 cued frames; `state` is the nearest-reference rule on
+the ~120 held out after the enrolment visits are dropped. So `lost = best -
+state` is not the quantity its own docstring describes, and on the 06:37 book
+run it printed **-2.9** — which reads as the rule beating the margin ceiling, an
+impossibility in a 1-D centred space and exactly the kind of number that gets
+believed. Recomputed on the same frames it is 5.0 / 5.0 / 10.8 / 1.7, never
+negative, and the ceiling argument is unharmed. The 06:33 glass run's "lost 19
+points, #19" verdict was inflated by the mismatch; the real figure is 10.8. The
+column is left as it is for now and fixed under its own commit, because the
+eighteen-bench table in that file's docstring has to be regenerated with it.
+
+**#18's gate went on buying nothing.** Held 0/90 on both book runs and on the
+first glass run, 49/90 on the second. On both book runs the empty desk was called
+present on every single frame and named `an opened book` — a pair that separates
+its two states at 96.7% and 98.3% and still cannot tell that neither of them is
+there. The worst-case gap is negative on all four (-1.27, -2.19, -2.04, -1.15):
+the two populations overlap, so no single pair of edges separates them. Four more
+benches saying the same thing.
+
+**The first attempt was thrown away because `host/cue.py` showed a dead
+session's bars.** The board was still looping the previous glass run when the
+book bench opened, so its frame lines arrived first and `Bars` was built with the
+names `an empty glass~` / `a glass with tea~`. `demo.py` then sent `R`, the frame
+counter went backwards, and the reset branch dropped `scores`, `segments`,
+`pending` and `open_seg` — but not `bars`. After the reboot the board scored the
+book queries, `smooth()` filed them under their own keys, and `shares()` went on
+reading `self.names`, which still said glass. The rows showed the last glass EMA,
+frozen, for the whole run: 97.3% / 2.7% at z +-1.79, identical thirty-three
+frames apart, while the board's own `background:` line named the books correctly.
+The measurement would have been fine — `scores` was clean and the cues fired on
+schedule — but a display that keeps a dead session's labels and never moves is
+worse than no display, because it reads as a confident measurement. The reset now
+drops `bars` and `enrol_lines` too, and any change of the score key set rebuilds
+the block regardless.
+
+---
+
 ### 2026-08-17, tooling — a probe that never ran on the version it advertises, and a lint set that was nobody's
 
 Board-free work, and one of the two things found is not cosmetic.
