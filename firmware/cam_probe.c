@@ -62,6 +62,7 @@
 #include "cam_pixel.h"   // pulls in encoder.h; the arithmetic lives there so
                          // test_cam_pixel.c can check it without a board
 #include "encoder.h"
+#include "qspi_park.h"   // #9, and see the call at the top of main()
 
 // Linked by blobs.S, same as m5.c/m7.c. Only the header is used here, for
 // in_scale - the quantizer step the image has to be divided by. Hard-coding it
@@ -182,6 +183,11 @@ static void try_mode(const cam_recipe_t *r, const char *tag, uint8_t mode,
 
 int main(void)
 {
+    // #9: park U1's chip select before anything else can share the QSPI
+    // bus with it. FIRST STATEMENT, and deliberately not a preinit hook -
+    // qspi_park.c has the map addresses and the strap that bought them.
+    fgx_qspi_park();
+
     stdio_init_all();
     while (!stdio_usb_connected())
         sleep_ms(50);

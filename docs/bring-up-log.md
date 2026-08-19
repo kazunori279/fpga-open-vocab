@@ -11,6 +11,71 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-20, firmware — the preinit park cannot work on this platform, and the map says so in two lines
+
+The entry below this one ends with an open question: the `FGX_QSPI_PARK_PREINIT=1`
+image bricked the board, and it was not yet known whether the preinit slot was
+the cause or merely the thing that changed. It was the cause, the mechanism is
+static and provable without the board, and the flag is gone.
+
+**The boot test.** Same tree, same 280 MHz, same bitstream, one cache variable
+apart. `=1`: flashed, `power` with no `connect`, no enumeration, recovered on the
+strap. `=0`: flashed, banner, 22 frames, 22 good, 324 ms/frame, 0 USB outages,
+core 1.25 V. That narrows it to the registration and nothing else — but it is
+still only a differential, so the map was read next.
+
+**The mechanism.** On `rp2350-arm-s` the SDK compiles `gpio_init()`,
+`gpio_put()` and `gpio_set_dir()` into GPIO **coprocessor** instructions;
+`fgx_qspi_park()` disassembles to `mcrr 0, 4, r3, r2, cr0` and
+`mcrr 0, 4, r3, r2, cr4`. That coprocessor is disabled out of reset and is
+enabled by `runtime_init_per_core_enable_coprocessors()`, which — being per-core
+— is emitted into `.preinit_array.ZZZZZ.00200`. The array is linked with
+`SORT_BY_NAME`, and `"Z"` sorts after every digit. In the map of the image that
+bricked the board:
+
+```
+0x1000f774  __pre_init_fgx_qspi_park                             (00601)
+0x1000f798  __pre_init_runtime_init_per_core_enable_coprocessors (ZZZZZ.00200)
+```
+
+Nine entries too early. An `mcrr` to a disabled coprocessor is a NOCP
+UsageFault, taken before `stdio_init_all()`, which is why no VBUS cycle helped:
+the fault is in flash, so every boot repeats it. **The general form is worth
+keeping: no numeric preinit priority on this platform can call `hardware_gpio` at
+all.** Not `"00601"`, not any other number.
+
+**Why not just move it later.** A per-core slot after `ZZZZZ.00200` would be
+legal, but it would also land after `runtime_init_setup_psram()` (`"11080"`,
+numeric, therefore earlier), so on `forgix_m5` and `forgix_psram_probe` it would
+take the pin straight back off the QMI — and it would run a second time on core 1.
+Hand-writing the SIO and `PADS_BANK0` stores would dodge the coprocessor and also
+stop the file being the byte-for-byte sequence with 15,008 clean frames behind
+it, which is the only property it has.
+
+**What #17 actually gets.** The goal was right — one target parking the pin left
+`m2`, `m5b`, `m6`, `m7`, `m8`, `cam_probe` and `diag` exposed to #9 — and it is
+met without a hook: all eight non-PSRAM targets now link `qspi_park.c` and call
+`fgx_qspi_park()` as the first statement of `main()`. Eight identical lines is
+worse than zero and is what this platform costs. `nm` over the ten `.elf`s:
+`__pre_init_fgx_qspi_park` absent everywhere, `fgx_qspi_park` present in eight
+and absent from `forgix_m5` and `forgix_psram_probe`, which want the part.
+
+**Verified on the board, not just in `nm`.** `forgix_diag` was flashed first,
+deliberately — it is one of the seven targets that never had the park — and it
+enumerated and ran the whole config ladder to the vendor-`plasm_led` rung.
+`forgix_m9` then rebuilt byte-identical to the proven `=0` image
+(`fba19a99…`), was flashed back, and returned 21 frames, 21 good, 324 ms/frame,
+0 USB outages.
+
+**One cost worth writing down.** Rebuilding meant deleting `firmware/build-280`,
+and the fresh configure failed on `cannot find -lg / -lc` — Homebrew's
+`arm-none-eabi-gcc`, exactly the trap `building.md` already documents. The
+working tree had `PICO_TOOLCHAIN_PATH` in its cache and the command history did
+not. Deleting a build directory deletes the configuration too; it is cheaper to
+reconfigure in place.
+
+---
+
 ### 2026-08-20, firmware — #9 caught in the act and cleared in one command, and the fix for it has never booted
 
 Two things about the same GPIO, on the same morning, pointing opposite ways.

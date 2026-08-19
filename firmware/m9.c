@@ -2284,13 +2284,14 @@ int main(void)
     // VBUS cycle clears it, and why it is neither the clock nor the rail) lives
     // at the top of qspi_park.c. Read that before touching GPIO0 anywhere.
     //
-    // The call is back. #17 moved it into the SDK's preinit array so that no
-    // target could forget it, which is the right goal and was committed without
-    // ever booting: the first image carrying that hook was flashed on
-    // 2026-08-20 and the board did not enumerate at all. This line is the
-    // placement with 15,008 clean frames behind it. It is idempotent and it
-    // costs three register writes, so it stays here even in a build that leaves
-    // the hook on - whichever of the two runs first, the pin ends up high.
+    // The call is back, and every other target now has the same line. #17 moved
+    // it into the SDK's preinit array so that no target could forget it, which
+    // is the right goal and cannot be paid for this way: on rp2350-arm-s these
+    // three GPIO calls compile to coprocessor instructions, and every numeric
+    // preinit priority runs before the per-core initializer that enables the
+    // coprocessor. The first image carrying that hook was flashed on 2026-08-20,
+    // faulted before stdio_init_all(), never enumerated, and cost a strap. This
+    // line is the placement with 15,008 clean frames behind it.
     fgx_qspi_park();
 
     // USB FIRST, THEN THE CLOCK, AND THE ORDER IS A RECOVERY PATH.

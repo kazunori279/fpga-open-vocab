@@ -80,28 +80,6 @@ add_compile_definitions(FGX_SYS_KHZ=${FGX_SYS_KHZ})
 set(FGX_CORE_MV "0" CACHE STRING "m9 core rail in mV; 0 derives it from the rate")
 add_compile_definitions(FGX_CORE_MV=${FGX_CORE_MV})
 
-# And whether qspi_park.c registers itself in the SDK's preinit array. 1 is what
-# #17 committed and what is in the tree; 0 leaves the function there but
-# unregistered, so the only thing that parks the pin is m9's explicit call at the
-# top of main() - the placement with 15,008 clean frames behind it.
-#
-# A cache variable for the same reason the two above are: the images have to
-# differ in exactly one thing. On 2026-08-20 the first image ever built with the
-# hook was flashed and the board did not enumerate, through two VBUS cycles, and
-# came back only on a PRG-GND strap. That is a wedge before USB, which is
-# precisely what m9's USB-first ordering exists to prevent, so the hook does not
-# get to be the default again until an image carrying it has booted.
-#
-# 0 IS A DIAGNOSTIC BUILD, NOT A FIX. Only m9 calls the function, so at 0 the
-# linker drops it from the other nine targets entirely - `nm` finds neither the
-# hook nor `fgx_qspi_park` in forgix_m7 - and those nine are back to where #17
-# found them, with U1 selected for the whole run. That is acceptable for one
-# experiment on m9 and is not acceptable as a default: if 0 turns out to be the
-# answer, every target needs the call at the top of its own main() before this
-# flag goes away.
-set(FGX_QSPI_PARK_PREINIT "1" CACHE STRING "register the CS park as an SDK preinit hook (1) or leave it to main() (0)")
-add_compile_definitions(FGX_QSPI_PARK_PREINIT=${FGX_QSPI_PARK_PREINIT})
-
 # Depend on the bitstream only once it exists. Efinity cannot be installed
 # unattended, so "no bitstream yet" is the normal state for this tree and the
 # firmware still has to build: hex2c.py emits an empty placeholder and main.c
@@ -123,21 +101,29 @@ add_custom_command(
     COMMENT "Embedding bitstream ${BITSTREAM}"
     VERBATIM)
 
-# EVERY TARGET BELOW LISTS qspi_park.c, AND A NEW ONE MUST TOO (#17).
+# EVERY TARGET BELOW LISTS qspi_park.c AND CALLS fgx_qspi_park() AS THE FIRST
+# STATEMENT OF ITS main(). A NEW ONE MUST DO BOTH (#17).
 #
 # It parks GPIO0, U1's chip select, whose pad reset state otherwise holds the
 # PSRAM selected on the same QSPI bus as the flash for the whole run - which is
 # #9/#16, cost four bench runs and an afternoon, and looks like corrupt flash
-# that verifies fine after a power cycle. The file registers itself through the
-# SDK's preinit array, so listing it here is the entire integration: there is no
-# call to add to main() and nothing to remember at run time.
+# that verifies fine after a power cycle.
 #
-# It is listed even on forgix_m5 and forgix_psram_probe, which link
-# hardware_psram and actually want the part. That is safe and deliberate:
-# runtime_init_setup_psram() sits at priority "11080" against this file's
-# "00601", so the PSRAM's own init runs later and takes the pin back. Listing it
-# unconditionally is what makes "did this target get the fix?" a question nobody
-# has to ask.
+# TWO STEPS, AND THE SECOND ONE CANNOT BE AUTOMATED AWAY. #17 closed by having
+# the file register itself in the SDK's preinit array, so that listing it here
+# was the entire integration and there was nothing to remember. That image
+# bricked the board: on rp2350-arm-s the SDK compiles gpio_put()/gpio_set_dir()
+# into GPIO coprocessor instructions, access to the coprocessor is enabled by a
+# PER-CORE initializer, and per-core initializers sort after every numeric
+# preinit priority - so the park faulted before stdio_init_all() and the board
+# never enumerated. It came back on a PRG-GND strap. qspi_park.c has the map
+# addresses; do not try that again without reading it.
+#
+# forgix_m5 and forgix_psram_probe are the two exceptions and do NOT list it.
+# They link hardware_psram and want the part: runtime_init_setup_psram() claims
+# the pin with gpio_set_function(..., GPIO_FUNC_XIP_CS1) before main(), and
+# parking it in main() would take it straight back.
+
 add_executable(forgix_m2
     main.c
     fpga_config.c
@@ -245,11 +231,12 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
     set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/blobs.S
         PROPERTIES OBJECT_DEPENDS "${FGX_WEIGHTS};${FGX_TESTVEC}")
 
+    # No qspi_park.c, and that is one of the two deliberate omissions in this
+    # file: this target wants U1, and hardware_psram's own init has the pin.
     add_executable(forgix_m5
         m5.c
         encoder.c
-        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S
-        qspi_park.c)
+        ${CMAKE_CURRENT_BINARY_DIR}/blobs.S)
 
     target_include_directories(forgix_m5 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
     # Creates the PSRAM linker region. Only this target needs it, and without it
@@ -496,7 +483,8 @@ endif()
 # M5c: dump the raw READ ID bytes from U1. Standalone rather than folded into
 # m5.c because it is meant to be flashed, read, and thrown away - and because
 # keeping it small means it can ride along with any other strap.
-add_executable(forgix_psram_probe psram_probe.c qspi_park.c)
+# The other deliberate omission of qspi_park.c: this target exists to talk to U1.
+add_executable(forgix_psram_probe psram_probe.c)
 target_include_directories(forgix_psram_probe PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 target_compile_definitions(forgix_psram_probe PRIVATE PICO_AUTO_DETECT_PSRAM_SIZE=1)
 target_link_libraries(forgix_psram_probe

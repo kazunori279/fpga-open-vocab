@@ -26,7 +26,7 @@
 // failure, with no sag and no spike. The earliest logs of it are in
 // bench/soak/, at 150 MHz, from 2026-08-15.
 //
-// WHY THIS IS A SHARED FILE AND A PREINIT HOOK, NOT THREE LINES IN main() (#17).
+// WHY THIS IS A SHARED FILE THAT EVERY TARGET CALLS, AND NOT A PREINIT HOOK.
 //
 // It was three lines in m9's main() from 8daa66b until #17. That fixed the one
 // target anybody was running and left every other one exposed - m2, m5b, m6, m7,
@@ -36,26 +36,54 @@
 // to bite, so a bring-up image that runs for two minutes hides it rather than
 // avoiding it.
 //
-// So: one translation unit, listed in every target, registering the park through
-// the SDK's preinit array. A new target gets it by being built the same way as
-// the others, and forgetting to call something is no longer possible - there is
-// nothing to call.
+// So: one translation unit, and one call at the top of every main() that does
+// not want the PSRAM. That is eight identical lines, which is worse than zero,
+// and #17 was right to want zero. It got zero by registering the park in the
+// SDK's preinit array at "00601", and that image bricked the board. Read the
+// next block before trying it again.
+//
+// THE PREINIT ARRAY CANNOT CALL hardware_gpio ON THIS PLATFORM. NOT AT "00601",
+// NOT AT ANY NUMERIC PRIORITY.
+//
+// On rp2350-arm-s the SDK compiles gpio_put(), gpio_set_dir() and gpio_init()
+// into GPIO COPROCESSOR instructions - this file's three lines disassemble to
+// `mcrr 0, 4, r3, r2, cr0` and `mcrr 0, 4, r3, r2, cr4`. Access to that
+// coprocessor is off out of reset and is turned on by the SDK's own
+// runtime_init_per_core_enable_coprocessors(), which is a PER-CORE initializer:
+// it lands in `.preinit_array.ZZZZZ.00200`. The array is emitted with
+// SORT_BY_NAME, "Z" sorts after every digit, and so EVERY per-core initializer
+// runs after EVERY numeric one. In the map for the image that bricked the board:
+//
+//     0x1000f774  __pre_init_fgx_qspi_park                          (00601)
+//     0x1000f798  __pre_init_runtime_init_per_core_enable_coprocessors (ZZZZZ.00200)
+//
+// Nine entries too early. An mcrr to a disabled coprocessor is a NOCP
+// UsageFault, taken before stdio_init_all() has run, so the board never
+// enumerates: `power` with no `connect`, two VBUS cycles and a twelve-second
+// power-off all fail, and it comes back on a PRG-GND strap. 2026-08-20 spent one
+// finding that out. The bring-up log has the session.
+//
+// This is not a thing to work around by moving the priority. A per-core slot
+// after ZZZZZ.00200 would be legal but would also run after
+// runtime_init_setup_psram() ("11080", numeric, therefore earlier), so on m5 and
+// psram_probe it would take the pin straight back off the QMI - and it would run
+// again on core 1. Hand-writing the SIO and PADS_BANK0 stores would dodge the
+// coprocessor, but it would also stop this file being the proven sequence, which
+// is the only property it has. main() runs after all of it, once, on core 0,
+// with everything enabled. That is where the call belongs.
 //
 // Driving the pin high rather than linking hardware_psram stays deliberate.
 // Nothing but m5 and psram_probe has any use for the 2 MB, and
 // psram_detect_size() returns 0 on this board for reasons docs/pinmap.md still
 // calls unexplained, so initialising a part we do not need would buy a new way to
-// fail. Targets that DO want it are unaffected: hardware_psram's own
-// runtime_init_setup_psram() sits at priority "11080", long after this one, and
-// takes the pin back with gpio_set_function(..., GPIO_FUNC_XIP_CS1).
+// fail. Those two targets do not link this file and must not call it: their own
+// runtime_init_setup_psram() has already claimed the pin with
+// gpio_set_function(..., GPIO_FUNC_XIP_CS1) by the time main() starts.
 //
-// PICO_RUNTIME_INIT_POST_CLOCK_RESETS is "00600" and is the last slot that
-// releases peripherals from reset, so "00601" is the earliest point at which
-// writing PADS_BANK0 and IO_BANK0 does anything at all. Earlier is not better,
-// it is a no-op. This still cannot be first in absolute terms - the code is
-// itself running from XIP, so the window between the pad leaving isolation and
-// this hook is unavoidable - but it takes the exposure from a whole run down to
-// the first few hundred microseconds of boot, and it is now earlier than main().
+// The cost of calling it from main() rather than before it is the window between
+// the pad leaving isolation and the first line of main - a few milliseconds of
+// XIP, against a whole run before #9 was found. The 08-16 image paid exactly that
+// window for 15,008 clean frames.
 //
 // The three lines below are byte-for-byte the sequence that produced 5 x 3000
 // clean frames on 2026-08-16 after 4 of 5 runs had died at frames 687-1987.
@@ -63,7 +91,6 @@
 // pull-down is deliberately left alone: the output driver wins against it, and
 // the point of copying a proven sequence is not to improve it.
 
-#include "pico/runtime_init.h"
 #include "hardware/gpio.h"
 
 #include "qspi_park.h"
@@ -78,31 +105,3 @@ void fgx_qspi_park(void)
     gpio_put(PICO_PSRAM_CS_PIN, 1);
     gpio_set_dir(PICO_PSRAM_CS_PIN, GPIO_OUT);
 }
-
-// THE HOOK IS A BUILD OPTION BECAUSE THE HOOK HAS NEVER BOOTED (#17, re-opened).
-//
-// Nothing built with the registration below has ever run on this board. It went
-// in on 2026-08-17 16:44 and the only image ever linked against it, build-320,
-// was never flashed; the appliance has been running the 2026-08-16 image, which
-// still had the three lines at the top of m9's main(), for every bench since.
-// On 2026-08-20 a 280 MHz image carrying the hook was flashed for the first
-// time and the board did not enumerate at all - port `power` with no `connect`,
-// through two VBUS cycles and a twelve-second one - i.e. it wedged before USB
-// existed, which is the one failure mode this firmware is arranged to make
-// impossible (see main()). That cost a PRG-GND strap.
-//
-// The three GPIO lines are not the suspect: they are byte-for-byte what ran at
-// the top of main() for 15,008 clean frames, which is also pre-USB. What is new
-// is the slot. So the slot is what this flag turns off, and m9 calls the
-// function explicitly - the placement that is known to work - so that a
-// -DFGX_QSPI_PARK_PREINIT=0 image differs from the proven one in exactly the
-// registration and nothing else. Default 1 preserves what is committed until
-// the experiment says which way to jump; do not raise it to a shipping default
-// again without a boot on hardware behind it.
-#ifndef FGX_QSPI_PARK_PREINIT
-#define FGX_QSPI_PARK_PREINIT 1
-#endif
-
-#if FGX_QSPI_PARK_PREINIT
-PICO_RUNTIME_INIT_FUNC_HW(fgx_qspi_park, "00601");
-#endif

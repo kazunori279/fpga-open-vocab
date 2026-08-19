@@ -14,9 +14,15 @@
 #include "fpga_config.h"
 #include "forgix.h"
 #include "link_test.h"
+#include "qspi_park.h"   // #9, and see the call at the top of main()
 
 int main(void)
 {
+    // #9: park U1's chip select before anything else can share the QSPI
+    // bus with it. FIRST STATEMENT, and deliberately not a preinit hook -
+    // qspi_park.c has the map addresses and the strap that bought them.
+    fgx_qspi_park();
+
     // 150 MHz is the RP2350 default and the reference point for every rate in
     // the sweep: link_clk = sys_clk / (cycles_per_bit * clkdiv).
     set_sys_clock_khz(150000, true);

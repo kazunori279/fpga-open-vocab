@@ -69,6 +69,7 @@
 #include "frame.h"
 #include "gemm_host.h"
 #include "worker.h"
+#include "qspi_park.h"   // #9, and see the call at the top of main()
 
 // Linked by blobs.S; see CMakeLists.txt.
 extern const uint8_t fgx_weights[], fgx_weights_end[];
@@ -181,6 +182,11 @@ static unsigned probe(const fgx_model_t *m, const void *image)
 
 int main(void)
 {
+    // #9: park U1's chip select before anything else can share the QSPI
+    // bus with it. FIRST STATEMENT, and deliberately not a preinit hook -
+    // qspi_park.c has the map addresses and the strap that bought them.
+    fgx_qspi_park();
+
     set_sys_clock_khz(150000, true);
     stdio_init_all();
 

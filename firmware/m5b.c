@@ -50,6 +50,7 @@
 #include "hardware/clocks.h"
 
 #include "encoder_fast.h"
+#include "qspi_park.h"   // #9, and see the call at the top of main()
 
 // Linked by blobs.S; see CMakeLists.txt.
 extern const uint8_t fgx_weights[], fgx_weights_end[];
@@ -166,6 +167,11 @@ static double run_images(const fgx_model_t *m, run_mode_t mode, const char *tag,
 
 int main(void)
 {
+    // #9: park U1's chip select before anything else can share the QSPI
+    // bus with it. FIRST STATEMENT, and deliberately not a preinit hook -
+    // qspi_park.c has the map addresses and the strap that bought them.
+    fgx_qspi_park();
+
     stdio_init_all();
 
     // Block until the terminal is attached: the run cannot be repeated without

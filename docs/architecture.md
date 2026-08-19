@@ -133,20 +133,30 @@ that excluded the clock and the rail, and what is left of
 recorded instances are in [`bench/soak/`](../bench/soak/README.md), at 150 MHz,
 from 2026-08-15.
 
-**It is a preinit hook and a shared file rather than three lines in `main()`,
-which is [#17](https://github.com/kazunori279/fpga-open-vocab/issues/17).** The
-fix landed in `m9` alone in `8daa66b` and left every other target exposed — `m7`
-in particular, which runs long clock ladders and is the one most likely to
+**It is a shared file that every target calls, rather than three lines in one
+`main()`, which is [#17](https://github.com/kazunori279/fpga-open-vocab/issues/17).**
+The fix landed in `m9` alone in `8daa66b` and left every other target exposed —
+`m7` in particular, which runs long clock ladders and is the one most likely to
 surprise somebody with a "corrupt" flash that verifies fine after a power cycle.
-`qspi_park.c` registers `fgx_qspi_park()` in the SDK's preinit array at priority
+So `qspi_park.c` is one translation unit, listed in eight targets' sources, and
+each of those eight calls `fgx_qspi_park()` as the **first statement of its
+`main()`**. `forgix_m5` and `forgix_psram_probe` are the two deliberate
+omissions: they link `hardware_psram` and want the part, and
+`runtime_init_setup_psram()` has already claimed the pin with
+`gpio_set_function()` before their `main()` starts.
+
+**It is not a preinit hook, and it cannot be one.** That was tried — priority
 `"00601"`, immediately after `PICO_RUNTIME_INIT_POST_CLOCK_RESETS` releases the
-pad banks and the earliest point at which writing them does anything, so the
-park now happens *before* `main()` and listing the file in a target's sources is
-the whole integration. **Every target lists it, including the two that link
-`hardware_psram` and want the part**: `runtime_init_setup_psram()` sits at
-`"11080"` and takes the pin back with `gpio_set_function()`, which `nm -n` on
-`forgix_m5.elf` confirms in the array ordering. Unconditional is the point — it
-makes "did this target get the fix?" a question nobody has to ask.
+pad banks — and it bricked the board on 2026-08-20. On `rp2350-arm-s` the SDK
+compiles those three GPIO calls into coprocessor instructions, and the
+initializer that enables the coprocessor is per-core, so it sorts into
+`.preinit_array.ZZZZZ.00200` — after every numeric priority there is. The park
+faulted on an `mcrr` to a disabled coprocessor before `stdio_init_all()`, the
+board never enumerated, and it came back on a PRG–GND strap. The generalisation
+is the useful part: **no numeric preinit priority on this platform can call
+`hardware_gpio`.** `firmware/qspi_park.c` carries the disassembly, the two map
+addresses and why moving the priority does not help; the bring-up log has the
+session.
 
 The same event exposed a limit of the reporting that still stands: stage, frame
 and the `CHIP_RESET` copy all live in watchdog scratch, and scratch does not
@@ -786,7 +796,7 @@ A plain tree of the repo is in [the README](../README.md#layout). This is the ot
 | `firmware/gemm_plan.c` | the blocking, swept from `desc[]` rather than tabulated. Hand-drafting it produced two errors in eight rows |
 | `firmware/worker.h` | the two job rings, one producer, one consumer, no locks — **five rules in the header**, because this is the first bug class here that one trip to the bench does not settle |
 | `firmware/frame.{c,h}` | one frame through the tile, extracted from `m7.c` so the harness and the demos share one engine. No `printf` and no `park()` in it: a library must not exit |
-| `firmware/qspi_park.{c,h}` | four lines of code and sixty of comment, and the comment is the file. Parks the PSRAM's chip select through the SDK's preinit array so **every** target gets it before `main()` — #9 cost four bench runs by looking like corrupt flash, and #17 is what stopped it from being fixed in one target only. Listed in every `add_executable` in `firmware/CMakeLists.txt`, and a new target must list it too |
+| `firmware/qspi_park.{c,h}` | four lines of code and ninety of comment, and the comment is the file. Parks the PSRAM's chip select — #9 cost four bench runs by looking like corrupt flash, and #17 is what stopped it from being fixed in one target only. Eight targets list it in `firmware/CMakeLists.txt` **and** call `fgx_qspi_park()` as the first statement of `main()`; a new target must do both. There is no preinit hook and there cannot be one, which the comment proves from the link map |
 
 ### The decision rule
 

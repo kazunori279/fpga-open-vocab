@@ -30,6 +30,7 @@
 
 #include "fpga_config.h"
 #include "forgix.h"
+#include "qspi_park.h"   // #9, and see the call at the top of main()
 
 #define DECLARE_IMAGE(sym)               \
     extern const uint8_t sym[];          \
@@ -172,6 +173,11 @@ static void run(const struct attempt *a, struct result *r)
 
 int main(void)
 {
+    // #9: park U1's chip select before anything else can share the QSPI
+    // bus with it. FIRST STATEMENT, and deliberately not a preinit hook -
+    // qspi_park.c has the map addresses and the strap that bought them.
+    fgx_qspi_park();
+
     set_sys_clock_khz(150000, true);
     stdio_init_all();
 

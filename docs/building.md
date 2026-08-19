@@ -77,7 +77,6 @@ The other cache variables that matter:
 | `GP_KPACK` | `1` | must match the bitstream that reaches the FPGA. `1` for `rtl/bitstreams/m16/`, `0` for `m11/` and `m10/`. See `firmware/gemm_plan.h` for why only one of the two mismatches hangs the board |
 | `FGX_SYS_KHZ` | `320000` | `forgix_m9`'s system clock; `link_clk` is half of it. `-DFGX_SYS_KHZ=150000` builds the 150 MHz control image. The comment above `main()` in `firmware/m9.c` has the reasoning for both the rate and the rail |
 | `FGX_CORE_MV` | `0` | `forgix_m9`'s core rail in mV, `0` meaning "derive it from the rate". `1100`/`1150`/`1200`/`1250`/`1300` pin it instead, and anything else is a compile error. **A rail too low for the rate wedges the board silently** — see below |
-| `FGX_QSPI_PARK_PREINIT` | `1` | whether `qspi_park.c` registers the PSRAM chip-select park in the SDK's preinit array (`1`) or leaves it to `forgix_m9`'s explicit call at the top of `main()` (`0`). **`1` is under investigation, not settled** — see below |
 
 **A bad operating point used to cost the strap, and now costs 1.5 seconds.**
 320 MHz at 1.15 V prints the banner and stops: the core goes quiet, USB never
@@ -88,21 +87,25 @@ and it is the outcome a rail sweep is *for* — so `m9` now brings USB up
 still works. Sweep downwards freely; the board talks first and experiments
 second.
 
-**That grace does not cover anything before `main()`, and one thing is there.**
-On 2026-08-20 the first image ever built with `FGX_QSPI_PARK_PREINIT=1` — the
-default, committed on 08-17 — was flashed at 280 MHz and the board did not
-enumerate at all: `power` with no `connect`, through two VBUS cycles, recovered
-only on the PRG–GND strap. The three GPIO writes are not new (they ran at the
-top of `main()` for 15,008 clean frames); the preinit slot is. Until that is
-settled, **build with `-DFGX_QSPI_PARK_PREINIT=0` before flashing anything from
-this tree**, and read [#17](https://github.com/kazunori279/fpga-open-vocab/issues/17)
-and the 2026-08-20 firmware entry in [the bring-up log](bring-up-log.md) first.
-All ten targets carry the hook and none of them has booted with it.
+**That grace does not cover anything before `main()`, and nothing may be put
+there.** Every target except `forgix_m5` and `forgix_psram_probe` links
+`firmware/qspi_park.c` and calls `fgx_qspi_park()` as the **first statement of
+its `main()`** — that is the PSRAM chip-select park, and it is
+[#9](https://github.com/kazunori279/fpga-open-vocab/issues/9). A new target must
+do both; the comment above the first `add_executable` in `firmware/CMakeLists.txt`
+says so too.
 
-`0` is a diagnostic build and not a fix: only `forgix_m9` calls the function, so
-the linker drops it from the other nine and they go back to holding the PSRAM's
-chip select for the whole run, which is [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9).
-Long runs out of `forgix_m7` or `forgix_m8` should not be built that way.
+The obvious tidier version of that — one registration in the SDK's preinit array
+instead of eight identical lines — **cannot work on this platform, and trying it
+cost a strap.** On `rp2350-arm-s` those three GPIO calls compile to GPIO
+*coprocessor* instructions, and the initializer that enables the coprocessor is
+per-core, so it sorts into `.preinit_array.ZZZZZ.00200` — after **every** numeric
+priority. The park at `"00601"` therefore executed an `mcrr` against a disabled
+coprocessor, took a NOCP UsageFault before `stdio_init_all()`, and on 2026-08-20
+the board never enumerated: `power` with no `connect`, through two VBUS cycles
+and a twelve-second power-off, recovered only on the PRG–GND strap.
+`firmware/qspi_park.c` carries the map addresses and the reasons no other preinit
+priority helps. Read it before reaching for a hook again.
 
 One `ninja` produces every on-device harness as its own `.uf2`:
 
