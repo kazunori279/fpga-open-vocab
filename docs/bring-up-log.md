@@ -11,6 +11,51 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-20, tooling — `lost` was subtracting two different populations, and one bench changed sides
+
+Follow-on from the bench entry below, which found the defect and deferred the
+fix. `tools/probe_ceiling.py`'s `lost` column is the one its own docstring calls
+"the column to read": `best - state`, the points the decision rule failed to
+collect. But `best` was an oracle over all ~240 cued frames and `state` was the
+rule over the ~120 that survive dropping the enrolment visits and the frames
+before the rule engaged. Two populations, subtracted.
+
+It showed, and had been showing. 08-20 06:37 printed **-2.9**, and the 08-17
+11:26 and 15:42 rows had carried -4.2 and -1.2 in the recorded table for three
+days. A negative reads as the rule beating the margin ceiling, which cannot
+happen: in a one-dimensional centred space nearest-reference *is* a threshold on
+the margin, sitting at the midpoint of the two references, so it is one of the
+cuts the oracle already tried. Nobody had queried it because the docstring said
+`lost` was "slightly generous to the ceiling" — which is the opposite of what a
+negative means, and reading it as a small known bias is exactly how a wrong sign
+survives.
+
+There is now a `held` column: the same oracle, over exactly the frames `state`
+is scored on. `lost` is `held - state`, `state <= held` is asserted on every
+bench rather than argued, and it came out non-negative on all twenty-two.
+`best` stays, because the ceiling is a property of the two scenes and holding
+frames out of it would be answering a different question; where `best` and
+`held` differ a lot, the taught half of the run was easier or harder than the
+held-out half, which is worth seeing.
+
+**#19 is still four benches and they are not quite the same four.** 08-17 09:33
+fell from 18.6 to 14.2 and is out; 08-17 15:27, the first glass run, rose from
+7.5 to 15.0 and is in. The three large ones are unchanged in substance — 08-17
+08:55 at 71.7, 13:35 at 36.7, 08-16 17:22 at 29.2. The new member sits *exactly*
+on the line and should not be leaned on, which is the second thing this fix
+turned up: the test was `lost > 0.15` on raw floats, and 0.75 − 0.60 evaluates
+to 0.15000000000000002, so that bench qualified by binary representation. The
+comparison is now made on the printed figure in points and the constant is named
+`LOST_19`, so the prose and the table cannot disagree; it is `>=` deliberately,
+and the docstring says the run is on the line rather than pretending it cleared
+it.
+
+`docs/architecture.md` and `bench/README.md` carried the old figures and are
+corrected in place. 15:37's scatter cost 10.8 points and not 2.1; 13:35's drift
+cost 36.7 and not 36.3.
+
+---
+
 ### 2026-08-20, bench — the book control on both sides of the glass, and a display that kept a dead session's labels
 
 Four benches at 280 MHz in thirteen minutes, deliberately interleaved
