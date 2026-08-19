@@ -79,4 +79,30 @@ void fgx_qspi_park(void)
     gpio_set_dir(PICO_PSRAM_CS_PIN, GPIO_OUT);
 }
 
+// THE HOOK IS A BUILD OPTION BECAUSE THE HOOK HAS NEVER BOOTED (#17, re-opened).
+//
+// Nothing built with the registration below has ever run on this board. It went
+// in on 2026-08-17 16:44 and the only image ever linked against it, build-320,
+// was never flashed; the appliance has been running the 2026-08-16 image, which
+// still had the three lines at the top of m9's main(), for every bench since.
+// On 2026-08-20 a 280 MHz image carrying the hook was flashed for the first
+// time and the board did not enumerate at all - port `power` with no `connect`,
+// through two VBUS cycles and a twelve-second one - i.e. it wedged before USB
+// existed, which is the one failure mode this firmware is arranged to make
+// impossible (see main()). That cost a PRG-GND strap.
+//
+// The three GPIO lines are not the suspect: they are byte-for-byte what ran at
+// the top of main() for 15,008 clean frames, which is also pre-USB. What is new
+// is the slot. So the slot is what this flag turns off, and m9 calls the
+// function explicitly - the placement that is known to work - so that a
+// -DFGX_QSPI_PARK_PREINIT=0 image differs from the proven one in exactly the
+// registration and nothing else. Default 1 preserves what is committed until
+// the experiment says which way to jump; do not raise it to a shipping default
+// again without a boot on hardware behind it.
+#ifndef FGX_QSPI_PARK_PREINIT
+#define FGX_QSPI_PARK_PREINIT 1
+#endif
+
+#if FGX_QSPI_PARK_PREINIT
 PICO_RUNTIME_INIT_FUNC_HW(fgx_qspi_park, "00601");
+#endif

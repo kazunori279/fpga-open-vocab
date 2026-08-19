@@ -84,6 +84,29 @@ timestamp in the filename — see 11:44 below.
 | `m9_cue-smoke-2e48d86.log` | 37.5% | 37.5% | | `/tmp/m9_cue.log` as it stood after flashing the one-sided guard — a smoke test, kept because it is the only log of that firmware running |
 | `m9_cue_fake_d.log` | 58.3% | 48.3% | | **synthetic.** A doctored copy of `m9_cue-20260816-172256.log`, made to exercise a probe against a class that was never in the room. Not a bench, and it will happily score like one if you forget that |
 
+## The `.cues` sidecars, and the three logs that have none
+
+Every log is `<name>.log` and its sidecar is `<name>.log.cues` — the suffix is
+appended, not replaced, so a stray `<name>.cues` is not one of ours. The sidecar
+holds the cue schedule: the flags `cue.py` ran under, the enrolment frames, the
+snapshot frames, and one line per scene span. **The log alone is not scoreable.**
+`tools/score_cue.py` exits rather than guessing, and everything else in `tools/`
+goes through its `load()`, so a missing sidecar can never quietly become a
+number. A sidecar can also be marked `VOID`, which is refused unless forced.
+
+`cue.py` writes it when the run ends, so a run that never ended has none. Three:
+
+| file | why there is no sidecar |
+| --- | --- |
+| `m9_cue-20260815-111130.log` | 373 lines, then the port vanished — a watchdog reboot seen from the host. The frames are real and the schedule that produced them is gone |
+| `m9_cue-20260817-085204.log` | two lines. The board went before the run did |
+| `m9_cue-20260817-103054.log` | 25 lines, aborted at the query handshake |
+
+They are kept because they are the record of three ways a bench dies, not
+because anything can be recovered from them. Nothing is missing and nothing is
+worth reconstructing: a schedule guessed after the fact would be a sidecar that
+looks exactly like a real one.
+
 ## Re-deriving anything here
 
     uv run --script tools/score_cue.py bench/cue/m9_cue-20260817-112606.log

@@ -78,8 +78,10 @@ A LOW CEILING IS NOT A LOW CEILING FOR THE PAIR. The book pair reads 1.000 on
 desk, same firmware. So `|sep|` well under the same pair's best is a statement
 about THAT MORNING and not about the model: the scene did not present the
 difference. Only a pair whose best is itself low is a candidate for "the encoder
-does not carry this", and one run cannot establish that - the glass pair has
-exactly one run and is therefore unproven, not proven.
+does not carry this", and one run cannot establish that. The glass pair had
+exactly one run until 2026-08-20 and was therefore unproven rather than proven;
+it now has three, two of them fenced by book controls, and the section further
+down says what that bought.
 
 That is why this script has no threshold. An absolute floor would have called
 half the book runs a model limitation, and the book is the one pair that has

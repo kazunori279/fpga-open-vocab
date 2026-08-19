@@ -11,6 +11,74 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-20, firmware — #9 caught in the act and cleared in one command, and the fix for it has never booted
+
+Two things about the same GPIO, on the same morning, pointing opposite ways.
+
+**#9, live, and the whole signature in four commands.** Before any of today's
+firmware work, `picotool info` on the board — which was sitting in BOOTSEL after
+the four benches — reported `Program Information: none`. Three `picotool save`
+reads of the same 4 KB at `0x10000000` came back as three different SHA-256s.
+Then `uhubctl -l 2-1 -p 1 -a cycle`, and the board enumerated as a CDC device,
+`picotool info` named `forgix_m9`, and `picotool verify` against the very image
+that had just read as noise passed clean at 100%.
+
+That is the third recorded instance and the first taken deliberately rather than
+in the middle of losing a bench. Nothing was ever corrupted, only removing the
+5 V clears it, and the reason is at the top of `firmware/qspi_park.c`: GPIO0's
+pad comes out of reset with its pull-down enabled, that pin is U1's chip select,
+and the PSRAM therefore sits selected on the flash's bus for the whole run.
+Worth writing down that the *diagnosis* now costs about ninety seconds.
+
+**And the fix for it has never run on this board.** `cef3d3b`, on 08-17, moved
+the three-line park out of m9's `main()` into the SDK's preinit array at
+priority `"00601"`, on all ten targets, so that no future target could forget
+it. The placement is correct — the link map shows the entry in
+`.preinit_array.00601`, right after `PICO_RUNTIME_INIT_POST_CLOCK_RESETS`
+releases the pad banks — and the commit message says all ten targets build and
+all ten carry the symbol. They do. **None of them had been flashed.** The only
+image ever linked against the hook was `build-320`, built one minute before the
+commit and never loaded; `nm` on `build-280`, the image the appliance has
+actually been running since 08-16 and which produced every bench including this
+morning's four, finds no `fgx_qspi_park` at all.
+
+So `build-280` was rebuilt from current sources — the first 280 MHz image to
+carry the hook — and flashed. **The board did not enumerate.** `uhubctl` showed
+`power` with no `connect`, through two VBUS cycles and a twelve-second
+power-off; no CDC, no BOOTSEL, nothing on `/dev/cu.usbmodem*`. It came back on a
+PRG–GND strap.
+
+A wedge before USB exists is the one failure this firmware is arranged to
+prevent. `main()` brings USB up *before* the clock for exactly that reason, and
+the comment above `stdio_init_all()` says so in six lines: the 2026-08-15 wedge
+came from a one-line build flag and cost a strap, and finding the next one must
+not cost the board. A pre-`main()` hook is outside that protection by
+construction — there is no window in which anything can be told to enter
+BOOTSEL.
+
+**What is not the suspect: the three GPIO writes.** They are byte-for-byte the
+sequence that ran at the top of `main()` for 15,008 clean frames on 08-16, and
+that is also before USB. What is new is the slot. Against that, the rebuild
+honestly moved more than one thing — `m9.c` took four commits of enrolment
+changes after the 08-16 image was built — so the flash above is evidence and not
+proof.
+
+`FGX_QSPI_PARK_PREINIT` is therefore a CMake cache variable now, the same
+pattern and for the same reason as `FGX_SYS_KHZ` and `FGX_CORE_MV`: two images
+that differ in exactly one thing. `=1` is the hook as committed and stays the
+default, because what is in the tree should be what was reviewed. `=0` leaves
+the function unregistered and m9 calls it from the top of `main()`, which is the
+placement with the frames behind it. Both are built and kept outside the tree,
+next to the known-good 08-16 image, and the next flash after the strap decides
+it. Nine other targets carry the same hook and none of them has booted either,
+so nothing should be flashed from this tree until that is known.
+
+Re-opened #17. The goal it was closed on — integration is listing a file, and
+there is nothing to remember — is still the right goal; it just cannot be paid
+for with a hook that runs before the board can be recovered.
+
+---
+
 ### 2026-08-20, tooling — `lost` was subtracting two different populations, and one bench changed sides
 
 Follow-on from the bench entry below, which found the defect and deferred the

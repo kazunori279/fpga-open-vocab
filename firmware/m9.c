@@ -68,6 +68,7 @@
 #include "fpga_config.h"
 #include "frame.h"
 #include "gemm_host.h"
+#include "qspi_park.h"   // #9, and see the call at the top of main()
 #include "worker.h"
 
 // Linked by blobs.S; see CMakeLists.txt.
@@ -2277,15 +2278,20 @@ static uint32_t sys_clock_bring_up(uint32_t khz)
 
 int main(void)
 {
-    // The PSRAM's chip select is already parked by the time this line runs, and
-    // that is issue #9 - the most expensive bug this project has had. It used to
-    // be three lines right here; #17 moved them to qspi_park.c, which every
-    // target links and which registers the park as a preinit hook, so it now
-    // happens before main() and no future target can forget it. The whole
-    // argument - why GPIO0's reset pull-down holds U1 selected for a whole run,
-    // why only a VBUS cycle clears it, and why it is neither the clock nor the
-    // rail - lives in the comment at the top of that file. Read it before
-    // touching GPIO0 anywhere.
+    // PARK THE PSRAM'S CHIP SELECT BEFORE ANYTHING ELSE. THIS IS ISSUE #9 - the
+    // most expensive bug this project has had, and the whole argument for it
+    // (why GPIO0's reset pull-down holds U1 selected for a whole run, why only a
+    // VBUS cycle clears it, and why it is neither the clock nor the rail) lives
+    // at the top of qspi_park.c. Read that before touching GPIO0 anywhere.
+    //
+    // The call is back. #17 moved it into the SDK's preinit array so that no
+    // target could forget it, which is the right goal and was committed without
+    // ever booting: the first image carrying that hook was flashed on
+    // 2026-08-20 and the board did not enumerate at all. This line is the
+    // placement with 15,008 clean frames behind it. It is idempotent and it
+    // costs three register writes, so it stays here even in a build that leaves
+    // the hook on - whichever of the two runs first, the pin ends up high.
+    fgx_qspi_park();
 
     // USB FIRST, THEN THE CLOCK, AND THE ORDER IS A RECOVERY PATH.
     //

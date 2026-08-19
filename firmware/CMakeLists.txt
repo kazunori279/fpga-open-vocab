@@ -80,6 +80,28 @@ add_compile_definitions(FGX_SYS_KHZ=${FGX_SYS_KHZ})
 set(FGX_CORE_MV "0" CACHE STRING "m9 core rail in mV; 0 derives it from the rate")
 add_compile_definitions(FGX_CORE_MV=${FGX_CORE_MV})
 
+# And whether qspi_park.c registers itself in the SDK's preinit array. 1 is what
+# #17 committed and what is in the tree; 0 leaves the function there but
+# unregistered, so the only thing that parks the pin is m9's explicit call at the
+# top of main() - the placement with 15,008 clean frames behind it.
+#
+# A cache variable for the same reason the two above are: the images have to
+# differ in exactly one thing. On 2026-08-20 the first image ever built with the
+# hook was flashed and the board did not enumerate, through two VBUS cycles, and
+# came back only on a PRG-GND strap. That is a wedge before USB, which is
+# precisely what m9's USB-first ordering exists to prevent, so the hook does not
+# get to be the default again until an image carrying it has booted.
+#
+# 0 IS A DIAGNOSTIC BUILD, NOT A FIX. Only m9 calls the function, so at 0 the
+# linker drops it from the other nine targets entirely - `nm` finds neither the
+# hook nor `fgx_qspi_park` in forgix_m7 - and those nine are back to where #17
+# found them, with U1 selected for the whole run. That is acceptable for one
+# experiment on m9 and is not acceptable as a default: if 0 turns out to be the
+# answer, every target needs the call at the top of its own main() before this
+# flag goes away.
+set(FGX_QSPI_PARK_PREINIT "1" CACHE STRING "register the CS park as an SDK preinit hook (1) or leave it to main() (0)")
+add_compile_definitions(FGX_QSPI_PARK_PREINIT=${FGX_QSPI_PARK_PREINIT})
+
 # Depend on the bitstream only once it exists. Efinity cannot be installed
 # unattended, so "no bitstream yet" is the normal state for this tree and the
 # firmware still has to build: hex2c.py emits an empty placeholder and main.c
