@@ -44,6 +44,15 @@ static bool              started;
 // time calling flash is not off XIP, it just moved the miss one frame down.
 static void __not_in_flash_func(w1_main)(void)
 {
+    // So core 0 can stop this core to write flash. lastwords.c is the only
+    // caller today and only m9 links it, but the init belongs here rather than
+    // there: it has to run *on core 1*, and this is the only function that
+    // does. It installs a SIO FIFO handler that never fires unless somebody
+    // asks, and worker.c does not otherwise use the inter-core FIFO - the two
+    // rings below are plain arrays - so there is nothing for it to collide
+    // with. Costs m7 and m8 an unused handler and no cycles.
+    multicore_lockout_victim_init();
+
     while (true) {
         // Strict priority, re-evaluated between every pair of jobs: a W1_HI job
         // posted while a W1_LO one was running is picked up the moment it ends.

@@ -335,6 +335,7 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
         m7.c
         frame.c
         worker.c
+        lastwords.c
         cam.c
         gemm_host.c
         gemm_wire.c
@@ -357,6 +358,10 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
     target_link_libraries(forgix_m7
         pico_stdlib
         pico_multicore     # M7e. The first target in this project to link it.
+        hardware_flash     # lastwords.c. Only m9 calls it, but the source lists
+                           # of these three are deliberately identical - see the
+                           # comment above forgix_m8 - and gc-sections drops it
+                           # from the two that do not.
         hardware_spi
         hardware_pio
         hardware_dma
@@ -374,6 +379,7 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
         m8.c
         frame.c
         worker.c
+        lastwords.c
         cam.c
         gemm_host.c
         gemm_wire.c
@@ -392,6 +398,7 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
     target_link_libraries(forgix_m8
         pico_stdlib
         pico_multicore
+        hardware_flash
         hardware_spi
         hardware_pio
         hardware_dma
@@ -409,6 +416,7 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
         m9.c
         frame.c
         worker.c
+        lastwords.c
         cam.c
         gemm_host.c
         gemm_wire.c
@@ -440,13 +448,42 @@ if(EXISTS ${FGX_WEIGHTS} AND EXISTS ${FGX_TESTVEC})
     # What it costs when it does fire is the rest of that one write - a truncated
     # line in the log - which is the correct trade against a frame time that
     # silently became a measurement of the host.
+    #
+    # PICO_HEAP_SIZE=0 IS NOT A TUNING KNOB, IT IS A STATEMENT OF FACT.
+    #
+    # Adding lastwords.c overflowed RAM by 1052 bytes, and every one of those
+    # bytes is RAM-resident code: flash_range_erase() and flash_range_program()
+    # cannot execute from flash while they are taking XIP down, so the SDK marks
+    # them .time_critical and the linker puts them in SRAM. That cost is not
+    # negotiable and it is the whole point of the feature.
+    #
+    # The 2 KB the SDK reserves for a heap is, though - because there is no
+    # allocator in this image to reach it. `arm-none-eabi-nm forgix_m9.elf`
+    # matches no malloc, no calloc, no free and no _sbrk. This firmware
+    # allocates out of frame.c's pool and nothing else, deliberately. So the
+    # reservation was 2 KB of memory nothing could ever hand out, sitting
+    # between __bss_end__ and the top of RAM.
+    #
+    # Zero rather than 1024: a number chosen to just fit is a number that has to
+    # be re-chosen every time anything grows, and "this firmware has no heap" is
+    # both true and worth saying out loud. If a future change does link malloc,
+    # it will get a heap of nothing - so the rule is that the pool grows, not
+    # that this line does.
+    #
+    # NOTHING ELSE MOVES. .heap sits after every other RAM section, so setting
+    # it to zero leaves the address of every buffer in the image exactly where
+    # it was. That matters here: the bench numbers in docs/ were measured with
+    # this layout, and freeing RAM by shuffling hot data between SRAM banks
+    # would have quietly put all of them in question.
     target_compile_definitions(forgix_m9 PRIVATE GW_PICO=1
+        PICO_HEAP_SIZE=0
         PICO_STDIO_USB_STDOUT_TIMEOUT_US=50000)
     pico_generate_pio_header(forgix_m9 ${CMAKE_CURRENT_LIST_DIR}/link.pio)
     pico_generate_pio_header(forgix_m9 ${CMAKE_CURRENT_LIST_DIR}/cam_spi.pio)
     target_link_libraries(forgix_m9
         pico_stdlib
         pico_multicore
+        hardware_flash
         hardware_spi
         hardware_pio
         hardware_dma

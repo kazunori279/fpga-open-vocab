@@ -11,6 +11,67 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-20, night — last words in flash, and 2 KB of heap that no allocator could reach
+
+[#9](https://github.com/kazunori279/fpga-open-vocab/issues/9)'s second owed item
+is the one the watchdog scratch cannot do. The scratch registers live in the
+always-on domain, and cutting VBUS is both the only known recovery from #9 and
+exactly what takes that domain away — so **an outage that ends in `uhubctl` has
+been unattributable by construction**. `firmware/lastwords.{c,h}` puts one
+48-byte record in the last flash sector instead, sixteen slots to a sector, read
+and cleared at the next banner by `lw_report_last()`.
+
+The costs are all in *when* rather than *whether*. An erase is ~50 ms with XIP
+down, so it happens once at boot, inside `lw_take()`, before `w1_start()` — no
+second core to lock out, because there is not one yet. The outage path only
+programs one page, and does it behind `multicore_lockout_start_timeout_us(2000)`
+rather than betting that every core-1 job body stays out of flash. That lockout
+is why `w1_main()` now opens with `multicore_lockout_victim_init()`: the call has
+to run *on core 1*, and that function is the only thing that does.
+
+**The link failed by 1052 bytes, and the fix is a fact rather than a tuning
+knob.** `flash_range_erase()` and `flash_range_program()` cannot execute from
+flash while they are taking XIP down, so the SDK marks them `.time_critical` and
+they land in SRAM. m9 had 484 bytes of RAM left. What paid for it is
+`PICO_HEAP_SIZE=0`: `arm-none-eabi-nm forgix_m9.elf` matches no `malloc`, no
+`calloc`, no `free` and no `_sbrk`, so the SDK's default 2 KB reservation was
+memory nothing in this image could ever hand out. The alternative — moving hot
+buffers between SRAM banks with `__scratch_x`, where 4 KB is genuinely idle —
+was rejected on purpose: `.heap` sits after every other RAM section, so zeroing
+it leaves the address of every buffer exactly where it was, and the bench numbers
+in this repo were measured with that layout. Freeing RAM by shuffling the hot
+path would have quietly put all of them in question.
+
+**Verified across a real power cycle, except for the one line that writes.**
+Two synthetic records were programmed straight into `0x101ff000` with
+`picotool load -o`, and the next banner picked the higher `seq` of the two,
+decoded every field, and printed *"The scratch did NOT survive … the outage
+ended in a power cycle. This is the case issue #9 could not attribute before."*
+A `uhubctl` cycle after it came up silent, which is the erase. A page that
+starts to look like a record and stops — what a torn program leaves — was
+reported as *"bytes that are not a record"* and erased rather than read as a
+fact. So the scan, the CRC, the `seq` pick, the report, the power-cycle branch
+and the erase-when-dirty are all seen to work on the board.
+
+`lw_write()` itself is not, and the reason is the camera. Driving it needs an
+outage, an outage needs `usb_watch()`, and `usb_watch()` only runs inside a
+frame loop that `ft_acquire()` refuses to start:
+
+```
+camera    : exposure ramp 5 5 5 5 5 5 ... (40 of them)
+camera    : still a constant fill (08 01) after 41 frames
+RESULT : FAIL - no camera.
+```
+
+**That refusal is correct and the third reproduction tonight.** `08 01` is the
+exact constant the ArduChip FIFO returns when no frame has been written, which
+is not what a dark room gives, and a fresh `cam_probe` at 19:30 splits the same
+way the 18:40 one did: rows 0, 2 and 4 — every recipe without a settle — return
+`c80a8564`, and rows 5 (`settle300`) and 6 (`everything`) return a picture. The
+sensor is alive; the recipe `ft_acquire()` uses is the one that does not work
+right now. That is [#27](https://github.com/kazunori279/fpga-open-vocab/issues/27),
+and no number is being fitted to it here.
+
 ### 2026-08-20, evening — the first soak with a bus-side witness, and the room went dark in the middle of it
 
 Twenty `m9` runs of 200 frames at 280/140, 18:04 to 18:31, with

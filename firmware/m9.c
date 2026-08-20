@@ -68,6 +68,7 @@
 #include "fpga_config.h"
 #include "frame.h"
 #include "gemm_host.h"
+#include "lastwords.h"   // #9 again: the one record a VBUS cycle cannot take
 #include "qspi_park.h"   // #9, and see the call at the top of main()
 #include "worker.h"
 
@@ -891,6 +892,13 @@ static inline void wd_stage(uint32_t s, uint32_t frame)
 #define FGX_RS_TAG  0x52530000u          // 'RS', same trick as FGX_WD_TAG
 #define FGX_RS_MASK 0x1fff0000u          // every HAD_* bit, and nothing else
 
+// Whether scratch[2] carried the tag into this boot. Kept because
+// reset_report() overwrites scratch[2] with the fresh value as part of its job,
+// so by the time anything else looks the answer is gone - and lw_report_last()
+// needs it: "the flash record survived and the scratch did not" is the whole
+// distinction that names a power cycle.
+static bool rs_scratch_kept;
+
 static void reset_report(void)
 {
     static const struct { uint32_t bit; const char *what; } had[] = {
@@ -925,6 +933,7 @@ static void reset_report(void)
     const bool     kept = (prev & 0xffff0000u) == FGX_RS_TAG;
     const uint32_t was  = kept ? (prev & 0xffffu) << 16 : 0u;
     watchdog_hw->scratch[2] = FGX_RS_TAG | (now >> 16);
+    rs_scratch_kept = kept;
 
     // What is new since the last banner. On a plain 'R' or a watchdog reboot
     // this is usually empty, because those reset the core without touching
@@ -977,6 +986,67 @@ static void wd_report_last(void)
            "            what survives is this line.\n",
            (unsigned)FGX_WD_MS, (unsigned)f,
            k < FGX_ST_N ? fgx_stage[k] : "an unknown stage");
+    stdio_flush();
+}
+
+// The same job as wd_report_last(), for the one case that outlives the scratch.
+// See lastwords.h for why there has to be a second mechanism at all.
+//
+// Called immediately after wd_report_last() and before w1_start(), because
+// lw_take() erases and the erase is only safe while core 1 is still parked.
+static void lw_report_last(void)
+{
+    lw_rec_t r;
+    const char *note = NULL;
+    const bool got = lw_take(&r, &note);
+
+    if (note) printf("lastwords : %s\n", note);
+    if (!got) { if (note) stdio_flush(); return; }
+
+    const uint32_t k = (r.stage & 0xffff0000u) == FGX_WD_TAG
+                         ? (r.stage & 0xffffu) : 0xffffu;
+
+    printf("lastwords : THE LAST RUN LEFT A RECORD IN FLASH AND THEN DID NOT "
+           "REBOOT ITSELF.\n"
+           "            Written %s, at frame %u, %u.%03u s into that run.\n"
+           "            The bus had been gone %u ms by then, since frame %u; "
+           "%u outage%s and\n"
+           "            %u re-attach%s before it. Stage was %s.\n"
+           "            That run was at %u MHz; chip_reset read %08x as it "
+           "stood.\n",
+           r.why == LW_WHY_KICK
+             ? "on the first re-attach attempt"
+             : (r.why == LW_WHY_GIVEUP
+                  ? "just before the deliberate reboot"
+                  : "for a reason this build does not know"),
+           (unsigned)r.frame,
+           (unsigned)(r.uptime_ms / 1000u), (unsigned)(r.uptime_ms % 1000u),
+           (unsigned)r.gone_ms, (unsigned)r.from_frame,
+           (unsigned)r.drops, r.drops == 1 ? "" : "s",
+           (unsigned)r.kicks, r.kicks == 1 ? "" : "es",
+           k < FGX_ST_N ? fgx_stage[k]
+                        : (k == (FGX_ST_USBGONE & 0xffffu)
+                             ? "the USB watch itself" : "not recorded"),
+           (unsigned)(r.sys_khz / 1000u), (unsigned)r.chip_reset);
+
+    // THE POINT OF THE LINE, and the reason this is not just a second copy of
+    // the scratch. If the scratch came through as well then the board rebooted
+    // itself and wd_report_last() has already said so; the flash record adds
+    // nothing and saying that plainly is what stops the next reader treating
+    // one event as two. If it did not, the always-on domain went away between
+    // the two - which is a power cycle, which is #9's only known recovery, and
+    // which is the case the scratch can never speak for.
+    if (rs_scratch_kept)
+        printf("            The scratch survived too, so this boot follows a "
+               "reset that left the\n"
+               "            always-on domain alone - read the line above this "
+               "one, not this one.\n");
+    else
+        printf("            The scratch did NOT survive, so the always-on "
+               "domain went away between\n"
+               "            that record and this banner: the outage ended in a "
+               "power cycle. This is\n"
+               "            the case issue #9 could not attribute before.\n");
     stdio_flush();
 }
 
@@ -1064,6 +1134,34 @@ static void wd_report_last(void)
 
 static uint32_t usb_drops;      // outages this run
 static uint32_t usb_kicks;      // re-attaches issued
+
+// Put the current outage in flash. Everything here is read at the call site's
+// instant rather than passed down from the banner, because the point of the
+// record is what was true when the bus was already gone - the clock could have
+// fallen back, the stage is wherever the loop happens to be, and chip_reset can
+// have picked up a bit since the boot report.
+static void lw_note(uint16_t why, uint32_t frame, uint32_t from_frame,
+                    uint32_t gone_ms)
+{
+    lw_rec_t r;
+    memset(&r, 0, sizeof r);
+    r.why        = why;
+    r.stage      = watchdog_hw->scratch[0];
+    r.frame      = frame;
+    r.chip_reset = powman_hw->chip_reset & FGX_RS_MASK;
+    r.uptime_ms  = (uint32_t)(time_us_64() / 1000u);
+    r.gone_ms    = gone_ms;
+    r.from_frame = from_frame;
+    r.drops      = (uint16_t)usb_drops;
+    r.kicks      = (uint16_t)usb_kicks;
+    r.sys_khz    = (uint32_t)(clock_get_hz(clk_sys) / 1000u);
+    lw_write(&r);
+    // The write is a page program behind a core-1 lockout - a few ms at worst
+    // against an 8 s watchdog, so this is insurance and not a requirement. It
+    // is here because the alternative to being wrong about that is a reboot in
+    // the middle of the one path whose job is to survive.
+    watchdog_update();
+}
 static uint32_t usb_gone_ms;    // total time off the bus
 
 // THE ESCALATION ABOVE IS ONLY WORTH ANYTHING IF IT HAS BEEN SEEN TO RUN, and a
@@ -1197,6 +1295,13 @@ static void usb_watch(uint32_t frame)
     const uint32_t ms = (uint32_t)((now - down_at) / 1000u);
     if ((kicked == 0 && ms >= FGX_USB_KICK_MS) ||
         (kicked == 1 && ms >= FGX_USB_KICK2_MS)) {
+        // ONCE PER OUTAGE, ON THE FIRST ATTEMPT, and this is the whole reason
+        // the record is not written at the giveup below. The giveup is 28 s
+        // further on and the hand reaching for `uhubctl` is not on a timer: by
+        // the time anyone has decided the board is gone, the record has to
+        // already be in flash. Two seconds in is the earliest point at which
+        // this is an outage rather than a blink.
+        if (kicked == 0) lw_note(LW_WHY_KICK, frame, from_frame, ms);
         kicked++;
         usb_kicks++;
         tud_disconnect();
@@ -1205,6 +1310,11 @@ static void usb_watch(uint32_t frame)
         return;
     }
     if (ms >= FGX_USB_GIVEUP_MS) {
+        // A second record, with the numbers as they finally stood. The scratch
+        // set two lines down survives this reboot and says the same thing more
+        // cheaply - but only if the reboot works, and an outage that reaches
+        // here is one where re-enumeration has already failed twice.
+        lw_note(LW_WHY_GIVEUP, frame, from_frame, ms);
         watchdog_hw->scratch[0] = FGX_WD_TAG | FGX_ST_USBGONE;
         watchdog_hw->scratch[1] = frame;
         watchdog_reboot(0, 0, 0);
@@ -2337,6 +2447,10 @@ int main(void)
            sys_khz == want_khz ? "" : "  (FALLBACK - requested rate refused)");
     reset_report();
     wd_report_last();
+    // After reset_report(), which is where rs_scratch_kept comes from, and
+    // before w1_start() further down, which is what makes the erase inside it
+    // safe. Both halves of that sentence are load-bearing.
+    lw_report_last();
 
     // Armed HERE, not at the frame loop, and the 2026-08-10 17:58 wedge is why:
     // the board went silent with the watchdog still disarmed, sat that way for
@@ -2983,6 +3097,19 @@ int main(void)
                    (unsigned)usb_drops, usb_drops == 1 ? "" : "s",
                    (unsigned)usb_gone_ms,
                    (unsigned)usb_kicks, usb_kicks == 1 ? "" : "es");
+            // Only when it happened. A run that never dropped the bus never
+            // tried to write, and a line saying so every time would be noise -
+            // but a run that DID drop it and could not record the fact has to
+            // say so here, while the log is still being read, rather than at
+            // the next banner where there will be nothing to report.
+            if (lw_declined())
+                printf("            lastwords: %u record%s not written (%s) - "
+                       "an outage ending in a\n"
+                       "            power cycle would be unattributable "
+                       "again (#9)\n",
+                       (unsigned)lw_declined(),
+                       lw_declined() == 1 ? "" : "s",
+                       lw_declined_why() ? lw_declined_why() : "no reason kept");
             stdio_flush();
             sleep_ms(50);
             watchdog_hw->scratch[0] = 0;   // asked for, so not a hang
