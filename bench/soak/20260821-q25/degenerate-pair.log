@@ -1,0 +1,86 @@
+
+=== M9: fpga-open-vocab - describe it, the board spots it ===
+
+clock     : 280 MHz requested; BOOTSEL is reachable for 1.5 s
+clock     : 280 MHz system, core 1.25 V
+reset     : chip_reset 00010000  (scratch was cold: either the always-on domain went away - power, a brown-out - or this boot came through the bootrom, which clears it too)
+            new this boot: power-on reset - the supply arrived
+waiting for a bitstream on USB CDC (host/demo.py)
+bitstream : 173124 bytes announced, crc32 0a2e9953
+bitstream : received intact
+configure : configured, CDONE high   CDONE=1 nSTATUS=0
+crc       : DMA sniffer, calc=1 out_rev=1 out_inv=1
+model     : 9 layers, 512-d embedding, 131072 B/buffer
+weights   : 780720 B, crc32=0xF368CC6E  (144 ms to hash)
+
+reference : encoder_fast on the flash test vector  (1809 ms)
+
+link      : probing the wire by running the whole test vector over it
+probe     : 3 forward data lines -> 512/512 floats exact, 307 ms
+link      : configuration C, 3 forward data lines, 140.0 MHz
+
+camera    : exposure ramp 77 79 82 84 86 88
+camera    : live 128x128 RGB565, id 0x82, 16.0 MHz, expose 37 ms, read 16 ms, exposure settled after 6 frames
+            mean RGB 83 100 84  (tuned camera on a neutral scene: about 115 107 105)
+
+queries   : waiting for a query set on USB CDC (host/demo.py)
+queries   : 2 accepted, 512-d, crc ok
+            level axis carries 0.00 of one query's swing; most opposed pair -1.000
+            'an opened book~' AND 'a closed book~' ARE EXACT NEGATIVES, so the LEVEL AXIS IS DEAD: lvl cannot
+            move on any frame, M21's centring subtracts nothing, and both of its axes
+            collapse to the raw pair. A MARGIN question still measures something -
+            08-20 14:22 got a valid AUC this way - but every presence and level number
+            in this run is void, and the enrolment guards cannot see it. Re-word one
+            side so the two are not the same two phrases swapped (#25).
+            scored as z = (cos - background) / std, where the background is this room's
+            own mean over its first 30 frames and is then FROZEN - so a thing left in
+            shot keeps its score instead of decaying into the furniture. 'N' re-learns
+            it, 'H' switches to tracking. The COCO figures below are only the seed for
+            frame 0 and the fixed std.
+            std is THIS ROOM's, measured over the same 30 frames ('S' switches to COCO's).
+            The thresholds below still mean the 90th percentile of a background; the
+            background they now mean it against is this room empty, not 5000 COCO photos.
+            z is EMA-smoothed at 0.35 (~5 frames) before ranking, so a state has to
+            persist for about two seconds to be called.
+            an opened book~      match above z 1.23   (COCO background 0.014 +- 0.041, so cos 0.064)
+            a closed book~       match above z 1.23   (COCO background -0.014 +- 0.041, so cos 0.036)
+
+loop      : capture, 8 convs on the T8, pool and head, then one cosine per query. 'B' for BOOTSEL, 'R' to restart,
+            'P' to dump the next frame for host/cam.py, 'V' to dump its 512 floats for host/caption.py,
+            'E' to provoke a fault so D1 shows its fault display, 'H' to freeze/unfreeze the background,
+            'S' to switch the spread between this room's and COCO's, 'W' to hang on purpose and see
+            the watchdog name the stage, 'C' to stall the camera bus on purpose and see it cost one frame,
+            'U' to drop off USB on purpose and watch it come back, 'I' to drop off and refuse to,
+            'N' to forget it and learn it again from now. 'P' and 'V' together describe the same frame.
+            'O' closes the timing window, prints it and flips the capture between overlapped and serial;
+            'D' does the same and flips the trigger between late and at-the-collect, which is #14's A/B.
+            scores are z against this room's background, ranked; '*' means over its threshold.
+            '1'..'6' enrol the next 20 frames as that class, and press again on a LATER visit
+            to fold a second one in - 2 visits is what makes the enrolment guard mean
+            something. Two classes in and the board decides by nearest reference instead of
+            by threshold, and calls a frame absent when it is further than 2.0 sep from every
+            one of them - see M21. The empty scene is not enrolled and '0' does nothing; see #18.
+            The first 30 frames set the baseline and it is then frozen, so anything left in
+            shot KEEPS its score. Point the camera at the empty scene for those frames.
+            Send a new set at any time to re-query - that resets the baseline too.
+
+frame     0 :  a closed book~ +0.32  an opened book~ -0.32   led  13/132 h0.26 lvl+0.00   -
+frame     1 :  a closed book~ +0.08  an opened book~ -0.08   led   1/221 h0.06 lvl+0.00   -
+frame     2 :  a closed book~ +0.05  an opened book~ -0.05   led   0/232 h0.04 lvl+0.00   -
+frame     3 :  a closed book~ +0.01  an opened book~ -0.01   led   0/249 h0.01 lvl+0.00   -
+frame     4 :  an opened book~ +0.01  a closed book~ -0.01   led   0/251 h0.01 lvl+0.00   -
+frame     5 :  an opened book~ +0.06  a closed book~ -0.06   led   0/230 h0.05 lvl+0.00   -
+frame     6 :  an opened book~ +0.05  a closed book~ -0.05   led   0/235 h0.04 lvl+0.00   -
+frame     7 :  an opened book~ +0.04  a closed book~ -0.04   led   0/235 h0.04 lvl+0.00   -
+background: after 8 frames (warming up, room spread), this room reads  an opened book~ -0.013 +-0.0047 (COCO 0.014 +-0.0408)  a closed book~ 0.013 +-0.0047 (COCO -0.014 +-0.0408)
+frame     8 :  an opened book~ +0.24  a closed book~ -0.24   led   7/158 h0.20 lvl+0.00   -
+
+stopped   : 9 frames, 9 good, capture overlapped with the compute, configuration C
+            9 frames timed, 325 ms/frame mean (capture included)
+            303 ms encode + 6 ms waiting for the sensor + 16 ms burst; 331 ms/frame by the clock
+            469 ms shutter to LED, arming with 145 ms of compute left
+            last frame mean RGB 93 96 94
+            camera bus: worst gap 14 us against the 2000 us deadline (#12)
+            usb: 0 outages, 0 ms off the bus, 0 re-attaches (#9)
+            enrolment: 'an opened book~' and 'a closed book~' are exact negatives, so every presence and
+            level number above is void - a margin figure is not (#25)

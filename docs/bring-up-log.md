@@ -11,6 +11,57 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-21, morning — the level axis, asked about before the run rather than after it
+
+Logs in [`bench/soak/20260821-q25/`](../bench/soak/20260821-q25/).
+
+[#25](https://github.com/kazunori279/fpga-open-vocab/issues/25) had cost two
+benches and the comment describing it had been sitting directly above three
+guards that cannot detect it. They all read `qref[]`, and the degeneracy is a
+property of `qvec[]`: two contrast queries built from the same two phrases in the
+opposite order are **bitwise negatives**, because `host/demo.py` sends
+`normalize(e_pos - mean(e_neg))` and swapping the phrases negates every
+component.
+
+The check is one pass over the Gram matrix at query load. Every frame's `lvl` is
+`mean_i z_i`, and `z_i` is affine in `cos_i = <qvec[i], f>`, so the only
+frame-dependent part of that mean is `<m, f>` with `m = mean_i(qvec[i]/qsd[i])`.
+**If `m` is zero, `lvl` is a constant** — which is the whole failure, stated as
+one number that can be printed before a frame is captured.
+
+```
+queries   : 2 accepted, 512-d, crc ok
+            level axis carries 0.00 of one query's swing; most opposed pair -1.000
+            'an opened book~' AND 'a closed book~' ARE EXACT NEGATIVES, ...
+```
+
+against the healthy control, same board, four minutes later:
+
+```
+            level axis carries 0.95 of one query's swing; most opposed pair +0.810
+```
+
+**The line prints on every set, not only the bad ones.** The failure this is
+about produced a log that looked completely normal, and a line that only appears
+when something is wrong cannot be used to confirm that nothing is.
+
+**Two numbers, one bar, and the bar is not a measurement.** The axis figure is
+continuous and is reported without a verdict — this repo has twice had a
+continuous statistic about an enrolment that turned out to be wrong in both
+directions, and `FGX_ENROL_SNR` was deleted for it. What is judged is the pair
+cosine, which in the failure case is exactly −1; `FGX_Q_ANTIPODAL = -0.999f` is
+room for the host's float32 round trip and nothing else. There is deliberately
+no "how opposed is too opposed" constant.
+
+**Reported, not refused.** The scores a degenerate set produces are not wrong,
+they are narrower than they look: the 08-20 14:22 bench asked a margin question
+and its AUC is valid, so refusing would have thrown away a real measurement. The
+warning names what is void — every presence and level number — and says it again
+in the `stopped :` summary, because the banner carrying it scrolled past 546
+frames ago on the run that made this worth writing.
+
+---
+
 ### 2026-08-21, early morning — the flash record survives the power cycle, and the camera has two faults rather than one
 
 Logs and harness in

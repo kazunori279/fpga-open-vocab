@@ -124,6 +124,16 @@ static float emb[2][1024];
 #define FGX_Q_CLASS 2u    // discrimination: ranked against the other CLASSes
 #define FGX_Q_ROLE_MAX FGX_Q_CLASS
 
+// #25's bar, and it is a float tolerance rather than a measurement. Two queries
+// built from the same two phrases in the opposite order are BITWISE negatives -
+// host/demo.py sends normalize(e_pos - mean(e_neg)), so swapping the phrases
+// negates every component - and a bitwise negative pair has cosine exactly -1.
+// What this leaves room for is the host's float32 round trip and the sum order,
+// nothing else. It is deliberately not a "how opposed is too opposed" bar: that
+// number would be fitted, and the continuous figure beside it is reported
+// without judgement for exactly that reason.
+#define FGX_Q_ANTIPODAL (-0.999f)
+
 static float qvec[FGX_MAX_Q][FGX_DIM];
 static float qthr[FGX_MAX_Q];      // in units of qsd, not of cosine
 static float qmu[FGX_MAX_Q];       // that query's background mean, from evaluate.py
@@ -132,6 +142,18 @@ static uint32_t qrole[FGX_MAX_Q];
 static char  qname[FGX_MAX_Q][FGX_NAME];
 static uint32_t nq;
 static uint32_t n_gate, n_class;   // recounted by recv_queries, read every frame
+
+// #25. Measured once at query load and read again at the stopped summary,
+// because the whole problem with a degenerate set is that the frame lines look
+// exactly the same and nobody reads a banner the harness redirected to --out.
+// `q_lvl_axis` is what fraction of one query's swing the level axis still
+// carries, 1.0 when every query points the same way and 0.0 when they cancel;
+// `q_worst_cos` is the most opposed pair and `q_anti_*` names it.
+static float    q_lvl_axis  = 1.0f;
+static float    q_worst_cos = 1.0f;
+static uint32_t q_anti_a, q_anti_b;
+static bool     q_degenerate;      // the bar below was crossed
+static bool     q_axis_weighted;   // the figure is the 1/qsd-weighted one
 
 // ---------------------------------------------------------------- M21
 // M20 saw two questions and put each on the other one's axis.
@@ -1534,6 +1556,93 @@ static bool recv_queries(uint32_t dim)
             printf("\nqueries   : '%s' has no background spread, so it will "
                    "score a flat 0 and never match\n", qname[i]);
     }
+
+    // -----------------------------------------------------------------------
+    // #25: IS THE LEVEL AXIS ALIVE? Asked here, at load, before a single frame
+    // is captured - not six minutes in at the second enrolment, which is where
+    // the guards that missed this twice sit.
+    //
+    // WHY IT IS OTHERWISE INVISIBLE. Every frame's `lvl` is mean_i z_i, and
+    // z_i is affine in cos_i = <qvec[i], f>, so the only frame-dependent part
+    // of that mean is <m, f> with m = mean_i(qvec[i] / qsd[i]). If m is zero
+    // then `lvl` is a CONSTANT - it cannot move, M21's centring subtracts
+    // nothing, and both of M21's axes collapse to the raw pair - while the
+    // frame lines look exactly as they always do and the board goes on printing
+    // confident verdicts. The only tell in a whole log is `lvl+0.00` on every
+    // line, and it is one column of a long one.
+    //
+    // AND IT IS EASY TO ASK FOR BY ACCIDENT. See FGX_Q_ANTIPODAL. It cost the
+    // 2026-08-11 bench six minutes on a presence axis that was identically
+    // zero, and the 2026-08-20 14:22 bench 546 frames at lvl+0.00.
+    //
+    // THE THREE ENROLMENT GUARDS CANNOT SEE IT, and not by oversight: all three
+    // read qref[], which is downstream of the collapse. `sep > 0.05` asks
+    // whether the classes are on top of each other and they are maximally far
+    // apart - that is the whole problem; `vmin < FGX_ENROL_V` asks whether they
+    // were shown often enough and they were; `orig < 0.5 sep` asks whether a
+    // reference sits on the origin and neither does, they are symmetric about
+    // it. The degeneracy is a property of qvec[], so it has to be asked of
+    // qvec[].
+    //
+    // REPORTED, NOT REFUSED. The scores that come out are not wrong, they are
+    // narrower than they look: the 08-20 run happened to be asking a margin
+    // question and its AUC is valid, so refusing would have thrown away a real
+    // measurement. What is void is every presence and level number, and that is
+    // what the warning names - here, and again in the stopped summary.
+    //
+    // ONE BAR, ON THE ONE QUANTITY THAT IS NOT A MEASUREMENT. The axis figure
+    // is continuous and is printed without a verdict, because this repo has now
+    // twice had a continuous statistic about an enrolment that turned out to be
+    // wrong in both directions (see THE ENROLMENT RATIO). The bar is on the
+    // pair cosine, which in the failure case is exactly -1.
+    q_degenerate    = false;
+    q_lvl_axis      = 1.0f;
+    q_worst_cos     = 1.0f;
+    q_axis_weighted = true;
+    q_anti_a = q_anti_b = 0;
+    if (n >= 2u) {
+        // The Gram matrix rather than an accumulated mean vector: |sum w_i v_i|
+        // comes straight out of it as sum_{i,k} w_i w_k <v_i,v_k>, the pair
+        // cosines are the same 21 dot products, and 6x6 floats on the stack
+        // beats a 512-float one in a build that has 484 bytes of RAM to spare.
+        float g[FGX_MAX_Q][FGX_MAX_Q], norm[FGX_MAX_Q], w[FGX_MAX_Q];
+        for (uint32_t i = 0; i < n; i++)
+            for (uint32_t k = i; k < n; k++) {
+                float s = 0.0f;
+                for (uint32_t j = 0; j < d; j++) s += qvec[i][j] * qvec[k][j];
+                g[i][k] = g[k][i] = s;
+            }
+        for (uint32_t i = 0; i < n; i++)
+            norm[i] = g[i][i] > 0.0f ? sqrtf(g[i][i]) : 0.0f;
+
+        for (uint32_t i = 0; i < n; i++)
+            for (uint32_t k = i + 1u; k < n; k++) {
+                if (norm[i] <= 0.0f || norm[k] <= 0.0f) continue;
+                const float c = g[i][k] / (norm[i] * norm[k]);
+                if (c < q_worst_cos) {
+                    q_worst_cos = c; q_anti_a = i; q_anti_b = k;
+                }
+            }
+
+        // 1/qsd because that is how z is built, so this is the mean report()
+        // will actually take. A query with no background spread has already
+        // been told it will score a flat 0; weighting by 1/0 here would make
+        // the figure meaningless rather than pessimistic, so fall back to an
+        // unweighted mean and say which one is on the line.
+        for (uint32_t i = 0; i < n; i++)
+            if (!(qsd[i] > 0.0f)) q_axis_weighted = false;
+        for (uint32_t i = 0; i < n; i++)
+            w[i] = q_axis_weighted ? 1.0f / qsd[i] : 1.0f;
+
+        float num = 0.0f, den = 0.0f;
+        for (uint32_t i = 0; i < n; i++) {
+            den += w[i] * norm[i];
+            for (uint32_t k = 0; k < n; k++) num += w[i] * w[k] * g[i][k];
+        }
+        num = num > 0.0f ? sqrtf(num) : 0.0f;   // rounding can take it below 0
+        q_lvl_axis   = den > 0.0f ? num / den : 0.0f;
+        q_degenerate = q_worst_cos <= FGX_Q_ANTIPODAL;
+    }
     nq = n;
     n_gate = n_class = 0;
     for (uint32_t i = 0; i < n; i++) {
@@ -1570,6 +1679,31 @@ static bool recv_queries(uint32_t dim)
     enrol_forget();
 
     printf("\nqueries   : %u accepted, %u-d, crc ok\n", (unsigned)n, (unsigned)d);
+    // #25. Printed on every set and not only on the bad ones, because the
+    // failure it is about produced a log that looked completely normal, and a
+    // line that only appears when something is wrong cannot be used to confirm
+    // that nothing is.
+    if (n >= 2u) {
+        printf("            level axis carries %.2f of one query's swing%s; "
+               "most opposed pair %+.3f\n",
+               (double)q_lvl_axis,
+               q_axis_weighted ? "" : " (unweighted - a query has no spread)",
+               (double)q_worst_cos);
+        if (q_degenerate)
+            printf("            '%s' AND '%s' ARE EXACT NEGATIVES, so the LEVEL "
+                   "AXIS IS DEAD: lvl cannot\n"
+                   "            move on any frame, M21's centring subtracts "
+                   "nothing, and both of its axes\n"
+                   "            collapse to the raw pair. A MARGIN question "
+                   "still measures something -\n"
+                   "            08-20 14:22 got a valid AUC this way - but every "
+                   "presence and level number\n"
+                   "            in this run is void, and the enrolment guards "
+                   "cannot see it. Re-word one\n"
+                   "            side so the two are not the same two phrases "
+                   "swapped (#25).\n",
+                   qname[q_anti_a], qname[q_anti_b]);
+    }
     if (bg_hold)
         printf("            scored as z = (cos - background) / std, where the "
                "background is this room's\n"
@@ -3102,6 +3236,16 @@ int main(void)
             // but a run that DID drop it and could not record the fact has to
             // say so here, while the log is still being read, rather than at
             // the next banner where there will be nothing to report.
+            // #25, said again at the end for the same reason as the two lines
+            // above: this is a fact about the whole run that the frame lines
+            // could not show, and the banner carrying it scrolled past 546
+            // frames ago. Two benches were scored before anyone noticed.
+            if (q_degenerate)
+                printf("            enrolment: '%s' and '%s' are exact "
+                       "negatives, so every presence and\n"
+                       "            level number above is void - a margin "
+                       "figure is not (#25)\n",
+                       qname[q_anti_a], qname[q_anti_b]);
             if (lw_declined())
                 printf("            lastwords: %u record%s not written (%s) - "
                        "an outage ending in a\n"

@@ -25,6 +25,10 @@ to end — written during an outage, read back after VBUS had been cut, which is
 the case the watchdog scratch cannot survive by construction — plus the
 `cam_probe` that showed the camera's two faults are separate and alternate.
 
+**And [`20260821-q25/`](20260821-q25/)**, three short runs verifying the
+degenerate-enrolment guard: a query set whose level axis is identically zero,
+one that is healthy, and one mixed set that a naive rule would have failed.
+
 ## Manifest
 
 `frames` counts `frame NNN :` lines actually printed, so it is where the run
