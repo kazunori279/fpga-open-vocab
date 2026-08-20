@@ -82,6 +82,7 @@ timestamp in the filename — see 11:44 below.
 | `m9_cue-20260820-063324.log` | 48.3% | 60.6% | 08-20 06:33 | **glass, third run**, four minutes after the second — and the margin has changed sign: AUC 0.680, upright, where 06:29 read 0.409 and 15:27 read 0.301. Same phrases, same glass, same tea. A pair whose axis does not keep its direction cannot be repaired by renaming it. The archived frames were rendered and the staging did not move |
 | `m9_cue-20260820-063704.log` | 98.3% | 98.3% | 08-20 06:37 | **book control B**, thirteen minutes after A and on the same desk. Ceiling 0.950, `lost` 1.7. Together with A this is the strongest control the project has run: the glass failure has nowhere left to hide but the pair |
 | `m9_cue-20260820-131217.log` | 97.5% | 97.2% | 08-20 13:12 | **a red cube / a blue cube**, and **the only bench in here run with contrast queries** — the frame lines say `a red cube~`, and the `~` is the difference. `probe_ceiling.py` refuses it (the cued labels are not the query names) and **the live figure is not comparable to any row above**: each query was phrased as the negative of the other, so part of the separation was built in the text tower rather than measured in the encoder. Kept as one half of a pair — see the note below |
+| `m9_cue-20260820-132448.log` | 96.7% | 96.1% | 08-20 13:24 | **a red cube / a blue cube, bare** — the comparable half, twelve minutes after the contrast one and with the cubes unmoved. Margin AUC 0.992, `within` 0.993, `lost` 0.8. **Colour is carried**, which puts it in the hands-and-bags tier and takes colour off the list of explanations for the glass pair. Also reproduces the presence-stage failure of 13:12 with a wider overlap (−0.16 sep against −0.08), so that one is not a query-form artefact — see [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) |
 | `m9_cue-smoke-2e48d86.log` | 37.5% | 37.5% | | `/tmp/m9_cue.log` as it stood after flashing the one-sided guard — a smoke test, kept because it is the only log of that firmware running |
 | `m9_cue_fake_d.log` | 58.3% | 48.3% | | **synthetic.** A doctored copy of `m9_cue-20260816-172256.log`, made to exercise a probe against a class that was never in the room. Not a bench, and it will happily score like one if you forget that |
 
@@ -114,9 +115,21 @@ follow that are easy to miss:
 
 So a contrast run is not a substitute for a bare one. It is worth having as the
 **second half of a pair**: the same scene, unmoved, run both ways, with the
-difference between them measuring what the rephrasing bought. 08-20 13:12 is the
-contrast half of a red/blue cube pair whose bare half has not been run yet, and
-until it is, that run measures nothing on its own.
+difference between them measuring what the rephrasing bought.
+
+**That pair is now complete, and it measures nothing — for a reason worth
+keeping.** 08-20 13:12 (contrast) and 13:24 (bare) are the same two cubes twelve
+minutes apart:
+
+| | margin | live |
+| --- | --- | --- |
+| bare, 13:24 | 0.992 | 96.7% |
+| contrast, 13:12 | 0.999 | 97.5% |
+
+The bare run is already at the ceiling, so there was nothing for the rephrasing
+to buy and the 0.007 between them is not a result. **A contrast/bare comparison
+can only be informative on a pair that fails bare** — which is the glass pair,
+not this one. Run it there instead.
 
 ## The `.cues` sidecars, and the three logs that have none
 
