@@ -4,8 +4,9 @@ Eight `m9` runs of 200 frames each, taken back to back over twenty-three
 minutes on 2026-08-15, four at 280 MHz system / 140 MHz link and five at
 150/75. One bitstream (`crc32 0a2e9953`), one room, one afternoon. They are
 here for two reasons: they are where the **454 ms / 802 ms** pair in issue #1
-came from, and **three of the eight died**, in two different ways that look
-identical from the host and are not the same bug.
+came from, and **three of the eight logs are broken runs** — two events, in two
+different ways that look identical from the host and are not the same bug. Note
+the arithmetic: two of those three logs are the *same* run, seen twice.
 
 Like `../cue/`, they lived in `/tmp` until they were archived — 2026-08-17 in
 this case, two days and one macOS reboot's worth of luck later. `bench_loop.sh`
@@ -22,17 +23,18 @@ stopped and not what it was asked for.
 | `m9_soak-20260815-1206-280mhz.log` | 280/140 | 202 | 454 | clean |
 | `m9_soak-20260815-1209-280mhz.log` | 280/140 | 202 | 454 | clean |
 | `m9_soak-20260815-1212-150mhz.log` | 150/75 | 201 | 802 | clean |
-| `m9_soak-20260815-1216-150mhz.log` | 150/75 | 72 | — | **board gone from USB** at frame 71, watchdog did not get it |
-| `m9_soak-20260815-1220-150mhz.log` | 150/75 | 12 | — | **board gone from USB** after frame 255; fragment, see below |
+| `m9_soak-20260815-1216-150mhz.log` | 150/75 | 72 | — | **off USB at frame 71, still computing** — #9, first half |
+| `m9_soak-20260815-1220-150mhz.log` | 150/75 | 12 | — | **the same run, seen again at frame 244** — #9, second half |
 | `m9_soak-20260815-1224-150mhz.log` | 150/75 | 201 | 802 | clean |
 | `m9_soak-20260815-1227-150mhz.log` | 150/75 | 201 | 802 | clean |
 
-The 12:20 file is a **tail fragment**: it holds frames 244–255 and the host's
-notes, with no header. The harness passes `--out` fresh per run and the host
-reopened it after the recovery attempt, so everything before frame 244 was lost.
-The run itself reached at least 255 frames. Kept because the tail is the part
-that matters and because a truncated log is worth having on record as something
-this harness can produce.
+The 12:20 file is **not a fragment of a truncated file — it is a whole run's
+`--out`, and the run it caught was already at frame 244 when the host opened
+the port.** `bench_loop.sh` passes a fresh `--out` per iteration, so nothing was
+lost; there is no header because the board was mid-stream and had printed its
+banner four minutes earlier, into the 12:16 file. That is the single most
+important fact in this directory and an earlier version of this page had it
+backwards. See below.
 
 ## The two failures are not the same failure
 
@@ -58,17 +60,37 @@ job. It is the signature behind [#12](https://github.com/kazunori279/fpga-open-v
 [host] uhubctl -l 2-1 -p 1 -a cycle   # then wait ~9 s and retry
 ```
 
-Only removing 5 V brought it back. That is the PSRAM chip-select outage —
-GPIO0's reset pull-down holds U1 selected for the whole run until it drives
-SD0..3 against the flash — found on 2026-08-16 and closed as
-[#16](https://github.com/kazunori279/fpga-open-vocab/issues/16), with the
-remaining targets tracked in
-[#17](https://github.com/kazunori279/fpga-open-vocab/issues/17).
-[#9](https://github.com/kazunori279/fpga-open-vocab/issues/9) is the same
-symptom. **These two runs are the earliest recorded instance**, and they are at
-150 MHz — the slow control — which is a small part of why the clock and the
-rail were excluded before the CS was found. The larger part is the 08-16
-5 × 3000-frame comparison, whose logs did not survive `/tmp`.
+**This page used to say "only removing 5 V brought it back", and file the pair
+under [#16](https://github.com/kazunori279/fpga-open-vocab/issues/16)'s PSRAM
+chip select. That was wrong, and it was wrong in the way that costs the most:
+it filed the one confirmed instance of an open issue under a closed one.**
+
+The error was reading the third line above as a record of an action. It is not.
+`recover()` in `host/demo.py:969` **returns a string**, `follow_reboot()` prints
+it and raises `BoardGone`; `demo.py` has never run `uhubctl`. And nothing else
+cycled the port either, which the next file proves:
+
+- **12:20 opens at frame 244, with no banner, no `clock :` line and no `hang :`
+  report.** A VBUS cycle is a power-on reset, so it would have produced all
+  three and a frame 0. There are none.
+- **The frame counter never reset.** 12:16 stopped printing at 71; 12:20 starts
+  at 244, scoring the same two queries against the same enrolment. At 802
+  ms/frame those 173 frames are 139 s, which fits the four minutes between the
+  two files with the 12:16 host's 2 × 45 s of waiting inside it.
+- `bench_loop.sh` only cycles when `uhubctl` cannot see `2e8a:0009`. It saw it,
+  which is to say **the board put itself back on the bus.**
+
+So the board never stopped computing and was never power-cycled. It dropped off
+USB, kept running the whole loop with the camera in it, and re-enumerated on its
+own. A wedged QSPI bus stops the core dead, so this cannot be #16 — the two
+shapes are mutually exclusive. This is
+[#9](https://github.com/kazunori279/fpga-open-vocab/issues/9), whose scope note
+says exactly this, and **12:16 + 12:20 is its defining event and its only
+confirmed instance at 150/75.**
+
+They are at 150 MHz, the slow control, which is part of why the clock and the
+rail were excluded early. The other part is the 08-16 5 × 3000-frame
+comparison, whose logs did not survive `/tmp`.
 
 ## What the timing numbers here are, and are not
 
