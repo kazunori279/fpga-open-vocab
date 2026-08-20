@@ -117,5 +117,30 @@ is what the ArduChip FIFO returns when no frame has been written; a dark room
 returns noise. The image-control means in the same log are 77–121, so the light
 was on.
 
+### `cam_probe-20260820-1930.log` says the same thing again, and it is deterministic
+
+Fifty minutes later, same board, same room, and a scene that had moved:
+
+```
+  #  recipe      1840                   1930
+  0  as-was      c80a8564 CONSTANT      c80a8564 CONSTANT
+  1  as-was      c80a8564 CONSTANT      c80a8564 CONSTANT
+  2  no-rewrite  c80a8564 CONSTANT      c80a8564 CONSTANT
+  3  flush       c80a8564 CONSTANT      c80a8564 CONSTANT
+  4  norw+flush  c80a8564 CONSTANT      c80a8564 CONSTANT
+  5  settle300   cfcd557b a picture     b30b32b3 a picture
+  6  everything  f3639156 a picture     287a8d52 a picture
+```
+
+The two rows that work hash differently because the scene did; the five that do
+not are bit-identical. Between the two probes, `m9` was flashed and started
+twice — once straight after a VBUS cycle — and failed both times with
+`still a constant fill (08 01) after 41 frames`. So this is the state the
+camera is in, not a run that went badly, and it is what stopped #9's owed
+item 2 from being verified end to end: no frame means no run, no run means
+`usb_watch()` never executes, and `usb_watch()` is the only caller of
+`lastwords.c`'s write path. Tracked as
+[#27](https://github.com/kazunori279/fpga-open-vocab/issues/27).
+
 The threshold between m9's 50 ms inter-frame gap and the probe's 300 ms has not
 been measured, and until it is, the size of any fix is a guess.
