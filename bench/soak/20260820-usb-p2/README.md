@@ -144,3 +144,10 @@ item 2 from being verified end to end: no frame means no run, no run means
 
 The threshold between m9's 50 ms inter-frame gap and the probe's 300 ms has not
 been measured, and until it is, the size of any fix is a guess.
+
+**It still has not been, and 2026-08-21 says why it is harder than it looks.**
+That morning the matrix went back to the 2026-08-03 shape — rows 0/2/4 pictures
+again — so the state described above was simply absent and there was nothing to
+threshold; a settle sweep returned 3/3 at every value from 0 to 400 ms. The two
+faults are separate and only one is present on a given day. See
+[`../20260821-lastwords/`](../20260821-lastwords/).

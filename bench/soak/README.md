@@ -19,6 +19,12 @@ this 08-15 set did not have and could not be re-read for. Its harness is
 `usb_soak.sh`, and the two traps at the bottom of this page are what that
 harness exists to avoid.
 
+**And a third set: [`20260821-lastwords/`](20260821-lastwords/).** Four short
+runs rather than a soak. They are where #9's flash record was finally driven end
+to end — written during an outage, read back after VBUS had been cut, which is
+the case the watchdog scratch cannot survive by construction — plus the
+`cam_probe` that showed the camera's two faults are separate and alternate.
+
 ## Manifest
 
 `frames` counts `frame NNN :` lines actually printed, so it is where the run

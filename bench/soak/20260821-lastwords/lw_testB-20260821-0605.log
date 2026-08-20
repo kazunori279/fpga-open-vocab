@@ -1,0 +1,94 @@
+..........
+bitstream : 173124 bytes announced, crc32 0a2e9953
+bitstream : received intact
+configure : configured, CDONE high   CDONE=1 nSTATUS=0
+crc       : DMA sniffer, calc=1 out_rev=1 out_inv=1
+model     : 9 layers, 512-d embedding, 131072 B/buffer
+weights   : 780720 B, crc32=0xF368CC6E  (144 ms to hash)
+
+reference : encoder_fast on the flash test vector  (1809 ms)
+
+link      : probing the wire by running the whole test vector over it
+probe     : 3 forward data lines -> 512/512 floats exact, 309 ms
+link      : configuration C, 3 forward data lines, 140.0 MHz
+
+camera    : exposure ramp 37 39 40 42 42 44 44 43 43 43 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42 42
+camera    : live 128x128 RGB565, id 0x82, 16.0 MHz, expose 59 ms, read 16 ms, exposure settled after 41 frames
+            mean RGB 41 47 40  (tuned camera on a neutral scene: about 115 107 105)
+            ^ the exposure never moved from its first reading in 41 frames, so the auto-exposure
+              either had nothing to correct or never started. The ramp above is the evidence.
+
+queries   : waiting for a query set on USB CDC (host/demo.py)
+queries   : 2 accepted, 512-d, crc ok
+            scored as z = (cos - background) / std, where the background is this room's
+            own mean over its first 30 frames and is then FROZEN - so a thing left in
+            shot keeps its score instead of decaying into the furniture. 'N' re-learns
+            it, 'H' switches to tracking. The COCO figures below are only the seed for
+            frame 0 and the fixed std.
+            std is THIS ROOM's, measured over the same 30 frames ('S' switches to COCO's).
+            The thresholds below still mean the 90th percentile of a background; the
+            background they now mean it against is this room empty, not 5000 COCO photos.
+            z is EMA-smoothed at 0.35 (~5 frames) before ranking, so a state has to
+            persist for about two seconds to be called.
+            an opened book       match above z 1.23   (COCO background -0.151 +- 0.030, so cos -0.114)
+            a closed book        match above z 1.23   (COCO background -0.159 +- 0.035, so cos -0.116)
+
+loop      : capture, 8 convs on the T8, pool and head, then one cosine per query. 'B' for BOOTSEL, 'R' to restart,
+            'P' to dump the next frame for host/cam.py, 'V' to dump its 512 floats for host/caption.py,
+            'E' to provoke a fault so D1 shows its fault display, 'H' to freeze/unfreeze the background,
+            'S' to switch the spread between this room's and COCO's, 'W' to hang on purpose and see
+            the watchdog name the stage, 'C' to stall the camera bus on purpose and see it cost one frame,
+            'U' to drop off USB on purpose and watch it come back, 'I' to drop off and refuse to,
+            'N' to forget it and learn it again from now. 'P' and 'V' together describe the same frame.
+            'O' closes the timing window, prints it and flips the capture between overlapped and serial;
+            'D' does the same and flips the trigger between late and at-the-collect, which is #14's A/B.
+            scores are z against this room's background, ranked; '*' means over its threshold.
+            '1'..'6' enrol the next 20 frames as that class, and press again on a LATER visit
+            to fold a second one in - 2 visits is what makes the enrolment guard mean
+            something. Two classes in and the board decides by nearest reference instead of
+            by threshold, and calls a frame absent when it is further than 2.0 sep from every
+            one of them - see M21. The empty scene is not enrolled and '0' does nothing; see #18.
+            The first 30 frames set the baseline and it is then frozen, so anything left in
+            shot KEEPS its score. Point the camera at the empty scene for those frames.
+            Send a new set at any time to re-query - that resets the baseline too.
+
+frame     0 :  a closed book +0.41  an opened book +0.19   led  22/106 h0.33 lvl+0.30   -
+frame     1 :  a closed book +0.28  an opened book +0.14   led  10/146 h0.22 lvl+0.21   -
+frame     2 :  a closed book +0.23  an opened book +0.12   led   6/162 h0.19 lvl+0.18   -
+frame     3 :  a closed book +0.08  an opened book -0.01   led   1/218 h0.07 lvl+0.04   -
+frame     4 :  a closed book +0.03  an opened book -0.04   led   0/241 h0.03 lvl-0.00   -
+frame     5 :  a closed book +0.04  an opened book -0.03   led   0/236 h0.03 lvl+0.01   -
+frame     6 :  a closed book -0.05  an opened book -0.09   led   0/255 h0.00 lvl-0.07   -
+frame     7 :  a closed book -0.02  an opened book -0.07   led   0/255 h0.00 lvl-0.05   -
+background: after 8 frames (warming up, room spread), this room reads  an opened book -0.136 +-0.0036 (COCO -0.151 +-0.0303)  a closed book -0.119 +-0.0038 (COCO -0.159 +-0.0351)
+frame     8 :  an opened book -0.39  a closed book -0.55   led   0/255 h0.00 lvl-0.47   -
+frame     9 :  an opened book -0.18  a closed book -0.19   led   0/255 h0.00 lvl-0.18   -
+frame    10 :  a closed book +0.45  an opened book +0.32   led  28/ 93 h0.37 lvl+0.39   -
+frame    11 :  an opened book -0.36  a closed book -0.50   led   0/255 h0.00 lvl-0.43   -
+frame    12 :  a closed book -0.21  an opened book -0.38   led   0/255 h0.00 lvl-0.30   -
+frame    13 :  a closed book +0.08  an opened book +0.07   led   1/220 h0.07 lvl+0.07   -
+frame    14 :  an opened book +0.88  a closed book +0.71   led 121/ 16 h0.71 lvl+0.79   -
+frame    15 :  an opened book +0.44  a closed book +0.43   led  27/ 96 h0.36 lvl+0.43   -
+frame    16 :  a closed book +0.72  an opened book +0.63   led  78/ 37 h0.58 lvl+0.68   -
+frame    17 :  an opened book +1.02  a closed book +0.71   led 168/  5 h0.83 lvl+0.86   -
+frame    18 :  an opened book +0.83  a closed book +0.46   led 106/ 22 h0.67 lvl+0.64   -
+frame    19 :  an opened book +0.34  a closed book +0.21   led  15/126 h0.27 lvl+0.27   -
+frame    20 :  an opened book +0.15
+[host] /dev/cu.usbmodem21201 vanished mid-run. That is what m9's watchdog reboot looks like from this end; the board should come back in a few seconds and say why. Following it.
+[host] reattached on /dev/cu.usbmodem21201, DTR raised.
+
+=== M9: fpga-open-vocab - describe it, the board spots it ===
+
+clock     : 280 MHz requested; BOOTSEL is reachable for 1.5 s
+clock     : 280 MHz system, core 1.25 V
+reset     : chip_reset 00010000  (scratch was cold: either the always-on domain went away - power, a brown-out - or this boot came through the bootrom, which clears it too)
+            new this boot: power-on reset - the supply arrived
+lastwords : THE LAST RUN LEFT A RECORD IN FLASH AND THEN DID NOT REBOOT ITSELF.
+            Written on the first re-attach attempt, at frame 28, 176.530 s into that run.
+            The bus had been gone 2001 ms by then, since frame 22; 0 outages and
+            0 re-attaches before it. Stage was poll_host - waiting on stdin for a key or a new query set.
+            That run was at 280 MHz; chip_reset read 00010000 as it stood.
+            The scratch did NOT survive, so the always-on domain went away between
+            that record and this banner: the outage ended in a power cycle. This is
+            the case issue #9 could not attribute before.
+waiting for a bitstream on USB CDC (host/demo.py)............................

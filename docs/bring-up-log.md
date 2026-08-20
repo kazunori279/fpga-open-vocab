@@ -11,6 +11,62 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-21, early morning — the flash record survives the power cycle, and the camera has two faults rather than one
+
+Logs and harness in
+[`bench/soak/20260821-lastwords/`](../bench/soak/20260821-lastwords/).
+
+**[#9](https://github.com/kazunori279/fpga-open-vocab/issues/9)'s item 2 is
+finished, including the line the entry below could not verify.** `lw_write()`
+now has run live from the frame loop, with core 1 up and the lockout held, and —
+the case the whole thing exists for — a record written during an outage was read
+back after VBUS had been cut:
+
+```
+reset     : chip_reset 00010000  (scratch was cold: ...)
+            new this boot: power-on reset - the supply arrived
+lastwords : Written on the first re-attach attempt, at frame 28, 176.530 s into that run.
+            The bus had been gone 2001 ms by then, since frame 22; ...
+            The scratch did NOT survive, so the always-on domain went away between
+            that record and this banner: the outage ended in a power cycle.
+```
+
+No `usb :` line and no watchdog tag, because the always-on domain is exactly what
+went away — and the outage is named anyway. That is the thing #9 could not do.
+
+**The first attempt at that test failed for a host-side reason worth writing
+down.** `bootsel.py --power-cycle --run` boots the board *twice*: the first boot
+read the record, printed the banner and erased the sector before `demo.py` ever
+raised DTR, and `stdio_usb` discards everything written before a host asserts it.
+Enumeration is not a reader. One `uhubctl -l 2-1 -p 2 -a cycle -d 3` and nothing
+else gives exactly one boot, and the test passed unchanged.
+
+**The camera's two faults are separate, and on any given day only one of them is
+present.** The 05:57 `cam_probe` matrix matches 2026-08-03 exactly — rows 1 and 3
+constant, rows 0/2/4 pictures — which is the *redundant-write* fault: a second
+identical FORMAT/RESOLUTION write blanks the next frame. The 08-20 state, where
+rows 0/2/4 are constant too and only a ≥300 ms untriggered stretch produces a
+frame, was gone. Nothing was done to the module in between.
+
+So [#27](https://github.com/kazunori279/fpga-open-vocab/issues/27) is not
+answered: **the settle threshold cannot be measured on a day the settle fault is
+absent**, and the sweep duly returned 3/3 at every value from 0 to 400 ms. The
+sweep stays in `cam_probe.c` as the instrument, to be re-run when the matrix
+looks like 08-20 again.
+
+**Its first control was wrong in both directions and is worth recording as a
+mistake.** It ran a three-row preflight expecting picture / picture / CONSTANT.
+Row 2 used `rewrite = true`, so it was itself a second identical register write
+and read CONSTANT by reproducing *the other fault*. Row 3 expected CONSTANT from
+a reset sensor at settle 0, which only holds when the settle fault is present —
+the very thing being asked — so on a clean day it printed *"cam_begin() does NOT
+un-start it"* about a `cam_begin()` that was fine. The premise check now writes
+no registers at all (`rewrite = false`), and the control is the descending pass:
+it opens at 400 ms, which works, so a reset that does not un-start the sensor
+makes every row below it work too and `down` disagrees visibly with `up`.
+
+---
+
 ### 2026-08-20, night — last words in flash, and 2 KB of heap that no allocator could reach
 
 [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9)'s second owed item
