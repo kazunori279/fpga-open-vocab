@@ -1,0 +1,25 @@
+# host/cue.py, settle 10, hold 30, baseline 30, bg-tau 30
+# demo.py (no extra flags)
+# log bench/cue/m9_cue-20260820-142249.log
+# enrol-window 20
+# enrol 72 1
+# enrol 112 2
+# enrol 192 1
+# enrol 232 2
+# snap 84
+# snap 124
+# snap 204
+# snap 244
+30	59	baseline
+60	99	a glass with tea
+100	139	an empty glass
+140	179	empty
+180	219	a glass with tea
+220	259	an empty glass
+260	299	empty
+300	339	a glass with tea
+340	379	an empty glass
+380	419	empty
+420	459	a glass with tea
+460	499	an empty glass
+500	539	empty

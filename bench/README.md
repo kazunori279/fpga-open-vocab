@@ -83,6 +83,7 @@ timestamp in the filename — see 11:44 below.
 | `m9_cue-20260820-063704.log` | 98.3% | 98.3% | 08-20 06:37 | **book control B**, thirteen minutes after A and on the same desk. Ceiling 0.950, `lost` 1.7. Together with A this is the strongest control the project has run: the glass failure has nowhere left to hide but the pair |
 | `m9_cue-20260820-131217.log` | 97.5% | 97.2% | 08-20 13:12 | **a red cube / a blue cube**, and **the only bench in here run with contrast queries** — the frame lines say `a red cube~`, and the `~` is the difference. `probe_ceiling.py` refuses it (the cued labels are not the query names) and **the live figure is not comparable to any row above**: each query was phrased as the negative of the other, so part of the separation was built in the text tower rather than measured in the encoder. Kept as one half of a pair — see the note below |
 | `m9_cue-20260820-132448.log` | 96.7% | 96.1% | 08-20 13:24 | **a red cube / a blue cube, bare** — the comparable half, twelve minutes after the contrast one and with the cubes unmoved. Margin AUC 0.992, `within` 0.993, `lost` 0.8. **Colour is carried**, which puts it in the hands-and-bags tier and takes colour off the list of explanations for the glass pair. Also reproduces the presence-stage failure of 13:12 with a wider overlap (−0.16 sep against −0.08), so that one is not a query-form artefact — see [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) |
+| `m9_cue-20260820-142249.log` | 54.2% | 64.4% | 08-20 14:22 | **the glass pair, contrast** — `"a glass with tea / an empty glass"` and its mirror, run to test whether rephrasing repairs a pair that fails bare. **Margin AUC 0.674, against bare's 0.699 / 0.680 / 0.591 — it bought nothing.** The enrolment is also **degenerate**: two contrast queries built from the same two phrases are exact negatives, so `lvl` reads `+0.00` on all 546 frames and both of M21's axes collapse to the raw pair. The margin survives that (it is `2·z`, so the AUC is unchanged) and is the number this run was for; **the live figure and every presence number in it are not usable.** See the note below |
 | `m9_cue-smoke-2e48d86.log` | 37.5% | 37.5% | | `/tmp/m9_cue.log` as it stood after flashing the one-sided guard — a smoke test, kept because it is the only log of that firmware running |
 | `m9_cue_fake_d.log` | 58.3% | 48.3% | | **synthetic.** A doctored copy of `m9_cue-20260816-172256.log`, made to exercise a probe against a class that was never in the room. Not a bench, and it will happily score like one if you forget that |
 
@@ -129,7 +130,48 @@ minutes apart:
 The bare run is already at the ceiling, so there was nothing for the rephrasing
 to buy and the 0.007 between them is not a result. **A contrast/bare comparison
 can only be informative on a pair that fails bare** — which is the glass pair,
-not this one. Run it there instead.
+not this one.
+
+**Run there, on 08-20 14:22, it bought nothing.** Four runs of
+`a glass with tea` / `an empty glass` now, two phrasings:
+
+| run | phrasing | margin |
+| --- | --- | --- |
+| 08-17 15:27 | bare | 0.699 |
+| 08-20 06:29 | bare | 0.591 |
+| 08-20 06:33 | bare | 0.680 |
+| 08-20 14:22 | contrast | 0.674 |
+
+The contrast run lands inside the spread of the bare ones. Rephrasing is the
+cheapest candidate on [#23](https://github.com/kazunori279/fpga-open-vocab/issues/23)'s
+list for repairing a pair, and on the only pair with room to move it did nothing.
+
+### A contrast pair built from two phrases is a degenerate enrolment
+
+Worth its own heading, because it has now cost two benches and the board does
+not warn about it.
+
+Two contrast queries built from **the same two phrases** — `"A / B"` and
+`"B / A"` — are exact negatives of each other on every frame. So their mean is
+identically zero, `level` cannot move, M21's centring subtracts nothing, and
+both of its axes collapse to the raw pair. The signature is unmistakable once
+you know it: every segment reads `−x` against `+x`, and `lvl+0.00` is the only
+level in the log.
+
+`firmware/m9.c` describes this exactly, above the enrolment guards, from the
+2026-08-11 bench that spent six minutes measuring an identically-zero presence
+axis. **There is still no check for it.** The three guards that do fire —
+classes on top of each other (`sep > 0.05`), too few visits, and a reference on
+the origin — all pass, and the board prints `level +0.00` without judging it.
+
+What survives a degenerate run: the **margin**, because it is `2·z` and the AUC
+of that is the AUC of `z`. What does not: the live held-out figure, the presence
+stage, and anything else the centred space is used for. 08-20 14:22 is quoted
+for its margin only.
+
+The cube contrast run, 08-20 13:12, is **not** degenerate — it used three
+phrases (`"a red cube / a blue cube / a cube"`), so the shared negative breaks
+the anti-symmetry. If a contrast pair is wanted, give it a third phrase.
 
 ## The `.cues` sidecars, and the three logs that have none
 
