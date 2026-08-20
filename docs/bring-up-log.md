@@ -11,6 +11,93 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-20, host — a stale RP2350 mount held Finder dead for eight days, and `diskutil unmount force` is not the way out
+
+[building.md](building.md#flashing-the-mcu) has said since 2026-08-15 that
+rebooting out of BOOTSEL with the volume mounted leaves the mount on
+`diskarbitrationd`'s `danglingVolumeList` and that touching it hangs in the
+kernel. That is the prevention, and it was right. What the page did not have is
+**what to do once it has already happened**, and the answer turns out to be the
+opposite of the obvious one.
+
+**The bill.** Finder did not run on the Mac mini from **2026-08-12 12:53 to
+2026-08-20 16:01** — eight days. Nothing else on the host was affected, which is
+why it went unnoticed for that long, and which is also why the whole 08-14 →
+08-20 bench series was collected on a host in this state.
+
+**The chain, as observed.**
+
+1. Something rebooted the board out of BOOTSEL while `/Volumes/RP2350` was
+   mounted. There is no commit and no bench log from 08-12, so which reboot it
+   was is not in the record.
+2. Finder touched the stale mount and blocked in the kernel.
+3. A `SIGTERM` (a `killall Finder`, presumably) started its exit and could not
+   finish it. It sat at `PID 8915 PPID 1 STAT ?E` — *exiting* — for eight days.
+4. **`launchd` read that as alive.** `launchctl print gui/501/com.apple.Finder`
+   gave `state = running, pid = 8915, runs = 2, last terminating signal =
+   Terminated: 15, exit timeout = 5`. The five-second exit timeout was exceeded
+   without bound and launchd still refused to start a replacement, because by
+   its bookkeeping one was already up. **That, and not the crash, is the
+   symptom** — Finder was not crashing on launch; it was never being launched.
+5. The file-system server behind the mount ran away in the meantime:
+   `com.apple.fskit.msdos.appex`, 67% CPU, 56 minutes of CPU accumulated.
+
+**What worked, and what did not.**
+
+| step | result |
+| --- | --- |
+| `diskutil unmount force /Volumes/RP2350` | **hung** — it blocks on the same kernel path, and had to be killed (exit 137) |
+| `kill -9` the runaway `com.apple.fskit.msdos.appex` | **this is the fix.** The mount was released with it |
+| `kill -9` the `?E` Finder | unnecessary — it was reaped the moment the kernel block cleared |
+| `launchctl kickstart -k gui/501/com.apple.Finder` | unnecessary — launchd started it by itself once the zombie was reaped, `runs` 2 → 3 |
+
+So the rule is: **kill the file-system server, not the mount.** `diskutil` is a
+client of the wedged path and cannot unwedge it.
+
+**Where it does not show up.** No Finder crash report. No Finder log entries for
+three days — the silence itself was the confirmation the process was already
+dead rather than looping. Disk had 566 Gi free and memory was not tight, so
+nothing resource-shaped pointed at it either. The only two signals were the `?E`
+process state and the fskit appex burning CPU.
+
+**One thing this opens, and it is a question and not a finding.** `picotool
+load`'s silent no-op — progress bar to 100%, flash left at `0xff`, twice in one
+session — was measured on **2026-08-15**, inside this window, and so were the
+three faults recorded on that date. `picotool` writes over PICOBOOT and not over
+the mass-storage interface, so there is no mechanism on the table; but a wedged
+`fskit` server does hold macOS's claim on the other interface of the same
+device, and every observation of the no-op was made with it wedged. **It has
+never been reproduced on a healthy host, because nobody knew there was an
+unhealthy one.** Worth watching for now that the host is clean — if the no-op
+never comes back, that is the answer.
+
+**Follow-through, and it is done.** The board was found still sitting in BOOTSEL
+after the recovery — `/dev/disk4s1 RP2350` enumerated, no `/dev/cu.usbmodem` for
+VID `2e8a`, `/Volumes` holding only `Macintosh HD`. That is the *safe* half of
+the state, and the reason to act on it rather than leave it: the volume was not
+mounted, so getting out of BOOTSEL right then could not repeat the fault,
+whereas the next thing to mount that volume would have set the trap again.
+
+`uv run host/bootsel.py --flash firmware/build-280/forgix_m9.uf2` did it. Its
+log is worth keeping, because every branch it took was one of the failure modes
+this page documents:
+
+```
+no CDC port for the board at all
+falling back to a power cycle
+  power-cycling hub 2-1 port 1
+  back at /dev/cu.usbmodem21101, nudging again
+BOOTSEL up at /Volumes/RP2350
+flashing forgix_m9.uf2 (2180608 B) ...
+  wrote in 15.4 s, verified
+back up at /dev/cu.usbmodem21101
+```
+
+15.4 s is a real write and not the 2.5 s no-op, and `verify` agreed. Afterwards:
+`/Volumes` clean, **`RP2350` gone from `diskutil list` entirely**, the CDC port
+back, and the `fskit.msdos` appex idle at 0.06 s of CPU. The host and the board
+are both out of it.
+
 ### 2026-08-20, firmware — the preinit park cannot work on this platform, and the map says so in two lines
 
 The entry below this one ends with an open question: the `FGX_QSPI_PARK_PREINIT=1`

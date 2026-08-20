@@ -186,6 +186,28 @@ Properly" every time and — the part that costs something — leaves the mount 
 the stale-mount state that hangs `ls` in the kernel. `host/bootsel.py` does the
 unmount for you on every path that reboots.
 
+**If it happens anyway, kill the file-system server — not the mount.**
+
+```sh
+pgrep -fl com.apple.fskit.msdos       # the server behind /Volumes/RP2350
+kill -9 <pid>                         # the mount goes with it
+```
+
+`diskutil unmount force` does **not** work here: it is a client of the same
+wedged kernel path and hangs alongside everything else. Anything that has
+already touched the volume is stuck in the kernel and cannot be killed either —
+it goes to `STAT ?E`, *exiting*, and stays there until the server dies. Killing
+the server releases all of them at once; nothing else needs killing or
+restarting afterwards.
+
+The reason to know this is what it costs when the stuck process is **Finder**.
+`launchd` keeps reporting `state = running` for an `?E` Finder — `exit timeout =
+5` is exceeded without bound and it never times out — so it refuses to start a
+replacement, and Finder is simply gone with no crash report and no log. It sat
+that way for eight days on the Mac mini, 2026-08-12 to 08-20; see the
+[bring-up log](bring-up-log.md). A runaway `com.apple.fskit.msdos.appex` in
+`top` is the tell.
+
 Use **Homebrew's `picotool`**, not the SDK's, which is built without USB
 support. Four things about this are load-bearing:
 
