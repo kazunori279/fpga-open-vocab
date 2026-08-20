@@ -12,6 +12,13 @@ Like `../cue/`, they lived in `/tmp` until they were archived — 2026-08-17 in
 this case, two days and one macOS reboot's worth of luck later. `bench_loop.sh`
 is the harness that produced them, checked in unmodified.
 
+**There is a second soak here now: [`20260820-usb-p2/`](20260820-usb-p2/).** It
+is the follow-up to the #9 event below — twenty runs on a new port and a new
+cable with `host/usb_watch.py` recording the bus throughout, which is the thing
+this 08-15 set did not have and could not be re-read for. Its harness is
+`usb_soak.sh`, and the two traps at the bottom of this page are what that
+harness exists to avoid.
+
 ## Manifest
 
 `frames` counts `frame NNN :` lines actually printed, so it is where the run

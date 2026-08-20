@@ -1,0 +1,274 @@
+
+=== M9: fpga-open-vocab - describe it, the board spots it ===
+
+clock     : 280 MHz requested; BOOTSEL is reachable for 1.5 s
+clock     : 280 MHz system, core 1.25 V
+reset     : chip_reset 00010000  (scratch was cold: either the always-on domain went away - power, a brown-out - or this boot came through the bootrom, which clears it too)
+            new this boot: power-on reset - the supply arrived
+waiting for a bitstream on USB CDC (host/demo.py)
+bitstream : 173124 bytes announced, crc32 0a2e9953
+bitstream : received intact
+configure : configured, CDONE high   CDONE=1 nSTATUS=0
+crc       : DMA sniffer, calc=1 out_rev=1 out_inv=1
+model     : 9 layers, 512-d embedding, 131072 B/buffer
+weights   : 780720 B, crc32=0xF368CC6E  (144 ms to hash)
+
+reference : encoder_fast on the flash test vector  (1813 ms)
+
+link      : probing the wire by running the whole test vector over it
+probe     : 3 forward data lines -> 512/512 floats exact, 308 ms
+link      : configuration C, 3 forward data lines, 140.0 MHz
+
+camera    : exposure ramp 9 9 8 9 9 9 9 9 9 9 9 9 9 9 9 9 9 9 9 8 9 9 9 9 9 9 9 9 9 9 9 9 9 9 9 9 9 9 9 9
+camera    : live 128x128 RGB565, id 0x82, 16.0 MHz, expose 59 ms, read 16 ms, exposure settled after 41 frames
+            mean RGB 13 12 2  (tuned camera on a neutral scene: about 115 107 105)
+            ^ that is the bottom of the sensor's range after 41 frames of auto-exposure.
+              If the room is not actually dark, the sensor has not started: check the lens cap,
+              then cold-power-cycle the board - USB out for ten seconds, not a reflash.
+
+queries   : waiting for a query set on USB CDC (host/demo.py)
+queries   : 2 accepted, 512-d, crc ok
+            scored as z = (cos - background) / std, where the background is this room's
+            own mean over its first 30 frames and is then FROZEN - so a thing left in
+            shot keeps its score instead of decaying into the furniture. 'N' re-learns
+            it, 'H' switches to tracking. The COCO figures below are only the seed for
+            frame 0 and the fixed std.
+            std is THIS ROOM's, measured over the same 30 frames ('S' switches to COCO's).
+            The thresholds below still mean the 90th percentile of a background; the
+            background they now mean it against is this room empty, not 5000 COCO photos.
+            z is EMA-smoothed at 0.35 (~5 frames) before ranking, so a state has to
+            persist for about two seconds to be called.
+            an opened book       match above z 1.23   (COCO background -0.151 +- 0.030, so cos -0.114)
+            a closed book        match above z 1.23   (COCO background -0.159 +- 0.035, so cos -0.116)
+
+loop      : capture, 8 convs on the T8, pool and head, then one cosine per query. 'B' for BOOTSEL, 'R' to restart,
+            'P' to dump the next frame for host/cam.py, 'V' to dump its 512 floats for host/caption.py,
+            'E' to provoke a fault so D1 shows its fault display, 'H' to freeze/unfreeze the background,
+            'S' to switch the spread between this room's and COCO's, 'W' to hang on purpose and see
+            the watchdog name the stage, 'C' to stall the camera bus on purpose and see it cost one frame,
+            'U' to drop off USB on purpose and watch it come back, 'I' to drop off and refuse to,
+            'N' to forget it and learn it again from now. 'P' and 'V' together describe the same frame.
+            'O' closes the timing window, prints it and flips the capture between overlapped and serial;
+            'D' does the same and flips the trigger between late and at-the-collect, which is #14's A/B.
+            scores are z against this room's background, ranked; '*' means over its threshold.
+            '1'..'6' enrol the next 20 frames as that class, and press again on a LATER visit
+            to fold a second one in - 2 visits is what makes the enrolment guard mean
+            something. Two classes in and the board decides by nearest reference instead of
+            by threshold, and calls a frame absent when it is further than 2.0 sep from every
+            one of them - see M21. The empty scene is not enrolled and '0' does nothing; see #18.
+            The first 30 frames set the baseline and it is then frozen, so anything left in
+            shot KEEPS its score. Point the camera at the empty scene for those frames.
+            Send a new set at any time to re-query - that resets the baseline too.
+
+frame     0 :  a closed book +0.57  an opened book +0.51   led  46/ 66 h0.46 lvl+0.54   -
+frame     1 :  a closed book +0.37  an opened book +0.34   led  18/116 h0.30 lvl+0.36   -
+frame     2 :  a closed book +0.20  an opened book +0.19   led   5/171 h0.17 lvl+0.20   -
+frame     3 :  a closed book +0.06  an opened book +0.05   led   0/229 h0.05 lvl+0.06   -
+frame     4 :  an opened book +0.03  a closed book +0.03   led   0/239 h0.03 lvl+0.03   -
+frame     5 :  an opened book +0.04  a closed book +0.03   led   0/239 h0.03 lvl+0.03   -
+frame     6 :  an opened book +0.03  a closed book +0.03   led   0/241 h0.03 lvl+0.03   -
+frame     7 :  a closed book +0.02  an opened book +0.01   led   0/244 h0.02 lvl+0.02   -
+background: after 8 frames (warming up, room spread), this room reads  an opened book -0.109 +-0.0023 (COCO -0.151 +-0.0303)  a closed book -0.105 +-0.0028 (COCO -0.159 +-0.0351)
+frame     8 :  a closed book -0.16  an opened book -0.34   led   0/255 h0.00 lvl-0.25   -
+frame     9 :  an opened book +0.18  a closed book -0.02   led   4/181 h0.14 lvl+0.08   -
+frame    10 :  an opened book +0.17  a closed book +0.04   led   3/183 h0.14 lvl+0.11   -
+frame    11 :  a closed book +0.49  an opened book +0.28   led  34/ 82 h0.40 lvl+0.39   -
+frame    12 :  a closed book +0.47  an opened book +0.17   led  31/ 88 h0.38 lvl+0.32   -
+frame    13 :  a closed book +1.50*  an opened book +1.00   led 255/  0 h1.00 lvl+1.25   MATCH a closed book (cos -0.097)
+frame    14 :  a closed book +1.63*  an opened book +1.18   led 255/  0 h1.00 lvl+1.41   MATCH a closed book (cos -0.099)
+frame    15 :  a closed book +1.41*  an opened book +1.38*   led 255/  0 h1.00 lvl+1.40   MATCH a closed book (cos -0.101)
+frame    16 :  a closed book +1.49*  an opened book +1.23*   led 255/  0 h1.00 lvl+1.36   MATCH a closed book (cos -0.098)
+frame    17 :  a closed book +0.87  an opened book +0.74   led 118/ 17 h0.71 lvl+0.80   -
+frame    18 :  an opened book +0.25  a closed book +0.13   led   8/154 h0.21 lvl+0.19   -
+frame    19 :  a closed book -0.15  an opened book -0.16   led   0/255 h0.00 lvl-0.15   -
+frame    20 :  a closed book +0.05  an opened book -0.14   led   0/232 h0.04 lvl-0.04   -
+frame    21 :  a closed book +0.04  an opened book -0.22   led   0/236 h0.04 lvl-0.09   -
+frame    22 :  a closed book -0.34  an opened book -0.51   led   0/255 h0.00 lvl-0.43   -
+frame    23 :  a closed book -0.25  an opened book -0.49   led   0/255 h0.00 lvl-0.37   -
+frame    24 :  an opened book -0.34  a closed book -0.36   led   0/255 h0.00 lvl-0.35   -
+frame    25 :  a closed book +0.27  an opened book +0.14   led   9/148 h0.22 lvl+0.20   -
+frame    26 :  a closed book +0.23  an opened book -0.17   led   6/163 h0.18 lvl+0.03   -
+frame    27 :  a closed book +0.01  an opened book -0.21   led   0/252 h0.01 lvl-0.10   -
+frame    28 :  an opened book -0.05  a closed book -0.09   led   0/255 h0.00 lvl-0.07   -
+frame    29 :  a closed book +0.07  an opened book +0.06   led   1/222 h0.06 lvl+0.07   -
+frame    30 :  an opened book +0.20  a closed book -0.02   led   5/172 h0.16 lvl+0.09   -
+frame    31 :  an opened book -0.58  a closed book -0.59   led   0/255 h0.00 lvl-0.59   -
+frame    32 :  an opened book -0.21  a closed book -0.47   led   0/255 h0.00 lvl-0.34   -
+frame    33 :  an opened book -0.85  a closed book -1.09   led   0/255 h0.00 lvl-0.97   -
+frame    34 :  a closed book -0.57  an opened book -0.79   led   0/255 h0.00 lvl-0.68   -
+frame    35 :  a closed book -0.14  an opened book -0.46   led   0/255 h0.00 lvl-0.30   -
+frame    36 :  a closed book -0.15  an opened book -0.67   led   0/255 h0.00 lvl-0.41   -
+frame    37 :  a closed book -0.00  an opened book -0.19   led   0/255 h0.00 lvl-0.10   -
+frame    38 :  a closed book -0.05  an opened book -0.19   led   0/255 h0.00 lvl-0.12   -
+frame    39 :  a closed book +0.20  an opened book -0.09   led   5/172 h0.16 lvl+0.06   -
+frame    40 :  a closed book +0.12  an opened book -0.10   led   2/203 h0.10 lvl+0.01   -
+frame    41 :  a closed book -0.33  an opened book -0.55   led   0/255 h0.00 lvl-0.44   -
+frame    42 :  an opened book -0.66  a closed book -0.74   led   0/255 h0.00 lvl-0.70   -
+frame    43 :  an opened book +0.04  a closed book -0.17   led   0/237 h0.03 lvl-0.07   -
+frame    44 :  an opened book -0.16  a closed book -0.40   led   0/255 h0.00 lvl-0.28   -
+frame    45 :  an opened book +0.20  a closed book -0.07   led   5/173 h0.16 lvl+0.06   -
+frame    46 :  an opened book +1.73*  a closed book +1.63*   led 255/  0 h1.00 lvl+1.68   MATCH an opened book (cos -0.098)
+frame    47 :  an opened book +2.47*  a closed book +2.42*   led 255/  0 h1.00 lvl+2.44   MATCH an opened book (cos -0.100)
+frame    48 :  a closed book +1.60*  an opened book +1.26*   led 255/  0 h1.00 lvl+1.43   MATCH a closed book (cos -0.104)
+frame    49 :  a closed book +1.52*  an opened book +0.96   led 255/  0 h1.00 lvl+1.24   MATCH a closed book (cos -0.100)
+frame    50 :  a closed book +1.11  an opened book +0.54   led 205/  1 h0.90 lvl+0.83   -
+frame    51 :  a closed book +1.35*  an opened book +0.56   led 255/  0 h1.00 lvl+0.95   MATCH a closed book (cos -0.099)
+frame    52 :  a closed book +1.90*  an opened book +0.77   led 255/  0 h1.00 lvl+1.34   MATCH a closed book (cos -0.095)
+frame    53 :  a closed book +1.65*  an opened book +0.48   led 255/  0 h1.00 lvl+1.06   MATCH a closed book (cos -0.100)
+frame    54 :  a closed book +1.94*  an opened book +1.35*   led 255/  0 h1.00 lvl+1.64   MATCH a closed book (cos -0.097)
+frame    55 :  a closed book +2.54*  an opened book +2.44*   led 255/  0 h1.00 lvl+2.49   MATCH a closed book (cos -0.093)
+frame    56 :  a closed book +2.62*  an opened book +2.57*   led 255/  0 h1.00 lvl+2.60   MATCH a closed book (cos -0.096)
+frame    57 :  an opened book +2.01*  a closed book +1.98*   led 255/  0 h1.00 lvl+2.00   MATCH an opened book (cos -0.106)
+frame    58 :  a closed book +1.79*  an opened book +1.71*   led 255/  0 h1.00 lvl+1.75   MATCH a closed book (cos -0.100)
+frame    59 :  a closed book +2.04*  an opened book +1.68*   led 255/  0 h1.00 lvl+1.86   MATCH a closed book (cos -0.097)
+frame    60 :  an opened book +1.39*  a closed book +1.33*   led 255/  0 h1.00 lvl+1.36   MATCH an opened book (cos -0.106)
+frame    61 :  an opened book +0.68  a closed book +0.52   led  68/ 44 h0.55 lvl+0.60   -
+frame    62 :  a closed book -0.04  an opened book -0.15   led   0/255 h0.00 lvl-0.09   -
+frame    63 :  an opened book -0.86  a closed book -1.06   led   0/255 h0.00 lvl-0.96   -
+frame    64 :  an opened book -0.30  a closed book -0.50   led   0/255 h0.00 lvl-0.40   -
+frame    65 :  an opened book -0.62  a closed book -1.13   led   0/255 h0.00 lvl-0.88   -
+frame    66 :  an opened book -0.36  a closed book -0.51   led   0/255 h0.00 lvl-0.44   -
+frame    67 :  an opened book -0.77  a closed book -0.87   led   0/255 h0.00 lvl-0.82   -
+frame    68 :  a closed book -0.45  an opened book -0.94   led   0/255 h0.00 lvl-0.70   -
+frame    69 :  a closed book -0.81  an opened book -1.03   led   0/255 h0.00 lvl-0.92   -
+frame    70 :  a closed book -1.84  an opened book -1.87   led   0/255 h0.00 lvl-1.86   -
+frame    71 :  an opened book -0.63  a closed book -0.89   led   0/255 h0.00 lvl-0.76   -
+frame    72 :  an opened book -0.57  a closed book -0.74   led   0/255 h0.00 lvl-0.65   -
+frame    73 :  an opened book -0.48  a closed book -0.88   led   0/255 h0.00 lvl-0.68   -
+frame    74 :  an opened book -1.27  a closed book -1.48   led   0/255 h0.00 lvl-1.37   -
+frame    75 :  an opened book -1.69  a closed book -1.97   led   0/255 h0.00 lvl-1.83   -
+frame    76 :  an opened book -0.51  a closed book -0.65   led   0/255 h0.00 lvl-0.58   -
+frame    77 :  an opened book -0.45  a closed book -0.64   led   0/255 h0.00 lvl-0.54   -
+frame    78 :  an opened book -0.36  a closed book -0.68   led   0/255 h0.00 lvl-0.52   -
+frame    79 :  an opened book -0.03  a closed book -0.48   led   0/255 h0.00 lvl-0.26   -
+frame    80 :  an opened book -0.87  a closed book -1.19   led   0/255 h0.00 lvl-1.03   -
+frame    81 :  an opened book -1.14  a closed book -1.35   led   0/255 h0.00 lvl-1.24   -
+frame    82 :  an opened book -0.82  a closed book -1.06   led   0/255 h0.00 lvl-0.94   -
+frame    83 :  an opened book -0.45  a closed book -0.76   led   0/255 h0.00 lvl-0.61   -
+frame    84 :  an opened book -1.32  a closed book -1.42   led   0/255 h0.00 lvl-1.37   -
+frame    85 :  an opened book -0.43  a closed book -0.76   led   0/255 h0.00 lvl-0.60   -
+frame    86 :  an opened book -0.62  a closed book -0.71   led   0/255 h0.00 lvl-0.66   -
+frame    87 :  an opened book -0.79  a closed book -0.81   led   0/255 h0.00 lvl-0.80   -
+frame    88 :  an opened book -1.01  a closed book -1.12   led   0/255 h0.00 lvl-1.06   -
+frame    89 :  an opened book -0.71  a closed book -0.81   led   0/255 h0.00 lvl-0.76   -
+frame    90 :  a closed book -0.98  an opened book -1.04   led   0/255 h0.00 lvl-1.01   -
+frame    91 :  an opened book -0.68  a closed book -0.80   led   0/255 h0.00 lvl-0.74   -
+frame    92 :  an opened book -1.01  a closed book -1.19   led   0/255 h0.00 lvl-1.10   -
+frame    93 :  a closed book -0.51  an opened book -0.71   led   0/255 h0.00 lvl-0.61   -
+frame    94 :  an opened book -1.68  a closed book -1.68   led   0/255 h0.00 lvl-1.68   -
+frame    95 :  an opened book -1.33  a closed book -1.37   led   0/255 h0.00 lvl-1.35   -
+frame    96 :  an opened book -1.66  a closed book -1.68   led   0/255 h0.00 lvl-1.67   -
+frame    97 :  a closed book -0.45  an opened book -0.56   led   0/255 h0.00 lvl-0.51   -
+frame    98 :  an opened book -0.65  a closed book -0.71   led   0/255 h0.00 lvl-0.68   -
+frame    99 :  an opened book -1.07  a closed book -1.25   led   0/255 h0.00 lvl-1.16   -
+background: after 30 frames (frozen, room spread), this room reads  an opened book -0.108 +-0.0022 (COCO -0.151 +-0.0303)  a closed book -0.104 +-0.0030 (COCO -0.159 +-0.0351)
+frame   100 :  an opened book -0.11  a closed book -0.53   led   0/255 h0.00 lvl-0.32   -
+frame   101 :  an opened book -0.21  a closed book -0.32   led   0/255 h0.00 lvl-0.27   -
+frame   102 :  an opened book +0.15  a closed book +0.03   led   2/191 h0.12 lvl+0.09   -
+frame   103 :  an opened book +0.17  a closed book +0.06   led   3/184 h0.14 lvl+0.11   -
+frame   104 :  a closed book -0.16  an opened book -0.25   led   0/255 h0.00 lvl-0.20   -
+frame   105 :  an opened book -0.57  a closed book -0.79   led   0/255 h0.00 lvl-0.68   -
+frame   106 :  an opened book -0.76  a closed book -0.92   led   0/255 h0.00 lvl-0.84   -
+frame   107 :  an opened book -0.11  a closed book -0.30   led   0/255 h0.00 lvl-0.20   -
+frame   108 :  a closed book -0.14  an opened book -0.20   led   0/255 h0.00 lvl-0.17   -
+frame   109 :  an opened book -0.65  a closed book -1.02   led   0/255 h0.00 lvl-0.83   -
+frame   110 :  an opened book -0.28  a closed book -0.37   led   0/255 h0.00 lvl-0.33   -
+frame   111 :  an opened book -0.45  a closed book -0.70   led   0/255 h0.00 lvl-0.58   -
+frame   112 :  an opened book -0.64  a closed book -1.00   led   0/255 h0.00 lvl-0.82   -
+frame   113 :  an opened book +0.24  a closed book -0.30   led   7/158 h0.20 lvl-0.03   -
+frame   114 :  an opened book -0.10  a closed book -0.51   led   0/255 h0.00 lvl-0.31   -
+frame   115 :  an opened book +0.39  a closed book +0.20   led  20/111 h0.31 lvl+0.29   -
+frame   116 :  an opened book +0.99  a closed book +0.57   led 157/  7 h0.80 lvl+0.78   -
+frame   117 :  an opened book +0.79  a closed book +0.48   led  98/ 26 h0.65 lvl+0.64   -
+frame   118 :  an opened book +0.82  a closed book +0.71   led 105/ 22 h0.67 lvl+0.77   -
+frame   119 :  an opened book +1.31*  a closed book +1.07   led 255/  0 h1.00 lvl+1.19   MATCH an opened book (cos -0.103)
+frame   120 :  an opened book +1.95*  a closed book +1.36*   led 255/  0 h1.00 lvl+1.65   MATCH an opened book (cos -0.101)
+frame   121 :  an opened book +1.86*  a closed book +1.51*   led 255/  0 h1.00 lvl+1.68   MATCH an opened book (cos -0.104)
+frame   122 :  an opened book +2.13*  a closed book +1.92*   led 255/  0 h1.00 lvl+2.03   MATCH an opened book (cos -0.102)
+frame   123 :  an opened book +2.20*  a closed book +2.12*   led 255/  0 h1.00 lvl+2.16   MATCH an opened book (cos -0.103)
+frame   124 :  an opened book +2.53*  a closed book +2.08*   led 255/  0 h1.00 lvl+2.31   MATCH an opened book (cos -0.101)
+frame   125 :  an opened book +1.95*  a closed book +1.67*   led 255/  0 h1.00 lvl+1.81   MATCH an opened book (cos -0.106)
+frame   126 :  a closed book +2.31*  an opened book +2.24*   led 255/  0 h1.00 lvl+2.27   MATCH a closed book (cos -0.094)
+frame   127 :  a closed book +2.61*  an opened book +2.56*   led 255/  0 h1.00 lvl+2.58   MATCH a closed book (cos -0.095)
+frame   128 :  a closed book +3.29*  an opened book +3.18*   led 255/  0 h1.00 lvl+3.23   MATCH a closed book (cos -0.090)
+frame   129 :  a closed book +3.19*  an opened book +2.92*   led 255/  0 h1.00 lvl+3.05   MATCH a closed book (cos -0.095)
+frame   130 :  an opened book +3.35*  a closed book +3.25*   led 255/  0 h1.00 lvl+3.30   MATCH an opened book (cos -0.099)
+frame   131 :  an opened book +4.28*  a closed book +3.96*   led 255/  0 h1.00 lvl+4.12   MATCH an opened book (cos -0.095)
+frame   132 :  an opened book +4.29*  a closed book +4.06*   led 255/  0 h1.00 lvl+4.18   MATCH an opened book (cos -0.099)
+frame   133 :  an opened book +4.07*  a closed book +3.48*   led 255/  0 h1.00 lvl+3.78   MATCH an opened book (cos -0.100)
+frame   134 :  an opened book +3.54*  a closed book +3.16*   led 255/  0 h1.00 lvl+3.35   MATCH an opened book (cos -0.102)
+frame   135 :  an opened book +3.17*  a closed book +2.52*   led 255/  0 h1.00 lvl+2.84   MATCH an opened book (cos -0.103)
+frame   136 :  an opened book +2.42*  a closed book +1.69*   led 255/  0 h1.00 lvl+2.06   MATCH an opened book (cos -0.106)
+frame   137 :  an opened book +1.41*  a closed book +0.52   led 255/  0 h1.00 lvl+0.97   MATCH an opened book (cos -0.109)
+frame   138 :  an opened book +0.73  a closed book -0.11   led  80/ 35 h0.59 lvl+0.31   -
+frame   139 :  an opened book +0.53  a closed book -0.41   led  40/ 74 h0.43 lvl+0.06   -
+frame   140 :  an opened book +0.27  a closed book -0.14   led   9/147 h0.22 lvl+0.06   -
+frame   141 :  an opened book -0.05  a closed book -0.29   led   0/255 h0.00 lvl-0.17   -
+frame   142 :  an opened book -0.31  a closed book -0.51   led   0/255 h0.00 lvl-0.41   -
+frame   143 :  an opened book -0.61  a closed book -0.90   led   0/255 h0.00 lvl-0.76   -
+frame   144 :  an opened book -0.49  a closed book -0.75   led   0/255 h0.00 lvl-0.62   -
+frame   145 :  an opened book +0.10  a closed book -0.27   led   1/213 h0.08 lvl-0.09   -
+frame   146 :  a closed book -0.14  an opened book -0.49   led   0/255 h0.00 lvl-0.32   -
+frame   147 :  a closed book -0.71  an opened book -1.13   led   0/255 h0.00 lvl-0.92   -
+frame   148 :  a closed book -0.86  an opened book -0.90   led   0/255 h0.00 lvl-0.88   -
+frame   149 :  a closed book -1.31  an opened book -1.38   led   0/255 h0.00 lvl-1.35   -
+frame   150 :  an opened book -0.85  a closed book -1.00   led   0/255 h0.00 lvl-0.93   -
+frame   151 :  an opened book -1.50  a closed book -1.62   led   0/255 h0.00 lvl-1.56   -
+frame   152 :  an opened book -1.48  a closed book -1.71   led   0/255 h0.00 lvl-1.59   -
+frame   153 :  an opened book -1.81  a closed book -2.06   led   0/255 h0.00 lvl-1.94   -
+frame   154 :  an opened book -1.51  a closed book -2.03   led   0/255 h0.00 lvl-1.77   -
+frame   155 :  an opened book -2.06  a closed book -2.41   led   0/255 h0.00 lvl-2.23   -
+frame   156 :  an opened book -2.21  a closed book -2.45   led   0/255 h0.00 lvl-2.33   -
+frame   157 :  an opened book -1.80  a closed book -2.23   led   0/255 h0.00 lvl-2.02   -
+frame   158 :  an opened book -1.63  a closed book -1.89   led   0/255 h0.00 lvl-1.76   -
+frame   159 :  an opened book -0.98  a closed book -1.67   led   0/255 h0.00 lvl-1.33   -
+frame   160 :  an opened book -1.83  a closed book -2.17   led   0/255 h0.00 lvl-2.00   -
+frame   161 :  an opened book -1.11  a closed book -1.47   led   0/255 h0.00 lvl-1.29   -
+frame   162 :  an opened book -0.98  a closed book -1.09   led   0/255 h0.00 lvl-1.03   -
+frame   163 :  an opened book -1.36  a closed book -1.62   led   0/255 h0.00 lvl-1.49   -
+frame   164 :  an opened book -1.25  a closed book -1.75   led   0/255 h0.00 lvl-1.50   -
+frame   165 :  an opened book -0.97  a closed book -1.27   led   0/255 h0.00 lvl-1.12   -
+frame   166 :  an opened book -1.16  a closed book -1.36   led   0/255 h0.00 lvl-1.26   -
+frame   167 :  an opened book -0.91  a closed book -1.17   led   0/255 h0.00 lvl-1.04   -
+frame   168 :  an opened book -0.65  a closed book -0.90   led   0/255 h0.00 lvl-0.78   -
+frame   169 :  a closed book -0.62  an opened book -0.76   led   0/255 h0.00 lvl-0.69   -
+frame   170 :  an opened book -0.30  a closed book -0.41   led   0/255 h0.00 lvl-0.35   -
+frame   171 :  a closed book -0.58  an opened book -0.90   led   0/255 h0.00 lvl-0.74   -
+frame   172 :  an opened book -0.70  a closed book -0.76   led   0/255 h0.00 lvl-0.73   -
+frame   173 :  an opened book -0.29  a closed book -0.45   led   0/255 h0.00 lvl-0.37   -
+frame   174 :  an opened book +0.50  a closed book +0.10   led  36/ 80 h0.41 lvl+0.30   -
+frame   175 :  a closed book -0.30  an opened book -0.66   led   0/255 h0.00 lvl-0.48   -
+frame   176 :  a closed book -0.74  an opened book -1.14   led   0/255 h0.00 lvl-0.94   -
+frame   177 :  a closed book -0.53  an opened book -0.68   led   0/255 h0.00 lvl-0.60   -
+frame   178 :  an opened book -0.19  a closed book -0.21   led   0/255 h0.00 lvl-0.20   -
+frame   179 :  an opened book -0.54  a closed book -0.78   led   0/255 h0.00 lvl-0.66   -
+frame   180 :  an opened book -0.40  a closed book -1.11   led   0/255 h0.00 lvl-0.75   -
+frame   181 :  an opened book -0.34  a closed book -1.05   led   0/255 h0.00 lvl-0.69   -
+frame   182 :  an opened book -0.40  a closed book -1.10   led   0/255 h0.00 lvl-0.75   -
+frame   183 :  an opened book -0.04  a closed book -1.03   led   0/255 h0.00 lvl-0.54   -
+frame   184 :  an opened book -0.77  a closed book -1.55   led   0/255 h0.00 lvl-1.16   -
+frame   185 :  an opened book -1.48  a closed book -2.03   led   0/255 h0.00 lvl-1.75   -
+frame   186 :  an opened book -0.97  a closed book -1.37   led   0/255 h0.00 lvl-1.17   -
+frame   187 :  an opened book -1.75  a closed book -1.99   led   0/255 h0.00 lvl-1.87   -
+frame   188 :  an opened book -1.01  a closed book -1.09   led   0/255 h0.00 lvl-1.05   -
+frame   189 :  a closed book -0.81  an opened book -1.05   led   0/255 h0.00 lvl-0.93   -
+frame   190 :  a closed book -1.30  an opened book -1.54   led   0/255 h0.00 lvl-1.42   -
+frame   191 :  a closed book -1.46  an opened book -1.76   led   0/255 h0.00 lvl-1.61   -
+frame   192 :  a closed book -1.96  an opened book -2.27   led   0/255 h0.00 lvl-2.11   -
+frame   193 :  a closed book -1.63  an opened book -1.81   led   0/255 h0.00 lvl-1.72   -
+frame   194 :  a closed book -2.27  an opened book -2.32   led   0/255 h0.00 lvl-2.29   -
+frame   195 :  an opened book -2.42  a closed book -2.55   led   0/255 h0.00 lvl-2.48   -
+frame   196 :  an opened book -1.78  a closed book -1.95   led   0/255 h0.00 lvl-1.86   -
+frame   197 :  a closed book -0.93  an opened book -0.97   led   0/255 h0.00 lvl-0.95   -
+frame   198 :  an opened book -0.97  a closed book -1.19   led   0/255 h0.00 lvl-1.08   -
+frame   199 :  an opened book -1.06  a closed book -1.50   led   0/255 h0.00 lvl-1.28   -
+background: after 30 frames (frozen, room spread), this room reads  an opened book -0.108 +-0.0022 (COCO -0.151 +-0.0303)  a closed book -0.104 +-0.0030 (COCO -0.159 +-0.0351)
+frame   200 :  an opened book -1.36  a closed book -1.43   led   0/255 h0.00 lvl-1.39   -
+
+stopped   : 201 frames, 201 good, capture overlapped with the compute, configuration C
+            201 frames timed, 322 ms/frame mean (capture included)
+            305 ms encode + 0 ms waiting for the sensor + 16 ms burst; 333 ms/frame by the clock
+            414 ms shutter to LED, arming with 70 ms of compute left
+            last frame mean RGB 14 13 3
+            camera bus: worst gap 17 us against the 2000 us deadline (#12)
+            usb: 0 outages, 0 ms off the bus, 0 re-attaches (#9)

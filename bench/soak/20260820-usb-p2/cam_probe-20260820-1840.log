@@ -1,0 +1,112 @@
+
+=== M8a: Arducam Mega on the RP header ===
+
+clock     : 150 MHz sys
+pins      : mosi GPIO12, miso GPIO9, sck GPIO8, cs GPIO13
+in_scale  : 0.00787401600  (from the blob, not hard-coded)
+model in  : 128x128x3
+
+-- question 1 and 2: is it wired, and how fast --
+  bus        rate          id   verdict
+  bit-bang     0.50 MHz   0x82   plausible
+  pio          0.50 MHz   0x82   agrees with bit-bang
+  pio          1.00 MHz   0x82   agrees with bit-bang
+  pio          2.00 MHz   0x82   agrees with bit-bang
+  pio          4.00 MHz   0x82   agrees with bit-bang
+  pio          8.00 MHz   0x82   agrees with bit-bang
+  pio         12.00 MHz   0x82   agrees with bit-bang
+  pio         16.00 MHz   0x82   agrees with bit-bang
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- repeat-capture matrix: 128x128, 8 MHz, same scene throughout --
+  #  recipe      crc32    first px  verdict
+  0  as-was      c80a8564 08 01     CONSTANT  <-- NOT what 2026-08-03 measured
+  1  as-was      c80a8564 08 01     CONSTANT  
+  2  no-rewrite  c80a8564 08 01     CONSTANT  <-- NOT what 2026-08-03 measured
+  3  flush       c80a8564 08 01     CONSTANT  
+  4  norw+flush  c80a8564 08 01     CONSTANT  <-- NOT what 2026-08-03 measured
+  5  settle300   cfcd557b 3a 04     a picture 
+  6  everything  f3639156 41 c3     a picture 
+
+  -> DOES NOT match the recorded matrix - re-read the comment on cam_capture(). Using recipe `vendor` below.
+
+-- image controls: mean RGB after each, 128x128 @ 8 MHz --
+  setting              reg    1st capture        2nd capture       
+  (as begin left it)   0x25    77  78  44         78  79  44       
+  auto-exposure on     0x30    78  81  30         78  81  29       
+  auto-gain on         0x30    78  81  29         78  82  30       
+  auto-WB on           0x30    77  81  30         78  81  32       
+  WB mode office       0x26   102  73  58        101  72  58       
+  WB mode home         0x26    83  72  87         83  73  87       
+  WB mode auto         0x26   100  69  84         99  71  85       
+  EV +1                0x25    97  72  86         96  74  87       
+  EV +2                0x25    95  73  88         93  75  87       
+  EV back to 0         0x25    93  74  87         92  71  89       
+  brightness +1        0x22   107  86 105        105  89 103       
+  brightness +2        0x22   121 104 121        120 104 121       
+  brightness back      0x22    85  73  87         84  74  87       
+  (no setting blanks its first capture - the fault is specific to the resolution register)
+
+-- f128: 128x128 RGB565, resolution register 0x0b, bus 8.0 MHz, recipe vendor --
+  fifo      : 32768 bytes, expected 32768  
+  timing    : setup 0.0 ms, expose 69.4 ms, read 32.9 ms  (0.95 MB/s over the bus)
+  first 16  : 41 8a 41 89 5a 0c 62 4c 5a 0b 49 cc 41 8a 41 ca 
+BEGIN f128 128 128 32768 fe82487e
+QYpBiVoMYkxaC0nMQYpBymLOUoxKS0ILQcpBymrNYoxii1oLScpaS2sOas1azEpM
+QktSTGMOe5BrDmMNWsxazFKMUoxrTnOPa05azFKMWs17kXNPYw1izWKMWox7kHNP
+Yw1ajFKMYw2D0WtPYw5izVrMYsx70HOPY05jDVrLc06D0GtOYw5jDlrNWsxay2MM
+e457j3MPYs5ajFLMa05zj2MOWs5SzVKMc49rTlsMUsxSjFKMY05bDUrLSstKy1LL
+Y01Si1KKSklKSmMNYsxSSkoKSkpCCkIJQgpazFJKOchByToJOclazUqLOckxyDHI
+MckxxzHHSks5iDFIOYkxiEGJOYlKDFJNSgxBy0GKSctqzVqLWotSC0HKScpqjmKN
+Yk1KCkoKUktrDmLNWoxKS0pLUotrDXuPcw5qjmJNWk1aTFpKcw17TmsNYo1aTFqL
+e5BzT2MNWs5ajVqNe9Bzj2MNUotSy2MMe89zTmtNYsxai2MNe9Bzj2tPWw1azXNP
+g5FzT2sOWsxazFrMWsxjDXOPc49jDmLOWs1SzWtPa49jDVrNUoxajHOQYw5azFrM
+UoxKi2tOY01Sy1KKUkpSi2MNUoxKS0pLSkpjDVrMSkpKCkoLQgtBykILWs5KSznJ
+Qco5yTnJUoxCSjnIOcg5yTnJOckxiUoMMYkpRzGIMUdBiTmIUgtajFJLQclByUHJ
+as1ai1JLUgxJi0nLYsxqzVqMUktKCVqLcw9qzWLMWoxSSlqLaw17j2sNasxizFqL
+UotKS2tOc09rDVrMWktay3vPa09jDmMOWs1azXvRa1BjDlrMWo1jDXvQa05jDWLN
+WsxjDXvQc49rD1qOWo5zT4PRc05rDWMNWs1izWLMaw17j3uPaw1izlqNWs1rT3OQ
+Yw5jDVKLWoxzj2sOWsxSzVKMSotrTWtMUstSjEqLUsxjTVKLSkpCSUpKaw5azUpL
+QkpCCkJKOgo6CVsMUko5yEHJQgk5yVKLSko5yDHIMcgxyTHIOchKSjGHMYcxhzGH
+QYlBiVILWkxSC0mKSYpBymrOWkxSS0oMQctBy2LNYw1ajEpKQglSjHMOYw1izFJK
+SkpSS2LNc49rDmLNYsxay1KLUkpzTXuPcw5ajVpNWo1zkWtPaw5izVrNWsx70HOO
+a01azFqLawyD0HNOY0xazVKMWs17kHNPaw5azVrMa0970GtOYw5jDlrNWs1SjGtO
+c49zkGsNWsxSjFrMa01rTmMMWsxSy1KLc49rTmLNWoxSjUpMY01jDFKKUopKSlKL
+Yw1KS0pLSklKCmsNWstSiUpJSklCCUIJQgpazUpKMcg6CToJQglSjEoKQck5yTGJ
+MYkxyTnJSkoxhzGHMccxh0nJSYhSCmKMUgpSCknJQclizVqMUo1CTEILSgtizmrO
+YotSS0oKWotzDmsNas1SS0oKUktqz3uQaw5jDlrNWs1ai1JLc017j2tNWsxazFrM
+e9BzT2sOYw1izVrMe5BzT2NOUotSjGMMfA9rTWMOYs5ijWLOe9FzkGsPWs1SjXNP
+g9FzT2sOYs1izmLNWotrDntQe5BrD1rOWs1azWtPa05jDWLNUoxazGuPY05bDVLL
+UspSymNNY0xSi0qLSkpSzGNNUotKS0oKSkprTlrMUktKC0pLQgs6CkJKWw1CijHI
+Ogg5yDnJUo1CCzmJMYkxiTmJOYk5iEpKMYcxhzGIMYdJi0FJUgtaTVIKUgpByEnK
+Ys5ijlJNUkxCCkIKas1izFqLUktJylJLcw5zDmLNUktKC1KKaw17j3MNasxiy1rL
+WotSS3NOe49rTVrMUotai4PPe05rTWLOWo1ajXuRc45rDVrLWotizYPQc05rDmrN
+Yo1rDoORe09qz2KNWo1zT4PRc09rDmsOYw1izVrMaw17j3uPaw1izVrMWsxrTnOP
+Ww1azFrMWoxzT2sOWo1ajVKMUoxrTmMOUoxKS0pLUstjDVKLUopKSkpKYw5azEpL
+SktCS0IKOgpCSmMNSko5yDnJOck5yVqMSgo5iDmJMYg5iTmJMYlCSzGIMYgxiDGI
+SYtBSVILYo5SC0IKQcpBymrOYo5iTVHLSctJy2LOas5ijVpMSgtajHNOaw5izVpL
+UktajGsNe89rTWMNYsxay1qKUopzTXuOc01ay1qLYsyD0HtPYw1bDVLMWsyD0HNO
+aw1ai1KLaw2D0HNOcw1qzWLNas2DkHNPYw1ajFqMc06D0HNOaw1rDWLMWsxay2sN
+e497j2tPYs1azFrMc09zUGMNWs1SjFqNc5BrDlrNUs1SzFKMa09rTVLLUoxKS1LL
+Yw1Si1JKQklKSmNOWsxKi0pKQkpCSkJJQglizFJKQchByUHIQghSy0JJOcgxyTHJ
+MckxiDnJSgsxiDGIMYgxiEGKQYpSCmLNWkxKC0HKQcpqz2KOWkxSC1ILSgpizmLO
+Wo1SS0oLUkxrT2tPYw5SjEpLUoxjDXuRc09rDmLOWs1ajFKLc057j2tOYsxai2LN
+g5BzT2sPYs5izGLNg5BzT2rOWoxajGsOg9FzT3NPaw5izGsOg9B7j2sOYs1azWtP
+fBFzj2tOaw5jDlrNWs1rD3uQe5BrTmLNWsxazGtOc49jDVsNUsxbDXOQaw5izVrN
+UoxSjGNOW05SjFKMSktSzGMOUotSikqJSopjjVrMSkpKCkoKSgpCCUoKYw1KCUII
+Qgk5yUIKUoxCSjHIMcgxyDnJMYg5yUIKMUgxiDGIMYhJyznJSgpizVJLUgxBikmK
+ao5ijFJLUktKCkoKas5qzmKMWktSClpLcw5zDmKMUktSS1qMYw57kGsOYw5jDVrM
+UsxSi2tPc5BrTmLNYoxizIPQe09rDWMNYsxizIPQc09rDlqMWotrDYPQc05rDWLM
+YsxrDnvQc49rT1rMWsxzTovQc09rDmsNYw1azVqMa057kHuQaw5izVrMWsxzTnOP
+Ww1SzFLMUsxzkGtOWw1azFKLUotrDmsNUotSi0qLWsxjDlKMSktKSkpLYw5SzEpL
+QktCCkIJQglKSVsMQkoyCToJOchCCVrLSgk5yDHIOYgxiCmHOclCCjGHMUgxiDGH
+SctBiUnKYsxSilJKQchJyWrNYsxSSlJLSgtKC2LNYs5azVKLSkpSi2tOa05jDkpL
+UktajGsOe5FzDmrNas1ajGKMUotrTnOPa05azFLMWsx70HNPaw5izWLMYsuDz3uO
+aw1ajFqMaw6D0XNPaw5rDmLNaw170XOPa05azGMMc4+D0HNOa05rDWMNYsxay3NO
+e497z2tNYw1azFrMa05zj2MNYw1azFrMc89jTVsMUsxSzFKMa05bDVLMUoxSi1LM
+Y05SjFJLSkpKS2tPWsxKS0pKSkpKCkIKQgpazUpLOck5yTnJOclSjEIKOck5yTHI
+McgxyDnISkoxhzGHKYcpiEnKQYhSCmKMUkpKDEHLQYpijmLMWstSikpKSkpjDmMO
+Ws1SS0pLUktzTnMOYs1SS1JLWsxrTnvQa05jTWMNWsxajFqMc09zkGsPWo1

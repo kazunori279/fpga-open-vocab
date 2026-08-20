@@ -1,0 +1,77 @@
+### soak p2: 20 x 200 frames, board at 2-1:2
+    (in BOOTSEL, nudging)
+--- p2 run 1/20  18:06:44 ---
+stopped   : 201 frames, 201 good, capture overlapped with the compute, configuration C
+            usb: 0 outages, 0 ms off the bus, 0 re-attaches (#9)
+  frame lines: 201
+    (in BOOTSEL, nudging)
+--- p2 run 2/20  18:08:35 ---
+stopped   : 201 frames, 201 good, capture overlapped with the compute, configuration C
+            usb: 0 outages, 0 ms off the bus, 0 re-attaches (#9)
+  frame lines: 201
+    (in BOOTSEL, nudging)
+--- p2 run 3/20  18:10:25 ---
+stopped   : 201 frames, 201 good, capture overlapped with the compute, configuration C
+            usb: 0 outages, 0 ms off the bus, 0 re-attaches (#9)
+  frame lines: 201
+    (in BOOTSEL, nudging)
+--- p2 run 4/20  18:12:11 ---
+stopped   : 201 frames, 201 good, capture overlapped with the compute, configuration C
+            usb: 0 outages, 0 ms off the bus, 0 re-attaches (#9)
+  frame lines: 201
+    (in BOOTSEL, nudging)
+--- p2 run 5/20  18:13:58 ---
+stopped   : 201 frames, 201 good, capture overlapped with the compute, configuration C
+            usb: 0 outages, 0 ms off the bus, 0 re-attaches (#9)
+  frame lines: 201
+    (in BOOTSEL, nudging)
+--- p2 run 6/20  18:15:45 ---
+stopped   : 201 frames, 201 good, capture overlapped with the compute, configuration C
+            usb: 0 outages, 0 ms off the bus, 0 re-attaches (#9)
+  frame lines: 201
+    (in BOOTSEL, nudging)
+--- p2 run 7/20  18:17:33 ---
+stopped   : 202 frames, 202 good, capture overlapped with the compute, configuration C
+            usb: 0 outages, 0 ms off the bus, 0 re-attaches (#9)
+  frame lines: 202
+    (in BOOTSEL, nudging)
+--- p2 run 8/20  18:19:13 ---
+  (no summary - the run did not finish)
+  frame lines: 203
+--- p2 run 9/20  18:20:12 ---
+  (no summary - the run did not finish)
+  frame lines: 141
+--- p2 run 10/20  18:21:09 ---
+  (no summary - the run did not finish)
+  frame lines: 140
+--- p2 run 11/20  18:22:06 ---
+  (no summary - the run did not finish)
+  frame lines: 141
+--- p2 run 12/20  18:23:03 ---
+  (no summary - the run did not finish)
+  frame lines: 141
+--- p2 run 13/20  18:24:00 ---
+  (no summary - the run did not finish)
+  frame lines: 141
+--- p2 run 14/20  18:24:58 ---
+  (no summary - the run did not finish)
+  frame lines: 142
+--- p2 run 15/20  18:25:56 ---
+  (no summary - the run did not finish)
+  frame lines: 141
+--- p2 run 16/20  18:26:53 ---
+  (no summary - the run did not finish)
+  frame lines: 141
+--- p2 run 17/20  18:27:51 ---
+  (no summary - the run did not finish)
+  frame lines: 141
+--- p2 run 18/20  18:28:48 ---
+  (no summary - the run did not finish)
+  frame lines: 142
+--- p2 run 19/20  18:29:46 ---
+  (no summary - the run did not finish)
+  frame lines: 141
+--- p2 run 20/20  18:30:43 ---
+  (no summary - the run did not finish)
+  frame lines: 141
+### soak p2 done

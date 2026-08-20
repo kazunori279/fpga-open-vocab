@@ -1,0 +1,266 @@
+
+=== M9: fpga-open-vocab - describe it, the board spots it ===
+
+clock     : 280 MHz requested; BOOTSEL is reachable for 1.5 s
+clock     : 280 MHz system, core 1.25 V
+reset     : chip_reset 00010000  (scratch was cold: either the always-on domain went away - power, a brown-out - or this boot came through the bootrom, which clears it too)
+            new this boot: power-on reset - the supply arrived
+waiting for a bitstream on USB CDC (host/demo.py)
+bitstream : 173124 bytes announced, crc32 0a2e9953
+bitstream : received intact
+configure : configured, CDONE high   CDONE=1 nSTATUS=0
+crc       : DMA sniffer, calc=1 out_rev=1 out_inv=1
+model     : 9 layers, 512-d embedding, 131072 B/buffer
+weights   : 780720 B, crc32=0xF368CC6E  (144 ms to hash)
+
+reference : encoder_fast on the flash test vector  (1812 ms)
+
+link      : probing the wire by running the whole test vector over it
+probe     : 3 forward data lines -> 512/512 floats exact, 309 ms
+link      : configuration C, 3 forward data lines, 140.0 MHz
+
+camera    : exposure ramp 4 5 4 4 4 4 5 4 5 5 4 5 4 5 5 5 5 4 4 5 5 5 5 5 5 4 4 5 4 5 5 5 5 5 5 4 4 5 4 4
+camera    : live 128x128 RGB565, id 0x82, 16.0 MHz, expose 58 ms, read 16 ms, exposure settled after 41 frames
+            mean RGB 7 0 7  (tuned camera on a neutral scene: about 115 107 105)
+            ^ that is the bottom of the sensor's range after 41 frames of auto-exposure.
+              If the room is not actually dark, the sensor has not started: check the lens cap,
+              then cold-power-cycle the board - USB out for ten seconds, not a reflash.
+
+queries   : waiting for a query set on USB CDC (host/demo.py)
+queries   : 2 accepted, 512-d, crc ok
+            scored as z = (cos - background) / std, where the background is this room's
+            own mean over its first 30 frames and is then FROZEN - so a thing left in
+            shot keeps its score instead of decaying into the furniture. 'N' re-learns
+            it, 'H' switches to tracking. The COCO figures below are only the seed for
+            frame 0 and the fixed std.
+            std is THIS ROOM's, measured over the same 30 frames ('S' switches to COCO's).
+            The thresholds below still mean the 90th percentile of a background; the
+            background they now mean it against is this room empty, not 5000 COCO photos.
+            z is EMA-smoothed at 0.35 (~5 frames) before ranking, so a state has to
+            persist for about two seconds to be called.
+            an opened book       match above z 1.23   (COCO background -0.151 +- 0.030, so cos -0.114)
+            a closed book        match above z 1.23   (COCO background -0.159 +- 0.035, so cos -0.116)
+
+loop      : capture, 8 convs on the T8, pool and head, then one cosine per query. 'B' for BOOTSEL, 'R' to restart,
+            'P' to dump the next frame for host/cam.py, 'V' to dump its 512 floats for host/caption.py,
+            'E' to provoke a fault so D1 shows its fault display, 'H' to freeze/unfreeze the background,
+            'S' to switch the spread between this room's and COCO's, 'W' to hang on purpose and see
+            the watchdog name the stage, 'C' to stall the camera bus on purpose and see it cost one frame,
+            'U' to drop off USB on purpose and watch it come back, 'I' to drop off and refuse to,
+            'N' to forget it and learn it again from now. 'P' and 'V' together describe the same frame.
+            'O' closes the timing window, prints it and flips the capture between overlapped and serial;
+            'D' does the same and flips the trigger between late and at-the-collect, which is #14's A/B.
+            scores are z against this room's background, ranked; '*' means over its threshold.
+            '1'..'6' enrol the next 20 frames as that class, and press again on a LATER visit
+            to fold a second one in - 2 visits is what makes the enrolment guard mean
+            something. Two classes in and the board decides by nearest reference instead of
+            by threshold, and calls a frame absent when it is further than 2.0 sep from every
+            one of them - see M21. The empty scene is not enrolled and '0' does nothing; see #18.
+            The first 30 frames set the baseline and it is then frozen, so anything left in
+            shot KEEPS its score. Point the camera at the empty scene for those frames.
+            Send a new set at any time to re-query - that resets the baseline too.
+
+frame     0 :  an opened book +0.17  a closed book +0.12   led   3/184 h0.14 lvl+0.15   -
+frame     1 :  an opened book +0.10  a closed book +0.06   led   1/210 h0.08 lvl+0.08   -
+frame     2 :  an opened book +0.07  a closed book +0.03   led   0/226 h0.05 lvl+0.05   -
+frame     3 :  an opened book +0.04  a closed book +0.02   led   0/236 h0.03 lvl+0.03   -
+frame     4 :  an opened book +0.03  a closed book +0.01   led   0/241 h0.03 lvl+0.02   -
+frame     5 :  an opened book +0.02  a closed book +0.01   led   0/245 h0.02 lvl+0.01   -
+frame     6 :  an opened book +0.02  a closed book +0.01   led   0/246 h0.02 lvl+0.02   -
+frame     7 :  an opened book +0.00  a closed book -0.01   led   0/253 h0.00 lvl-0.00   -
+background: after 8 frames (warming up, room spread), this room reads  an opened book -0.136 +-0.0004 (COCO -0.151 +-0.0303)  a closed book -0.148 +-0.0008 (COCO -0.159 +-0.0351)
+frame     8 :  a closed book +0.10  an opened book -0.04   led   1/212 h0.08 lvl+0.03   -
+frame     9 :  an opened book -0.25  a closed book -0.37   led   0/255 h0.00 lvl-0.31   -
+frame    10 :  an opened book -0.35  a closed book -0.47   led   0/255 h0.00 lvl-0.41   -
+frame    11 :  an opened book -0.01  a closed book -0.25   led   0/255 h0.00 lvl-0.13   -
+frame    12 :  an opened book +0.21  a closed book +0.05   led   5/169 h0.17 lvl+0.13   -
+frame    13 :  an opened book -0.02  a closed book -0.21   led   0/255 h0.00 lvl-0.12   -
+frame    14 :  an opened book -0.18  a closed book -0.25   led   0/255 h0.00 lvl-0.21   -
+frame    15 :  an opened book -0.23  a closed book -0.45   led   0/255 h0.00 lvl-0.34   -
+frame    16 :  an opened book -0.30  a closed book -0.54   led   0/255 h0.00 lvl-0.42   -
+frame    17 :  an opened book +0.07  a closed book -0.08   led   0/224 h0.06 lvl-0.00   -
+frame    18 :  a closed book +0.34  an opened book +0.22   led  15/126 h0.27 lvl+0.28   -
+frame    19 :  a closed book +0.03  an opened book +0.02   led   0/244 h0.02 lvl+0.02   -
+frame    20 :  an opened book -0.06  a closed book -0.13   led   0/255 h0.00 lvl-0.10   -
+frame    21 :  a closed book -0.20  an opened book -0.20   led   0/255 h0.00 lvl-0.20   -
+frame    22 :  an opened book -0.28  a closed book -0.29   led   0/255 h0.00 lvl-0.28   -
+frame    23 :  a closed book -0.23  an opened book -0.26   led   0/255 h0.00 lvl-0.24   -
+frame    24 :  an opened book -0.46  a closed book -0.68   led   0/255 h0.00 lvl-0.57   -
+frame    25 :  a closed book -0.22  an opened book -0.26   led   0/255 h0.00 lvl-0.24   -
+frame    26 :  a closed book -0.16  an opened book -0.17   led   0/255 h0.00 lvl-0.16   -
+frame    27 :  a closed book -0.13  an opened book -0.21   led   0/255 h0.00 lvl-0.17   -
+frame    28 :  an opened book -0.30  a closed book -0.37   led   0/255 h0.00 lvl-0.33   -
+frame    29 :  an opened book -0.47  a closed book -0.59   led   0/255 h0.00 lvl-0.53   -
+frame    30 :  an opened book -0.36  a closed book -0.40   led   0/255 h0.00 lvl-0.38   -
+frame    31 :  a closed book -0.21  an opened book -0.23   led   0/255 h0.00 lvl-0.22   -
+frame    32 :  an opened book -0.48  a closed book -0.59   led   0/255 h0.00 lvl-0.53   -
+frame    33 :  an opened book -0.46  a closed book -0.64   led   0/255 h0.00 lvl-0.55   -
+frame    34 :  a closed book -0.11  an opened book -0.17   led   0/255 h0.00 lvl-0.14   -
+frame    35 :  an opened book -0.05  a closed book -0.12   led   0/255 h0.00 lvl-0.08   -
+frame    36 :  an opened book -0.21  a closed book -0.25   led   0/255 h0.00 lvl-0.23   -
+frame    37 :  an opened book -0.21  a closed book -0.21   led   0/255 h0.00 lvl-0.21   -
+frame    38 :  an opened book -0.38  a closed book -0.48   led   0/255 h0.00 lvl-0.43   -
+frame    39 :  a closed book -0.23  an opened book -0.25   led   0/255 h0.00 lvl-0.24   -
+frame    40 :  an opened book -0.25  a closed book -0.25   led   0/255 h0.00 lvl-0.25   -
+frame    41 :  an opened book -0.26  a closed book -0.37   led   0/255 h0.00 lvl-0.32   -
+frame    42 :  an opened book -0.33  a closed book -0.61   led   0/255 h0.00 lvl-0.47   -
+frame    43 :  an opened book -0.38  a closed book -0.73   led   0/255 h0.00 lvl-0.55   -
+frame    44 :  an opened book -0.40  a closed book -0.76   led   0/255 h0.00 lvl-0.58   -
+frame    45 :  an opened book -0.41  a closed book -0.76   led   0/255 h0.00 lvl-0.59   -
+frame    46 :  an opened book -0.58  a closed book -1.03   led   0/255 h0.00 lvl-0.80   -
+frame    47 :  an opened book -0.45  a closed book -0.79   led   0/255 h0.00 lvl-0.62   -
+frame    48 :  an opened book -0.34  a closed book -0.73   led   0/255 h0.00 lvl-0.54   -
+frame    49 :  an opened book -0.47  a closed book -0.77   led   0/255 h0.00 lvl-0.62   -
+frame    50 :  an opened book -0.30  a closed book -0.63   led   0/255 h0.00 lvl-0.47   -
+frame    51 :  an opened book -0.38  a closed book -0.64   led   0/255 h0.00 lvl-0.51   -
+frame    52 :  an opened book -0.31  a closed book -0.76   led   0/255 h0.00 lvl-0.53   -
+frame    53 : no usable frame off the camera
+frame    54 :  an opened book -0.38  a closed book -0.78   led   0/255 h0.00 lvl-0.58   -
+frame    55 :  an opened book -0.32  a closed book -0.87   led   0/255 h0.00 lvl-0.59   -
+frame    56 :  an opened book -0.31  a closed book -0.90   led   0/255 h0.00 lvl-0.61   -
+frame    57 :  an opened book -0.41  a closed book -1.02   led   0/255 h0.00 lvl-0.72   -
+frame    58 :  an opened book -0.43  a closed book -1.01   led   0/255 h0.00 lvl-0.72   -
+frame    59 :  an opened book -0.47  a closed book -1.03   led   0/255 h0.00 lvl-0.75   -
+frame    60 : no usable frame off the camera
+frame    61 :  an opened book -0.41  a closed book -0.86   led   0/255 h0.00 lvl-0.64   -
+frame    62 : no usable frame off the camera
+frame    63 :  an opened book -0.33  a closed book -0.82   led   0/255 h0.00 lvl-0.57   -
+frame    64 : no usable frame off the camera
+frame    65 :  an opened book -0.42  a closed book -0.93   led   0/255 h0.00 lvl-0.68   -
+frame    66 :  an opened book -0.44  a closed book -1.00   led   0/255 h0.00 lvl-0.72   -
+frame    67 :  an opened book -0.56  a closed book -1.13   led   0/255 h0.00 lvl-0.84   -
+frame    68 :  an opened book -0.61  a closed book -1.30   led   0/255 h0.00 lvl-0.96   -
+frame    69 : no usable frame off the camera
+frame    70 :  an opened book -0.61  a closed book -1.44   led   0/255 h0.00 lvl-1.03   -
+frame    71 :  an opened book -0.63  a closed book -1.33   led   0/255 h0.00 lvl-0.98   -
+frame    72 :  an opened book -0.56  a closed book -1.20   led   0/255 h0.00 lvl-0.88   -
+frame    73 : no usable frame off the camera
+frame    74 : no usable frame off the camera
+frame    75 :  an opened book -0.60  a closed book -1.22   led   0/255 h0.00 lvl-0.91   -
+frame    76 :  an opened book -0.56  a closed book -1.00   led   0/255 h0.00 lvl-0.78   -
+frame    77 : no usable frame off the camera
+frame    78 :  an opened book -0.60  a closed book -1.05   led   0/255 h0.00 lvl-0.82   -
+frame    79 : no usable frame off the camera
+frame    80 :  an opened book -0.54  a closed book -1.04   led   0/255 h0.00 lvl-0.79   -
+frame    81 : no usable frame off the camera
+frame    82 : no usable frame off the camera
+frame    83 : no usable frame off the camera
+frame    84 : no usable frame off the camera
+frame    85 : no usable frame off the camera
+frame    86 : no usable frame off the camera
+frame    87 :  an opened book -0.57  a closed book -1.18   led   0/255 h0.00 lvl-0.87   -
+frame    88 : no usable frame off the camera
+frame    89 : no usable frame off the camera
+frame    90 : no usable frame off the camera
+frame    91 : no usable frame off the camera
+frame    92 : no usable frame off the camera
+frame    93 : no usable frame off the camera
+frame    94 : no usable frame off the camera
+frame    95 : no usable frame off the camera
+frame    96 : no usable frame off the camera
+frame    97 : no usable frame off the camera
+frame    98 : no usable frame off the camera
+frame    99 : no usable frame off the camera
+frame   100 : no usable frame off the camera
+frame   101 : no usable frame off the camera
+frame   102 : no usable frame off the camera
+frame   103 : no usable frame off the camera
+frame   104 : no usable frame off the camera
+frame   105 : no usable frame off the camera
+frame   106 : no usable frame off the camera
+frame   107 : no usable frame off the camera
+frame   108 : no usable frame off the camera
+frame   109 : no usable frame off the camera
+frame   110 : no usable frame off the camera
+frame   111 : no usable frame off the camera
+frame   112 : no usable frame off the camera
+frame   113 : no usable frame off the camera
+frame   114 : no usable frame off the camera
+frame   115 : no usable frame off the camera
+frame   116 :  an opened book -0.45  a closed book -1.04   led   0/255 h0.00 lvl-0.74   -
+frame   117 : no usable frame off the camera
+frame   118 : no usable frame off the camera
+frame   119 : no usable frame off the camera
+frame   120 : no usable frame off the camera
+frame   121 : no usable frame off the camera
+frame   122 : no usable frame off the camera
+frame   123 : no usable frame off the camera
+frame   124 : no usable frame off the camera
+frame   125 : no usable frame off the camera
+frame   126 : no usable frame off the camera
+frame   127 : no usable frame off the camera
+frame   128 : no usable frame off the camera
+frame   129 : no usable frame off the camera
+frame   130 : no usable frame off the camera
+frame   131 : no usable frame off the camera
+frame   132 : no usable frame off the camera
+frame   133 : no usable frame off the camera
+frame   134 : no usable frame off the camera
+frame   135 : no usable frame off the camera
+frame   136 : no usable frame off the camera
+frame   137 : no usable frame off the camera
+frame   138 : no usable frame off the camera
+frame   139 : no usable frame off the camera
+frame   140 : no usable frame off the camera
+frame   141 : no usable frame off the camera
+frame   142 : no usable frame off the camera
+frame   143 : no usable frame off the camera
+frame   144 : no usable frame off the camera
+frame   145 : no usable frame off the camera
+frame   146 : no usable frame off the camera
+frame   147 : no usable frame off the camera
+frame   148 : no usable frame off the camera
+frame   149 : no usable frame off the camera
+frame   150 : no usable frame off the camera
+frame   151 : no usable frame off the camera
+frame   152 : no usable frame off the camera
+frame   153 : no usable frame off the camera
+frame   154 : no usable frame off the camera
+frame   155 : no usable frame off the camera
+frame   156 : no usable frame off the camera
+frame   157 : no usable frame off the camera
+frame   158 : no usable frame off the camera
+frame   159 : no usable frame off the camera
+frame   160 : no usable frame off the camera
+frame   161 : no usable frame off the camera
+frame   162 : no usable frame off the camera
+frame   163 : no usable frame off the camera
+frame   164 : no usable frame off the camera
+frame   165 : no usable frame off the camera
+frame   166 : no usable frame off the camera
+frame   167 : no usable frame off the camera
+frame   168 : no usable frame off the camera
+frame   169 : no usable frame off the camera
+frame   170 : no usable frame off the camera
+frame   171 : no usable frame off the camera
+frame   172 : no usable frame off the camera
+frame   173 : no usable frame off the camera
+frame   174 : no usable frame off the camera
+frame   175 : no usable frame off the camera
+frame   176 : no usable frame off the camera
+frame   177 : no usable frame off the camera
+frame   178 : no usable frame off the camera
+frame   179 : no usable frame off the camera
+frame   180 : no usable frame off the camera
+frame   181 : no usable frame off the camera
+frame   182 : no usable frame off the camera
+frame   183 : no usable frame off the camera
+frame   184 : no usable frame off the camera
+frame   185 : no usable frame off the camera
+frame   186 : no usable frame off the camera
+frame   187 : no usable frame off the camera
+frame   188 : no usable frame off the camera
+frame   189 : no usable frame off the camera
+frame   190 : no usable frame off the camera
+frame   191 : no usable frame off the camera
+frame   192 : no usable frame off the camera
+frame   193 : no usable frame off the camera
+frame   194 : no usable frame off the camera
+frame   195 : no usable frame off the camera
+frame   196 : no usable frame off the camera
+frame   197 : no usable frame off the camera
+frame   198 : no usable frame off the camera
+frame   199 : no usable frame off the camera
+frame   200 : no usable frame off the camera
+frame   201 : no usable frame off the camera
+frame   202 : no usable frame off the camera

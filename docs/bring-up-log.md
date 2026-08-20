@@ -11,6 +11,82 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-20, evening — the first soak with a bus-side witness, and the room went dark in the middle of it
+
+Twenty `m9` runs of 200 frames at 280/140, 18:04 to 18:31, with
+`host/usb_watch.py` recording every hub port throughout. That watcher is the
+whole point: it is the fourth owed item on
+[#9](https://github.com/kazunori279/fpga-open-vocab/issues/9) and the first
+bus-side record any soak in this repo has had. Archive and detail in
+[`bench/soak/20260820-usb-p2/`](../bench/soak/20260820-usb-p2/); the harness is
+the new `bench/soak/usb_soak.sh`, which names neither the CDC device nor the
+port and looks the port up once while the board is still on the bus.
+
+**No outage, and one long negative result.** Runs 1-7 each closed with
+`usb: 0 outages, 0 ms off the bus, 0 re-attaches`. Better, the middle of the
+window is an accident worth more than the runs: **18:17:35 to 18:32:19, fourteen
+minutes and forty-four seconds, not one port transition**, while the board's own
+frame counter ran **0 → 2608 without a reboot**. The next transition after it is
+a VBUS cycle of mine, identifiable because `2-2:2` — the USB3 twin of the same
+physical socket — moves in the same sample.
+
+Seven clean runs against an event that showed up once in eight is not power
+enough to say the new port and cable were the participant. What changed is that
+the next recurrence is attributable.
+
+**#9's owed item 1 was asking for something already true.** It read "a different
+hub, or the board straight into a Mac port". The board has been straight into a
+Mac port the whole time; there is no external hub here and never was. `2-1` is
+the Mac mini M4's *internal* two-port USB2 hub (`05ac:800b`) fronting the two
+front-panel USB-C ports, `2-2` is its USB3 twin, and the three rear Thunderbolt
+ports are separate controllers with no per-port power switching — moving there
+would cost both the only known recovery and the only instrument.
+`host/bootsel.py:33` said all of that already. What was actually changed tonight
+is the port within that hub (`2-1:1` → `2-1:2`) and the cable.
+
+**Runs 8-20 are void, and the reason is not the bus.** The room got dark at
+about 18:19. `ft_acquire()`'s exposure ramp read `4 5 4 4 4 ...` for all forty
+frames, reported `exposure settled after 41 frames` — which is the loop running
+out of its bound, not converging — and handed back a frame with mean RGB 7 0 7.
+The run started anyway and scored 200 frames at `led 0/255`. Eleven more runs
+followed on the same never-rebooted board.
+
+The gap is narrow and specific: after the ramp, `ft_acquire()` refuses only a
+wrong FIFO length and an *exactly* constant frame. A dark scene is neither — it
+has sensor noise. `FLOOR` and `rose` decide when to stop waiting and are then
+discarded, so the run proceeds on precisely the frame the convergence test
+rejected. The downstream per-frame guard was fine and did fire, but only later,
+once the room was dark enough for frames to come back exactly constant. Filed as
+[#26](https://github.com/kazunori279/fpga-open-vocab/issues/26); `frame.c:1500`
+argues on the record for reporting rather than refusing, and that argument now
+has a twelve-bench bill attached to it.
+
+**The camera scare, and what it actually was.** After the soak m9 would not
+bring the camera up at all — `still a constant fill (08 01) after 41 frames`,
+twice, across a reflash and a full VBUS cycle. `forgix_cam_probe` cleared the
+hardware completely: sensor id `0x82` agreeing between bit-bang and PIO at every
+rate from 0.5 to 16 MHz, thirteen image controls all returning sensible means,
+and a real picture out of the closing f128.
+
+But the probe failed **its own recorded matrix**, and printed so. Rows 0, 2 and
+4 came back as the `08 01` constant where 2026-08-03 recorded pictures. Rows 2
+and 4 write no registers at all, and neither do rows 5 and 6 — so four rows of
+byte-identical bus traffic split on nothing but `sleep_ms(300)`. That is not the
+08-03 redundant-write fault, and it is not the dark room either: `08 01` is an
+exact fill, which is what the FIFO returns when no frame has been written, and a
+dark room returns noise. What it looks like is the sensor needing a contiguous
+stretch of not being triggered after `cam_begin()`, with each trigger restarting
+it — which would explain why m9's forty iterations of capture-plus-50-ms never
+get there while one 300 ms sleep does. Filed as
+[#27](https://github.com/kazunori279/fpga-open-vocab/issues/27). The threshold
+between 50 and 300 ms has not been measured and no fix should be sized until it
+is.
+
+It is intermittent: the next boot ramped `5 5 32 54 53 55 56` and settled in
+seven frames. The board is back on `forgix_m9` and working.
+
+---
+
 ### 2026-08-20, host — a stale RP2350 mount held Finder dead for eight days, and `diskutil unmount force` is not the way out
 
 [building.md](building.md#flashing-the-mcu) has said since 2026-08-15 that
