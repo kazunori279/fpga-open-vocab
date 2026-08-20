@@ -81,8 +81,42 @@ timestamp in the filename — see 11:44 below.
 | `m9_cue-20260820-062932.log` | 50.8% | 50.0% | 08-20 06:29 | **a glass with tea / an empty glass**, second run of the pair. Margin AUC 0.409 — inverted, ceiling 0.591, and the oracle on the held-out frames reaches 56.7% against a chance of 50.0%. Fenced by book controls either side, so "the scene did not show it" is not available here |
 | `m9_cue-20260820-063324.log` | 48.3% | 60.6% | 08-20 06:33 | **glass, third run**, four minutes after the second — and the margin has changed sign: AUC 0.680, upright, where 06:29 read 0.409 and 15:27 read 0.301. Same phrases, same glass, same tea. A pair whose axis does not keep its direction cannot be repaired by renaming it. The archived frames were rendered and the staging did not move |
 | `m9_cue-20260820-063704.log` | 98.3% | 98.3% | 08-20 06:37 | **book control B**, thirteen minutes after A and on the same desk. Ceiling 0.950, `lost` 1.7. Together with A this is the strongest control the project has run: the glass failure has nowhere left to hide but the pair |
+| `m9_cue-20260820-131217.log` | 97.5% | 97.2% | 08-20 13:12 | **a red cube / a blue cube**, and **the only bench in here run with contrast queries** — the frame lines say `a red cube~`, and the `~` is the difference. `probe_ceiling.py` refuses it (the cued labels are not the query names) and **the live figure is not comparable to any row above**: each query was phrased as the negative of the other, so part of the separation was built in the text tower rather than measured in the encoder. Kept as one half of a pair — see the note below |
 | `m9_cue-smoke-2e48d86.log` | 37.5% | 37.5% | | `/tmp/m9_cue.log` as it stood after flashing the one-sided guard — a smoke test, kept because it is the only log of that firmware running |
 | `m9_cue_fake_d.log` | 58.3% | 48.3% | | **synthetic.** A doctored copy of `m9_cue-20260816-172256.log`, made to exercise a probe against a class that was never in the room. Not a bench, and it will happily score like one if you forget that |
+
+## Bare queries, and the one run that is not
+
+Every row in the manifest above except 08-20 13:12 was run with **bare**
+queries — two phrases, no negatives:
+
+```
+uv run --script host/cue.py --enrol \
+  --scene "an empty glass" --scene "a glass with tea" \
+  "an empty glass" "a glass with tea"
+```
+
+`host/demo.py` also accepts a **contrast** query, `"a red cube / a blue cube /
+a cube"`, where everything after the first `/` is subtracted from the positive.
+The board marks those on every frame line with a trailing `~`, and two things
+follow that are easy to miss:
+
+- **`tools/probe_ceiling.py` refuses the log.** It requires the cued labels and
+  the query names to be the same strings, because that is what makes the
+  margin's orientation knowable, and `a red cube` ≠ `a red cube~`. It skips
+  rather than guessing which way round the margin goes.
+- **The number means something else.** Phrasing each query as the negative of
+  the other makes the pair contrastive *in the text tower*. A high margin then
+  does not establish that the image encoder carries the distinction, which is
+  the whole question [#23](https://github.com/kazunori279/fpga-open-vocab/issues/23)
+  exists to ask — and rephrasing is the first candidate on that issue's own list
+  of things that might repair a pair.
+
+So a contrast run is not a substitute for a bare one. It is worth having as the
+**second half of a pair**: the same scene, unmoved, run both ways, with the
+difference between them measuring what the rephrasing bought. 08-20 13:12 is the
+contrast half of a red/blue cube pair whose bare half has not been run yet, and
+until it is, that run measures nothing on its own.
 
 ## The `.cues` sidecars, and the three logs that have none
 
