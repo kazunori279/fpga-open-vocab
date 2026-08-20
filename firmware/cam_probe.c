@@ -298,6 +298,160 @@ int main(void)
                flat == want_flat ? "" : "<-- NOT what 2026-08-03 measured");
     }
 
+    // --- the settle sweep (#27) ---------------------------------------------
+    // The matrix above says a 300 ms quiet stretch works and 0 does not. Nobody
+    // has looked between them, and until somebody does, any settle written into
+    // ft_acquire() is a constant fitted to one measurement.
+    //
+    // WHY THIS CAN BE SWEPT AT ALL, AND WHAT CHECKS IT. Once the sensor starts
+    // writing frames it keeps writing them - the twenty-six captures in the
+    // image-controls section below run at settle 0 and all produce pictures - so
+    // a naive sweep measures its first success and then nothing. cam_begin()
+    // writes CAM_REG_SENSOR_RESET, which should put it back to not-started, and
+    // if it does then each row is an independent trial and the whole sweep fits
+    // in one boot instead of one row per VBUS cycle.
+    //
+    // That assumption is checked by the DESCENDING PASS, not by a preflight
+    // triad. The obvious triad - long settle, then settle 0 with no reset, then
+    // settle 0 after a reset, expecting picture / picture / CONSTANT - cannot
+    // work, because its third row only reads CONSTANT when the settle fault is
+    // present, and whether it is present is the question. On 2026-08-21 that row
+    // returned a picture and the triad called the reset broken, when the truth
+    // was that the camera had gone back to the 08-03 state and there was no
+    // settle fault to un-start from. The descending pass has no such ambiguity:
+    // it opens at 400 ms, which works, so if cam_begin() does NOT un-start the
+    // sensor then every row after it works too and `down` reads full marks all
+    // the way to 0 while `up` does not. Disagreement between the two columns is
+    // the failure signal, and both columns had to be collected anyway.
+    //
+    // The one preflight kept is the premise underneath all of it - that a
+    // started sensor stays started. It runs rewrite = false, which with
+    // last_fmt/last_mode already set writes NO registers at all. That is
+    // deliberate: the same check with rewrite = true is a second identical
+    // FORMAT and RESOLUTION write, which is the *2026-08-03 redundant-write
+    // fault*, a different bug that blanks the next frame by itself.
+    //
+    // WHAT IS ALREADY KNOWN AND IS NOT BEING RE-MEASURED. It is not cumulative
+    // time since cam_begin(): m9's ft_acquire() triggers 40 times over ~3.4 s
+    // and never leaves the constant fill. It does not have to be the FIRST quiet
+    // stretch either: row 5 above succeeds after rows 0-4 have already failed.
+    // So what is being measured here is one number - how long the sensor has to
+    // go untriggered before it will write a frame.
+    //
+    // rewrite = true in the sweep rows, because a sensor reset puts FORMAT and
+    // RESOLUTION back to whatever it boots with while cam.c's last_fmt/last_mode
+    // still claim otherwise. A write after a reset is a first write and not a
+    // redundant one, so it does not trip the 08-03 fault - matrix row 0 has that
+    // exact shape and is a picture. It is also the shape ft_acquire() has on its
+    // first capture, which is the case that matters.
+    //
+    // THREE TRIES PER VALUE, and both directions. Three because a threshold that
+    // is actually a probability should not read as a crisp edge; both directions
+    // because they are the control described above, and because an order effect
+    // that is not the reset would show up the same way.
+    static const uint32_t SETTLE_MS[] = { 0, 25, 50, 75, 100, 125, 150,
+                                          200, 250, 300, 400 };
+    const int NSETTLE = (int)(sizeof SETTLE_MS / sizeof SETTLE_MS[0]);
+    const int TRIES   = 3;
+
+    printf("\n-- settle sweep (#27): how long untriggered before the sensor "
+           "writes a frame --\n");
+
+    // The premise, printed as a claim and checked as one.
+    bool stays_started;
+    {
+        const cam_recipe_t warm = { "reset+400", true,  false, 400 };
+        const cam_recipe_t bare = { "no writes", false, false,   0 };
+        cam_begin(id, false);
+        uint32_t l1 = cam_capture(&warm, m128, CAM_IMAGE_PIX_FMT_RGB565,
+                                  raw, RAW_MAX, NULL);
+        bool p1 = l1 == 128u * 128u * 2u && !cam_frame_is_constant(raw, l1);
+        uint32_t l2 = cam_capture(&bare, m128, CAM_IMAGE_PIX_FMT_RGB565,
+                                  raw, RAW_MAX, NULL);
+        bool p2 = l2 == 128u * 128u * 2u && !cam_frame_is_constant(raw, l2);
+        stays_started = p1 && p2;
+        printf("  premise   : reset then 400 ms -> %s;  then settle 0 with no "
+               "register writes -> %s\n",
+               p1 ? "a picture" : "CONSTANT",
+               p2 ? "a picture" : "CONSTANT");
+        if (!stays_started)
+            printf("              *** a started sensor did not stay started, "
+                   "which is not what 08-20\n"
+                   "              recorded. Read the table below against that, "
+                   "not on its own.\n");
+    }
+
+    printf("  %-10s %-7s %-7s\n", "settle_ms", "up", "down");
+    int hits[2][sizeof SETTLE_MS / sizeof SETTLE_MS[0]];
+    for (int pass = 0; pass < 2; pass++) {
+        for (int j = 0; j < NSETTLE; j++) {
+            const int i = pass == 0 ? j : NSETTLE - 1 - j;
+            const cam_recipe_t r = { "sweep", true, false, SETTLE_MS[i] };
+            int got = 0;
+            for (int k = 0; k < TRIES; k++) {
+                cam_begin(id, false);
+                uint32_t len = cam_capture(&r, m128, CAM_IMAGE_PIX_FMT_RGB565,
+                                           raw, RAW_MAX, NULL);
+                if (len == 128u * 128u * 2u && !cam_frame_is_constant(raw, len))
+                    got++;
+            }
+            hits[pass][i] = got;
+        }
+    }
+    for (int i = 0; i < NSETTLE; i++)
+        printf("  %-10u %d/%d     %d/%d\n", (unsigned)SETTLE_MS[i],
+               hits[0][i], TRIES, hits[1][i], TRIES);
+
+    // Said here rather than left to whoever reads the table, because the three
+    // ways it can be empty - the fault absent, the reset not un-starting, a
+    // threshold that is really a probability - all print as a plausible column
+    // of numbers, and the first of them is what 2026-08-21 actually returned.
+    {
+        int first_up = -1, first_dn = -1, partial = 0;
+        bool up_all = true, dn_all = true;
+        for (int i = 0; i < NSETTLE; i++) {
+            if (first_up < 0 && hits[0][i] == TRIES) first_up = (int)SETTLE_MS[i];
+            if (first_dn < 0 && hits[1][i] == TRIES) first_dn = (int)SETTLE_MS[i];
+            if (hits[0][i] > 0 && hits[0][i] < TRIES) partial++;
+            if (hits[1][i] > 0 && hits[1][i] < TRIES) partial++;
+            if (hits[0][i] != TRIES) up_all = false;
+            if (hits[1][i] != TRIES) dn_all = false;
+        }
+        if (hits[0][0] == TRIES && hits[1][0] == TRIES)
+            printf("  -> settle 0 works %d/%d in both directions, so the fault "
+                   "#27 is about is NOT\n"
+                   "     present this boot and there is nothing here to "
+                   "threshold. The matrix above\n"
+                   "     says which state the camera is in instead.\n",
+                   TRIES, TRIES);
+        else if (dn_all && !up_all)
+            printf("  -> the descending pass worked everywhere, including values "
+                   "the ascending pass\n"
+                   "     failed at: cam_begin() does not un-start the sensor, so "
+                   "no threshold can be\n"
+                   "     read off this. One value per VBUS cycle is the "
+                   "fallback.\n");
+        else if (first_up < 0 || first_dn < 0)
+            printf("  -> no value tried was reliable in both directions - the "
+                   "threshold is above %u ms.\n",
+                   (unsigned)SETTLE_MS[NSETTLE - 1]);
+        else if (first_up != first_dn)
+            printf("  -> ascending says %d ms, descending says %d ms. An order "
+                   "effect, not a threshold.\n", first_up, first_dn);
+        else
+            printf("  -> reliable from %d ms in both directions, with %d "
+                   "partial row%s below it.\n",
+                   first_up, partial, partial == 1 ? "" : "s");
+    }
+
+    // Leave the sensor started, so the sections below measure what they were
+    // written to measure rather than this one's last row.
+    {
+        const cam_recipe_t warm = { "restart", true, false, 400 };
+        cam_begin(id, false);
+        cam_capture(&warm, m128, CAM_IMAGE_PIX_FMT_RGB565, raw, RAW_MAX, NULL);
+    }
+
     const cam_recipe_t *use = &CAM_RECIPE_VENDOR;
     printf("\n  -> %s. Using recipe `%s` below.\n",
            as_expected ? "Matches the recorded matrix exactly"
