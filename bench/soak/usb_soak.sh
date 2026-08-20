@@ -53,7 +53,14 @@ while [ $i -le "$RUNS" ]; do
   $UV run host/demo.py "an opened book" "a closed book" \
       --frames "$FRAMES" --out "$out" >/dev/null 2>&1
   echo "--- $TAG run $i/$RUNS  $(date +%H:%M:%S) ---"
-  grep -h "stopped   :\|hang      :\|usb: " "$out" 2>/dev/null \
+  # The three flags at the end are the ones a run can be thrown out by without
+  # re-reading its banner, which is exactly what runs 8-20 of 20260820-usb-p2
+  # needed and did not have: they scored a black picture for twelve runs while
+  # the only warning sat nine lines into a banner this loop never printed.
+  # Anchored to the summary's twelve-space indent, because "scene: " unanchored
+  # also matches ft_acquire()'s own "tuned camera on a neutral scene:" note.
+  grep -hE "stopped   :|hang      :|usb: |^ {12}(scene|enrolment|lastwords): " \
+      "$out" 2>/dev/null \
     || echo "  (no summary - the run did not finish)"
   grep -c "^frame" "$out" 2>/dev/null | sed 's/^/  frame lines: /'
   grep -h "^\[host\]" "$out" 2>/dev/null | sed 's/^/  /'

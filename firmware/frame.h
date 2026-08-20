@@ -211,6 +211,15 @@ size_t ft_recv_bitstream(int hunt_s);
 // therefore not be holding anything.
 const void *ft_acquire(float in_scale);
 
+// #26. NULL when the acquire is confident in the frame it returned; otherwise a
+// short phrase naming the doubt, valid until the next ft_acquire(). ft_acquire()
+// has always printed its warnings, but a warning in a nine-line banner is not
+// something a run can be thrown out by afterwards - on 2026-08-20 it printed
+// three of them and twelve consecutive runs then scored a black picture. A
+// caller that reads this can carry it into its own end-of-run summary, where the
+// log is still being looked at. It is not a refusal; see FLOOR in frame.c.
+const char *ft_acquire_doubt(void);
+
 // Every frame after that one: capture, length and blank checks, convert. NULL if
 // the frame was not usable. Silent, and only valid after ft_acquire() returned
 // non-NULL - the bring-up set the sensor mode this reuses. Also costs the arena.

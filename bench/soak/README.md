@@ -28,6 +28,9 @@ the case the watchdog scratch cannot survive by construction — plus the
 **And [`20260821-q25/`](20260821-q25/)**, three short runs verifying the
 degenerate-enrolment guard: a query set whose level axis is identically zero,
 one that is healthy, and one mixed set that a naive rule would have failed.
+**[`20260821-q26/`](20260821-q26/)** is its twin for the scene: the acquire's
+doubt now reaches the `stopped :` summary, which is what runs 8–20 below needed
+and did not have.
 
 ## Manifest
 

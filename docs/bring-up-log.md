@@ -11,6 +11,63 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-21, midday — the acquire's doubt outlives the banner, and a settle that was never a settle
+
+Logs in [`bench/soak/20260821-q26/`](../bench/soak/20260821-q26/).
+
+[#26](https://github.com/kazunori279/fpga-open-vocab/issues/26) is the same
+shape as #25 above and was found by the same reading. `ft_acquire()` had already
+diagnosed the 08-20 dark room correctly — a ramp stuck on the floor, `mean RGB 7
+0 7`, an exposure that never moved — and printed all three warnings into a
+nine-line banner that `usb_soak.sh` does not echo. **Twelve runs, roughly 2,400
+frames, then scored the black picture anyway.** Nothing was broken except how
+far the warning reached.
+
+While instrumenting it, the line those runs would have had to re-read turned out
+to be lying:
+
+```
+camera    : live 128x128 RGB565, ... exposure settled after 41 frames
+```
+
+The loop is `for (; warm < 40; warm++)`, so `warm + 1` is the captured count
+only when something in the body broke out. When the **bound** ends it, `warm` is
+already 40 and the frame count was one too high — and the word `settled` was
+exactly backwards, on every stuck run this firmware has ever produced. It now
+distinguishes the two exits and counts `nramp = warm < 40 ? warm + 1 : 40`:
+
+```
+camera    : live 128x128 RGB565, ... EXPOSURE NEVER SETTLED after 40 frames
+```
+
+Forty numbers in the ramp, forty in the count. There is a third warning branch
+now too, for a ramp still climbing when the bound stopped it: not dark and not
+stuck, but the background gets measured off a mid-ramp frame that the frames
+after it will not match.
+
+**The carrier is `ft_acquire_doubt()`** — NULL, or a short phrase naming the
+doubt, valid until the next acquire. `m9` prints it in `stopped :`, where the
+log is still being read, and `usb_soak.sh` greps for it beside #25's
+`enrolment:` and #9's `lastwords:`. That grep is anchored to the summary's
+twelve-space indent, because an unanchored `scene: ` also matches
+`ft_acquire()`'s own "tuned camera on a neutral scene:" note.
+
+**It still does not refuse**, and the argument for that is already on the record
+at `FLOOR` in `frame.c`: a genuinely dark room whose correct exposure is the cold
+reading is a legitimate scene, and refusing would be firmware deciding it knows
+the lighting better than the person standing in it. What changed is that the
+doubt now survives the frame it was about.
+
+**The bound-exhausted log in that directory is from a crippled build**, and is
+named `never-settled-forced.log` for it. The room was lit; the image had the
+convergence test disabled so the loop could not exit early. There was no way to
+stage a dark room to order, and the alternative was shipping a branch nobody had
+watched fire. Its doubt phrase is wrong for that scene — the exposure had in
+fact settled at 126 — which is the cost of forcing the path and is written at the
+top of the log's README rather than left to be rediscovered.
+
+---
+
 ### 2026-08-21, morning — the level axis, asked about before the run rather than after it
 
 Logs in [`bench/soak/20260821-q25/`](../bench/soak/20260821-q25/).

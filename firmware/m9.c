@@ -3236,6 +3236,20 @@ int main(void)
             // but a run that DID drop it and could not record the fact has to
             // say so here, while the log is still being read, rather than at
             // the next banner where there will be nothing to report.
+            // #26. The acquire warned about this scene at the top of the run
+            // and then twelve consecutive runs scored a black picture anyway,
+            // because the harness redirects to --out and nobody re-read the
+            // banner. Named here so a log can be thrown out on its own evidence
+            // without going back for it - and grep-able, which is what
+            // bench/soak/usb_soak.sh needed and did not have.
+            if (ft_acquire_doubt())
+                printf("            scene: THE ACQUIRE WAS NOT CONFIDENT IN THE "
+                       "FRAME THIS RUN STARTED FROM -\n"
+                       "            %s. Every score above is\n"
+                       "            against that picture; read the exposure ramp "
+                       "in the banner before\n"
+                       "            keeping any of them (#26)\n",
+                       ft_acquire_doubt());
             // #25, said again at the end for the same reason as the two lines
             // above: this is a fact about the whole run that the frame lines
             // could not show, and the banner carrying it scrolled past 546

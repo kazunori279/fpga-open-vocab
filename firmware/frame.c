@@ -1341,6 +1341,26 @@ void ft_cam_fault_inject(void) { cam_bus_fault_inject(); }
 uint32_t ft_cam_gap_us(bool clear) { return cam_bus_gap_max_us(clear); }
 uint32_t ft_cam_stall_us(void)     { return CAM_XFER_STALL_US; }
 
+// #26. NULL when the acquire is confident in the frame it returned, and a short
+// phrase naming the doubt when it is not.
+//
+// THE POINT IS THAT IT OUTLIVES THE BANNER. ft_acquire() has always printed
+// warnings; on 2026-08-20 it printed three of them - a ramp that never left the
+// floor, `mean RGB 7 0 7`, and the note that the exposure never moved - and then
+// twelve consecutive runs scored roughly 2,400 frames of a black picture anyway,
+// because the harness was redirecting to --out and nobody re-read the banner.
+// One warning at the top of a nine-line block is not a signal a run can be
+// thrown out by afterwards. A caller that can read this can put it in its own
+// summary, where the log is still being read.
+//
+// It is NOT a refusal, and the argument at FLOOR below is why: refusing would be
+// firmware deciding it knows the lighting better than the person standing in it,
+// and a genuinely dark room whose correct exposure is the cold reading is a
+// legitimate scene. What changed is that the doubt now survives the frame.
+static const char *acq_doubt;
+
+const char *ft_acquire_doubt(void) { return acq_doubt; }
+
 // Returns ft_frame() on success and NULL to mean "use the flash vector". Prints
 // its own verdict either way, because a silent fallback is how a camera that
 // stopped answering turns into six perfectly good rows about the wrong input.
@@ -1404,7 +1424,8 @@ const void *ft_acquire(float in_scale)
     // registers at all.
     int mean[3] = { 0, 0, 0 };
     int warm = 0, was = -1000, stable = 0, first = -1;
-    bool rose = false;
+    bool rose = false, converged = false;
+    acq_doubt = NULL;
     printf("camera    : exposure ramp");
     // 24 was sized on M8b's fifteen-frame ramp with a little slack. M8c raised
     // it because the blank frames now come first and eat into that slack, and
@@ -1517,10 +1538,19 @@ const void *ft_acquire(float in_scale)
             rose = true;
         if (!flat && luma - was <= 2 && was - luma <= 2) stable++; else stable = 0;
         was = flat ? -1000 : luma;
-        if (warm >= 5 && stable >= 3 && luma >= FLOOR && rose) break;
+        if (warm >= 5 && stable >= 3 && luma >= FLOOR && rose) {
+            converged = true;
+            break;
+        }
         sleep_ms(50);
     }
     printf("\n");
+    // `warm` is the index the loop stopped at, so the frames actually captured
+    // are warm+1 when something inside the body ended it and warm when the bound
+    // did. That difference is not cosmetic: every stuck run this has ever
+    // printed said "settled after 41 frames" for a loop that ran 40 and settled
+    // at nothing.
+    const int nramp = warm < 40 ? warm + 1 : 40;
     if (len != want) {
         printf("camera    : id 0x%02x answered, then the FIFO held %u bytes "
                "rather than %u - using the flash test vector\n",
@@ -1529,7 +1559,7 @@ const void *ft_acquire(float in_scale)
     }
     if (cam_frame_is_constant(arena, len)) {
         printf("camera    : still a constant fill (%02x %02x) after %d frames "
-               "- using the flash test vector\n", arena[0], arena[1], warm + 1);
+               "- using the flash test vector\n", arena[0], arena[1], nramp);
         return NULL;
     }
 
@@ -1554,16 +1584,22 @@ const void *ft_acquire(float in_scale)
         printf("camera    : %u bytes and %s at 16 MHz after %d good frames at 8 "
                "- using the flash test vector\n", (unsigned)cap_len,
                cap_len == want ? "a constant fill" : "the wrong length",
-               warm + 1);
+               nramp);
         return NULL;
     }
     memcpy(mean, cap_mean, sizeof mean);
 
+    // "exposure settled after 41 frames" is what this printed on every stuck run
+    // there has ever been, and it reads as success. It was the loop running out
+    // of its bound - the opposite - so the two exits are now named differently
+    // and the count is the one that actually happened.
     printf("camera    : live %ux%u RGB565, id 0x%02x, %.1f MHz, expose %u ms, "
-           "read %u ms, exposure settled after %d frame%s\n",
+           "read %u ms, %s after %d frame%s\n",
            (unsigned)FT_FRAME_W, (unsigned)FT_FRAME_H, (unsigned)id,
            (double)cam_bus_mhz(), (unsigned)(cap_expose_us / 1000u),
-           (unsigned)(cap_read_us / 1000u), warm + 1, warm ? "s" : "");
+           (unsigned)(cap_read_us / 1000u),
+           converged ? "exposure settled" : "EXPOSURE NEVER SETTLED",
+           nramp, nramp == 1 ? "" : "s");
     // Exposure and white balance in three numbers: the mean of the three is
     // exposure, the spread is white balance. M8a's tuned camera sits near
     // (115, 107, 105); a frame far off that is a scene or a lens cap, and either
@@ -1574,21 +1610,41 @@ const void *ft_acquire(float in_scale)
     // rather than refuses - but it is worth a sentence at start-up rather than
     // three hundred frames of cosine 1.000 and no explanation. Everything
     // downstream of here works perfectly on a picture of nothing.
-    if ((mean[0] + mean[1] + mean[2]) / 3 < 16)
+    //
+    // Each branch also sets acq_doubt, most specific first, so the caller gets
+    // the sharpest one sentence rather than a bit. `mean RGB 7 0 7` is the
+    // 2026-08-20 case exactly and it is the one that cost twelve benches, so it
+    // wins over the other two.
+    if ((mean[0] + mean[1] + mean[2]) / 3 < 16) {
+        acq_doubt = "the frame was at the bottom of the sensor's range";
         printf("            ^ that is the bottom of the sensor's range after "
                "%d frames of auto-exposure.\n"
                "              If the room is not actually dark, the sensor has "
                "not started: check the lens cap,\n"
                "              then cold-power-cycle the board - USB out for ten "
-               "seconds, not a reflash.\n", warm + 1);
+               "seconds, not a reflash.\n", nramp);
+    }
     // Distinct from the above, and quieter, because it is not necessarily a
     // fault: the exposure never moved, so either the cold reading was already
     // right for this room or the AEC is asleep. The ramp printed above is what
     // tells them apart, and this says where to look at it.
-    else if (!rose)
+    else if (!rose) {
+        acq_doubt = "the exposure never moved from its first reading";
         printf("            ^ the exposure never moved from its first reading "
                "in %d frames, so the auto-exposure\n"
                "              either had nothing to correct or never started. "
-               "The ramp above is the evidence.\n", warm + 1);
+               "The ramp above is the evidence.\n", nramp);
+    }
+    // Neither of the two above, and still not settled: the exposure was moving
+    // when the bound ended the loop. Nothing here is wrong with the picture, but
+    // the frame the run is about to build its background from was taken mid-ramp
+    // and the ones after it will not match it.
+    else if (!converged) {
+        acq_doubt = "the ramp was still moving when the bound ended it";
+        printf("            ^ the exposure was still moving after %d frames, so "
+               "this frame was taken mid-ramp\n"
+               "              and the background measured from it will not match "
+               "the frames that follow.\n", nramp);
+    }
     return frame;
 }
