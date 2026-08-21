@@ -1,0 +1,39 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+pair      : 'a glass with tea'  vs  'an empty glass'
+stills    : 12 from bench/stills/20260822-synth-glass-closeup/pos, 12 from bench/stills/20260822-synth-glass-closeup/neg
+rounds    : ['r?'] / ['r?']
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates
+basis     : emb_train2017_SO400M-pca512-a0.5.basis.npz
+student   : so400m-full-a05, epoch 37
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152   sep 1.000  |sep| 1.000  within 1.000  drift   n/a
+                 gap 2.3424 =   4.8 sd   round swing not measured - one round   (sd 0.4888)
+                 per round: r? 1.000
+  pca 512        sep 1.000  |sep| 1.000  within 1.000  drift   n/a
+                 gap 2.3879 =   4.8 sd   round swing not measured - one round   (sd 0.4982)
+                 per round: r? 1.000
+  student fp32   sep 0.701  |sep| 0.701  within 0.701  drift   n/a
+                 gap 0.4800 =   0.8 sd   round swing not measured - one round   (sd 0.5875)
+                 per round: r? 0.701
+
+==============================================================================
+WITHIN SCENE - the same picture in two states, so the scene cancels
+  teacher 1152   scenes  12   right way round 12/12   mean +2.3424 =   3.0 sd   (sd 0.7896)
+  pca 512        scenes  12   right way round 12/12   mean +2.3879 =   2.9 sd   (sd 0.8103)
+  student fp32   scenes  12   right way round 10/12   mean +0.4800 =   0.7 sd   (sd 0.6522)
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152   held-out oracle AUC n/a - needs two or more rounds
+  pca 512        held-out oracle AUC n/a - needs two or more rounds
+  student fp32   held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 0.556  (103.9 vs 107.0)
+
+  class axis, student fp32 against pca 512: cos +0.255   (1.0 = the same difference, 0.0 = an unrelated one)

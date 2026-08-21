@@ -11,6 +11,68 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-22 — a pair can be generated, screened by machine, and still not rank
+
+The idea was cheap and looked sound: edit val2017 photographs into both states
+of a contrast, and screen a pair before anyone buys the props for it. Six sets
+later it works, for a smaller question than the one it was built for.
+
+**Both sides are generated**, or the pair separates on photograph-against-render
+and scores beautifully having measured nothing. **Sources are val2017**, held
+out of the distillation. Neither of those was the hard part.
+
+The hard part was that **the generator obeys the state clause and quietly
+ignores everything else.** Whole COCO photographs are rooms, so the book came
+back a few dozen pixels across and the teacher read 1.4 sd — a framing artefact,
+not a limit. Asking for a close-up instead moved it to 3.0 sd and swapped that
+fault for a worse one: on a third to a half of the pairs the generator had
+*re-composed* the shot. A different room. The book replaced by a green wheelie
+bin. A pint tumbler become a stemmed wine glass. None of it visible in the
+margins, all of it fatal to a within-scene statistic.
+
+Cropping the source around a COCO instance box before editing fixes both at
+once, and grants the generator no licence: the object already fills the frame,
+so the instruction can insist that nothing move. Scene survival went from 58% to
+89%.
+
+**Then screen every pair blind.** Two judges, no encoder output, each pair shown
+as A|B with the sides alternating, asked *which side holds the positive state* —
+a question with a wrong answer, unlike "is this pair any good". They agreed with
+each other on 26 of 27 and 30 of 30, and the filter did what a filter should: the
+teacher went from 26/27 to **18 of 18** on the book pair and stands at **25 of
+25** on the glass pair. Screening the stimulus before encoding is a validity
+filter; screening after seeing the margins would be fitting, and only the order
+separates them.
+
+**And the student still reads the two pairs in the wrong order.** 12 of 18, 0.6
+sd on the book pair the appliance carries at 8.2 sd; 19 of 25, 0.9 sd on the
+glass pair the appliance loses at 0.2 sd. Upside down, after screening, at n =
+18 and n = 25. It is not the images and it is not the sample. Eighteen books on
+eighteen desks asks for a *scene-independent* state axis; a bench asks about one
+book on one desk across frames. A 1.4 M-parameter student holds the second and
+not the first, so **a generated set cannot rank candidate pairs for the
+appliance** — the ranking it produces is not the appliance's.
+
+What it can do is the gate that was already the important one:
+`bench/stills/README.md` has said since 08-21 that nothing downstream recovers
+what the teacher never had. A generated, screened set is a propless
+**teacher-side** screen, minutes per pair, and that is its whole remit.
+
+One caveat closed on the way. [#28] was shut with a doubt attached: on real
+stills the mean frame luma separates tea from empty at AUC 1.000, so the
+teacher's perfect score there might have been a photometer. On the generated
+glass set the luma cue is at **AUC 0.658** and the teacher is still 25 of 25,
+with both judges asked specifically whether the amber ran past the rim. SigLIP
+binds fill state. It is not reading the lamp.
+
+Sets in `bench/stills/20260822-synth-*`, tools in `tools/synth_pairs.py` and
+`tools/synth_sheet.py`, and the subset each set was read on in its `keep.txt`
+with the dropped pairs listed and the criterion each failed.
+
+[#28]: https://github.com/kazunori279/fpga-open-vocab/issues/28
+
+---
+
 ### 2026-08-21, 10:35 — the glass axis is lost at the student, and only at the student
 
 Still newest-first: the entry below calls itself *midday* and its runs are

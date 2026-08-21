@@ -1,0 +1,14 @@
+[
+ {"file":"000000000632.png","side":"A","object_both":false,"same_scene":true,"shortcut":""},
+ {"file":"000000035279.png","side":"B","object_both":false,"same_scene":true,"shortcut":""},
+ {"file":"000000096001.png","side":"A","object_both":true,"same_scene":true,"shortcut":""},
+ {"file":"000000099182.png","side":"B","object_both":true,"same_scene":true,"shortcut":""},
+ {"file":"000000104666.png","side":"unclear","object_both":false,"same_scene":true,"shortcut":""},
+ {"file":"000000134882.png","side":"B","object_both":false,"same_scene":true,"shortcut":""},
+ {"file":"000000167159.png","side":"A","object_both":true,"same_scene":true,"shortcut":""},
+ {"file":"000000172617.png","side":"B","object_both":true,"same_scene":true,"shortcut":""},
+ {"file":"000000176446.png","side":"A","object_both":true,"same_scene":true,"shortcut":""},
+ {"file":"000000183049.png","side":"B","object_both":true,"same_scene":true,"shortcut":""},
+ {"file":"000000200839.png","side":"A","object_both":false,"same_scene":true,"shortcut":""},
+ {"file":"000000233825.png","side":"B","object_both":false,"same_scene":true,"shortcut":""}
+]

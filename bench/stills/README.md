@@ -53,11 +53,45 @@ to the stills.
 the identical path — that is what the book pair does in `20260821-bisect/`, and
 it is the reason that set's verdict is trustworthy.
 
+## Generated sets, and the one question they answer
+
+A set can also be built without a camera or an object:
+[`tools/synth_pairs.py`](../../tools/synth_pairs.py) crops a COCO instance box
+out of val2017 and has `gemini-3-pro-image` edit that crop into both states.
+Both sides are generated, so *photograph against render* cancels; val2017 is
+held out of the distillation; and cropping first means the object already fills
+the frame, so the edit instruction can insist that nothing move.
+
+**Screen it blind before measuring it.** The generator obeys the state clause
+and quietly ignores the rest often enough that a third to a half of the pairs
+in the first four sets were invalid — the room swapped, the object gone, a pint
+tumbler become a wine glass — none of which is visible in the margins they
+produce. [`tools/synth_sheet.py`](../../tools/synth_sheet.py) lays each pair
+out as A|B with the sides alternating; hand the sheets to two judges that have
+seen no encoder output, ask *which side holds the positive state*, and keep
+only the pairs both named correctly with the object large and the scene intact.
+The survivors go in a `keep.txt`, which `probe_bisect.py --keep` reads. The
+dropped pairs stay in the set, so the filter is auditable.
+
+Screening the stimulus before encoding anything is a validity filter. Screening
+after seeing the margins would be fitting. The order is the difference.
+
+**A generated set screens the teacher. It cannot screen the student.** Eighteen
+books on eighteen desks asks whether *any* open book outranks *any* closed one;
+a bench asks about one book on one desk. The student holds the second and not
+the first, so on 2026-08-22 it read 0.6 sd on the pair the appliance carries at
+8.2 sd and 0.9 sd on the pair the appliance loses at 0.2 sd — the ordering
+upside down, at n = 18 and n = 25, after screening. Read the teacher row, which
+is the gate that matters, and shoot stills for anything else.
+
 ## Sets
 
 | set | pair | what it settled |
 | --- | --- | --- |
 | [`20260821-bisect/`](20260821-bisect/) | `a glass with tea` / `an empty glass`, plus a book control | the axis is lost at the student and nowhere earlier — not the resolution, not the projection ([#24](https://github.com/kazunori279/fpga-open-vocab/issues/24)) |
+| [`20260822-synth-book-crop/`](20260822-synth-book-crop/) | `an opened book` / `a closed book`, generated | the control that caught it: a generated set cannot rank pairs for the appliance, and the teacher-only remit that leaves |
+| [`20260822-synth-glass-crop/`](20260822-synth-glass-crop/) | `a glass with tea` / `an empty glass`, generated | the teacher binds fill state, not brightness — 25/25 with the luma cue at AUC 0.658 ([#28](https://github.com/kazunori279/fpga-open-vocab/issues/28)) |
+| `20260822-synth-{book,glass}` and `-closeup` | the same two pairs | superseded first attempts, kept as the evidence for cropping the source: object too small, then scene re-composed |
 
 ## What a set can and cannot answer
 

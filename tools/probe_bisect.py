@@ -165,11 +165,29 @@ def round_of(path: Path) -> str:
     return stem if stem.startswith("r") and stem[1:].isdigit() else "r?"
 
 
-def load(dirname: Path) -> tuple[list[Path], list[Image.Image]]:
+def load(dirname: Path, keep: set[str] | None = None) -> tuple[list[Path], list[Image.Image]]:
     files = sorted(dirname.glob("*.png"))
+    if keep is not None:
+        files = [f for f in files if f.stem in keep]
     if not files:
-        raise SystemExit(f"{dirname}: no PNGs")
+        raise SystemExit(f"{dirname}: no PNGs" + (" left after --keep" if keep else ""))
     return files, [Image.open(f).convert("RGB") for f in files]
+
+
+def keeplist(path: Path | None) -> set[str] | None:
+    """Stems to admit, one per line, `#` for a comment.
+
+    A subset is kept as a *list beside the pixels* rather than as a second copy
+    of them: the dropped stills stay in the set, so the reason a set shrank is
+    auditable and the filter can be revised without re-shooting or re-generating.
+    """
+    if path is None:
+        return None
+    stems = {ln.split("#")[0].strip() for ln in path.read_text().splitlines()}
+    stems.discard("")
+    if not stems:
+        raise SystemExit(f"{path}: no stems")
+    return stems
 
 
 def report(name: str, ma: np.ndarray, mb: np.ndarray,
@@ -233,6 +251,43 @@ def report(name: str, ma: np.ndarray, mb: np.ndarray,
     print(f"  {'':<14} per round: {'  '.join(cells)}")
 
 
+def paired(name: str, ma: np.ndarray, mb: np.ndarray,
+           fa: list[Path], fb: list[Path]) -> None:
+    """The same statistic when the two classes are the SAME scene, twice.
+
+    WHY THE TABLE ABOVE IS THE WRONG READ FOR THAT KIND OF SET
+    -----------------------------------------------------------
+    `report()` divides the class gap by the spread of frames *within* a class
+    and a round, because for a set from `shoot.sh` that spread is sensor noise
+    and hand tremor on one desk - a repeat measurement. For a set of edited
+    photographs it is nothing of the kind: twelve different books in twelve
+    different rooms are twelve different scenes, and their spread is scene
+    variety. Dividing by it asks "can this encoder rank any open book above any
+    closed book", which is a much harder question than the appliance is ever
+    asked and is not the one the bench measured.
+
+    So when every image in --a has a same-named partner in --b, the honest
+    statistic is the paired one: take the margin difference *within* each scene
+    and ask whether it is consistently the right sign. The scene cancels, which
+    is exactly what the appliance gets when it is enrolled on one desk.
+
+    `right way round` is the sign count. A pair the encoder carries reads n/n
+    with a mean difference several sd clear of zero; a pair it does not reads
+    near half.
+    """
+    ka = {f.stem: float(m) for f, m in zip(fa, ma, strict=True)}
+    kb = {f.stem: float(m) for f, m in zip(fb, mb, strict=True)}
+    keys = sorted(set(ka) & set(kb))
+    if len(keys) < 2:
+        print(f"  {name:<14} paired n/a - --a and --b share {len(keys)} names")
+        return
+    d = np.array([ka[k] - kb[k] for k in keys])
+    sd = float(d.std(ddof=1)) or float("nan")
+    print(f"  {name:<14} scenes {len(keys):3d}   right way round "
+          f"{int((d > 0).sum())}/{len(d)}   "
+          f"mean {d.mean():+.4f} = {d.mean() / sd:5.1f} sd   (sd {sd:.4f})")
+
+
 def oracle(name: str, va: np.ndarray, vb: np.ndarray,
            ra: list[str], rb: list[str]) -> None:
     """The best the stage COULD do, if the query pointed exactly the right way.
@@ -278,6 +333,13 @@ def main() -> int:
     ap.add_argument("--run", default="so400m-full-a05", help="student under model/runs/")
     ap.add_argument("--no-student", action="store_true",
                     help="teacher stages only; skips loading the checkpoint")
+    ap.add_argument("--paired", action="store_true",
+                    help="--a and --b are the same scenes in two states, matched "
+                         "by filename (a synth_pairs.py set). Adds the "
+                         "within-scene statistic, which is the one to read there")
+    ap.add_argument("--keep", type=Path, default=None,
+                    help="a file of stems to admit, one per line - the subset a "
+                         "set's README argues for, applied to both --a and --b")
     args = ap.parse_args()
 
     ckpt = torch.load(ROOT / "model/runs" / args.run / "student.pt",
@@ -286,10 +348,13 @@ def main() -> int:
     name, pre = spec.split(":")
     device = pt.pick_device()
 
-    fa, ia = load(args.a)
-    fb, ib = load(args.b)
+    keep = keeplist(args.keep)
+    fa, ia = load(args.a, keep)
+    fb, ib = load(args.b, keep)
     ra, rb = [round_of(f) for f in fa], [round_of(f) for f in fb]
     print(f"pair      : '{args.pos}'  vs  '{args.neg}'")
+    if keep:
+        print(f"keep      : {len(keep)} stems from {args.keep}")
     print(f"stills    : {len(fa)} from {args.a}, {len(fb)} from {args.b}")
     print(f"rounds    : {sorted(set(ra))} / {sorted(set(rb))}")
     print(f"teacher   : {spec}, {len(teacher_mod.TEMPLATES)} templates")
@@ -376,6 +441,12 @@ def main() -> int:
           "them")
     for sname, a, b, tv in stages:
         report(sname, *margins(a, b, tv), ra, rb)
+
+    if args.paired:
+        print(f"\n{'='*78}\nWITHIN SCENE - the same picture in two states, so "
+              "the scene cancels")
+        for sname, a, b, tv in stages:
+            paired(sname, *margins(a, b, tv), fa, fb)
 
     print(f"\n{'='*78}\nAND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, "
           "held out by round")

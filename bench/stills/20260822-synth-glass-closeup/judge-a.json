@@ -1,0 +1,14 @@
+[
+ {"file":"000000002431.png","side":"A","object_both":true,"same_scene":true,"shortcut":"B framed wider"},
+ {"file":"000000007818.png","side":"B","object_both":true,"same_scene":false,"shortcut":"B far darker and warm"},
+ {"file":"000000016439.png","side":"A","object_both":true,"same_scene":false,"shortcut":"B brighter and warmer"},
+ {"file":"000000022705.png","side":"B","object_both":true,"same_scene":false,"shortcut":"A has large bare arm"},
+ {"file":"000000025986.png","side":"A","object_both":true,"same_scene":true,"shortcut":""},
+ {"file":"000000032334.png","side":"B","object_both":true,"same_scene":true,"shortcut":"B adds large hand; amber covers much of frame"},
+ {"file":"000000047112.png","side":"A","object_both":true,"same_scene":false,"shortcut":"A amber across nearly entire frame"},
+ {"file":"000000054605.png","side":"B","object_both":true,"same_scene":true,"shortcut":"A zoomed closer"},
+ {"file":"000000070048.png","side":"A","object_both":false,"same_scene":false,"shortcut":"scale mismatch"},
+ {"file":"000000070739.png","side":"B","object_both":true,"same_scene":false,"shortcut":"B darker amber-dominated"},
+ {"file":"000000085089.png","side":"A","object_both":true,"same_scene":false,"shortcut":"B background far darker"},
+ {"file":"000000099039.png","side":"B","object_both":true,"same_scene":true,"shortcut":""}
+]
