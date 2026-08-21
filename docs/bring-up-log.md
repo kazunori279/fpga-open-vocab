@@ -11,6 +11,54 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-22, later — a second draw, and two sweeps that measured nothing
+
+The entry below ends with a generated set demoted to a teacher-side screen. The
+obvious next use for one was as a **distillation regression harness**: same
+pixels, several checkpoints, one row each, no camera and no board. That is now
+implemented — `probe_bisect.py --runs a,b,c`, which refuses to mix runs
+distilled against different teachers because their query vectors live in
+different spaces — and the first thing it was pointed at says not to trust it.
+
+Two sweeps on the screened crop sets. Five sieve settings (ViT-B/16: baseline,
+InfoNCE at 0.3 and 1.0, RKD at 10, and both) and three SO400M ones (30k
+baseline, RKD 10, RKD 100). The student rows span 0.0–0.4 sd on the book pair
+and 0.3–0.8 sd on the glass pair, and `rkd-10` looked like a winner at 16 of 18
+on the book pair — against a baseline of 12.
+
+**Then the same checkpoint was measured on a second draw of each pair**, thirty
+more val2017 scenes the first sets never touched (`synth_pairs.py --skip`).
+Nothing about the model changed. The glass pair went 0.9 sd → 0.3 sd and its
+class-axis cosine +0.263 → +0.183; the book pair 0.6 → 0.7 sd and +0.141 →
++0.058. **The draw-to-draw spread is wider than the entire spread across eight
+distillation settings**, and `rkd-10`'s 16 of 18 does not survive into the glass
+set, where it reads 18 of 25 against a baseline of 17. Not one of those
+settings has been shown to differ from baseline.
+
+Adding scenes does not fix this. The variance is *between* draws of scenes, not
+within one — which is the same fact as the entry below, arriving from the other
+direction. The sign count itself is stable to about ±0.05, so a generated set
+still screens the teacher, and the teacher replicated exactly: **23 of 23**
+after screening on unseen glass scenes, luma cue at AUC 0.617, with 30 of 30
+before screening. Second confirmation that SigLIP binds fill state.
+
+Three smaller things. `--skip` exhausted COCO: after the first 27 `book`
+sources, val2017 has fourteen boxes left at 90 px, so there is no third book
+draw at this size. `--runs` first rendered `_sieve_infonce-0.3` and
+`_sieve_infonce-0.3+rkd-10` as the same truncated label, which is a table that
+lies rather than a table that is hard to read; it now strips the shared prefix.
+And a judge finished its thirty sheets and remarked that the sides looked
+perfectly alternating — they were, by index. It had not used that, but a screen
+that *can* be answered without looking fails silently when it is, so the side is
+now a hash of the filename.
+
+Sets in `bench/stills/20260822-synth-{book,glass}-crop2/`, sweeps archived as
+`sweep-so400m.log` and `sweep-sieve.log` beside the first draws, and
+`tools/synth_keep.py` now folds the two judges' verdicts into `keep.txt` so the
+criterion lives in code instead of in a README.
+
+---
+
 ### 2026-08-22 — a pair can be generated, screened by machine, and still not rank
 
 The idea was cheap and looked sound: edit val2017 photographs into both states

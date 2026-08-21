@@ -14,12 +14,27 @@ pair only when the judge names the side correctly, the object is present and
 large in both, and the scene is the same. Write the survivors to `keep.txt` in
 the set and read the set with `probe_bisect.py --keep`.
 
-WHY THE SIDES ALTERNATE
------------------------
+WHICH SIDE THE POSITIVE GOES ON, AND WHY IT IS NOT THE OBVIOUS ANSWER
+----------------------------------------------------------------------
 Positive on the left every time is a free answer, and a judge that has noticed
-grades nothing. The side flips with the index, which is deterministic - the
-same set produces the same sheets and the same key on every machine, so a
-verdict archived beside the pixels can be re-checked later.
+grades nothing. The first four sets flipped the side with the index instead,
+which is not enough: a judge on the second glass set finished its thirty sheets
+and volunteered, unprompted, that the sides looked perfectly alternating. It
+had not used that - its 14 A's against the key's 15 say it scored the pixels -
+but a screen that CAN be answered without looking will eventually be answered
+without looking, and the failure is silent: `side` goes to 100% and the filter
+keeps passing everything.
+
+So the side is now a hash of the stem. Still deterministic - `hashlib`, not
+`hash()`, which is salted per process - so the same set produces the same
+sheets and the same key on every machine and a verdict archived beside the
+pixels can be re-checked. But it has no run of alternations to spot, and the
+positive lands left or right in whatever ratio the filenames happen to give.
+
+The sets shot before this change were keyed by parity. Their `key.json` is
+archived in the set and remains the record of what their judges were graded
+against; re-running this script over one of them produces a different key, and
+the verdicts would have to be re-collected to match.
 
 WHY ASK "WHICH SIDE", RATHER THAN "IS THIS PAIR ANY GOOD"
 ----------------------------------------------------------
@@ -47,6 +62,7 @@ NOT AN APPLIANCE MEASUREMENT. See `synth_pairs.py` for what a set of twelve
 different scenes can and cannot say about a student that is asked about one.
 """
 
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -69,11 +85,12 @@ def main() -> int:
         out = Path("/tmp/judge") / d.name
         out.mkdir(parents=True, exist_ok=True)
         key = {}
-        for i, (a, b) in enumerate(zip(pos, neg, strict=True)):
+        for a, b in zip(pos, neg, strict=True):
             if a.stem != b.stem:
                 sys.exit(f"{d}: {a.stem} has no negative twin")
-            left, right = (a, b) if i % 2 == 0 else (b, a)
-            key[a.stem] = "A" if i % 2 == 0 else "B"
+            on_left = hashlib.sha256(a.stem.encode()).digest()[0] % 2 == 0
+            left, right = (a, b) if on_left else (b, a)
+            key[a.stem] = "A" if on_left else "B"
             im = Image.new("RGB", (2 * CELL + 8, CELL + 18), "white")
             dr = ImageDraw.Draw(im)
             im.paste(Image.open(left).resize((CELL, CELL), Image.NEAREST), (0, 18))

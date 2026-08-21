@@ -67,11 +67,14 @@ and quietly ignores the rest often enough that a third to a half of the pairs
 in the first four sets were invalid — the room swapped, the object gone, a pint
 tumbler become a wine glass — none of which is visible in the margins they
 produce. [`tools/synth_sheet.py`](../../tools/synth_sheet.py) lays each pair
-out as A|B with the sides alternating; hand the sheets to two judges that have
-seen no encoder output, ask *which side holds the positive state*, and keep
-only the pairs both named correctly with the object large and the scene intact.
-The survivors go in a `keep.txt`, which `probe_bisect.py --keep` reads. The
-dropped pairs stay in the set, so the filter is auditable.
+out as A|B, the positive side chosen by a hash of the filename; hand the sheets
+to two judges that have seen no encoder output, ask *which side holds the
+positive state*, and keep only the pairs both named correctly with the object
+large and the scene intact.
+[`tools/synth_keep.py`](../../tools/synth_keep.py) turns the two verdict files
+into the `keep.txt` that `probe_bisect.py --keep` reads. The dropped pairs stay
+in the set and the header names the criterion each failed, so the filter is
+auditable.
 
 Screening the stimulus before encoding anything is a validity filter. Screening
 after seeing the margins would be fitting. The order is the difference.
@@ -84,6 +87,15 @@ the first, so on 2026-08-22 it read 0.6 sd on the pair the appliance carries at
 upside down, at n = 18 and n = 25, after screening. Read the teacher row, which
 is the gate that matters, and shoot stills for anything else.
 
+**Draw a second set before believing a difference between two checkpoints.**
+`synth_pairs.py --skip <set>` builds one on scenes the first never used. With
+the checkpoint held fixed the sign count reproduces to about ±0.05, but the
+effect size moved 0.9 sd → 0.3 sd on the glass pair and the class-axis cosine
+by 0.08 — which is wider than the whole spread across five InfoNCE and RKD
+settings. So a generated set is a teacher-side regression harness and cannot
+rank distillation settings, however many scenes are added: the variance is
+between draws, not within one.
+
 ## Sets
 
 | set | pair | what it settled |
@@ -91,6 +103,8 @@ is the gate that matters, and shoot stills for anything else.
 | [`20260821-bisect/`](20260821-bisect/) | `a glass with tea` / `an empty glass`, plus a book control | the axis is lost at the student and nowhere earlier — not the resolution, not the projection ([#24](https://github.com/kazunori279/fpga-open-vocab/issues/24)) |
 | [`20260822-synth-book-crop/`](20260822-synth-book-crop/) | `an opened book` / `a closed book`, generated | the control that caught it: a generated set cannot rank pairs for the appliance, and the teacher-only remit that leaves |
 | [`20260822-synth-glass-crop/`](20260822-synth-glass-crop/) | `a glass with tea` / `an empty glass`, generated | the teacher binds fill state, not brightness — 25/25 with the luma cue at AUC 0.658 ([#28](https://github.com/kazunori279/fpga-open-vocab/issues/28)) |
+| [`20260822-synth-book-crop2/`](20260822-synth-book-crop2/) | `an opened book` / `a closed book`, second draw | the noise floor: a generated set cannot separate one distillation setting from another, and val2017 has no third book draw in it |
+| [`20260822-synth-glass-crop2/`](20260822-synth-glass-crop2/) | `a glass with tea` / `an empty glass`, second draw | the teacher's 25/25 replicates on unseen scenes at 23/23; the student's 0.9 sd does not |
 | `20260822-synth-{book,glass}` and `-closeup` | the same two pairs | superseded first attempts, kept as the evidence for cropping the source: object too small, then scene re-composed |
 
 ## What a set can and cannot answer

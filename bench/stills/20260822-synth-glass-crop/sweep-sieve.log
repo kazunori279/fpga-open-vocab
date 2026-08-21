@@ -1,0 +1,65 @@
+pair      : 'a glass with tea'  vs  'an empty glass'
+keep      : 25 stems from bench/stills/20260822-synth-glass-crop/keep.txt
+stills    : 25 from bench/stills/20260822-synth-glass-crop/pos, 25 from bench/stills/20260822-synth-glass-crop/neg
+rounds    : ['r?'] / ['r?']
+teacher   : ViT-B-16-quickgelu:openai, 7 templates
+basis     : none
+student   : _sieve_baseline, epoch 19
+student   : _sieve_infonce-0.3, epoch 19
+student   : _sieve_infonce-1.0, epoch 19
+student   : _sieve_rkd-10, epoch 20
+student   : _sieve_infonce-0.3+rkd-10, epoch 18
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152         sep 0.768  |sep| 0.768  within 0.768  drift   n/a
+                       gap 0.8806 =   0.9 sd   round swing not measured - one round   (sd 0.9572)
+                       per round: r? 0.768
+  baseline             sep 0.672  |sep| 0.672  within 0.672  drift   n/a
+                       gap 0.4881 =   0.6 sd   round swing not measured - one round   (sd 0.8319)
+                       per round: r? 0.672
+  infonce-0.3          sep 0.610  |sep| 0.610  within 0.610  drift   n/a
+                       gap 0.2239 =   0.4 sd   round swing not measured - one round   (sd 0.5370)
+                       per round: r? 0.610
+  infonce-1.0          sep 0.557  |sep| 0.557  within 0.557  drift   n/a
+                       gap 0.2097 =   0.3 sd   round swing not measured - one round   (sd 0.8019)
+                       per round: r? 0.557
+  rkd-10               sep 0.610  |sep| 0.610  within 0.610  drift   n/a
+                       gap 0.2981 =   0.4 sd   round swing not measured - one round   (sd 0.7738)
+                       per round: r? 0.610
+  infonce-0.3+rkd-10   sep 0.664  |sep| 0.664  within 0.664  drift   n/a
+                       gap 0.5427 =   0.6 sd   round swing not measured - one round   (sd 0.8379)
+                       per round: r? 0.664
+
+==============================================================================
+WITHIN SCENE - the same picture in two states, so the scene cancels
+  teacher 1152         scenes  25   right way round 25/25   mean +0.8806 =   1.5 sd   (sd 0.5762)
+  baseline             scenes  25   right way round 17/25   mean +0.4881 =   0.7 sd   (sd 0.6686)
+  infonce-0.3          scenes  25   right way round 16/25   mean +0.2239 =   0.5 sd   (sd 0.4930)
+  infonce-1.0          scenes  25   right way round 15/25   mean +0.2097 =   0.3 sd   (sd 0.6604)
+  rkd-10               scenes  25   right way round 18/25   mean +0.2981 =   0.4 sd   (sd 0.6762)
+  infonce-0.3+rkd-10   scenes  25   right way round 20/25   mean +0.5427 =   0.8 sd   (sd 0.6537)
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152         held-out oracle AUC n/a - needs two or more rounds
+  baseline             held-out oracle AUC n/a - needs two or more rounds
+  infonce-0.3          held-out oracle AUC n/a - needs two or more rounds
+  infonce-1.0          held-out oracle AUC n/a - needs two or more rounds
+  rkd-10               held-out oracle AUC n/a - needs two or more rounds
+  infonce-0.3+rkd-10   held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 0.658  (92.4 vs 107.0)
+
+  class axis, baseline against teacher 1152: cos +0.127   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  class axis, infonce-0.3 against teacher 1152: cos +0.254   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  class axis, infonce-1.0 against teacher 1152: cos +0.185   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  class axis, rkd-10 against teacher 1152: cos +0.152   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  class axis, infonce-0.3+rkd-10 against teacher 1152: cos +0.315   (1.0 = the same difference, 0.0 = an unrelated one)

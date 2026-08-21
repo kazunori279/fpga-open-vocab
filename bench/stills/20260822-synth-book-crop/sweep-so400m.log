@@ -1,0 +1,56 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+pair      : 'an opened book'  vs  'a closed book'
+keep      : 18 stems from bench/stills/20260822-synth-book-crop/keep.txt
+stills    : 18 from bench/stills/20260822-synth-book-crop/pos, 18 from bench/stills/20260822-synth-book-crop/neg
+rounds    : ['r?'] / ['r?']
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates
+basis     : emb_train2017_SO400M-pca512_s30000.basis.npz
+student   : so400m-s30k, epoch 19
+student   : so400m-rkd10, epoch 20
+student   : so400m-rkd100, epoch 19
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152         sep 0.907  |sep| 0.907  within 0.907  drift   n/a
+                       gap 1.3623 =   1.9 sd   round swing not measured - one round   (sd 0.7091)
+                       per round: r? 0.907
+  pca 512              sep 0.917  |sep| 0.917  within 0.917  drift   n/a
+                       gap 0.8751 =   2.0 sd   round swing not measured - one round   (sd 0.4336)
+                       per round: r? 0.917
+  s30k                 sep 0.565  |sep| 0.565  within 0.565  drift   n/a
+                       gap 0.0187 =   0.0 sd   round swing not measured - one round   (sd 0.5019)
+                       per round: r? 0.565
+  rkd10                sep 0.685  |sep| 0.685  within 0.685  drift   n/a
+                       gap 0.2923 =   0.6 sd   round swing not measured - one round   (sd 0.5014)
+                       per round: r? 0.685
+  rkd100               sep 0.728  |sep| 0.728  within 0.728  drift   n/a
+                       gap 0.3985 =   0.8 sd   round swing not measured - one round   (sd 0.4813)
+                       per round: r? 0.728
+
+==============================================================================
+WITHIN SCENE - the same picture in two states, so the scene cancels
+  teacher 1152         scenes  18   right way round 18/18   mean +1.3623 =   2.0 sd   (sd 0.6903)
+  pca 512              scenes  18   right way round 18/18   mean +0.8751 =   2.1 sd   (sd 0.4119)
+  s30k                 scenes  18   right way round 10/18   mean +0.0187 =   0.0 sd   (sd 0.4999)
+  rkd10                scenes  18   right way round 14/18   mean +0.2923 =   0.7 sd   (sd 0.4384)
+  rkd100               scenes  18   right way round 10/18   mean +0.3985 =   0.6 sd   (sd 0.6488)
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152         held-out oracle AUC n/a - needs two or more rounds
+  pca 512              held-out oracle AUC n/a - needs two or more rounds
+  s30k                 held-out oracle AUC n/a - needs two or more rounds
+  rkd10                held-out oracle AUC n/a - needs two or more rounds
+  rkd100               held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 0.633  (124.5 vs 103.3)
+
+  class axis, s30k against pca 512: cos +0.108   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  class axis, rkd10 against pca 512: cos +0.075   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  class axis, rkd100 against pca 512: cos +0.096   (1.0 = the same difference, 0.0 = an unrelated one)

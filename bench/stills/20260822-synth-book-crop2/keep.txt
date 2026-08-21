@@ -1,0 +1,18 @@
+# 10 of 14 pairs, kept by 2 blind judges that agreed on which
+# side held the positive state and that saw the object, large, in the same
+# scene on both sides.  See README.md.
+# Dropped, with the criterion each failed:
+#   000000061333  object
+#   000000125062  object
+#   000000302030  object
+#   000000375278  scene
+000000025603
+000000144798
+000000166166
+000000194724
+000000222299
+000000231831
+000000346968
+000000403353
+000000455301
+000000507575

@@ -141,7 +141,23 @@ def sources(find: str, need: str | None, n: int) -> list[Path]:
     return out
 
 
-def crops(cats: list[str], min_side: int, n: int) -> list[tuple[str, bytes]]:
+def used(paths: list[Path]) -> set[str]:
+    """Stems already spent on another set.
+
+    A second draw exists to say how far the *first* one's numbers could have
+    fallen by luck, and it can only say that if it shares no photograph with
+    it. Without this the two sets overlap, agree, and the agreement means
+    nothing.
+    """
+    seen: set[str] = set()
+    for p in paths:
+        d = p / "pos" if (p / "pos").is_dir() else p
+        seen |= {f.stem for f in d.glob("*.png")}
+    return seen
+
+
+def crops(cats: list[str], min_side: int, n: int,
+          skip: set[str] | None = None) -> list[tuple[str, bytes]]:
     """Square crops around one COCO instance box, largest box per image.
 
     THIS IS THE SOURCE MODE TO PREFER, and the caption mode above is kept only
@@ -183,7 +199,7 @@ def crops(cats: list[str], min_side: int, n: int) -> list[tuple[str, bytes]]:
         x, y, w, h = best[iid]
         im = meta[iid]
         p = VAL / im["file_name"]
-        if not p.exists():
+        if not p.exists() or (skip and p.stem in skip):
             continue
         # 1.25x the long side, so the object keeps a little of its context and
         # the generator has somewhere to put a shadow.
@@ -227,6 +243,9 @@ def main() -> int:
                          "crops around one instance box. Prefer this to --find")
     ap.add_argument("--min-side", type=int, default=120,
                     help="floor on the box's short side, in source pixels")
+    ap.add_argument("--skip", type=Path, nargs="*", default=(),
+                    help="sets whose sources this one must not reuse - how a "
+                         "second, independent draw is taken")
     ap.add_argument("--find", default=None, help="caption regex picking sources")
     ap.add_argument("--need", default=None, help="second regex the same caption must match")
     ap.add_argument("--pos", required=True, help="the phrase probe_bisect.py will use")
@@ -240,9 +259,12 @@ def main() -> int:
 
     if bool(args.cat) == bool(args.find):
         ap.error("give exactly one of --cat (preferred) or --find")
+    skip = used(list(args.skip))
+    if skip:
+        print(f"skipping  : {len(skip)} sources already spent on {len(args.skip)} set(s)")
     if args.cat:
         cats = [c.strip() for c in args.cat.split(",")]
-        srcs = crops(cats, args.min_side, args.n)
+        srcs = crops(cats, args.min_side, args.n, skip)
         print(f"sources   : {len(srcs)} crops of {cats} (box >= {args.min_side}px) from {VAL}")
     else:
         srcs = [(p.stem, p.read_bytes()) for p in sources(args.find, args.need, args.n)]

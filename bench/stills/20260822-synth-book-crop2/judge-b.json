@@ -1,0 +1,16 @@
+[
+{"file": "000000025603.png", "side": "A", "object_both": true, "same_scene": true, "shortcut": ""},
+{"file": "000000061333.png", "side": "B", "object_both": false, "same_scene": true, "shortcut": "B's open book is sharper and higher-contrast than the blurred bedding/shelf around it, so it reads as pasted in"},
+{"file": "000000125062.png", "side": "A", "object_both": true, "same_scene": true, "shortcut": ""},
+{"file": "000000144798.png", "side": "B", "object_both": true, "same_scene": true, "shortcut": "B adds a flat, uniformly bright white page with a hard straight edge over the tile floor"},
+{"file": "000000166166.png", "side": "A", "object_both": true, "same_scene": true, "shortcut": ""},
+{"file": "000000194724.png", "side": "B", "object_both": true, "same_scene": true, "shortcut": ""},
+{"file": "000000222299.png", "side": "A", "object_both": true, "same_scene": true, "shortcut": ""},
+{"file": "000000231831.png", "side": "B", "object_both": true, "same_scene": true, "shortcut": ""},
+{"file": "000000302030.png", "side": "A", "object_both": false, "same_scene": true, "shortcut": ""},
+{"file": "000000346968.png", "side": "B", "object_both": true, "same_scene": true, "shortcut": ""},
+{"file": "000000375278.png", "side": "A", "object_both": true, "same_scene": false, "shortcut": "B's left half is one large flat near-black slab, far darker and flatter than the same region in A"},
+{"file": "000000403353.png", "side": "B", "object_both": true, "same_scene": true, "shortcut": ""},
+{"file": "000000455301.png", "side": "A", "object_both": true, "same_scene": true, "shortcut": ""},
+{"file": "000000507575.png", "side": "B", "object_both": true, "same_scene": true, "shortcut": ""}
+]

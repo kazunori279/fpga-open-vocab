@@ -107,6 +107,27 @@ So the live question moves from capacity to distillation: the student has the
 frames apart and puts them apart in the wrong direction. That is #24's fourth
 row, and it is a milestone rather than a bench - but it is a different milestone
 from "the model is too small", and nothing above supports that one.
+
+WHAT --runs FOUND, 2026-08-22, AND WHY IT IS A WARNING RATHER THAN A RESULT
+-----------------------------------------------------------------------------
+`--runs a,b,c` puts several checkpoints on the same pixels, one student row
+each, which is the cheap way to ask which distillation setting inherited an
+axis: no camera, no board. Pointed at the blind-screened generated sets in
+`bench/stills/20260822-synth-*-crop/`, eight settings - InfoNCE at 0.3 and 1.0,
+RKD at 10 and 100, and combinations - spread the student row over 0.0-0.4 sd on
+the book pair and 0.3-0.8 sd on the glass pair.
+
+None of that spread is real. Measuring ONE checkpoint on a SECOND draw of the
+same pair - thirty more val2017 scenes, same recipe - moved the glass pair from
+0.9 sd to 0.3 sd and its class-axis cosine from +0.263 to +0.183. The
+draw-to-draw noise is wider than the whole between-setting spread, and the one
+setting that looked like a winner on the book pair does not replicate on the
+glass one.
+
+So `--runs` is honest about what it is fed. On stills of ONE scene it compares
+checkpoints; on a set of DIFFERENT scenes it compares draws, and adding scenes
+does not help because that is where the variance is. Read the teacher row on a
+generated set and shoot stills for anything about a student.
 """
 import argparse
 import sys
@@ -190,6 +211,25 @@ def keeplist(path: Path | None) -> set[str] | None:
     return stems
 
 
+def shortnames(runs: list[str]) -> list[str]:
+    """Run names with what they share dropped, so the rows read as a sweep.
+
+    A sweep's runs are named by the thing that differs plus a long shared stem -
+    `_sieve_infonce-0.3`, `_sieve_infonce-0.3+rkd-10` - and truncating those to
+    fit a column renders both as `_sieve_infonce`, which is worse than useless:
+    two rows that differ are printed under one name. Dropping the common prefix
+    keeps exactly the part that varies. If it would leave a row blank - one name
+    being a prefix of another - the full names are used and the column widens.
+    """
+    if len(runs) == 1:
+        return ["student fp32"]
+    head = 0
+    while all(len(r) > head and r[head] == runs[0][head] for r in runs):
+        head += 1
+    short = [r[head:] for r in runs]
+    return short if all(short) else list(runs)
+
+
 def report(name: str, ma: np.ndarray, mb: np.ndarray,
            ra: list[str], rb: list[str]) -> None:
     """One stage's rows: the AUCs, and the effect sizes for when they saturate.
@@ -242,13 +282,13 @@ def report(name: str, ma: np.ndarray, mb: np.ndarray,
     # One round means the null was not measured, which is a different thing
     # from a null of zero and has to read differently or it flatters the row.
     many = len(rounds) > 1
-    print(f"  {name:<14} sep {sep:.3f}  |sep| {max(sep, 1-sep):.3f}  "
+    print(f"  {name:<20} sep {sep:.3f}  |sep| {max(sep, 1-sep):.3f}  "
           f"within {w:.3f}  drift " + (f"{drift:.3f}" if many else "  n/a"))
-    print(f"  {'':<14} gap {gap:.4f} = {gap / sd:5.1f} sd   round swing "
+    print(f"  {'':<20} gap {gap:.4f} = {gap / sd:5.1f} sd   round swing "
           + (f"{swing:.4f} = {swing / sd:5.1f} sd" if many
              else "not measured - one round")
           + f"   (sd {sd:.4f})")
-    print(f"  {'':<14} per round: {'  '.join(cells)}")
+    print(f"  {'':<20} per round: {'  '.join(cells)}")
 
 
 def paired(name: str, ma: np.ndarray, mb: np.ndarray,
@@ -279,11 +319,11 @@ def paired(name: str, ma: np.ndarray, mb: np.ndarray,
     kb = {f.stem: float(m) for f, m in zip(fb, mb, strict=True)}
     keys = sorted(set(ka) & set(kb))
     if len(keys) < 2:
-        print(f"  {name:<14} paired n/a - --a and --b share {len(keys)} names")
+        print(f"  {name:<20} paired n/a - --a and --b share {len(keys)} names")
         return
     d = np.array([ka[k] - kb[k] for k in keys])
     sd = float(d.std(ddof=1)) or float("nan")
-    print(f"  {name:<14} scenes {len(keys):3d}   right way round "
+    print(f"  {name:<20} scenes {len(keys):3d}   right way round "
           f"{int((d > 0).sum())}/{len(d)}   "
           f"mean {d.mean():+.4f} = {d.mean() / sd:5.1f} sd   (sd {sd:.4f})")
 
@@ -318,9 +358,9 @@ def oracle(name: str, va: np.ndarray, vb: np.ndarray,
         held.append(f)
         cells.append(f"{r} {f:.3f}")
     if not held:
-        print(f"  {name:<14} held-out oracle AUC n/a - needs two or more rounds")
+        print(f"  {name:<20} held-out oracle AUC n/a - needs two or more rounds")
         return
-    print(f"  {name:<14} held-out oracle AUC {np.mean(held):.3f}   "
+    print(f"  {name:<20} held-out oracle AUC {np.mean(held):.3f}   "
           f"per round: {'  '.join(cells)}")
 
 
@@ -331,6 +371,11 @@ def main() -> int:
     ap.add_argument("--pos", required=True, help="the phrase for --a")
     ap.add_argument("--neg", required=True, help="the phrase for --b")
     ap.add_argument("--run", default="so400m-full-a05", help="student under model/runs/")
+    ap.add_argument("--runs", default=None,
+                    help="comma-separated runs, one student row each, on the "
+                         "SAME pixels and the same query vectors. For asking "
+                         "which distillation setting inherited an axis - a "
+                         "question that needs no camera and no board")
     ap.add_argument("--no-student", action="store_true",
                     help="teacher stages only; skips loading the checkpoint")
     ap.add_argument("--paired", action="store_true",
@@ -342,8 +387,22 @@ def main() -> int:
                          "set's README argues for, applied to both --a and --b")
     args = ap.parse_args()
 
-    ckpt = torch.load(ROOT / "model/runs" / args.run / "student.pt",
-                      map_location="cpu", weights_only=False)
+    runs = [r.strip() for r in args.runs.split(",")] if args.runs else [args.run]
+    ckpts = {}
+    for r in runs:
+        p = ROOT / "model/runs" / r / "student.pt"
+        if not p.exists():
+            raise SystemExit(f"no {p}")
+        ckpts[r] = torch.load(p, map_location="cpu", weights_only=False)
+    # Every row has to be scored against the same query vectors or the columns
+    # are not comparable, and the query vectors come from the teacher and the
+    # basis a run was distilled against. A run from another space is refused
+    # rather than quietly plotted next to ones it does not share an axis with.
+    specs = {r: c.get("teacher", "") for r, c in ckpts.items()}
+    if len(set(specs.values())) > 1:
+        raise SystemExit("runs distilled against different teachers:\n  " +
+                         "\n  ".join(f"{r}: {s or '(unset)'}" for r, s in specs.items()))
+    ckpt = ckpts[runs[0]]
     spec, basis_path = resolve(ckpt.get("teacher", ""))
     name, pre = spec.split(":")
     device = pt.pick_device()
@@ -359,7 +418,8 @@ def main() -> int:
     print(f"rounds    : {sorted(set(ra))} / {sorted(set(rb))}")
     print(f"teacher   : {spec}, {len(teacher_mod.TEMPLATES)} templates")
     print(f"basis     : {basis_path.name if basis_path else 'none'}")
-    print(f"student   : {args.run}, epoch {ckpt['epoch']}")
+    for r in runs:
+        print(f"student   : {r}, epoch {ckpts[r]['epoch']}")
     print(f"device    : {device}\n")
 
     basis = np.load(basis_path) if basis_path else None
@@ -414,9 +474,6 @@ def main() -> int:
         stages.append(("pca 512", project(va), project(vb), tv_pca))
 
     if not args.no_student:
-        net = student_mod.Student()
-        net.load_state_dict(ckpt["state_dict"])
-        net = net.to(device).eval()
         # Plain normalize, not camera_transform(): these PNGs came off the Mega
         # at 128x128 already, so simulating the crop would apply it twice. The
         # same note is in probe_inherit.py and in probe_open.py, where getting
@@ -425,17 +482,21 @@ def main() -> int:
             [transforms.ToTensor(),
              transforms.Normalize(distill.PIXEL_MEAN, distill.PIXEL_STD)])
 
-        def student_embed(pils):
+        def student_embed(net, pils):
             with torch.no_grad():
                 e = net(torch.stack([tf(p) for p in pils]).to(device))
             e = e / e.norm(dim=-1, keepdim=True)
             return e.cpu().numpy().astype(np.float32)
 
-        # The student emits into the teacher's *projected* space by
-        # construction, so it is scored against tv_pca and not a space of its
-        # own.
-        stages.append(("student fp32", student_embed(ia), student_embed(ib),
-                       tv_pca))
+        for r, label in zip(runs, shortnames(runs), strict=True):
+            net = student_mod.Student()
+            net.load_state_dict(ckpts[r]["state_dict"])
+            net = net.to(device).eval()
+            # The student emits into the teacher's *projected* space by
+            # construction, so it is scored against tv_pca and not a space of
+            # its own.
+            stages.append((label, student_embed(net, ia), student_embed(net, ib),
+                           tv_pca))
 
     print(f"{'='*78}\nMARGIN AUC BY STAGE, on the phrases as the board sends "
           "them")
@@ -469,7 +530,13 @@ def main() -> int:
     print(f"\n  trivial cue: frame mean luma AUC {folded(la, lb):.3f}  "
           f"({la.mean():.1f} vs {lb.mean():.1f})")
 
-    if len(stages) > 2:
+    # The stage a student is compared against is the last teacher-side one -
+    # `pca 512` when there is a basis, `teacher 1152` when there is not. Indexing
+    # it as stages[1] worked only while there was exactly one student and a
+    # basis; with --runs and a ViT-B/16 run it would have compared one student
+    # to another and called the result axis inheritance.
+    n_teacher = 2 if basis is not None else 1
+    if len(stages) > n_teacher:
         # DOES THE STUDENT PUT THE DIFFERENCE WHERE ITS TEACHER PUT IT? The
         # student is trained to emit the projected teacher vector, so the two
         # live in one 512-d space and their class-mean differences can be
@@ -486,12 +553,12 @@ def main() -> int:
         # where the teacher's is 0.645. Raw agreement with the teacher is not a
         # thing this student was ever going to have, and quoting it would have
         # been a scary number that predicts nothing.
-        _, ta, tb, _ = stages[1]
+        ref, ta, tb, _ = stages[n_teacher - 1]
         d_t = ta.mean(0) - tb.mean(0)
-        for sname, a, b, _tv in stages[2:]:
+        for sname, a, b, _tv in stages[n_teacher:]:
             d_s = a.mean(0) - b.mean(0)
             axis = float(d_s @ d_t / (np.linalg.norm(d_s) * np.linalg.norm(d_t)))
-            print(f"\n  class axis, {sname} against pca 512: cos {axis:+.3f}"
+            print(f"\n  class axis, {sname} against {ref}: cos {axis:+.3f}"
                   "   (1.0 = the same difference, 0.0 = an unrelated one)")
     return 0
 

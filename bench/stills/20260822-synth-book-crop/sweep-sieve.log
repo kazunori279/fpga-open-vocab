@@ -1,0 +1,67 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+pair      : 'an opened book'  vs  'a closed book'
+keep      : 18 stems from bench/stills/20260822-synth-book-crop/keep.txt
+stills    : 18 from bench/stills/20260822-synth-book-crop/pos, 18 from bench/stills/20260822-synth-book-crop/neg
+rounds    : ['r?'] / ['r?']
+teacher   : ViT-B-16-quickgelu:openai, 7 templates
+basis     : none
+student   : _sieve_baseline, epoch 19
+student   : _sieve_infonce-0.3, epoch 19
+student   : _sieve_infonce-1.0, epoch 19
+student   : _sieve_rkd-10, epoch 20
+student   : _sieve_infonce-0.3+rkd-10, epoch 18
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152         sep 0.639  |sep| 0.639  within 0.639  drift   n/a
+                       gap 0.1754 =   0.6 sd   round swing not measured - one round   (sd 0.3160)
+                       per round: r? 0.639
+  baseline             sep 0.509  |sep| 0.509  within 0.509  drift   n/a
+                       gap 0.0136 =   0.0 sd   round swing not measured - one round   (sd 1.0519)
+                       per round: r? 0.509
+  infonce-0.3          sep 0.562  |sep| 0.562  within 0.562  drift   n/a
+                       gap 0.1206 =   0.2 sd   round swing not measured - one round   (sd 0.5758)
+                       per round: r? 0.562
+  infonce-1.0          sep 0.519  |sep| 0.519  within 0.519  drift   n/a
+                       gap 0.0096 =   0.0 sd   round swing not measured - one round   (sd 0.5437)
+                       per round: r? 0.519
+  rkd-10               sep 0.574  |sep| 0.574  within 0.574  drift   n/a
+                       gap 0.1231 =   0.2 sd   round swing not measured - one round   (sd 0.5558)
+                       per round: r? 0.574
+  infonce-0.3+rkd-10   sep 0.596  |sep| 0.596  within 0.596  drift   n/a
+                       gap 0.2378 =   0.3 sd   round swing not measured - one round   (sd 0.6832)
+                       per round: r? 0.596
+
+==============================================================================
+WITHIN SCENE - the same picture in two states, so the scene cancels
+  teacher 1152         scenes  18   right way round 14/18   mean +0.1754 =   0.9 sd   (sd 0.1968)
+  baseline             scenes  18   right way round 12/18   mean +0.0136 =   0.0 sd   (sd 0.8881)
+  infonce-0.3          scenes  18   right way round 11/18   mean +0.1206 =   0.2 sd   (sd 0.5412)
+  infonce-1.0          scenes  18   right way round 11/18   mean +0.0096 =   0.0 sd   (sd 0.4851)
+  rkd-10               scenes  18   right way round 16/18   mean +0.1231 =   0.3 sd   (sd 0.4424)
+  infonce-0.3+rkd-10   scenes  18   right way round 12/18   mean +0.2378 =   0.4 sd   (sd 0.6203)
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152         held-out oracle AUC n/a - needs two or more rounds
+  baseline             held-out oracle AUC n/a - needs two or more rounds
+  infonce-0.3          held-out oracle AUC n/a - needs two or more rounds
+  infonce-1.0          held-out oracle AUC n/a - needs two or more rounds
+  rkd-10               held-out oracle AUC n/a - needs two or more rounds
+  infonce-0.3+rkd-10   held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 0.633  (124.5 vs 103.3)
+
+  class axis, baseline against teacher 1152: cos +0.045   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  class axis, infonce-0.3 against teacher 1152: cos +0.068   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  class axis, infonce-1.0 against teacher 1152: cos +0.024   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  class axis, rkd-10 against teacher 1152: cos +0.030   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  class axis, infonce-0.3+rkd-10 against teacher 1152: cos +0.060   (1.0 = the same difference, 0.0 = an unrelated one)
