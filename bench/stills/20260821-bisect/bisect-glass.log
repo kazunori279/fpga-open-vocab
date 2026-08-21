@@ -1,0 +1,31 @@
+pair      : 'a glass with tea'  vs  'an empty glass'
+stills    : 33 from bench/stills/20260821-bisect/tea, 33 from bench/stills/20260821-bisect/empty
+rounds    : ['r1', 'r2', 'r3'] / ['r1', 'r2', 'r3']
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates
+basis     : emb_train2017_SO400M-pca512-a0.5.basis.npz
+student   : so400m-full-a05, epoch 37
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152   sep 1.000  |sep| 1.000  within 1.000  drift 0.975
+                 gap 3.6215 =   7.9 sd   round swing 0.7579 =   1.6 sd   (sd 0.4596)
+                 per round: r1 1.000  r2 1.000  r3 1.000
+  pca 512        sep 1.000  |sep| 1.000  within 1.000  drift 0.901
+                 gap 3.3015 =   5.4 sd   round swing 0.9149 =   1.5 sd   (sd 0.6101)
+                 per round: r1 1.000  r2 1.000  r3 1.000
+  student fp32   sep 0.533  |sep| 0.533  within 0.601  drift 0.736
+                 gap 0.0225 =   0.2 sd   round swing 0.0979 =   0.8 sd   (sd 0.1223)
+                 per round: r1 0.512  r2 0.579  r3 0.711
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152   held-out oracle AUC 1.000   per round: r1 1.000  r2 1.000  r3 1.000
+  pca 512        held-out oracle AUC 1.000   per round: r1 1.000  r2 1.000  r3 1.000
+  student fp32   held-out oracle AUC 1.000   per round: r1 1.000  r2 1.000  r3 1.000
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 1.000  (108.4 vs 132.6)
+
+  class axis, student fp32 against pca 512: cos +0.031   (1.0 = the same difference, 0.0 = an unrelated one)

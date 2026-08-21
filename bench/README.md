@@ -1,9 +1,16 @@
 # The cue benches
 
-Two directories. **`cue/`** is accuracy — this file is its manifest.
+Three directories. **`cue/`** is accuracy — this file is its manifest.
 **`soak/`** is reliability: eight 200-frame runs from 2026-08-15 at two clocks,
 three of which died, and the earliest recorded instance of the USB outage behind
 #9. It has [its own README](soak/README.md).
+
+**`stills/`** is neither, and is not a bench. It holds PNGs off the appliance's
+camera, shot so that the stages of the encoder chain can be asked about the same
+pixels off the board. [`stills/20260821-bisect/`](stills/20260821-bisect/) is
+where the glass pair's axis was found to be lost at the student and nowhere
+earlier. Nothing in there is comparable to a row in the manifest below: no cue
+schedule, no enrolment, no held-out set, no sidecar.
 
 Every number in this repository that says how well the appliance recognises
 anything came out of one of the logs in `cue/`. The enrolment guard's constant

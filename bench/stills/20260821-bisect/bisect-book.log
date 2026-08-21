@@ -1,0 +1,31 @@
+pair      : 'an opened book'  vs  'a closed book'
+stills    : 11 from bench/stills/20260821-bisect/book-open, 11 from bench/stills/20260821-bisect/book-closed
+rounds    : ['r1'] / ['r1']
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates
+basis     : emb_train2017_SO400M-pca512-a0.5.basis.npz
+student   : so400m-full-a05, epoch 37
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152   sep 1.000  |sep| 1.000  within 1.000  drift   n/a
+                 gap 3.8102 =  26.0 sd   round swing not measured - one round   (sd 0.1463)
+                 per round: r1 1.000
+  pca 512        sep 1.000  |sep| 1.000  within 1.000  drift   n/a
+                 gap 3.8607 =  24.1 sd   round swing not measured - one round   (sd 0.1601)
+                 per round: r1 1.000
+  student fp32   sep 1.000  |sep| 1.000  within 1.000  drift   n/a
+                 gap 3.4900 =   8.2 sd   round swing not measured - one round   (sd 0.4236)
+                 per round: r1 1.000
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152   held-out oracle AUC n/a - needs two or more rounds
+  pca 512        held-out oracle AUC n/a - needs two or more rounds
+  student fp32   held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 1.000  (83.7 vs 138.8)
+
+  class axis, student fp32 against pca 512: cos +0.158   (1.0 = the same difference, 0.0 = an unrelated one)

@@ -11,6 +11,96 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-21, 10:35 — the glass axis is lost at the student, and only at the student
+
+Still newest-first: the entry below calls itself *midday* and its runs are
+stamped 07:01. The label is wrong and the order here is right.
+
+Stills, logs and the two bisection runs in
+[`bench/stills/20260821-bisect/`](../bench/stills/20260821-bisect/), which has
+the long version. Tool is `tools/probe_bisect.py`.
+
+Four glass benches — margin AUC 0.699 / 0.591 / 0.680 / 0.674, one of them with
+the sign flipped, fenced by book controls at 96.7% and 98.3% on the same desk —
+established that `a glass with tea` / `an empty glass` fails and that the
+staging is not why. [#24](https://github.com/kazunori279/fpga-open-vocab/issues/24)
+asks *where*: teacher, projection, student, or int4. Four stages, four different
+fixes, three of them expensive.
+
+**It is the student.** Effect sizes on 66 glass stills and 22 book stills, all
+of them 128×128 PNGs off the appliance's own camera:
+
+| pair | teacher 1152 | pca 512 | student fp32 |
+| --- | --- | --- | --- |
+| `an opened book` / `a closed book` | 26.0 sd | 24.1 sd | **8.2 sd** |
+| `a glass with tea` / `an empty glass` | 7.9 sd | 5.4 sd | **0.2 sd** |
+
+Two candidates die on the teacher row alone. **It is not the resolution** — the
+teacher read 7.9 sd on the very same 128×128 pixels, so "the frame does not
+resolve the fill state" comes off #23's list. **It is not the projection**, so
+neither is #24's own "cheapest possible fix": refitting the 1152→512 basis on a
+bank with fill-state contrasts cannot recover what the basis already passes
+through at 5.4 sd.
+
+Three things had to be got right before that table meant anything.
+
+**Effect sizes, not AUC.** The first run of this measured AUC only: teacher
+class 1.000, teacher drift-null 0.983. Both saturate, and two 1.000s that mean
+opposite things are not a measurement.
+
+**The board's `z`, not a raw cosine gap.** `m9.c` scores
+`z = (cos − background)/std` per query. The background cancels out of any
+ranking; the std does not, and using `cos_A − cos_B` hands the vote to whichever
+query swings more. Fixing this moved the student's glass row from 0.784 to
+0.533.
+
+**And the book control, which is the reason the student row is readable at all.**
+A student reading 0.2 sd might just as well mean the measurement is broken. Same
+session, same script, same stage: 8.2 sd on the book pair. It is not broken. The
+glass 0.2 sd is 0.8 sd *below* that pair's own round-to-round drift.
+
+Rounds, alternating, are the other half of that: eleven tea, eleven empty,
+eleven tea, and so on, because thirty consecutive frames of one scene confound
+the class with the AEC and the daylight — the confound that made the four
+benches unreadable in the first place. All eight capture runs printed `exposure
+settled after 6–8 frames` and no `scene:` line, so #25's and #26's guards, one
+day old, had nothing to say about any of these frames.
+
+#### Two things this does not show, both bigger than the table
+
+**The difference is not gone from the student.** A fitted axis held out by round
+reads AUC 1.000 at every stage including the student. The student's embedding
+does move between the two scenes; what it does not do is move along the
+direction the text query points at. Cosine between the student's class-mean
+difference and the teacher's is **+0.031**, against **+0.158** for the book
+pair — both small, because the student's geometry is its own, and the ratio is
+the signal.
+
+**And that oracle is not evidence of a bound concept**, because mean frame luma
+separates the glass pair at AUC 1.000 by itself (108 against 133 — tea is
+darker). It separates the book pair too. The oracle rules out *the student threw
+the frames away*. It does not rule in *the student knows what tea is*.
+
+So the question moves from capacity to distillation. **Nothing here supports
+"the model is too small"**, which is the reading four failed benches invited and
+the reason it was worth spending a morning to not act on.
+
+int4, #24's fourth row, is deliberately not run: the fp32 student already loses
+the axis, so quantising cannot change the verdict.
+
+#### A number that was measured, believed for ten minutes, and thrown out
+
+Per-frame `cos(student, teacher)` on these stills is 0.475, which reads like a
+collapse. `bench/cue` frames from runs where the board scored 100% read
+**0.428**, and a *constant* vector scores 0.957 / 0.841 on the same two sets;
+`config.json` has `constant_cosine` 0.643 against `best_cosine` 0.672. The
+quantity is dominated by the shared cone direction and is not about any axis. A
+difference of class means cancels the cone; a per-frame cosine does not. It is
+out of the tool's output, and the reasoning is a comment in
+`tools/probe_bisect.py` because it will look convincing again.
+
+---
+
 ### 2026-08-21, midday — the acquire's doubt outlives the banner, and a settle that was never a settle
 
 Logs in [`bench/soak/20260821-q26/`](../bench/soak/20260821-q26/).
