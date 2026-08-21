@@ -79,22 +79,32 @@ auditable.
 Screening the stimulus before encoding anything is a validity filter. Screening
 after seeing the margins would be fitting. The order is the difference.
 
-**A generated set screens the teacher. It cannot screen the student.** Eighteen
-books on eighteen desks asks whether *any* open book outranks *any* closed one;
-a bench asks about one book on one desk. The student holds the second and not
-the first, so on 2026-08-22 it read 0.6 sd on the pair the appliance carries at
-8.2 sd and 0.9 sd on the pair the appliance loses at 0.2 sd — the ordering
-upside down, at n = 18 and n = 25, after screening. Read the teacher row, which
-is the gate that matters, and shoot stills for anything else.
+**A generated set does not predict a bench, and it is not trying to.** Thirty
+books on thirty desks asks whether *any* open book outranks *any* closed one; a
+bench asks about one book on one desk, with the enrolment and the decision rule
+in the loop. Neither number converts into the other, and a set here that reads
+well still has to be benched before an accuracy figure is quoted.
+
+**What it does measure is scene-invariance, which is what the product needs.**
+"Is the book open" has to hold when the room, the lamp and the exposure all
+changed, and thirty different rooms is the only cheap way to ask that. The
+answer as of 2026-08-22 is that the teacher does it at AUC 0.91–0.95 and the
+student at 0.60–0.70, on both pairs and on two disjoint draws. That gap is the
+finding, and it is larger than anything the distillation sweeps move.
+
+**On a generated set, read `sep` and not the paired column.** `--paired`
+subtracts the two states of one scene, so the scene cancels — right on stills of
+one desk, wrong on thirty different rooms, where the whole question is whether
+the state survives the room. It is also unstable: 0.9 sd → 0.3 sd between two
+draws with the model held fixed. The pooled cross-scene AUC repeats to about
+±0.05 and is the number a user's requirement is actually written in — *is the
+book open, whatever else changed*.
 
 **Draw a second set before believing a difference between two checkpoints.**
-`synth_pairs.py --skip <set>` builds one on scenes the first never used. With
-the checkpoint held fixed the sign count reproduces to about ±0.05, but the
-effect size moved 0.9 sd → 0.3 sd on the glass pair and the class-axis cosine
-by 0.08 — which is wider than the whole spread across five InfoNCE and RKD
-settings. So a generated set is a teacher-side regression harness and cannot
-rank distillation settings, however many scenes are added: the variance is
-between draws, not within one.
+`synth_pairs.py --skip <set>` builds one on scenes the first never used, and it
+is what separates a replicated effect from a lucky draw: RKD 10 holds +0.10 AUC
+on the book pair across both draws and both model families, while RKD 100 swings
+0.73/0.59 and 0.50/0.68 and holds nothing.
 
 ## Sets
 
@@ -103,8 +113,8 @@ between draws, not within one.
 | [`20260821-bisect/`](20260821-bisect/) | `a glass with tea` / `an empty glass`, plus a book control | the axis is lost at the student and nowhere earlier — not the resolution, not the projection ([#24](https://github.com/kazunori279/fpga-open-vocab/issues/24)) |
 | [`20260822-synth-book-crop/`](20260822-synth-book-crop/) | `an opened book` / `a closed book`, generated | the control that caught it: a generated set cannot rank pairs for the appliance, and the teacher-only remit that leaves |
 | [`20260822-synth-glass-crop/`](20260822-synth-glass-crop/) | `a glass with tea` / `an empty glass`, generated | the teacher binds fill state, not brightness — 25/25 with the luma cue at AUC 0.658 ([#28](https://github.com/kazunori279/fpga-open-vocab/issues/28)) |
-| [`20260822-synth-book-crop2/`](20260822-synth-book-crop2/) | `an opened book` / `a closed book`, second draw | the noise floor: a generated set cannot separate one distillation setting from another, and val2017 has no third book draw in it |
-| [`20260822-synth-glass-crop2/`](20260822-synth-glass-crop2/) | `a glass with tea` / `an empty glass`, second draw | the teacher's 25/25 replicates on unseen scenes at 23/23; the student's 0.9 sd does not |
+| [`20260822-synth-book-crop2/`](20260822-synth-book-crop2/) | `an opened book` / `a closed book`, second draw | which column to read — cross-scene AUC, not the paired one — and the sweep that reading turns into a result: RKD 10 is +0.10 on this pair and nothing on the other |
+| [`20260822-synth-glass-crop2/`](20260822-synth-glass-crop2/) | `a glass with tea` / `an empty glass`, second draw | the teacher's 25/25 replicates on unseen scenes at 23/23; the student's cross-scene AUC is 0.61 against its 0.95 |
 | `20260822-synth-{book,glass}` and `-closeup` | the same two pairs | superseded first attempts, kept as the evidence for cropping the source: object too small, then scene re-composed |
 
 ## What a set can and cannot answer

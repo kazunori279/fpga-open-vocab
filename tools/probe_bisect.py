@@ -108,26 +108,40 @@ frames apart and puts them apart in the wrong direction. That is #24's fourth
 row, and it is a milestone rather than a bench - but it is a different milestone
 from "the model is too small", and nothing above supports that one.
 
-WHAT --runs FOUND, 2026-08-22, AND WHY IT IS A WARNING RATHER THAN A RESULT
------------------------------------------------------------------------------
+WHAT --runs FOUND, 2026-08-22, AND WHICH COLUMN TO READ IT IN
+---------------------------------------------------------------
 `--runs a,b,c` puts several checkpoints on the same pixels, one student row
-each, which is the cheap way to ask which distillation setting inherited an
-axis: no camera, no board. Pointed at the blind-screened generated sets in
-`bench/stills/20260822-synth-*-crop/`, eight settings - InfoNCE at 0.3 and 1.0,
-RKD at 10 and 100, and combinations - spread the student row over 0.0-0.4 sd on
-the book pair and 0.3-0.8 sd on the glass pair.
+each: no camera, no board. Pointed at the blind-screened generated sets in
+`bench/stills/20260822-synth-*-crop{,2}/`, it printed a between-setting spread
+that the FIRST reading of it called noise. That reading was wrong, and the
+mistake was reading the wrong column.
 
-None of that spread is real. Measuring ONE checkpoint on a SECOND draw of the
-same pair - thirty more val2017 scenes, same recipe - moved the glass pair from
-0.9 sd to 0.3 sd and its class-axis cosine from +0.263 to +0.183. The
-draw-to-draw noise is wider than the whole between-setting spread, and the one
-setting that looked like a winner on the book pair does not replicate on the
-glass one.
+**`--paired` is the wrong statistic for a set of different scenes.** It
+subtracts the two states of one scene, so the scene cancels by construction -
+which is the right thing on stills of one desk and exactly the wrong thing when
+the question is whether a state survives a change of desk. Its effect size is
+also a mean over a handful of heterogeneous scenes divided by their own spread,
+and it moved 0.9 sd -> 0.3 sd between two draws of one checkpoint.
 
-So `--runs` is honest about what it is fed. On stills of ONE scene it compares
-checkpoints; on a set of DIFFERENT scenes it compares draws, and adding scenes
-does not help because that is where the variance is. Read the teacher row on a
-generated set and shoot stills for anything about a student.
+**`sep`, the pooled cross-scene AUC, is the statistic that requirement asks
+for**, and it is stable: P(a random image in the positive state outranks a
+random image of A DIFFERENT SCENE in the negative state). Across two disjoint
+draws it repeats to about +-0.05, and it says something the paired column hid:
+
+  pair    teacher   baseline   + RKD 10     (each cell: draw 1 / draw 2)
+  book    .91/.94   .57/.54    .69/.63      SO400M group
+  book    .70/.70   .51/.41    .57/.57      ViT-B/16 sieve group
+  glass   .93/.95   .60/.59    .57/.62      SO400M group
+  glass   .89/.89   .67/.66    .61/.59      ViT-B/16 sieve group
+
+RKD is worth about +0.10 AUC ON THE BOOK PAIR, in both draws and in both model
+families, and nothing at all on the glass pair. RKD 100 does not replicate
+(.73/.59 and .50/.68) and should not be read as the same result with more of
+it. InfoNCE alone does not separate from baseline anywhere.
+
+And the headline the sweep exists to surface: the student sits near 0.6 where
+its teacher sits near 0.93. It is barely scene-invariant, which is the property
+"is the book open" needs in a room the appliance was not enrolled in.
 """
 import argparse
 import sys

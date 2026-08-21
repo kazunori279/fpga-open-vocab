@@ -25,11 +25,14 @@ That is the second independent confirmation that SigLIP binds fill state rather
 than brightness, which was the caveat left on
 [#28](https://github.com/kazunori279/fpga-open-vocab/issues/28).
 
-**The student does not.** Same checkpoint, same phrases, same recipe, and the
-effect size falls from 0.9 sd to 0.3 sd between draws. That swing is the point
-of this set, and the argument it supports — that neither sweep separated any
-distillation setting from baseline — is written up in the control set's README,
-[`../20260822-synth-book-crop2/`](../20260822-synth-book-crop2/).
+**The student does not.** Its pooled cross-scene AUC is 0.605 here and 0.661 on
+the first draw, against a teacher at 0.949 — the student barely carries fill
+state from one room to another. The paired effect size on the same two draws
+reads 0.9 sd then 0.3 sd, which is the statistic swinging rather than the model,
+and the reason to read the cross-scene AUC instead is argued in the control
+set's README, [`../20260822-synth-book-crop2/`](../20260822-synth-book-crop2/),
+together with what the checkpoint sweeps say once that column is the one being
+read.
 
 ## The screen caught something about itself
 

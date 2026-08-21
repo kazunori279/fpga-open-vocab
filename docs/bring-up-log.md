@@ -11,7 +11,67 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-22, evening — the sweep did measure something; I had read the wrong column
+
+The entry below — *a second draw, and two sweeps that measured nothing* —
+concludes that eight distillation settings are indistinguishable on a generated
+set and that the harness cannot rank them. **That is wrong**, and the correction
+is worth more than the claim was. The entry stays as written; this is what the
+newest-first ordering is for.
+
+It came from a question about the product rather than about the statistics: in
+real use nobody holds the room still. A user wants *is the book open* to hold
+when the background, the lamp and the exposure have all changed. Scene-invariance
+is the requirement.
+
+Which means `--paired` was the wrong readout all along. It subtracts the two
+states of one scene, so the scene **cancels by construction** — exactly right on
+stills of one desk, and exactly wrong on thirty different rooms, where surviving
+the room is the whole question. Its effect size is also a mean over a handful of
+heterogeneous scenes divided by their own spread, which is why it swung 0.9 sd →
+0.3 sd between two draws of one fixed checkpoint. I read that swing as the
+harness being blunt. It was the statistic being fragile.
+
+`sep`, the pooled cross-scene AUC that was printed the whole time, repeats to
+about ±0.05 across disjoint draws. In that column (draw 1 / draw 2):
+
+| | book | glass |
+| --- | --- | --- |
+| teacher, SO400M | .907 / .940 | .933 / .949 |
+| so400m 30k baseline | .565 / .540 | .600 / .590 |
+| so400m + RKD 10 | .685 / .630 | .565 / .616 |
+| so400m + RKD 100 | .728 / .590 | .498 / .677 |
+| teacher, ViT-B/16 | .700 / .700 | .888 / .888 |
+| sieve baseline | .509 / .410 | .672 / .660 |
+| + RKD 10 | .574 / .570 | .610 / .590 |
+| + InfoNCE 0.3 & RKD 10 | .596 / .520 | .664 / .658 |
+
+**RKD 10 is worth about +0.10 AUC on the book pair** — both draws, both model
+families, two different teachers — and nothing on the glass pair, where the
+baseline row is already the best one. RKD 100 swings .73/.59 and .50/.68 and is
+not that result with more of it. InfoNCE alone never separates from baseline.
+
+And the number that dwarfs the ranking: **the student is at ~0.6 where its
+teacher is at ~0.93.** It barely carries either state across a change of room.
+That is the gap, it is measurable in minutes without a camera, and the generated
+set is the harness for closing it rather than a teacher-side screen that has to
+be apologised for.
+
+One consequence for the pipeline. `synth_pairs.py` edits the source image rather
+than generating from text, and the two sides drift apart anyway because they are
+two independent calls — about 13% of pairs die on the judges' `same_scene`. The
+obvious fix is to anchor both edits to one generated intermediate so the
+backgrounds match exactly. **Don't.** Nuisance variation must be *uncorrelated
+with the label*, not absent, and thirty rooms already gives that; pinning the
+background would delete the very variation the requirement is about and make
+every row look better for no reason.
+
+Sweeps now exist on all four sets as `sweep-so400m.log` and `sweep-sieve.log`.
+
+---
+
 ### 2026-08-22, later — a second draw, and two sweeps that measured nothing
+
 
 The entry below ends with a generated set demoted to a teacher-side screen. The
 obvious next use for one was as a **distillation regression harness**: same

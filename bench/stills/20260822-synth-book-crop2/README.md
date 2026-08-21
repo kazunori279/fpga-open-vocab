@@ -31,37 +31,58 @@ first draw it missed none of eighteen.
 
 ## What the second draw is for
 
-A sweep over checkpoints on one set of pixels reports differences, and until
-now there was nothing to say which of them are real. Two draws of the same pair,
-measured with the **same** checkpoint (`so400m-full-a05`, epoch 37), give the
-spread that comes from the scenes alone:
+A sweep over checkpoints on one set of pixels reports differences, and a second
+disjoint draw is what says which of them survive a change of scenes. Held to
+the **same** checkpoint (`so400m-full-a05`, epoch 37), the two draws also say
+which *statistic* is worth reading.
 
-| pair | draw 1, kept | draw 2, kept | moved by |
-| --- | --- | --- | --- |
-| book | 12/18 = 0.67, 0.6 sd, cos +0.141 | 7/10 = 0.70, 0.7 sd, cos +0.058 | 0.03, 0.1 sd, 0.083 |
-| glass | 19/25 = 0.76, 0.9 sd, cos +0.263 | 16/23 = 0.70, 0.3 sd, cos +0.183 | 0.06, **0.6 sd**, 0.080 |
+| statistic | book d1 → d2 | glass d1 → d2 |
+| --- | --- | --- |
+| `--paired`, within-scene effect size | 0.6 → 0.7 sd | 0.9 → **0.3 sd** |
+| `--paired`, sign count | 0.67 → 0.70 | 0.76 → 0.70 |
+| `sep`, pooled cross-scene AUC | 0.648 → 0.700 | 0.661 → 0.605 |
 
-Nothing about the model changed between those two columns. The glass pair's
-effect size moved 0.6 sd and its class-axis cosine 0.08 anyway.
+**Read `sep`, not the paired column.** The paired statistic subtracts the two
+states of one scene, so the scene cancels — which is right on stills of one desk
+and wrong here, because the whole point of thirty different rooms is to ask
+whether the state survives them. Its effect size is also a mean over a handful
+of heterogeneous scenes over their own spread, and it moved 0.6 sd on the glass
+pair with the model held fixed. `sep` is the question a user actually has —
+*is the book open, whatever else changed* — and it repeats to about ±0.05.
 
-## So the sweeps measured nothing
+## What the sweeps say once the right column is read
 
-Both sweeps are archived beside the first draw
-([`sweep-so400m.log`](../20260822-synth-book-crop/sweep-so400m.log),
-[`sweep-sieve.log`](../20260822-synth-book-crop/sweep-sieve.log), and the same
-two files under `../20260822-synth-glass-crop/`). Across five InfoNCE and RKD
-settings the student rows span 0.0–0.4 sd and cos +0.024…+0.068 on the book
-pair, 0.3–0.8 sd and cos +0.127…+0.315 on the glass pair. **Every one of those
-spans is inside the draw-to-draw spread above.** `rkd-10`'s 16/18 on the book
-pair is the kind of number that looks like a result and is not: it does not
-survive into the glass set, where the same setting reads 18/25 against a
-baseline of 17/25.
+Both sweeps now exist on both draws (`sweep-so400m.log`, `sweep-sieve.log`, in
+this set and beside the first draw). Cross-scene AUC, draw 1 / draw 2:
 
-A generated set is a regression harness for the teacher, and the sign count on
-it is stable to about ±0.05. It is not sensitive enough to rank distillation
-settings, and no larger n fixes that — the variance is between draws of scenes,
-not within one. Ranking distillation settings needs frames of one scene, which
-means a camera.
+| | book | glass |
+| --- | --- | --- |
+| teacher, SO400M | .907 / .940 | .933 / .949 |
+| so400m 30k baseline | .565 / .540 | .600 / .590 |
+| so400m + RKD 10 | **.685 / .630** | .565 / .616 |
+| so400m + RKD 100 | .728 / .590 | .498 / .677 |
+| teacher, ViT-B/16 | .700 / .700 | .888 / .888 |
+| sieve baseline | .509 / .410 | .672 / .660 |
+| + InfoNCE 0.3 | .562 / .500 | .610 / .618 |
+| + InfoNCE 1.0 | .519 / .530 | .557 / .571 |
+| + RKD 10 | **.574 / .570** | .610 / .590 |
+| + InfoNCE 0.3 & RKD 10 | .596 / .520 | .664 / .658 |
+
+**RKD 10 is worth about +0.10 AUC on the book pair**, in both draws and in both
+model families, and **nothing on the glass pair** — where the baseline is
+already the best row. RKD 100 swings .73/.59 and .50/.68 and is not the same
+result with more of it; it does not replicate. InfoNCE alone never separates
+from baseline.
+
+An earlier reading of this set said the sweeps measured nothing. That was the
+paired column talking, and it was wrong.
+
+## The number that matters more than the ranking
+
+The student sits near **0.6** where its teacher sits near **0.93**. Every
+setting in the sweep is a rounding error against that gap. A generated set is
+the harness for closing it, because scene-invariance is precisely what a set of
+different scenes measures and a set of stills of one desk cannot.
 
 Verdicts in [`judge-a.json`](judge-a.json) and [`judge-b.json`](judge-b.json),
 the blind key in [`key.json`](key.json), the numbers in
