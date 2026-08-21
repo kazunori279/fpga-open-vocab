@@ -26,9 +26,15 @@ four stages have four different fixes and three of them are expensive:
 
 ## How they were shot
 
-`sh ../shoot.sh ROUND CLASS [STILLS]` — `host/demo.py --snap-every 2`, rendered
-with `host/cam.py --rot 0`. `FT_MOUNT_ROT` is `CAM_ROT_0`, so a `-hi.png` here
-is byte for byte the frame the board handed its own encoder.
+`../shoot.sh` — `host/demo.py --snap-every 2`, rendered with
+`host/cam.py --rot 0`. `FT_MOUNT_ROT` is `CAM_ROT_0`, so a `-hi.png` here is
+byte for byte the frame the board handed its own encoder.
+
+**This set predates the `queries.txt` convention** and holds two pairs in one
+directory, which is why there is no such file here. `shoot.sh` now takes
+`SET CLASS ROUND` and reads the pair from `bench/stills/<SET>/queries.txt`; one
+set is one pair. The pairs these four directories were shot under are the ones
+named in the tables below.
 
     tea/          33   r1 11  r2 11  r3 11
     empty/        33   r1 11  r2 11  r3 11
