@@ -11,6 +11,63 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-22, late — the first setting that moved the number was data, and the shipped model is the best one
+
+The entry below says nothing in the loss-term family touches the 0.596 → 0.811
+student-to-teacher gap. That stands. But the fleet was only ever pointed at
+losses trained on the same 30 000 images. Pointed at the four checkpoints that
+differ in **data and schedule**, over the same ten contrasts, it reads a
+difference:
+
+| run | data | epochs | mean over 10 | vs s30k |
+| --- | --- | --- | --- | --- |
+| so400m-s30k | 30k | 20 | 0.596 | — |
+| so400m-full | 118k | 40 | 0.636 | **+0.040 ± 0.019** |
+| **so400m-full-a05** | 118k | 40 | **0.645** | **+0.049 ± 0.010** |
+| so400m-s30k-a05 | 30k | 20 | 0.575 | −0.021 ± 0.016 |
+| teacher 1152 | | | 0.811 | |
+
+Per-contrast rows in
+[`../bench/stills/20260822-datasize-10contrast.log`](../bench/stills/20260822-datasize-10contrast.log)
+and in [`../bench/stills/README.md`](../bench/stills/README.md#ten-contrasts-because-two-was-measuring-the-wrong-noise).
+
+**It replicates across two spaces**, which is why it is worth believing after a
+fortnight of effects that did not. `full` over `s30k` is +0.040 ± 0.019 in the
+plain PCA basis; `full-a05` over `s30k-a05` is +0.070 ± 0.020 in the α = 0.5
+basis. Same direction, same order of magnitude, two independently fitted 512-d
+spaces, and each comparison made within one of them.
+
+Three things to write down before they are forgotten:
+
+- **The axis is confounded.** `so400m-full` has four times the images *and*
+  twice the epochs. One 30k/40-epoch run splits it, and until that run exists
+  this is "data or schedule", not "data".
+- **Whitening α = 0.5 does nothing measurable.** +0.009 ± 0.014 at 118k,
+  −0.021 ± 0.016 at 30k — the sign follows the other variable, exactly the shape
+  that made `--rkd 10` look real on two contrasts. Its `pca 512` ceiling is
+  0.816 against the plain basis's 0.825, so it is not buying headroom either.
+- **`so400m-s30k` and `so400m-full` share a PCA basis.** `mu` and `w` in
+  `emb_train2017_SO400M-pca512.basis.npz` and its `_s30000` sibling compare
+  bit-identical, so `_s30000` subsets the *training images* and not the PCA fit,
+  and the teacher and pca rows come out the same for both. `probe_bisect.py`
+  still refuses to score them in one pass, because it compares teacher strings
+  rather than bases; for this particular pair that refusal is over-cautious and
+  the four passes were run separately to work around it.
+
+**The shipped checkpoint had never been scored on this statistic.** It is
+`so400m-full-a05` — the one `firmware/test_encoder.c` and M18 flash — and the
+open worry was that a fortnight of rankings had been run on models that are not
+the product. It reads 0.645, the best of the four. The rankings were made on a
+weaker sibling, but not on an unrelated one.
+
+And the thing the whole exercise is about has barely moved: **0.645 against a
+teacher at 0.811.** Four times the data closed 0.04 of 0.215. At that exchange
+rate the remainder is not going to be bought with more images — it is the 1.40 M
+parameters or the shape of the distillation, and both of those are arguments
+with the fabric rather than with the training script.
+
+---
+
 ### 2026-08-22, night — a second draw is not a second contrast, and RKD 10 is worth nothing
 
 Two entries down, this log says **"RKD 10 is worth about +0.10 AUC on the book

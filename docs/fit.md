@@ -23,9 +23,11 @@ What it is **not**:
 
 - **Not a detector that generalises to a room it was never shown.** The
   distilled student is barely scene-invariant. Asked to rank the same object
-  state across thirty different rooms, it reads **0.596** pooled cross-scene AUC
-  where its own teacher reads **0.811**
-  ([`bench/stills/README.md`](../bench/stills/README.md#ten-contrasts-because-two-was-measuring-the-wrong-noise)). The
+  state across thirty different rooms, the shipped checkpoint reads **0.645**
+  pooled cross-scene AUC where its own teacher reads **0.811**
+  ([`bench/stills/README.md`](../bench/stills/README.md#ten-contrasts-because-two-was-measuring-the-wrong-noise)).
+  That gap is not for want of trying: six distillation losses moved it by
+  nothing at all, and quadrupling the training data bought 0.04 of it. The
   enrolment step is not a convenience. It is the thing carrying the accuracy.
 - **Not a fixed-accuracy component.** Four pairs benched back to back on one
   afternoon scored **95.8 / 90.8 / 50.0 / 34.2%**. What the appliance does
@@ -116,8 +118,9 @@ The ten contrasts already measured, as a calibration for reading your own
 | a toilet with the lid up / lid down | **.579** | **stop** |
 
 Under about **0.75, do not bench it.** At 0.579 the teacher is barely above a
-coin, and the student came back *below* chance — 0.435 — which is an axis
-pointing backwards rather than a weak one.
+coin, and every student ever distilled from it came back at or below chance on
+that contrast — 0.448 for the shipped one, 0.382 to 0.435 across the others —
+which is an axis pointing backwards rather than a weak one.
 
 ---
 

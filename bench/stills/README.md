@@ -209,6 +209,46 @@ fixed after the verdicts came back. Adding a fourth on reading them would be
 screening on what was seen, which is the failure `tools/synth_keep.py` was
 written to avoid.
 
+### And then one thing did move it, and it was not a loss term
+
+The table above ranks six *losses* trained on the same 30 000 images. Run the
+same ten contrasts across the four checkpoints that differ in **how much data
+and how long**, and the fleet finally reads a difference. Log in
+[`20260822-datasize-10contrast.log`](20260822-datasize-10contrast.log):
+
+| run | data | epochs | book | glass | laptop | refrig | oven | toilet | umbrel | suitca | bowl | bed | mean | vs s30k |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| so400m-s30k | 30k | 20 | .565 | .600 | .616 | .714 | .604 | .435 | .421 | .646 | .742 | .618 | .596 | (baseline) |
+| so400m-full | 118k | 40 | .605 | .654 | .722 | .760 | .540 | .382 | .533 | .683 | .774 | .705 | .636 | **+0.040 ±0.019** |
+| **so400m-full-a05** | 118k | 40 | .648 | .661 | .679 | .807 | .612 | .448 | .478 | .687 | .747 | .686 | **.645** | **+0.049 ±0.010** |
+| so400m-s30k-a05 | 30k | 20 | .596 | .574 | .522 | .707 | .645 | .397 | .453 | .593 | .739 | .525 | .575 | −0.021 ±0.016 |
+
+**More data and more epochs is worth about +0.04 to +0.07, and it replicates in
+two different 512-d spaces**: `full` over `s30k` is +0.040 ± 0.019 in the plain
+basis, and `full-a05` over `s30k-a05` is +0.070 ± 0.020 in the α = 0.5 one. Those
+two comparisons are each within a basis, which is what makes them clean. Set
+against six loss terms that between them moved the mean by −0.034 to −0.007, this
+is the first setting in the project that the eval can see.
+
+The axis is **confounded**: `so400m-full` has 4× the images *and* 2× the epochs.
+Splitting it needs one more run — 30k for 40 epochs — and until that exists,
+"data" here means "data or schedule".
+
+**Whitening α = 0.5 is not the reason.** It is +0.009 ± 0.014 at 118k and
+−0.021 ± 0.016 at 30k: the sign flips with the other variable, which is the same
+shape as `--rkd 10` reading +0.120 on book and −0.168 on laptop. The α = 0.5
+`pca 512` ceiling is also slightly *lower* — 0.816 against 0.825 — so it is not
+buying headroom either.
+
+Two things this settles that were open. **`so400m-full-a05` is the checkpoint the
+board actually flashes**, and it is the best of the four rather than the worst, so
+the fortnight of loss-term rankings run on `so400m-s30k` were ranking a weaker
+sibling but were not ranking something unrelated to the product. And the gap the
+whole exercise is about is still **0.645 against a teacher at 0.811**. Quadrupling
+the data closed 0.04 of 0.215. At that exchange rate the rest is not a data
+problem; it is the 1.4 M parameters or the shape of the distillation, and both of
+those run straight into what the fabric will hold.
+
 ## What a set can and cannot answer
 
 It can say **which stage of the encoder chain drops a distinction**, which is
