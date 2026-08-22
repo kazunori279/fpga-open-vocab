@@ -175,12 +175,18 @@ Cross-scene AUC, `tools/sieve_text.py --score-only`, log in
 | teacher 1152 | .907 | .933 | .781 | .786 | .850 | .579 | .715 | .894 | .819 | .847 | .811 | |
 | pca 512 | .917 | .933 | .775 | .804 | .873 | .595 | .725 | .888 | .866 | .872 | .825 | |
 
-**Plain `1 - cos` distillation is the top row and every added term is below it.**
-None of the gaps clears two standard errors, so the honest statement is not
-"these hurt" but **"not one of them helps, and the two that looked like they did
-were reading two contrasts"** — `--rkd 10`, retracted above, and `--text`, which
-never separated from baseline at any weight and did not shrink the
+**The base objective is the top row and every added term is below it.** None of
+the gaps clears two standard errors, so the honest statement is not "these hurt"
+but **"not one of them helps, and the two that looked like they did were reading
+two contrasts"** — `--rkd 10`, retracted above, and `--text`, which never
+separated from baseline at any weight and did not shrink the
 `oracle_scene − sep` alignment gap it was designed to shrink.
+
+Read that baseline literally. **It is `1 - cos` plus `--infonce 0.3`**, not a
+bare cosine loss — every row in the table sits on top of InfoNCE 0.3, as does
+every checkpoint the board has flashed. So the sweep says `--text` and `--rkd`
+buy nothing *given InfoNCE*; it does not measure InfoNCE, and no number here
+covers a run with all three weights at zero.
 
 The fleet did the job it was built for. The paired difference has a
 between-contrast sd of 0.045–0.071, so its standard error is ~0.05 at C = 2 and

@@ -5,8 +5,10 @@
 """Distill the student against cached teacher embeddings.
 
     uv run model/distill.py --split val2017   --epochs 10 --no-augment   # smoke
-    uv run model/distill.py --split train2017 --epochs 40                # real
-    uv run model/distill.py --split train2017 --epochs 40 --infonce 1.0  # anti-collapse
+    uv run model/distill.py --split train2017 --epochs 40                # cos only
+    uv run model/distill.py --split train2017 --epochs 40 \
+        --batch 512 --lr 0.006 --infonce 0.3 \
+        --targets model/cache/emb_train2017_SO400M-pca512-a0.5.npy       # as shipped
 
 Loss is `1 - cos(student, teacher)`: the student has to reach the same direction
 in the teacher's 512-d space from a 128x128 image that it reached from 224x224.
@@ -29,14 +31,21 @@ of COCO captions; `tools/text_bank.py` builds the bank and distill_loss() has
 the argument. It defaults to 0 as well.
 
 **`--text` did not work, and neither did `--rkd`.** Over ten generated
-contrasts, no weight of `--text` and no `--rkd` setting beats plain `1 - cos`:
-the baseline is the top row at 0.596 mean cross-scene AUC and the best variant
-is -0.007 +-0.017 below it. `--text` is biting the training - top1 falls
-0.375 -> 0.239 monotonically in the weight - and it does not reach the eval, nor
-shrink the `oracle_scene - sep` alignment gap it was built to shrink. The
-earlier "RKD 10 is +0.10" came from two contrasts and is retracted; see
-`docs/bring-up-log.md` for 2026-08-22 night. **Both flags stay, both default to
-0, and the honest default for this student is the plain cosine loss.**
+contrasts, no weight of `--text` and no `--rkd` setting beats the base
+objective: the baseline is the top row at 0.596 mean cross-scene AUC and the
+best variant is -0.007 +-0.017 below it. `--text` is biting the training - top1
+falls 0.375 -> 0.239 monotonically in the weight - and it does not reach the
+eval, nor shrink the `oracle_scene - sep` alignment gap it was built to shrink.
+The earlier "RKD 10 is +0.10" came from two contrasts and is retracted; see
+`docs/bring-up-log.md` for 2026-08-22 night. **Both flags stay and both default
+to 0.**
+
+Read "the base objective" literally: every run in that sweep, the baseline
+included, was `1 - cos` **plus `--infonce 0.3`**, and so is every checkpoint the
+board has ever flashed. The finding is that `--text` and `--rkd` add nothing *on
+top of InfoNCE 0.3*. It is not a measurement of `--infonce` itself, and an
+unflagged run - all three weights at 0 - is a configuration no fleet number
+covers.
 
 Held-out cosine is printed before training starts and after every epoch, so a
 broken run is visible in the first two minutes rather than at hour three - and

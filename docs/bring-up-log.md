@@ -13,6 +13,17 @@ exist only to record a claim that later turned out to be false.
 
 ### 2026-08-22, late — the first setting that moved the number was data, and the shipped model is the best one
 
+**First, a correction to the entry below.** It calls the sweep's baseline "plain
+`1 - cos`", and `model/distill.py`'s docstring called the plain cosine loss "the
+honest default". Both are wrong: `so400m-s30k` was trained with **`--infonce
+0.3`**, and so was every one of the six variants ranked against it, and so is
+every checkpoint the board has flashed. The result is unchanged — `--text` and
+`--rkd` add nothing — but what they add nothing *to* is InfoNCE 0.3, not a bare
+cosine loss. Nothing in this project has ever measured `--infonce` on ten
+contrasts, and a run with all three weights at zero is a configuration no number
+here covers. Fixed in place in `model/distill.py` and
+[`../bench/stills/README.md`](../bench/stills/README.md#ten-contrasts-because-two-was-measuring-the-wrong-noise).
+
 The entry below says nothing in the loss-term family touches the 0.596 → 0.811
 student-to-teacher gap. That stands. But the fleet was only ever pointed at
 losses trained on the same 30 000 images. Pointed at the four checkpoints that
