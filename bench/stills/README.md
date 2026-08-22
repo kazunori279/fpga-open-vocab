@@ -229,16 +229,38 @@ and how long**, and the fleet finally reads a difference. Log in
 | **so400m-full-a05** | 118k | 40 | .648 | .661 | .679 | .807 | .612 | .448 | .478 | .687 | .747 | .686 | **.645** | **+0.049 ±0.010** |
 | so400m-s30k-a05 | 30k | 20 | .596 | .574 | .522 | .707 | .645 | .397 | .453 | .593 | .739 | .525 | .575 | −0.021 ±0.016 |
 
-**More data and more epochs is worth about +0.04 to +0.07, and it replicates in
-two different 512-d spaces**: `full` over `s30k` is +0.040 ± 0.019 in the plain
+**More data is worth about +0.04 to +0.07, and it replicates in two different
+512-d spaces**: `full` over `s30k` is +0.040 ± 0.019 in the plain
 basis, and `full-a05` over `s30k-a05` is +0.070 ± 0.020 in the α = 0.5 one. Those
 two comparisons are each within a basis, which is what makes them clean. Set
 against six loss terms that between them moved the mean by −0.034 to −0.007, this
 is the first setting in the project that the eval can see.
 
-The axis is **confounded**: `so400m-full` has 4× the images *and* 2× the epochs.
-Splitting it needs one more run — 30k for 40 epochs — and until that exists,
-"data" here means "data or schedule".
+**And it is the data, not the schedule.** `so400m-full` moved two things at once
+— 4× the images *and* 2× the epochs — so the missing cell was trained: 30 000
+images for 40 epochs, everything else held. Log in
+[`20260822-epochs-10contrast.log`](20260822-epochs-10contrast.log):
+
+| run | data | epochs | book | glass | laptop | refrig | oven | toilet | umbrel | suitca | bowl | bed | mean |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| so400m-s30k | 30k | 20 | .565 | .600 | .616 | .714 | .604 | .435 | .421 | .646 | .742 | .618 | .596 |
+| so400m-s30k-e40 | 30k | **40** | .590 | .648 | .575 | .618 | .452 | .373 | .562 | .665 | .762 | .603 | .585 |
+| so400m-full | **118k** | 40 | .605 | .654 | .722 | .760 | .540 | .382 | .533 | .683 | .774 | .705 | .636 |
+
+Doubling the schedule at 30k is **−0.011 ± 0.026** — a null, not even a loss.
+Quadrupling the data at a fixed 40 epochs is **+0.051 ± 0.020**. The +0.040 was
+the images.
+
+**And the training-time metric said the opposite.** Holdout top-1 over 1000
+retrieval candidates — the number `distill.py` prints every epoch and passes or
+fails the run on — went **0.375 → 0.429** for those extra twenty epochs. It
+improved by +0.054 while the ten contrasts moved by −0.011. Both numbers are
+real; they are answering different questions, and only one of them is the
+product. The 118k run's 0.650 is not wrong either, it just cannot be read as
+"and therefore 0.05 of sep" — the exchange rate between the two is not a
+constant, and this pair of runs is the demonstration. **The eval that answers a
+question is the one downstream of it**, which is the argument for
+[`fit.md`](../../docs/fit.md) and for these sets existing at all.
 
 **Whitening α = 0.5 is not the reason.** It is +0.009 ± 0.014 at 118k and
 −0.021 ± 0.016 at 30k: the sign flips with the other variable, which is the same

@@ -52,6 +52,13 @@ broken run is visible in the first two minutes rather than at hour three - and
 alongside it now the two numbers that actually caught this, retrieval top-1 and
 the cone norm.
 
+**None of those three rank checkpoints.** On 2026-08-22 the 30k run was trained
+for twice as long: holdout top-1 went 0.375 -> 0.429 and pooled cross-scene AUC
+over ten contrasts went -0.011 +-0.026. The run looked like a win from in here
+and was worth nothing to the product. What comes out of this file is a candidate;
+`tools/probe_bisect.py --paired` over bench/stills/ is what says whether it is
+better, and it costs a few minutes.
+
 **One honest wrinkle.** The cached teacher embedding is for the center-crop view,
 so augmenting the student's input makes its target slightly wrong. Accepting that
 is standard practice - flip and mild cropping act as a regularizer - and it is

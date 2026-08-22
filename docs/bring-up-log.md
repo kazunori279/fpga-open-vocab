@@ -11,6 +11,57 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-22, later still — it was the data, and the metric that watched it happen looked the other way
+
+The entry below reports +0.040 for `so400m-full` over `so400m-s30k` and says the
+axis is confounded: 4× the images and 2× the epochs moved together. The missing
+cell now exists. `so400m-s30k-e40` is 30 000 images for 40 epochs, everything
+else held at the same recipe, scored over the same ten contrasts
+([`bench/stills/20260822-epochs-10contrast.log`](../bench/stills/20260822-epochs-10contrast.log)):
+
+```
+run                        data  epochs                                        mean
+so400m-s30k                 30k      20                                       0.596
+so400m-s30k-e40             30k      40                                       0.585
+so400m-full                118k      40                                       0.636
+
+epochs alone, 20 -> 40 at 30k     : -0.011 +-0.026
+data alone, 30k -> 118k at 40ep   : +0.051 +-0.020
+```
+
+**The schedule bought nothing.** Not a small gain, not a small loss — a null with
+an error bar wider than the effect. The +0.040 was the images, and at a fixed 40
+epochs it is +0.051.
+
+The part worth writing down is what the training run itself said while that was
+happening. Holdout top-1 over 1000 retrieval candidates — the number
+`model/distill.py` prints every epoch and the one a run is read by — went
+**0.375 → 0.429** across those extra twenty
+epochs. It went up by +0.054. The ten contrasts went down by 0.011. The run
+looked like a straightforward win from inside and was worth nothing outside, and
+there was no way to see that from the training log, because the training log is
+not measuring the product.
+
+Both numbers are honest. Retrieval top-1 asks *can you pick this image out of a
+thousand*, pooled cross-scene AUC asks *can you tell this object state from that
+one, in a room you have not seen*. They are correlated across large changes —
+the 118k run is better on both — and this pair of runs is the demonstration that
+the correlation is not tight enough to steer by. Every distillation setting in
+this project was chosen by watching top-1 climb, and the settings later scored
+on the contrasts moved them by between −0.034 and +0.051.
+
+So the standing rule is now explicit, and it is what the code already said:
+**`distill.py`'s PASS means the student is using the image rather than the
+prior, and it means nothing else** — it is centered cosine above 0.05, and every
+checkpoint here clears it. Holdout top-1 is a sanity curve, not a ranking.
+Anything about the product goes through `probe_bisect.py` over the ten sets,
+which costs a few minutes and has now twice disagreed with the cheap number.
+
+`so400m-full-a05` is still the shipped checkpoint and still the best of the five.
+Nothing about the board changed today.
+
+---
+
 ### 2026-08-22, late — the first setting that moved the number was data, and the shipped model is the best one
 
 **First, a correction to the entry below.** It calls the sweep's baseline "plain
