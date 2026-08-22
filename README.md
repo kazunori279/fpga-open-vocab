@@ -39,6 +39,14 @@ uv run --script tools/fit_check.py --cat person \
     --neg-edit "the hand is closed into a tight fist"
 ```
 
+**Once it passes, the appliance is one command.** [`docs/monitor.md`](docs/monitor.md)
+is the five-minute version: enrol each state off the live camera, then get a
+line when the scene changes and nothing in between.
+
+```sh
+uv run --script host/watch.py --enrol "a red cube" "a blue cube"
+```
+
 ## Quickstart
 
 ```sh
@@ -189,6 +197,7 @@ the frictions, the rejected designs and what they taught are in
 |---|---|
 | **this file** | what the thing is and where it stands |
 | [`docs/fit.md`](docs/fit.md) | **will it work for what you want** — what the board is and is not, the three screens between an idea and an answer, and why the first two are free |
+| [`docs/monitor.md`](docs/monitor.md) | **using it** — `host/watch.py`, enrolment off the live camera, what it catches and what it misses, and how to hang an alert off it |
 | [`docs/architecture.md`](docs/architecture.md) | **how it works** — the board, the model, the decision rule, the pipeline, the link, the fabric, the two cores, and where each of them lives in the tree |
 | [`docs/building.md`](docs/building.md) | **how to build and run it** — toolchain, firmware, bitstream, tests, flashing, every harness |
 | [`docs/history.md`](docs/history.md) | **how it got here** — the timeline, the frictions, the learnings, the rejected alternatives, the risks |

@@ -51,7 +51,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 MD_FILES = ['README.md', 'docs/architecture.md', 'docs/building.md',
             'docs/history.md', 'docs/milestones.md', 'docs/bring-up-log.md',
-            'docs/pinmap.md', 'docs/fit.md', 'rtl/README.md',
+            'docs/pinmap.md', 'docs/fit.md', 'docs/monitor.md', 'rtl/README.md',
             'slides/README.md', 'bench/README.md', 'bench/stills/README.md',
             'bench/stills/20260822-synth-book-crop2/README.md']
 
