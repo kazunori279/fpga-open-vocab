@@ -77,6 +77,16 @@ Two more wording rules from the same evidence:
 - **Ask for a thing, not for a property of the scene.** `dining table set` vs
   `cleared` was deliberately never shot: it is a state of the room, not of an
   object, and the board's rule is built on objects.
+- **Do not ask where something is.** `a book on the left` / `a book on the
+  right` is not a weak contrast, it is not a contrast: the teacher reads
+  **0.499** on it over eleven objects and 278 pairs, where each pair is one
+  photograph and its own mirror image. Fitting a direction to the labels and
+  holding out scenes finds nothing either, so this is the representation and not
+  the phrasing. `tools/mirror_pairs.py` and
+  [`bench/stills/README.md`](../bench/stills/README.md#left-and-right-and-the-axis-that-is-not-there)
+  are the measurement. If your alert is really about position, put a second
+  object in the frame and ask about *that* — `an empty shelf` / `a parcel on the
+  shelf` is a thing being present, which Screen 0 opened with.
 - **Check that your contrast is not answerable by brightness.** If it is, the
   board will look brilliant and will be reading the lamp.
   `tools/probe_bisect.py` prints the mean-luma cue for exactly this reason. The
@@ -119,11 +129,16 @@ The ten contrasts already measured, as a calibration for reading your own
 | an opened laptop / a closed laptop | .781 | workable |
 | an open umbrella / a folded umbrella | .715 | thin |
 | a toilet with the lid up / lid down | **.579** | **stop** |
+| *a X on the left / a X on the right* | **.499** | **the floor — this is what a coin looks like** |
 
 Under about **0.75, do not bench it.** At 0.579 the teacher is barely above a
 coin, and every student ever distilled from it came back at or below chance on
 that contrast — 0.448 for the shipped one, 0.382 to 0.435 across the others —
 which is an axis pointing backwards rather than a weak one.
+
+The last row is not a contrast anybody should try; it is there so the top of the
+table has a bottom. It is the mean over eleven objects and it is what a
+distinction the encoder does not carry reads like.
 
 ---
 

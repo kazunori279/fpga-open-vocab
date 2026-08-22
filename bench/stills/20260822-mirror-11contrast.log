@@ -1,0 +1,561 @@
+### 20260821-envelope-position  --pos "a book on the left" --neg "a book on the right"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+pair      : 'a book on the left'  vs  'a book on the right'
+stills    : 10 from bench/stills/20260821-envelope-position/pos, 10 from bench/stills/20260821-envelope-position/neg
+rounds    : ['r?'] / ['r?']
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates
+basis     : emb_train2017_SO400M-pca512-a0.5.basis.npz
+student   : so400m-full-a05, epoch 37
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152         sep 0.510  |sep| 0.510  within 0.510  drift   n/a
+                       gap 0.0007 =   0.0 sd   round swing not measured - one round   (sd 0.0984)
+                       per round: r? 0.510
+  pca 512              sep 0.520  |sep| 0.520  within 0.520  drift   n/a
+                       gap 0.0001 =   0.0 sd   round swing not measured - one round   (sd 0.1112)
+                       per round: r? 0.520
+  student fp32         sep 0.450  |sep| 0.550  within 0.550  drift   n/a
+                       gap 0.0196 =   0.2 sd   round swing not measured - one round   (sd 0.1047)
+                       per round: r? 0.550
+
+==============================================================================
+WITHIN SCENE - the same picture in two states, so the scene cancels
+  teacher 1152         scenes  10   right way round 6/10   mean +0.0007 =   0.1 sd   (sd 0.0117)
+  pca 512              scenes  10   right way round 5/10   mean -0.0001 =  -0.0 sd   (sd 0.0147)
+  student fp32         scenes  10   right way round 3/10   mean -0.0196 =  -0.4 sd   (sd 0.0491)
+
+==============================================================================
+ACROSS SCENES, QUERY TAKEN OUT - one fitted direction, held out by scene
+  teacher 1152         scene-held-out oracle AUC 0.300   10 scenes, 5 folds: 0.500  0.250  0.250  0.250  0.250
+  pca 512              scene-held-out oracle AUC 0.300   10 scenes, 5 folds: 0.500  0.250  0.250  0.250  0.250
+  student fp32         scene-held-out oracle AUC 0.750   10 scenes, 5 folds: 0.750  0.750  0.750  0.500  1.000
+  High here and low in the table above means the axis is there and the
+  text vector misses it. Low here means there is no scene-independent axis
+  to point at, whatever the query says.
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152         held-out oracle AUC n/a - needs two or more rounds
+  pca 512              held-out oracle AUC n/a - needs two or more rounds
+  student fp32         held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 0.500  (87.0 vs 87.0)
+
+  class axis, student fp32 against pca 512: cos +0.009   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  wrote /tmp/mp/20260821-envelope-position.json
+### 20260822-mirror-bottle  --pos "a bottle on the left" --neg "a bottle on the right"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+pair      : 'a bottle on the left'  vs  'a bottle on the right'
+stills    : 30 from bench/stills/20260822-mirror-bottle/pos, 30 from bench/stills/20260822-mirror-bottle/neg
+rounds    : ['r?'] / ['r?']
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates
+basis     : emb_train2017_SO400M-pca512-a0.5.basis.npz
+student   : so400m-full-a05, epoch 37
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152         sep 0.497  |sep| 0.503  within 0.503  drift   n/a
+                       gap 0.0012 =   0.0 sd   round swing not measured - one round   (sd 0.0702)
+                       per round: r? 0.503
+  pca 512              sep 0.499  |sep| 0.501  within 0.501  drift   n/a
+                       gap 0.0017 =   0.0 sd   round swing not measured - one round   (sd 0.0903)
+                       per round: r? 0.501
+  student fp32         sep 0.471  |sep| 0.529  within 0.529  drift   n/a
+                       gap 0.0095 =   0.1 sd   round swing not measured - one round   (sd 0.1887)
+                       per round: r? 0.529
+
+==============================================================================
+WITHIN SCENE - the same picture in two states, so the scene cancels
+  teacher 1152         scenes  30   right way round 15/30   mean -0.0012 =  -0.1 sd   (sd 0.0200)
+  pca 512              scenes  30   right way round 15/30   mean -0.0017 =  -0.1 sd   (sd 0.0268)
+  student fp32         scenes  30   right way round 13/30   mean -0.0095 =  -0.1 sd   (sd 0.1005)
+
+==============================================================================
+ACROSS SCENES, QUERY TAKEN OUT - one fitted direction, held out by scene
+  teacher 1152         scene-held-out oracle AUC 0.506   30 scenes, 5 folds: 0.500  0.528  0.444  0.556  0.500
+  pca 512              scene-held-out oracle AUC 0.506   30 scenes, 5 folds: 0.500  0.528  0.417  0.583  0.500
+  student fp32         scene-held-out oracle AUC 0.528   30 scenes, 5 folds: 0.500  0.444  0.611  0.528  0.556
+  High here and low in the table above means the axis is there and the
+  text vector misses it. Low here means there is no scene-independent axis
+  to point at, whatever the query says.
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152         held-out oracle AUC n/a - needs two or more rounds
+  pca 512              held-out oracle AUC n/a - needs two or more rounds
+  student fp32         held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 0.500  (110.7 vs 110.7)
+
+  class axis, student fp32 against pca 512: cos +0.101   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  wrote /tmp/mp/20260822-mirror-bottle.json
+### 20260822-mirror-bowl  --pos "a bowl on the left" --neg "a bowl on the right"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+pair      : 'a bowl on the left'  vs  'a bowl on the right'
+stills    : 18 from bench/stills/20260822-mirror-bowl/pos, 18 from bench/stills/20260822-mirror-bowl/neg
+rounds    : ['r?'] / ['r?']
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates
+basis     : emb_train2017_SO400M-pca512-a0.5.basis.npz
+student   : so400m-full-a05, epoch 37
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152         sep 0.515  |sep| 0.515  within 0.515  drift   n/a
+                       gap 0.0047 =   0.0 sd   round swing not measured - one round   (sd 0.1144)
+                       per round: r? 0.515
+  pca 512              sep 0.503  |sep| 0.503  within 0.503  drift   n/a
+                       gap 0.0032 =   0.0 sd   round swing not measured - one round   (sd 0.1047)
+                       per round: r? 0.503
+  student fp32         sep 0.420  |sep| 0.580  within 0.580  drift   n/a
+                       gap 0.0243 =   0.3 sd   round swing not measured - one round   (sd 0.0885)
+                       per round: r? 0.580
+
+==============================================================================
+WITHIN SCENE - the same picture in two states, so the scene cancels
+  teacher 1152         scenes  18   right way round 12/18   mean +0.0047 =   0.2 sd   (sd 0.0246)
+  pca 512              scenes  18   right way round 10/18   mean +0.0032 =   0.1 sd   (sd 0.0248)
+  student fp32         scenes  18   right way round 5/18   mean -0.0243 =  -0.5 sd   (sd 0.0472)
+
+==============================================================================
+ACROSS SCENES, QUERY TAKEN OUT - one fitted direction, held out by scene
+  teacher 1152         scene-held-out oracle AUC 0.475   18 scenes, 5 folds: 0.500  0.438  0.438  0.556  0.444
+  pca 512              scene-held-out oracle AUC 0.487   18 scenes, 5 folds: 0.562  0.375  0.500  0.556  0.444
+  student fp32         scene-held-out oracle AUC 0.669   18 scenes, 5 folds: 0.562  0.688  0.875  0.333  0.889
+  High here and low in the table above means the axis is there and the
+  text vector misses it. Low here means there is no scene-independent axis
+  to point at, whatever the query says.
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152         held-out oracle AUC n/a - needs two or more rounds
+  pca 512              held-out oracle AUC n/a - needs two or more rounds
+  student fp32         held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 0.500  (98.9 vs 98.9)
+
+  class axis, student fp32 against pca 512: cos -0.089   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  wrote /tmp/mp/20260822-mirror-bowl.json
+### 20260822-mirror-cell-phone  --pos "a cell phone on the left" --neg "a cell phone on the right"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+pair      : 'a cell phone on the left'  vs  'a cell phone on the right'
+stills    : 30 from bench/stills/20260822-mirror-cell-phone/pos, 30 from bench/stills/20260822-mirror-cell-phone/neg
+rounds    : ['r?'] / ['r?']
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates
+basis     : emb_train2017_SO400M-pca512-a0.5.basis.npz
+student   : so400m-full-a05, epoch 37
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152         sep 0.509  |sep| 0.509  within 0.509  drift   n/a
+                       gap 0.0026 =   0.0 sd   round swing not measured - one round   (sd 0.0538)
+                       per round: r? 0.509
+  pca 512              sep 0.509  |sep| 0.509  within 0.509  drift   n/a
+                       gap 0.0011 =   0.0 sd   round swing not measured - one round   (sd 0.0462)
+                       per round: r? 0.509
+  student fp32         sep 0.484  |sep| 0.516  within 0.516  drift   n/a
+                       gap 0.0021 =   0.0 sd   round swing not measured - one round   (sd 0.0750)
+                       per round: r? 0.516
+
+==============================================================================
+WITHIN SCENE - the same picture in two states, so the scene cancels
+  teacher 1152         scenes  30   right way round 18/30   mean +0.0026 =   0.2 sd   (sd 0.0163)
+  pca 512              scenes  30   right way round 16/30   mean +0.0011 =   0.1 sd   (sd 0.0120)
+  student fp32         scenes  30   right way round 12/30   mean +0.0021 =   0.1 sd   (sd 0.0361)
+
+==============================================================================
+ACROSS SCENES, QUERY TAKEN OUT - one fitted direction, held out by scene
+  teacher 1152         scene-held-out oracle AUC 0.556   30 scenes, 5 folds: 0.556  0.500  0.583  0.556  0.583
+  pca 512              scene-held-out oracle AUC 0.550   30 scenes, 5 folds: 0.556  0.500  0.611  0.500  0.583
+  student fp32         scene-held-out oracle AUC 0.483   30 scenes, 5 folds: 0.528  0.472  0.528  0.472  0.417
+  High here and low in the table above means the axis is there and the
+  text vector misses it. Low here means there is no scene-independent axis
+  to point at, whatever the query says.
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152         held-out oracle AUC n/a - needs two or more rounds
+  pca 512              held-out oracle AUC n/a - needs two or more rounds
+  student fp32         held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 0.500  (95.0 vs 95.0)
+
+  class axis, student fp32 against pca 512: cos +0.111   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  wrote /tmp/mp/20260822-mirror-cell-phone.json
+### 20260822-mirror-chair  --pos "a chair on the left" --neg "a chair on the right"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+pair      : 'a chair on the left'  vs  'a chair on the right'
+stills    : 28 from bench/stills/20260822-mirror-chair/pos, 28 from bench/stills/20260822-mirror-chair/neg
+rounds    : ['r?'] / ['r?']
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates
+basis     : emb_train2017_SO400M-pca512-a0.5.basis.npz
+student   : so400m-full-a05, epoch 37
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152         sep 0.482  |sep| 0.518  within 0.518  drift   n/a
+                       gap 0.0030 =   0.0 sd   round swing not measured - one round   (sd 0.1117)
+                       per round: r? 0.518
+  pca 512              sep 0.492  |sep| 0.508  within 0.508  drift   n/a
+                       gap 0.0008 =   0.0 sd   round swing not measured - one round   (sd 0.1135)
+                       per round: r? 0.508
+  student fp32         sep 0.508  |sep| 0.508  within 0.508  drift   n/a
+                       gap 0.0014 =   0.0 sd   round swing not measured - one round   (sd 0.1159)
+                       per round: r? 0.508
+
+==============================================================================
+WITHIN SCENE - the same picture in two states, so the scene cancels
+  teacher 1152         scenes  28   right way round 14/28   mean -0.0030 =  -0.1 sd   (sd 0.0227)
+  pca 512              scenes  28   right way round 13/28   mean +0.0008 =   0.0 sd   (sd 0.0316)
+  student fp32         scenes  28   right way round 18/28   mean +0.0014 =   0.0 sd   (sd 0.0523)
+
+==============================================================================
+ACROSS SCENES, QUERY TAKEN OUT - one fitted direction, held out by scene
+  teacher 1152         scene-held-out oracle AUC 0.465   28 scenes, 5 folds: 0.528  0.528  0.389  0.400  0.480
+  pca 512              scene-held-out oracle AUC 0.512   28 scenes, 5 folds: 0.583  0.556  0.500  0.480  0.440
+  student fp32         scene-held-out oracle AUC 0.559   28 scenes, 5 folds: 0.556  0.583  0.417  0.520  0.720
+  High here and low in the table above means the axis is there and the
+  text vector misses it. Low here means there is no scene-independent axis
+  to point at, whatever the query says.
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152         held-out oracle AUC n/a - needs two or more rounds
+  pca 512              held-out oracle AUC n/a - needs two or more rounds
+  student fp32         held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 0.500  (89.0 vs 89.0)
+
+  class axis, student fp32 against pca 512: cos +0.076   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  wrote /tmp/mp/20260822-mirror-chair.json
+### 20260822-mirror-clock  --pos "a clock on the left" --neg "a clock on the right"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+pair      : 'a clock on the left'  vs  'a clock on the right'
+stills    : 28 from bench/stills/20260822-mirror-clock/pos, 28 from bench/stills/20260822-mirror-clock/neg
+rounds    : ['r?'] / ['r?']
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates
+basis     : emb_train2017_SO400M-pca512-a0.5.basis.npz
+student   : so400m-full-a05, epoch 37
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152         sep 0.480  |sep| 0.520  within 0.520  drift   n/a
+                       gap 0.0074 =   0.1 sd   round swing not measured - one round   (sd 0.1185)
+                       per round: r? 0.520
+  pca 512              sep 0.458  |sep| 0.542  within 0.542  drift   n/a
+                       gap 0.0104 =   0.1 sd   round swing not measured - one round   (sd 0.1003)
+                       per round: r? 0.542
+  student fp32         sep 0.519  |sep| 0.519  within 0.519  drift   n/a
+                       gap 0.0002 =   0.0 sd   round swing not measured - one round   (sd 0.0317)
+                       per round: r? 0.519
+
+==============================================================================
+WITHIN SCENE - the same picture in two states, so the scene cancels
+  teacher 1152         scenes  28   right way round 9/28   mean -0.0074 =  -0.3 sd   (sd 0.0275)
+  pca 512              scenes  28   right way round 8/28   mean -0.0104 =  -0.6 sd   (sd 0.0172)
+  student fp32         scenes  28   right way round 14/28   mean -0.0002 =  -0.0 sd   (sd 0.0167)
+
+==============================================================================
+ACROSS SCENES, QUERY TAKEN OUT - one fitted direction, held out by scene
+  teacher 1152         scene-held-out oracle AUC 0.538   28 scenes, 5 folds: 0.528  0.500  0.583  0.560  0.520
+  pca 512              scene-held-out oracle AUC 0.500   28 scenes, 5 folds: 0.500  0.472  0.528  0.520  0.480
+  student fp32         scene-held-out oracle AUC 0.563   28 scenes, 5 folds: 0.639  0.528  0.528  0.480  0.640
+  High here and low in the table above means the axis is there and the
+  text vector misses it. Low here means there is no scene-independent axis
+  to point at, whatever the query says.
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152         held-out oracle AUC n/a - needs two or more rounds
+  pca 512              held-out oracle AUC n/a - needs two or more rounds
+  student fp32         held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 0.500  (113.4 vs 113.4)
+
+  class axis, student fp32 against pca 512: cos +0.002   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  wrote /tmp/mp/20260822-mirror-clock.json
+### 20260822-mirror-cup  --pos "a cup on the left" --neg "a cup on the right"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+pair      : 'a cup on the left'  vs  'a cup on the right'
+stills    : 30 from bench/stills/20260822-mirror-cup/pos, 30 from bench/stills/20260822-mirror-cup/neg
+rounds    : ['r?'] / ['r?']
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates
+basis     : emb_train2017_SO400M-pca512-a0.5.basis.npz
+student   : so400m-full-a05, epoch 37
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152         sep 0.490  |sep| 0.510  within 0.510  drift   n/a
+                       gap 0.0026 =   0.0 sd   round swing not measured - one round   (sd 0.0607)
+                       per round: r? 0.510
+  pca 512              sep 0.508  |sep| 0.508  within 0.508  drift   n/a
+                       gap 0.0001 =   0.0 sd   round swing not measured - one round   (sd 0.0605)
+                       per round: r? 0.508
+  student fp32         sep 0.448  |sep| 0.552  within 0.552  drift   n/a
+                       gap 0.0086 =   0.1 sd   round swing not measured - one round   (sd 0.0841)
+                       per round: r? 0.552
+
+==============================================================================
+WITHIN SCENE - the same picture in two states, so the scene cancels
+  teacher 1152         scenes  30   right way round 14/30   mean -0.0026 =  -0.1 sd   (sd 0.0224)
+  pca 512              scenes  30   right way round 17/30   mean +0.0001 =   0.0 sd   (sd 0.0228)
+  student fp32         scenes  30   right way round 13/30   mean -0.0086 =  -0.2 sd   (sd 0.0466)
+
+==============================================================================
+ACROSS SCENES, QUERY TAKEN OUT - one fitted direction, held out by scene
+  teacher 1152         scene-held-out oracle AUC 0.517   30 scenes, 5 folds: 0.472  0.472  0.500  0.611  0.528
+  pca 512              scene-held-out oracle AUC 0.533   30 scenes, 5 folds: 0.528  0.444  0.528  0.583  0.583
+  student fp32         scene-held-out oracle AUC 0.511   30 scenes, 5 folds: 0.528  0.556  0.583  0.361  0.528
+  High here and low in the table above means the axis is there and the
+  text vector misses it. Low here means there is no scene-independent axis
+  to point at, whatever the query says.
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152         held-out oracle AUC n/a - needs two or more rounds
+  pca 512              held-out oracle AUC n/a - needs two or more rounds
+  student fp32         held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 0.500  (110.8 vs 110.8)
+
+  class axis, student fp32 against pca 512: cos +0.019   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  wrote /tmp/mp/20260822-mirror-cup.json
+### 20260822-mirror-dog  --pos "a dog on the left" --neg "a dog on the right"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+pair      : 'a dog on the left'  vs  'a dog on the right'
+stills    : 20 from bench/stills/20260822-mirror-dog/pos, 20 from bench/stills/20260822-mirror-dog/neg
+rounds    : ['r?'] / ['r?']
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates
+basis     : emb_train2017_SO400M-pca512-a0.5.basis.npz
+student   : so400m-full-a05, epoch 37
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152         sep 0.495  |sep| 0.505  within 0.505  drift   n/a
+                       gap 0.0012 =   0.0 sd   round swing not measured - one round   (sd 0.1332)
+                       per round: r? 0.505
+  pca 512              sep 0.497  |sep| 0.502  within 0.502  drift   n/a
+                       gap 0.0008 =   0.0 sd   round swing not measured - one round   (sd 0.1764)
+                       per round: r? 0.502
+  student fp32         sep 0.480  |sep| 0.520  within 0.520  drift   n/a
+                       gap 0.0049 =   0.1 sd   round swing not measured - one round   (sd 0.0890)
+                       per round: r? 0.520
+
+==============================================================================
+WITHIN SCENE - the same picture in two states, so the scene cancels
+  teacher 1152         scenes  20   right way round 9/20   mean +0.0012 =   0.0 sd   (sd 0.0296)
+  pca 512              scenes  20   right way round 9/20   mean +0.0008 =   0.0 sd   (sd 0.0378)
+  student fp32         scenes  20   right way round 9/20   mean -0.0049 =  -0.2 sd   (sd 0.0302)
+
+==============================================================================
+ACROSS SCENES, QUERY TAKEN OUT - one fitted direction, held out by scene
+  teacher 1152         scene-held-out oracle AUC 0.487   20 scenes, 5 folds: 0.562  0.312  0.438  0.500  0.625
+  pca 512              scene-held-out oracle AUC 0.475   20 scenes, 5 folds: 0.562  0.375  0.438  0.375  0.625
+  student fp32         scene-held-out oracle AUC 0.375   20 scenes, 5 folds: 0.438  0.500  0.188  0.500  0.250
+  High here and low in the table above means the axis is there and the
+  text vector misses it. Low here means there is no scene-independent axis
+  to point at, whatever the query says.
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152         held-out oracle AUC n/a - needs two or more rounds
+  pca 512              held-out oracle AUC n/a - needs two or more rounds
+  student fp32         held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 0.500  (116.0 vs 116.0)
+
+  class axis, student fp32 against pca 512: cos -0.021   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  wrote /tmp/mp/20260822-mirror-dog.json
+### 20260822-mirror-laptop  --pos "a laptop on the left" --neg "a laptop on the right"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+pair      : 'a laptop on the left'  vs  'a laptop on the right'
+stills    : 26 from bench/stills/20260822-mirror-laptop/pos, 26 from bench/stills/20260822-mirror-laptop/neg
+rounds    : ['r?'] / ['r?']
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates
+basis     : emb_train2017_SO400M-pca512-a0.5.basis.npz
+student   : so400m-full-a05, epoch 37
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152         sep 0.506  |sep| 0.506  within 0.506  drift   n/a
+                       gap 0.0037 =   0.0 sd   round swing not measured - one round   (sd 0.1063)
+                       per round: r? 0.506
+  pca 512              sep 0.513  |sep| 0.513  within 0.513  drift   n/a
+                       gap 0.0056 =   0.1 sd   round swing not measured - one round   (sd 0.1051)
+                       per round: r? 0.513
+  student fp32         sep 0.476  |sep| 0.524  within 0.524  drift   n/a
+                       gap 0.0004 =   0.0 sd   round swing not measured - one round   (sd 0.0453)
+                       per round: r? 0.524
+
+==============================================================================
+WITHIN SCENE - the same picture in two states, so the scene cancels
+  teacher 1152         scenes  26   right way round 15/26   mean +0.0037 =   0.2 sd   (sd 0.0243)
+  pca 512              scenes  26   right way round 16/26   mean +0.0056 =   0.2 sd   (sd 0.0258)
+  student fp32         scenes  26   right way round 13/26   mean -0.0004 =  -0.0 sd   (sd 0.0251)
+
+==============================================================================
+ACROSS SCENES, QUERY TAKEN OUT - one fitted direction, held out by scene
+  teacher 1152         scene-held-out oracle AUC 0.470   26 scenes, 5 folds: 0.472  0.480  0.440  0.520  0.440
+  pca 512              scene-held-out oracle AUC 0.505   26 scenes, 5 folds: 0.444  0.480  0.600  0.560  0.440
+  student fp32         scene-held-out oracle AUC 0.447   26 scenes, 5 folds: 0.556  0.280  0.400  0.480  0.520
+  High here and low in the table above means the axis is there and the
+  text vector misses it. Low here means there is no scene-independent axis
+  to point at, whatever the query says.
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152         held-out oracle AUC n/a - needs two or more rounds
+  pca 512              held-out oracle AUC n/a - needs two or more rounds
+  student fp32         held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 0.500  (104.7 vs 104.7)
+
+  class axis, student fp32 against pca 512: cos +0.067   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  wrote /tmp/mp/20260822-mirror-laptop.json
+### 20260822-mirror-sink  --pos "a sink on the left" --neg "a sink on the right"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+pair      : 'a sink on the left'  vs  'a sink on the right'
+stills    : 28 from bench/stills/20260822-mirror-sink/pos, 28 from bench/stills/20260822-mirror-sink/neg
+rounds    : ['r?'] / ['r?']
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates
+basis     : emb_train2017_SO400M-pca512-a0.5.basis.npz
+student   : so400m-full-a05, epoch 37
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152         sep 0.510  |sep| 0.510  within 0.510  drift   n/a
+                       gap 0.0017 =   0.0 sd   round swing not measured - one round   (sd 0.0994)
+                       per round: r? 0.510
+  pca 512              sep 0.496  |sep| 0.504  within 0.504  drift   n/a
+                       gap 0.0018 =   0.0 sd   round swing not measured - one round   (sd 0.1208)
+                       per round: r? 0.504
+  student fp32         sep 0.503  |sep| 0.503  within 0.503  drift   n/a
+                       gap 0.0037 =   0.1 sd   round swing not measured - one round   (sd 0.0531)
+                       per round: r? 0.503
+
+==============================================================================
+WITHIN SCENE - the same picture in two states, so the scene cancels
+  teacher 1152         scenes  28   right way round 16/28   mean +0.0017 =   0.1 sd   (sd 0.0273)
+  pca 512              scenes  28   right way round 14/28   mean -0.0018 =  -0.1 sd   (sd 0.0330)
+  student fp32         scenes  28   right way round 14/28   mean +0.0037 =   0.1 sd   (sd 0.0295)
+
+==============================================================================
+ACROSS SCENES, QUERY TAKEN OUT - one fitted direction, held out by scene
+  teacher 1152         scene-held-out oracle AUC 0.539   28 scenes, 5 folds: 0.583  0.528  0.583  0.440  0.560
+  pca 512              scene-held-out oracle AUC 0.514   28 scenes, 5 folds: 0.556  0.500  0.556  0.400  0.560
+  student fp32         scene-held-out oracle AUC 0.555   28 scenes, 5 folds: 0.583  0.583  0.528  0.480  0.600
+  High here and low in the table above means the axis is there and the
+  text vector misses it. Low here means there is no scene-independent axis
+  to point at, whatever the query says.
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152         held-out oracle AUC n/a - needs two or more rounds
+  pca 512              held-out oracle AUC n/a - needs two or more rounds
+  student fp32         held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 0.500  (121.1 vs 121.1)
+
+  class axis, student fp32 against pca 512: cos +0.010   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  wrote /tmp/mp/20260822-mirror-sink.json
+### 20260822-mirror-tv  --pos "a tv on the left" --neg "a tv on the right"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+pair      : 'a tv on the left'  vs  'a tv on the right'
+stills    : 30 from bench/stills/20260822-mirror-tv/pos, 30 from bench/stills/20260822-mirror-tv/neg
+rounds    : ['r?'] / ['r?']
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates
+basis     : emb_train2017_SO400M-pca512-a0.5.basis.npz
+student   : so400m-full-a05, epoch 37
+device    : mps
+
+==============================================================================
+MARGIN AUC BY STAGE, on the phrases as the board sends them
+  teacher 1152         sep 0.499  |sep| 0.501  within 0.501  drift   n/a
+                       gap 0.0025 =   0.0 sd   round swing not measured - one round   (sd 0.0743)
+                       per round: r? 0.501
+  pca 512              sep 0.489  |sep| 0.511  within 0.511  drift   n/a
+                       gap 0.0003 =   0.0 sd   round swing not measured - one round   (sd 0.0789)
+                       per round: r? 0.511
+  student fp32         sep 0.461  |sep| 0.539  within 0.539  drift   n/a
+                       gap 0.0070 =   0.1 sd   round swing not measured - one round   (sd 0.0521)
+                       per round: r? 0.539
+
+==============================================================================
+WITHIN SCENE - the same picture in two states, so the scene cancels
+  teacher 1152         scenes  30   right way round 14/30   mean +0.0025 =   0.1 sd   (sd 0.0312)
+  pca 512              scenes  30   right way round 12/30   mean -0.0003 =  -0.0 sd   (sd 0.0241)
+  student fp32         scenes  30   right way round 13/30   mean -0.0070 =  -0.3 sd   (sd 0.0254)
+
+==============================================================================
+ACROSS SCENES, QUERY TAKEN OUT - one fitted direction, held out by scene
+  teacher 1152         scene-held-out oracle AUC 0.511   30 scenes, 5 folds: 0.528  0.500  0.556  0.472  0.500
+  pca 512              scene-held-out oracle AUC 0.528   30 scenes, 5 folds: 0.528  0.528  0.639  0.472  0.472
+  student fp32         scene-held-out oracle AUC 0.539   30 scenes, 5 folds: 0.500  0.500  0.611  0.528  0.556
+  High here and low in the table above means the axis is there and the
+  text vector misses it. Low here means there is no scene-independent axis
+  to point at, whatever the query says.
+
+==============================================================================
+AND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, held out by round
+  teacher 1152         held-out oracle AUC n/a - needs two or more rounds
+  pca 512              held-out oracle AUC n/a - needs two or more rounds
+  student fp32         held-out oracle AUC n/a - needs two or more rounds
+  A stage that reads high here and low above holds the difference and is
+  merely not being asked for it. A stage low in both has lost it.
+
+  trivial cue: frame mean luma AUC 0.500  (97.2 vs 97.2)
+
+  class axis, student fp32 against pca 512: cos +0.041   (1.0 = the same difference, 0.0 = an unrelated one)
+
+  wrote /tmp/mp/20260822-mirror-tv.json

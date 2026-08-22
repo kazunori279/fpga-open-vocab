@@ -79,6 +79,12 @@ auditable.
 Screening the stimulus before encoding anything is a validity filter. Screening
 after seeing the margins would be fitting. The order is the difference.
 
+**A set can also be built with no generator at all.**
+[`tools/mirror_pairs.py`](../../tools/mirror_pairs.py) makes the two sides of a
+pair out of one photograph and its horizontal flip, which is only possible for
+one contrast — left against right — but for that one it leaves nothing to screen
+and nothing to confound. See the section on it below.
+
 **A generated set does not predict a bench, and it is not trying to.** Thirty
 books on thirty desks asks whether *any* open book outranks *any* closed one; a
 bench asks about one book on one desk, with the enrolment and the decision rule
@@ -121,6 +127,7 @@ over ten contrasts. See the section below, and the retraction in
 | [`20260822-synth-glass-crop2/`](20260822-synth-glass-crop2/) | `a glass with tea` / `an empty glass`, second draw | the teacher's 25/25 replicates on unseen scenes at 23/23; the student's cross-scene AUC is 0.61 against its 0.95 |
 | `20260822-synth-{book,glass}` and `-closeup` | the same two pairs | superseded first attempts, kept as the evidence for cropping the source: object too small, then scene re-composed |
 | the eight `-crop` sets below | eight more object states in rooms | not a result each — a fleet, for the variance in the section that follows |
+| [`20260821-envelope-position/`](20260821-envelope-position/) and the ten `20260822-mirror-*` | `a X on the left` / `a X on the right`, mirrored | the teacher does not carry left/right at all — 0.499 over eleven contrasts, and a fitted axis cannot find it either ([#23](https://github.com/kazunori279/fpga-open-vocab/issues/23)) |
 
 ## Ten contrasts, because two was measuring the wrong noise
 
@@ -361,6 +368,83 @@ Pooled over the ten, swapping the row moves the product metric from 0.6454 to
 That is worth having as a negative result. Set quality was the live objection to
 this fleet; on the set where the objection was strongest, removing it entirely
 left the student's number where it was.
+
+## Left and right, and the axis that is not there
+
+Every contrast above is a *state* of an object. #23 asks a different question —
+which distinctions the encoder does not carry at all — and position is the axis
+where that can be asked with no confound whatsoever, because the two sides of a
+pair can be **the same photograph and its mirror image**.
+
+[`tools/mirror_pairs.py`](../../tools/mirror_pairs.py) cuts a square window
+around one annotated COCO instance, placed so the object sits a quarter of the
+way across, and writes that window to `pos/` and its horizontal flip to `neg/`.
+No generator is involved, so there is nothing to screen blind: the label is
+COCO's own box, and the room, the lighting, the object and the sensor noise are
+identical between the sides to the pixel.
+
+Position is also the one axis `synth_pairs.py` cannot do. Every instruction it
+sends ends in *"the same physical object at the same position and the same size
+in the frame"*, and that clause is the reason its pairs are readable. Asking a
+generator to move the object across the frame is asking it to break the
+invariant the tool is built on.
+
+**Half of each set is framed with the object on the left and half on the right**,
+alternating down the source list, so the positive side is an original as often
+as it is a flip. Without that, "was this mirrored" — readable off any lettering
+in the scene — would answer the whole set.
+
+Eleven contrasts, 278 pairs, log in
+[`20260822-mirror-11contrast.log`](20260822-mirror-11contrast.log):
+
+| set | pairs | teacher | pca 512 | student | teacher, fitted | teacher, within scene |
+| --- | --- | --- | --- | --- | --- | --- |
+| [`chair`](20260822-mirror-chair/) | 28 | .482 | .492 | .508 | .46 | 14/28 |
+| [`bottle`](20260822-mirror-bottle/) | 30 | .497 | .499 | .471 | .51 | 15/30 |
+| [`cup`](20260822-mirror-cup/) | 30 | .490 | .508 | .448 | .52 | 14/30 |
+| [`tv`](20260822-mirror-tv/) | 30 | .499 | .489 | .461 | .51 | 14/30 |
+| [`cell phone`](20260822-mirror-cell-phone/) | 30 | .509 | .509 | .484 | .56 | 18/30 |
+| [`clock`](20260822-mirror-clock/) | 28 | .480 | .458 | .519 | .54 | 9/28 |
+| [`laptop`](20260822-mirror-laptop/) | 26 | .506 | .513 | .476 | .47 | 15/26 |
+| [`sink`](20260822-mirror-sink/) | 28 | .510 | .496 | .503 | .54 | 16/28 |
+| [`dog`](20260822-mirror-dog/) | 20 | .495 | .497 | .480 | .49 | 9/20 |
+| [`bowl`](20260822-mirror-bowl/) | 18 | .515 | .503 | .420 | .47 | 12/18 |
+| [`book`](20260821-envelope-position/) | 10 | .510 | .520 | .450 | .30 | 6/10 |
+| **mean** | **278** | **.499 ±.004** | **.499 ±.005** | **.475 ±.009** | **.49 ±.02** | **142/278** |
+
+**The teacher is at chance and that is the finding.** 0.499 ± 0.004 over eleven
+contrasts. Every state contrast in the fleet above reads 0.579 to 0.933 at the
+teacher; this one reads a coin, and it is the same encoder, the same phrasing
+and the same script.
+
+**It is not the query's fault.** The `fitted, held out by scene` column takes the
+text vector out entirely — it fits a direction to the labels on some scenes and
+scores the rest — and it also reads 0.49. When that column is high and the AUC
+is low, the axis exists and the phrase misses it. Here there is no axis to point
+at.
+
+**Frame-mean luma reads exactly 0.500 on all eleven**, as it must, since a
+mirror image has the same mean. That is the stimulus checking itself: whatever
+the encoders are doing, they are not reading a global cue off these frames.
+
+The student's 0.475 ± 0.009 is 2.8 standard errors the wrong side of chance,
+which is small and unexplained. A perfectly mirror-invariant encoder would score
+exactly 0.500, so the student is responding to the flip and responding against
+the query. This page has retracted a +0.10 that survived a second draw, so the
+right thing to do with a −0.025 is write it down and not build on it.
+
+**What this licenses**, and it is the strongest form of the claim the envelope
+map can make: a contrast whose two states differ only in where something is will
+not work on this board, and no amount of enrolment, resolution or distillation
+will change that, because the 1152-d teacher does not carry it either.
+[`../../docs/fit.md`](../../docs/fit.md) says so at the point where somebody is
+choosing a contrast.
+
+**What it does not license** is a claim about spatial information in general.
+This asks one question — can the encoder tell an image from its own mirror, when
+asked in words about left and right. It does not measure near/far, above/below,
+inside/outside, or any relation between two named objects. Those are separate
+sets and none of them has been shot.
 
 ## What a set can and cannot answer
 

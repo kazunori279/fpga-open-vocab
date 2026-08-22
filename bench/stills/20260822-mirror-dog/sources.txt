@@ -1,0 +1,21 @@
+# stem  where-the-window-put-the-object  (pos is always the left-facing side, so 'right' means pos is the mirrored one)
+000000065485  left
+000000139099  right
+000000151962  left
+000000159458  right
+000000161609  left
+000000225670  right
+000000235399  left
+000000237864  right
+000000263463  left
+000000273232  right
+000000288685  left
+000000324158  right
+000000329219  left
+000000338624  right
+000000385997  left
+000000395801  right
+000000462728  left
+000000489014  right
+000000490171  left
+000000534270  right
