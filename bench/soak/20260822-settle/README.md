@@ -187,7 +187,11 @@ the grounds that the mode has not changed, when only the record of it survived:
 640 × 480 × 2 exactly. Every recipe in this page's sweep is `rewrite = true`,
 which is what makes `cam_begin()` safe to call per trial there, and the comment
 in `cam.c` claiming `-1` "after a reset or a `cam_begin()`" describes an
-intention the code does not carry out.
+intention the code does not carry out. Filed as
+[#29](https://github.com/kazunori279/fpga-open-vocab/issues/29) rather than
+patched, because clearing the cache makes every post-reset capture rewrite
+CAPTURE_RESOLUTION, which is the write `rewrite = false` exists to avoid, and
+only the board can say whether that costs anything.
 
 ### Not measured
 
