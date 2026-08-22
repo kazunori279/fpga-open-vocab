@@ -96,9 +96,12 @@ def load(log: Path):
     # downstream of here labels a reference by the cued segment its enrolment
     # window fell in - references() below, and the same arithmetic in
     # score_cue.py. The BOARD labels it by which query the digit is bound to,
-    # positionally, and checks nothing about the scene. When the operator
-    # presses '1' while holding up the wrong state those two disagree, and the
-    # disagreement is silent on both sides.
+    # positionally, and checks nothing about the scene. host/cue.py drives both
+    # ends from two different lists - the rotation from --scene, the classes
+    # from its positional arguments - and until 2026-08-23 it pressed k + 1 for
+    # the k-th cued scene, which is right only when they were typed in the same
+    # order. That end is fixed; this guard is for the logs already on disk and
+    # for any other way the two can come apart.
     #
     # 2026-08-23 07:10 is what that costs. Key 1 was pressed during the opened
     # book segment and the board had bound key 1 to 'a closed book', so the

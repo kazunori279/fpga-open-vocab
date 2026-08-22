@@ -48,14 +48,17 @@ have to guess which one a row came from.
 
 ### The one disagreement that is neither column being wrong
 
-The two can also part company because **the operator pressed the wrong digit**,
-and that case is worth naming because both numbers look reportable.
+The two can also part company because **the wrong digit was pressed**, and that
+case is worth naming because both numbers look reportable and neither is.
 
-The board binds `'1'`..`'6'` to the query list by position and checks nothing
+The board binds `'1'`..`'6'` to the **positional query list** and checks nothing
 about what is in front of the lens. Every offline tool instead labels a
-reference by the cued segment its enrolment window fell in. Press `'1'` while
-holding up the other state and the two disagree silently, in opposite
-directions.
+reference by the **cued segment** its enrolment window fell in. Those are two
+different lists: `host/cue.py` takes the rotation from `--scene` and the classes
+from its positional arguments, and until 2026-08-23 it pressed `k + 1` for the
+k-th cued scene — correct only when the two happened to be typed in the same
+order, which nothing checked. Type them the other way round and both references
+go in swapped, silently, with each half internally consistent.
 
 `m9_cue-20260823-0710` is the worked example, and it is why that sidecar is
 VOID. Key 1 was pressed during the `an opened book` segment against a board that
@@ -67,10 +70,13 @@ complement, seventy points apart, for a run that never happened — and the
 presence gate had nothing to do with it, the worst class sitting at 1.86 sep
 against a 2.0 trip.
 
-`tools/probe_reject.py`'s `load()` refuses this shape now, so the next one stops
-at the tool rather than in a table. It only fires on a genuine permutation: a
-board whose query names are a *different set* from the cued labels is a
-different fault with its own message.
+Both ends are closed now. `host/cue.py` looks the digit up in the query list
+instead of assuming the cue order, so the two can be typed in any order; and
+`tools/probe_reject.py`'s `load()` refuses a log where they still disagree, so
+anything that gets past the first stops at the tool rather than in a table. The
+guard fires only on a genuine permutation — a board whose query names are a
+*different set* from the cued labels is a different fault with its own message,
+and it is deliberate on 08-20 13:12 and 14:22.
 
 ## Manifest
 

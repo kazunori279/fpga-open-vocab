@@ -981,15 +981,51 @@ def main() -> int:
     # from the classes now, so there is nothing to teach it - which also means
     # the baseline is no longer an enrolment window and --baseline only has to
     # be long enough to freeze the background.
+    # WHICH DIGIT ENROLS WHICH SCENE, AND WHY IT IS NOT k + 1. `--scene` sets
+    # the rotation and the cue labels; the board's classes come from the
+    # positional `queries` argument, which is a DIFFERENT list, and the board
+    # binds '1'..'6' to that one. This loop used to press k + 1 for the k-th
+    # cued scene, which is only right when the two lists were typed in the same
+    # order. Nothing checked that they were.
+    #
+    # 2026-08-23 07:10 is what it costs when they are not. The rotation opened
+    # with 'an opened book' so cue.py pressed '1' there, and the board had '1'
+    # bound to 'a closed book', so both references went in swapped and the run
+    # is VOID - see bench/cue/m9_cue-20260823-0710.log.cues. Both halves were
+    # internally consistent and each reported a plausible number: score_cue.py
+    # read the board and got 15.0%, probe_ceiling.py relabelled off the cues
+    # and got 85.0%, and the truth is that the bench never happened.
+    #
+    # So the digit is now looked up in the query list rather than assumed from
+    # the cue order, and the two can be typed in any order. Line 1047's
+    # `base[int(k) - 1]` was the same assumption printed as a fact; it reads
+    # the map now.
+    #
+    # A cued scene that is not a query at all is left positional and said out
+    # loud rather than refused. That combination is deliberate on 08-20 13:12
+    # and 14:22, whose queries carry a `~` the cue labels do not, and those two
+    # benches are already skipped by every tool that would have to interpret
+    # them.
     enrol: list[tuple[int, str]] = []
+    digit = {lab: str(i + 1) for i, lab in enumerate(args.queries)}
     if args.enrol:
+        loose = [lab for lab in base if lab not in digit]
+        if loose:
+            print(f"--enrol: {', '.join(repr(x) for x in loose)} "
+                  f"{'is' if len(loose) == 1 else 'are'} cued but not in the "
+                  f"query list {args.queries}, so the enrolment digit for "
+                  f"{'it' if len(loose) == 1 else 'them'} is being assigned by "
+                  f"position. If the board binds that digit to a different "
+                  f"class the references go in swapped and the run is VOID.",
+                  file=sys.stderr)
         visits = min(ENROL_VISITS, max(1, args.repeat))
         for v in range(visits):
-            for k, _label in enumerate(base):
+            for k, label in enumerate(base):
                 scene = v * len(rotation) + k
                 start = (args.bg_tau + args.baseline
                          + scene * (args.settle + args.hold))
-                enrol.append((start + args.settle + 2, str(k + 1)))
+                enrol.append((start + args.settle + 2,
+                              digit.get(label, str(k + 1))))
         if len(base) < 2:
             print("--enrol with one scene: the board needs two enrolled classes "
                   "before the M21 rule engages, so it will stay on the old one.",
@@ -1044,7 +1080,8 @@ def main() -> int:
     print(f"            about {frames * 0.5 / 60:.1f} min of frames, plus a minute of startup")
     if enrol:
         print("enrol     : " + ", ".join(
-            f"frames {f + 2}-{f + 1 + ENROL_FRAMES} = {base[int(k) - 1]}"
+            f"frames {f + 2}-{f + 1 + ENROL_FRAMES} = key {k} "
+            f"= {args.queries[int(k) - 1] if int(k) <= len(args.queries) else '?'}"
             for f, k in enrol))
         held = args.repeat - visits
         print(f"            the first {visits} visit{'' if visits == 1 else 's'} "
