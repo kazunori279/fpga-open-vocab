@@ -376,9 +376,49 @@ def demo_command(args, queries: list[str], sched: list[str]) -> list[str]:
     # really is a fault and the default 45 s is about right. Kept as a flag
     # because a slower --bg-tau or a wedged sensor changes what quiet means.
     cmd += ["--idle", str(args.idle), "--out", str(args.log)]
+    # Always, not only under --restart. demo.py's default is to drop the board
+    # into BOOTSEL as it leaves, which is right for a bench script - m9 never
+    # stops by itself, so "finished" and "still looping" look the same and the
+    # next thing anybody does is flash it. A monitor is the other case. The
+    # board it leaves behind is the board somebody walks back to, or the board
+    # the restart loop below is counting on, and BOOTSEL is neither.
+    cmd += ["--leave-running"]
     for spec in sched:
         cmd += [f"--enrol={spec}"]
     return cmd + queries
+
+
+def bootsel_note(port: str | None) -> str | None:
+    """Why relaunching is pointless, or None if it is worth a try.
+
+    There are two ways demo.py can fail to find a board and only one of them is
+    worth waiting out. An outage - issue #9 - clears on its own or on a power
+    cycle, and riding through it is what --restart is for. BOOTSEL does not
+    clear: a board with no firmware running will not grow a CDC node however
+    long anybody waits, so the loop turns into one full SigLIP load a minute
+    against a port that is never coming back. demo.py asks for the teacher
+    before it asks for the port, so each turn costs the whole minute.
+
+    Shelled out rather than imported because this file has no dependencies and
+    host/board.py needs pyserial. --state answers in one token so this is not
+    matching on prose. If it cannot run at all, say nothing and let the restart
+    happen: a broken diagnostic must not be what stops a monitor.
+    """
+    if port:            # the caller pinned one; believe them and let it try
+        return None
+    try:
+        out = subprocess.run(["uv", "run", "--script", str(ROOT / "host/board.py"),
+                              "--state"], capture_output=True, text=True,
+                             timeout=120, cwd=ROOT, check=False).stdout.split()
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if out and out[0] == "bootsel":
+        where = " ".join(out[1:])
+        return (f"the board is on the bus at {where} with no serial port, so it "
+                f"is in BOOTSEL and running no firmware. Waiting will not fix "
+                f"that.\n Flash it and start again:\n"
+                f"   uv run host/bootsel.py --flash firmware/build/forgix_m9.uf2")
+    return None
 
 
 def run_once(args, queries: list[str], sched: list[str], deb: Debounce,
@@ -471,8 +511,8 @@ def main() -> int:
                          "(default 0, off - the units differ between modes)")
     ap.add_argument("--enrol", action="store_true",
                     help="walk through enrolling each state off the live "
-                         "camera. THIS IS THE MODE WITH A REJECT OPTION; "
-                         "without it something always wins")
+                         "camera, which is what every accuracy number in this "
+                         "repository is measured on. Both modes can decline")
     ap.add_argument("--enrol-lead", type=float, default=20.0, metavar="SECS",
                     help="seconds before the first enrolment window (default "
                          "20, which is time to walk to the scene)")
@@ -562,6 +602,14 @@ def supervise(args, sched: list[str], jsonl) -> int:
           f"{f', margin floor {args.floor}' if args.floor else ''}",
           file=sys.stderr)
 
+    # Asked before the first run and not only before a relaunch. demo.py loads
+    # the teacher before it asks for a port, so a board in BOOTSEL costs a full
+    # minute to be told about; this costs two seconds and says the same thing.
+    stuck = bootsel_note(args.port)
+    if stuck:
+        print(f"\ncannot start: {stuck}", file=sys.stderr)
+        return 1
+
     runs = 0
     try:
         while True:
@@ -579,6 +627,11 @@ def supervise(args, sched: list[str], jsonl) -> int:
                       f"replayed unattended, so this run ends here. Restart it "
                       f"yourself when you can hold the scenes again.)",
                       file=sys.stderr)
+                return code
+            stuck = bootsel_note(args.port)
+            if stuck:
+                print(f"\n(demo.py exited [{code}] after run {runs}, and "
+                      f"relaunching cannot work: {stuck})", file=sys.stderr)
                 return code
             print(f"\n(demo.py exited [{code}] after run {runs}; relaunching in "
                   f"{args.restart_wait:.0f}s - Ctrl-C to stop)",

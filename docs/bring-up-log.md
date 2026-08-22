@@ -109,6 +109,41 @@ verified as not-written; `host/bootsel.py --flash` handled it exactly as its
 docstring says it would — cycled the hub port, re-entered BOOTSEL, wrote in
 15.5 s, verified.
 
+**"The board came up in BOOTSEL" was itself wrong, and the bus trace says so.**
+`host/usb_watch.py` had been polling every port once a second since 08-16. At
+12:04:02, one second after the smoke run printed `stopped.`, the board left the
+bus and came back as `2e8a:000f … Boot`. Nothing came up in BOOTSEL. `demo.py`
+put it there, on purpose, on a clean exit — the `B` at demo.py:1393, whose
+comment explains the reason perfectly well: `m9` never stops by itself, so "the
+script finished" and "the board is still looping" are the same state and the
+next thing anybody does is flash it.
+
+That is a bench script's reason and this is not a bench script. For `watch.py`
+it is fatal in two ways. The board a monitor leaves behind has no firmware in
+it. And `--restart` — one of the three things `watch.py` exists to add — cannot
+work at all, because the relaunched `demo.py` finds no CDC node. Measured
+against a board deliberately left in BOOTSEL: it loads SigLIP, encodes the
+query, *then* asks for the port, fails, and the loop waits `--restart-wait` and
+does it again. About a minute a turn, indefinitely
+(`bench/cue/20260822-restart-probe.out` is two of those turns). A stall is the
+failure `--restart` was written for and is exactly the path that sends the `B`.
+
+Two fixes. `demo.py --leave-running` sends `R` instead — m9.c:3201 answers both
+keys with the same `stopped :` block and branches on one line, so the summary is
+not what is being given up, only the destination — and `watch.py` passes it
+always, not only under `--restart`. And `watch.py` asks `board.py --state`
+before it launches anything: `bootsel` is not worth retrying and now stops with
+the flash command in 0.15 s instead of after a minute of teacher, while `absent`
+still gets the wait, because that one does come back.
+
+Verified end to end on the board: `stopped : 300 frames, 300 good`, the full
+timing block intact, and one second after Ctrl-C the bus trace shows
+`2e8a:0009 Raspberry Pi Pico` — running firmware, serial port, ready for the
+next run. The six-day trace is archived at
+[`bench/soak/usb_watch-20260816-20260822.log.gz`](../bench/soak/usb_watch-20260816-20260822.log.gz),
+out of `/tmp`, where it has now earned its keep by dating a bug rather than by
+recording the outage it was set up for.
+
 Evidence for all of the above is in `bench/cue/20260822-watch-smoke.{log,jsonl,out}`.
 
 ### 2026-08-22, later still — it was the data, and the metric that watched it happen looked the other way

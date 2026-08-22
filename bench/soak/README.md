@@ -32,6 +32,24 @@ one that is healthy, and one mixed set that a naive rule would have failed.
 doubt now reaches the `stopped :` summary, which is what runs 8–20 below needed
 and did not have.
 
+**And a six-day bus trace:
+[`usb_watch-20260816-20260822.log.gz`](usb_watch-20260816-20260822.log.gz).**
+`host/usb_watch.py` polling every port `uhubctl` can see, once a second, from
+05:55 on 2026-08-16 to midday on 2026-08-22 — 9 434 lines, gzipped because 8 943
+of them are the once-a-minute heartbeat that is the whole point of the file. It
+is a snapshot; the run was still going when it was copied.
+
+The board's port took 217 transitions across those six days, and the two days
+nobody touched the board — 08-18 and 08-19 — have none at all, which is the
+negative result #9 wants. What it turned out to be *worth*, though, was
+something nobody set it up for. On 2026-08-22 at 12:04:02 the board dropped and
+came back one second later as `2e8a:000f Raspberry Pi RP2350 Boot`: not an
+outage, but `host/demo.py` doing precisely what it says it does on a clean exit.
+The board found in BOOTSEL twenty minutes later had been written up as having
+"come up" that way. A bus trace with a timestamp is what turned a mystery into a
+line of code — the argument for this file being on all the time and the reason
+the copy in `/tmp` was a bad place for it.
+
 ## Manifest
 
 `frames` counts `frame NNN :` lines actually printed, so it is where the run

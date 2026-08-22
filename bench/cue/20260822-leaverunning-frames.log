@@ -1,0 +1,370 @@
+
+=== M9: fpga-open-vocab - describe it, the board spots it ===
+
+clock     : 320 MHz requested; BOOTSEL is reachable for 1.5 s
+clock     : 320 MHz system, core 1.25 V
+reset     : chip_reset 00010000  (scratch was cold: either the always-on domain went away - power, a brown-out - or this boot came through the bootrom, which clears it too)
+            new this boot: power-on reset - the supply arrived
+waiting for a bitstream on USB CDC (host/demo.py)
+bitstream : 173124 bytes announced, crc32 0a2e9953
+bitstream : received intact
+configure : configured, CDONE high   CDONE=1 nSTATUS=0
+crc       : DMA sniffer, calc=1 out_rev=1 out_inv=1
+model     : 9 layers, 512-d embedding, 131072 B/buffer
+weights   : 780720 B, crc32=0xF368CC6E  (126 ms to hash)
+
+reference : encoder_fast on the flash test vector  (1584 ms)
+
+link      : probing the wire by running the whole test vector over it
+probe     : 3 forward data lines -> 512/512 floats exact, 266 ms
+link      : configuration C, 3 forward data lines, 160.0 MHz
+
+camera    : exposure ramp 130 132 134 137 139 141 143
+camera    : live 128x128 RGB565, id 0x82, 16.0 MHz, expose 37 ms, read 16 ms, exposure settled after 7 frames
+            mean RGB 136 153 145  (tuned camera on a neutral scene: about 115 107 105)
+
+queries   : waiting for a query set on USB CDC (host/demo.py)
+queries   : 1 accepted, 512-d, crc ok
+            scored as z = (cos - background) / std, where the background is this room's
+            own mean over its first 30 frames and is then FROZEN - so a thing left in
+            shot keeps its score instead of decaying into the furniture. 'N' re-learns
+            it, 'H' switches to tracking. The COCO figures below are only the seed for
+            frame 0 and the fixed std.
+            std is THIS ROOM's, measured over the same 30 frames ('S' switches to COCO's).
+            The thresholds below still mean the 90th percentile of a background; the
+            background they now mean it against is this room empty, not 5000 COCO photos.
+            z is EMA-smoothed at 0.35 (~5 frames) before ranking, so a state has to
+            persist for about two seconds to be called.
+            a desk               match above z 1.23   (COCO background -0.148 +- 0.052, so cos -0.084)
+
+loop      : capture, 8 convs on the T8, pool and head, then one cosine per query. 'B' for BOOTSEL, 'R' to restart,
+            'P' to dump the next frame for host/cam.py, 'V' to dump its 512 floats for host/caption.py,
+            'E' to provoke a fault so D1 shows its fault display, 'H' to freeze/unfreeze the background,
+            'S' to switch the spread between this room's and COCO's, 'W' to hang on purpose and see
+            the watchdog name the stage, 'C' to stall the camera bus on purpose and see it cost one frame,
+            'U' to drop off USB on purpose and watch it come back, 'I' to drop off and refuse to,
+            'N' to forget it and learn it again from now. 'P' and 'V' together describe the same frame.
+            'O' closes the timing window, prints it and flips the capture between overlapped and serial;
+            'D' does the same and flips the trigger between late and at-the-collect, which is #14's A/B.
+            scores are z against this room's background, ranked; '*' means over its threshold.
+            '1'..'6' enrol the next 20 frames as that class, and press again on a LATER visit
+            to fold a second one in - 2 visits is what makes the enrolment guard mean
+            something. Two classes in and the board decides by nearest reference instead of
+            by threshold, and calls a frame absent when it is further than 2.0 sep from every
+            one of them - see M21. The empty scene is not enrolled and '0' does nothing; see #18.
+            The first 30 frames set the baseline and it is then frozen, so anything left in
+            shot KEEPS its score. Point the camera at the empty scene for those frames.
+            Send a new set at any time to re-query - that resets the baseline too.
+
+frame     0 :  a desk +0.04   led   0/236 h0.03 lvl+0.04   -
+frame     1 :  a desk +0.09   led   1/217 h0.07 lvl+0.09   -
+frame     2 :  a desk +0.16   led   3/187 h0.13 lvl+0.16   -
+frame     3 :  a desk +0.14   led   2/194 h0.12 lvl+0.14   -
+frame     4 :  a desk +0.08   led   1/218 h0.07 lvl+0.08   -
+frame     5 :  a desk +0.11   led   1/209 h0.09 lvl+0.11   -
+frame     6 :  a desk +0.05   led   0/232 h0.04 lvl+0.05   -
+frame     7 :  a desk +0.02   led   0/248 h0.01 lvl+0.02   -
+background: after 8 frames (warming up, room spread), this room reads  a desk -0.130 +-0.0064 (COCO -0.148 +-0.0523)
+frame     8 :  a desk +0.52   led  38/ 76 h0.42 lvl+0.52   -
+frame     9 :  a desk +0.90   led 129/ 14 h0.73 lvl+0.90   -
+frame    10 :  a desk +0.49   led  34/ 82 h0.40 lvl+0.49   -
+frame    11 :  a desk +0.61   led  54/ 57 h0.49 lvl+0.61   -
+frame    12 :  a desk +0.95   led 145/ 10 h0.77 lvl+0.95   -
+frame    13 :  a desk +0.73   led  82/ 35 h0.60 lvl+0.73   -
+frame    14 :  a desk +0.50   led  35/ 81 h0.40 lvl+0.50   -
+frame    15 :  a desk +0.34   led  15/125 h0.28 lvl+0.34   -
+frame    16 :  a desk +0.15   led   2/192 h0.12 lvl+0.15   -
+frame    17 :  a desk +0.20   led   5/173 h0.16 lvl+0.20   -
+frame    18 :  a desk -0.21   led   0/255 h0.00 lvl-0.21   -
+frame    19 :  a desk -0.14   led   0/255 h0.00 lvl-0.14   -
+frame    20 :  a desk +0.00   led   0/255 h0.00 lvl+0.00   -
+frame    21 :  a desk -0.07   led   0/255 h0.00 lvl-0.07   -
+frame    22 :  a desk +0.96   led 146/  9 h0.78 lvl+0.96   -
+frame    23 :  a desk +1.86*   led 255/  0 h1.00 lvl+1.86   MATCH a desk (cos -0.104)
+frame    24 :  a desk +1.38*   led 255/  0 h1.00 lvl+1.38   MATCH a desk (cos -0.122)
+frame    25 :  a desk +0.95   led 144/ 10 h0.77 lvl+0.95   -
+frame    26 :  a desk +0.78   led  93/ 28 h0.63 lvl+0.78   -
+frame    27 :  a desk +0.64   led  61/ 50 h0.52 lvl+0.64   -
+frame    28 :  a desk +0.31   led  12/135 h0.25 lvl+0.31   -
+frame    29 :  a desk +0.22   led   6/165 h0.18 lvl+0.22   -
+frame    30 :  a desk +0.24   led   7/156 h0.20 lvl+0.24   -
+frame    31 :  a desk +0.31   led  12/135 h0.25 lvl+0.31   -
+frame    32 :  a desk +0.73   led  82/ 35 h0.60 lvl+0.73   -
+frame    33 :  a desk +0.28   led  10/145 h0.23 lvl+0.28   -
+frame    34 :  a desk +0.99   led 158/  7 h0.81 lvl+0.99   -
+frame    35 :  a desk +0.73   led  82/ 35 h0.60 lvl+0.73   -
+frame    36 :  a desk +0.56   led  46/ 66 h0.46 lvl+0.56   -
+frame    37 :  a desk +0.86   led 116/ 18 h0.70 lvl+0.86   -
+frame    38 :  a desk +0.56   led  44/ 68 h0.45 lvl+0.56   -
+frame    39 :  a desk +0.31   led  12/135 h0.25 lvl+0.31   -
+frame    40 :  a desk -0.03   led   0/255 h0.00 lvl-0.03   -
+frame    41 :  a desk -0.33   led   0/255 h0.00 lvl-0.33   -
+frame    42 :  a desk -0.43   led   0/255 h0.00 lvl-0.43   -
+frame    43 :  a desk -0.53   led   0/255 h0.00 lvl-0.53   -
+frame    44 :  a desk -0.54   led   0/255 h0.00 lvl-0.54   -
+frame    45 :  a desk -0.11   led   0/255 h0.00 lvl-0.11   -
+frame    46 :  a desk -0.18   led   0/255 h0.00 lvl-0.18   -
+frame    47 :  a desk -0.02   led   0/255 h0.00 lvl-0.02   -
+frame    48 :  a desk +0.08   led   1/220 h0.07 lvl+0.08   -
+frame    49 :  a desk +0.33   led  14/128 h0.27 lvl+0.33   -
+frame    50 :  a desk +0.04   led   0/237 h0.03 lvl+0.04   -
+frame    51 :  a desk +0.49   led  34/ 84 h0.40 lvl+0.49   -
+frame    52 :  a desk +0.20   led   5/172 h0.16 lvl+0.20   -
+frame    53 :  a desk +0.43   led  25/ 99 h0.35 lvl+0.43   -
+frame    54 :  a desk +0.39   led  21/110 h0.32 lvl+0.39   -
+frame    55 :  a desk +0.01   led   0/248 h0.01 lvl+0.01   -
+frame    56 :  a desk -0.01   led   0/255 h0.00 lvl-0.01   -
+frame    57 :  a desk -0.48   led   0/255 h0.00 lvl-0.48   -
+frame    58 :  a desk -0.30   led   0/255 h0.00 lvl-0.30   -
+frame    59 :  a desk -0.30   led   0/255 h0.00 lvl-0.30   -
+frame    60 :  a desk -0.28   led   0/255 h0.00 lvl-0.28   -
+frame    61 :  a desk -0.56   led   0/255 h0.00 lvl-0.56   -
+frame    62 :  a desk -0.94   led   0/255 h0.00 lvl-0.94   -
+frame    63 :  a desk -0.46   led   0/255 h0.00 lvl-0.46   -
+frame    64 :  a desk +0.26   led   8/152 h0.21 lvl+0.26   -
+frame    65 :  a desk -0.11   led   0/255 h0.00 lvl-0.11   -
+frame    66 :  a desk +0.26   led   8/151 h0.21 lvl+0.26   -
+frame    67 :  a desk +0.17   led   3/185 h0.14 lvl+0.17   -
+frame    68 :  a desk +0.26   led   8/153 h0.21 lvl+0.26   -
+frame    69 :  a desk -0.06   led   0/255 h0.00 lvl-0.06   -
+frame    70 :  a desk -0.02   led   0/255 h0.00 lvl-0.02   -
+frame    71 :  a desk +0.33   led  15/127 h0.27 lvl+0.33   -
+frame    72 :  a desk +0.05   led   0/233 h0.04 lvl+0.05   -
+frame    73 :  a desk +0.24   led   7/158 h0.20 lvl+0.24   -
+frame    74 :  a desk +0.17   led   3/184 h0.14 lvl+0.17   -
+frame    75 :  a desk +0.57   led  48/ 64 h0.47 lvl+0.57   -
+frame    76 :  a desk +0.43   led  25/ 99 h0.35 lvl+0.43   -
+frame    77 :  a desk +0.26   led   8/153 h0.21 lvl+0.26   -
+frame    78 :  a desk +0.41   led  23/104 h0.33 lvl+0.41   -
+frame    79 :  a desk +0.01   led   0/252 h0.01 lvl+0.01   -
+frame    80 :  a desk -0.15   led   0/255 h0.00 lvl-0.15   -
+frame    81 :  a desk -0.05   led   0/255 h0.00 lvl-0.05   -
+frame    82 :  a desk -0.02   led   0/255 h0.00 lvl-0.02   -
+frame    83 :  a desk -0.04   led   0/255 h0.00 lvl-0.04   -
+frame    84 :  a desk -0.35   led   0/255 h0.00 lvl-0.35   -
+frame    85 :  a desk -0.18   led   0/255 h0.00 lvl-0.18   -
+frame    86 :  a desk -0.32   led   0/255 h0.00 lvl-0.32   -
+frame    87 :  a desk -0.13   led   0/255 h0.00 lvl-0.13   -
+frame    88 :  a desk -0.56   led   0/255 h0.00 lvl-0.56   -
+frame    89 :  a desk -0.33   led   0/255 h0.00 lvl-0.33   -
+frame    90 :  a desk +0.31   led  13/133 h0.26 lvl+0.31   -
+frame    91 :  a desk +0.34   led  15/126 h0.27 lvl+0.34   -
+frame    92 :  a desk +0.42   led  24/102 h0.34 lvl+0.42   -
+frame    93 :  a desk +0.41   led  22/105 h0.33 lvl+0.41   -
+frame    94 :  a desk +0.19   led   4/176 h0.15 lvl+0.19   -
+frame    95 :  a desk -0.12   led   0/255 h0.00 lvl-0.12   -
+frame    96 :  a desk -0.17   led   0/255 h0.00 lvl-0.17   -
+frame    97 :  a desk +0.01   led   0/249 h0.01 lvl+0.01   -
+frame    98 :  a desk -0.23   led   0/255 h0.00 lvl-0.23   -
+frame    99 :  a desk -0.08   led   0/255 h0.00 lvl-0.08   -
+background: after 30 frames (frozen, room spread), this room reads  a desk -0.125 +-0.0071 (COCO -0.148 +-0.0523)
+frame   100 :  a desk -0.36   led   0/255 h0.00 lvl-0.36   -
+frame   101 :  a desk -0.31   led   0/255 h0.00 lvl-0.31   -
+frame   102 :  a desk -0.13   led   0/255 h0.00 lvl-0.13   -
+frame   103 :  a desk -0.66   led   0/255 h0.00 lvl-0.66   -
+frame   104 :  a desk -0.54   led   0/255 h0.00 lvl-0.54   -
+frame   105 :  a desk -0.62   led   0/255 h0.00 lvl-0.62   -
+frame   106 :  a desk -0.58   led   0/255 h0.00 lvl-0.58   -
+frame   107 :  a desk -0.28   led   0/255 h0.00 lvl-0.28   -
+frame   108 :  a desk -0.38   led   0/255 h0.00 lvl-0.38   -
+frame   109 :  a desk -0.33   led   0/255 h0.00 lvl-0.33   -
+frame   110 :  a desk -0.35   led   0/255 h0.00 lvl-0.35   -
+frame   111 :  a desk -0.27   led   0/255 h0.00 lvl-0.27   -
+frame   112 :  a desk -0.01   led   0/255 h0.00 lvl-0.01   -
+frame   113 :  a desk -0.36   led   0/255 h0.00 lvl-0.36   -
+frame   114 :  a desk -0.88   led   0/255 h0.00 lvl-0.88   -
+frame   115 :  a desk -0.94   led   0/255 h0.00 lvl-0.94   -
+frame   116 :  a desk -0.82   led   0/255 h0.00 lvl-0.82   -
+frame   117 :  a desk -0.17   led   0/255 h0.00 lvl-0.17   -
+frame   118 :  a desk -0.66   led   0/255 h0.00 lvl-0.66   -
+frame   119 :  a desk -0.53   led   0/255 h0.00 lvl-0.53   -
+frame   120 :  a desk -0.65   led   0/255 h0.00 lvl-0.65   -
+frame   121 :  a desk -0.23   led   0/255 h0.00 lvl-0.23   -
+frame   122 :  a desk -0.69   led   0/255 h0.00 lvl-0.69   -
+frame   123 :  a desk -0.57   led   0/255 h0.00 lvl-0.57   -
+frame   124 :  a desk -0.49   led   0/255 h0.00 lvl-0.49   -
+frame   125 :  a desk -0.76   led   0/255 h0.00 lvl-0.76   -
+frame   126 :  a desk -0.39   led   0/255 h0.00 lvl-0.39   -
+frame   127 :  a desk -0.35   led   0/255 h0.00 lvl-0.35   -
+frame   128 :  a desk -0.68   led   0/255 h0.00 lvl-0.68   -
+frame   129 :  a desk -1.22   led   0/255 h0.00 lvl-1.22   -
+frame   130 :  a desk -1.06   led   0/255 h0.00 lvl-1.06   -
+frame   131 :  a desk -0.80   led   0/255 h0.00 lvl-0.80   -
+frame   132 :  a desk -0.28   led   0/255 h0.00 lvl-0.28   -
+frame   133 :  a desk +0.13   led   2/198 h0.11 lvl+0.13   -
+frame   134 :  a desk -0.06   led   0/255 h0.00 lvl-0.06   -
+frame   135 :  a desk -0.24   led   0/255 h0.00 lvl-0.24   -
+frame   136 :  a desk +0.31   led  13/133 h0.26 lvl+0.31   -
+frame   137 :  a desk -0.01   led   0/255 h0.00 lvl-0.01   -
+frame   138 :  a desk +0.09   led   1/214 h0.08 lvl+0.09   -
+frame   139 :  a desk +0.15   led   3/190 h0.12 lvl+0.15   -
+frame   140 :  a desk +0.39   led  20/111 h0.31 lvl+0.39   -
+frame   141 :  a desk +0.43   led  26/ 98 h0.35 lvl+0.43   -
+frame   142 :  a desk +0.48   led  32/ 86 h0.39 lvl+0.48   -
+frame   143 :  a desk +0.22   led   6/165 h0.18 lvl+0.22   -
+frame   144 :  a desk +0.35   led  16/124 h0.28 lvl+0.35   -
+frame   145 :  a desk +0.78   led  94/ 28 h0.63 lvl+0.78   -
+frame   146 :  a desk +0.82   led 106/ 22 h0.67 lvl+0.82   -
+frame   147 :  a desk +0.03   led   0/241 h0.02 lvl+0.03   -
+frame   148 :  a desk +0.03   led   0/240 h0.03 lvl+0.03   -
+frame   149 :  a desk +0.20   led   5/173 h0.16 lvl+0.20   -
+frame   150 :  a desk +0.13   led   2/199 h0.11 lvl+0.13   -
+frame   151 :  a desk -0.08   led   0/255 h0.00 lvl-0.08   -
+frame   152 :  a desk -0.22   led   0/255 h0.00 lvl-0.22   -
+frame   153 :  a desk -0.12   led   0/255 h0.00 lvl-0.12   -
+frame   154 :  a desk +0.04   led   0/236 h0.04 lvl+0.04   -
+frame   155 :  a desk -0.18   led   0/255 h0.00 lvl-0.18   -
+frame   156 :  a desk -0.12   led   0/255 h0.00 lvl-0.12   -
+frame   157 :  a desk +0.02   led   0/247 h0.01 lvl+0.02   -
+frame   158 :  a desk +0.41   led  23/104 h0.33 lvl+0.41   -
+frame   159 :  a desk +0.59   led  51/ 60 h0.48 lvl+0.59   -
+frame   160 :  a desk +0.13   led   2/198 h0.11 lvl+0.13   -
+frame   161 :  a desk -0.30   led   0/255 h0.00 lvl-0.30   -
+frame   162 :  a desk -0.55   led   0/255 h0.00 lvl-0.55   -
+frame   163 :  a desk -0.49   led   0/255 h0.00 lvl-0.49   -
+frame   164 :  a desk -0.43   led   0/255 h0.00 lvl-0.43   -
+frame   165 :  a desk +0.23   led   6/163 h0.18 lvl+0.23   -
+frame   166 :  a desk +0.09   led   1/217 h0.07 lvl+0.09   -
+frame   167 :  a desk -0.31   led   0/255 h0.00 lvl-0.31   -
+frame   168 :  a desk -0.49   led   0/255 h0.00 lvl-0.49   -
+frame   169 :  a desk -0.12   led   0/255 h0.00 lvl-0.12   -
+frame   170 :  a desk -0.10   led   0/255 h0.00 lvl-0.10   -
+frame   171 :  a desk -0.37   led   0/255 h0.00 lvl-0.37   -
+frame   172 :  a desk -0.38   led   0/255 h0.00 lvl-0.38   -
+frame   173 :  a desk -0.30   led   0/255 h0.00 lvl-0.30   -
+frame   174 :  a desk -0.29   led   0/255 h0.00 lvl-0.29   -
+frame   175 :  a desk -0.32   led   0/255 h0.00 lvl-0.32   -
+frame   176 :  a desk -0.34   led   0/255 h0.00 lvl-0.34   -
+frame   177 :  a desk -0.51   led   0/255 h0.00 lvl-0.51   -
+frame   178 :  a desk -0.19   led   0/255 h0.00 lvl-0.19   -
+frame   179 :  a desk -0.47   led   0/255 h0.00 lvl-0.47   -
+frame   180 :  a desk -0.43   led   0/255 h0.00 lvl-0.43   -
+frame   181 :  a desk -0.31   led   0/255 h0.00 lvl-0.31   -
+frame   182 :  a desk -0.20   led   0/255 h0.00 lvl-0.20   -
+frame   183 :  a desk -0.73   led   0/255 h0.00 lvl-0.73   -
+frame   184 :  a desk -0.79   led   0/255 h0.00 lvl-0.79   -
+frame   185 :  a desk -0.98   led   0/255 h0.00 lvl-0.98   -
+frame   186 :  a desk -0.57   led   0/255 h0.00 lvl-0.57   -
+frame   187 :  a desk -0.45   led   0/255 h0.00 lvl-0.45   -
+frame   188 :  a desk -0.14   led   0/255 h0.00 lvl-0.14   -
+frame   189 :  a desk -0.41   led   0/255 h0.00 lvl-0.41   -
+frame   190 :  a desk -0.14   led   0/255 h0.00 lvl-0.14   -
+frame   191 :  a desk -0.04   led   0/255 h0.00 lvl-0.04   -
+frame   192 :  a desk -0.40   led   0/255 h0.00 lvl-0.40   -
+frame   193 :  a desk -0.30   led   0/255 h0.00 lvl-0.30   -
+frame   194 :  a desk -0.80   led   0/255 h0.00 lvl-0.80   -
+frame   195 :  a desk -0.36   led   0/255 h0.00 lvl-0.36   -
+frame   196 :  a desk -0.70   led   0/255 h0.00 lvl-0.70   -
+frame   197 :  a desk -0.65   led   0/255 h0.00 lvl-0.65   -
+frame   198 :  a desk -0.63   led   0/255 h0.00 lvl-0.63   -
+frame   199 :  a desk -0.85   led   0/255 h0.00 lvl-0.85   -
+background: after 30 frames (frozen, room spread), this room reads  a desk -0.125 +-0.0071 (COCO -0.148 +-0.0523)
+frame   200 :  a desk -0.60   led   0/255 h0.00 lvl-0.60   -
+frame   201 :  a desk -0.69   led   0/255 h0.00 lvl-0.69   -
+frame   202 :  a desk -0.98   led   0/255 h0.00 lvl-0.98   -
+frame   203 :  a desk -0.88   led   0/255 h0.00 lvl-0.88   -
+frame   204 :  a desk -1.17   led   0/255 h0.00 lvl-1.17   -
+frame   205 :  a desk -0.72   led   0/255 h0.00 lvl-0.72   -
+frame   206 :  a desk -0.63   led   0/255 h0.00 lvl-0.63   -
+frame   207 :  a desk -0.17   led   0/255 h0.00 lvl-0.17   -
+frame   208 :  a desk -0.43   led   0/255 h0.00 lvl-0.43   -
+frame   209 :  a desk -0.64   led   0/255 h0.00 lvl-0.64   -
+frame   210 :  a desk -0.68   led   0/255 h0.00 lvl-0.68   -
+frame   211 :  a desk -0.99   led   0/255 h0.00 lvl-0.99   -
+frame   212 :  a desk -0.99   led   0/255 h0.00 lvl-0.99   -
+frame   213 :  a desk -0.73   led   0/255 h0.00 lvl-0.73   -
+frame   214 :  a desk -0.41   led   0/255 h0.00 lvl-0.41   -
+frame   215 :  a desk -0.72   led   0/255 h0.00 lvl-0.72   -
+frame   216 :  a desk -1.16   led   0/255 h0.00 lvl-1.16   -
+frame   217 :  a desk -0.73   led   0/255 h0.00 lvl-0.73   -
+frame   218 :  a desk -0.64   led   0/255 h0.00 lvl-0.64   -
+frame   219 :  a desk -0.31   led   0/255 h0.00 lvl-0.31   -
+frame   220 :  a desk -0.28   led   0/255 h0.00 lvl-0.28   -
+frame   221 :  a desk -0.30   led   0/255 h0.00 lvl-0.30   -
+frame   222 :  a desk -0.61   led   0/255 h0.00 lvl-0.61   -
+frame   223 :  a desk -0.67   led   0/255 h0.00 lvl-0.67   -
+frame   224 :  a desk -0.91   led   0/255 h0.00 lvl-0.91   -
+frame   225 :  a desk -0.79   led   0/255 h0.00 lvl-0.79   -
+frame   226 :  a desk -0.54   led   0/255 h0.00 lvl-0.54   -
+frame   227 :  a desk -0.43   led   0/255 h0.00 lvl-0.43   -
+frame   228 :  a desk -0.31   led   0/255 h0.00 lvl-0.31   -
+frame   229 :  a desk -0.43   led   0/255 h0.00 lvl-0.43   -
+frame   230 :  a desk -0.45   led   0/255 h0.00 lvl-0.45   -
+frame   231 :  a desk -0.72   led   0/255 h0.00 lvl-0.72   -
+frame   232 :  a desk -0.42   led   0/255 h0.00 lvl-0.42   -
+frame   233 :  a desk -0.46   led   0/255 h0.00 lvl-0.46   -
+frame   234 :  a desk -0.17   led   0/255 h0.00 lvl-0.17   -
+frame   235 :  a desk -0.38   led   0/255 h0.00 lvl-0.38   -
+frame   236 :  a desk -0.44   led   0/255 h0.00 lvl-0.44   -
+frame   237 :  a desk -0.21   led   0/255 h0.00 lvl-0.21   -
+frame   238 :  a desk -0.45   led   0/255 h0.00 lvl-0.45   -
+frame   239 :  a desk -0.10   led   0/255 h0.00 lvl-0.10   -
+frame   240 :  a desk -0.05   led   0/255 h0.00 lvl-0.05   -
+frame   241 :  a desk -0.63   led   0/255 h0.00 lvl-0.63   -
+frame   242 :  a desk -0.84   led   0/255 h0.00 lvl-0.84   -
+frame   243 :  a desk -1.04   led   0/255 h0.00 lvl-1.04   -
+frame   244 :  a desk -0.85   led   0/255 h0.00 lvl-0.85   -
+frame   245 :  a desk -0.82   led   0/255 h0.00 lvl-0.82   -
+frame   246 :  a desk -1.36   led   0/255 h0.00 lvl-1.36   -
+frame   247 :  a desk -0.50   led   0/255 h0.00 lvl-0.50   -
+frame   248 :  a desk -0.39   led   0/255 h0.00 lvl-0.39   -
+frame   249 :  a desk +0.01   led   0/251 h0.01 lvl+0.01   -
+frame   250 :  a desk -0.13   led   0/255 h0.00 lvl-0.13   -
+frame   251 :  a desk -0.38   led   0/255 h0.00 lvl-0.38   -
+frame   252 :  a desk -0.57   led   0/255 h0.00 lvl-0.57   -
+frame   253 :  a desk -0.61   led   0/255 h0.00 lvl-0.61   -
+frame   254 :  a desk -0.94   led   0/255 h0.00 lvl-0.94   -
+frame   255 :  a desk -1.13   led   0/255 h0.00 lvl-1.13   -
+frame   256 :  a desk -0.83   led   0/255 h0.00 lvl-0.83   -
+frame   257 :  a desk -0.40   led   0/255 h0.00 lvl-0.40   -
+frame   258 :  a desk -0.79   led   0/255 h0.00 lvl-0.79   -
+frame   259 :  a desk -1.12   led   0/255 h0.00 lvl-1.12   -
+frame   260 :  a desk -1.56   led   0/255 h0.00 lvl-1.56   -
+frame   261 :  a desk -1.57   led   0/255 h0.00 lvl-1.57   -
+frame   262 :  a desk -1.65   led   0/255 h0.00 lvl-1.65   -
+frame   263 :  a desk -1.35   led   0/255 h0.00 lvl-1.35   -
+frame   264 :  a desk -1.08   led   0/255 h0.00 lvl-1.08   -
+frame   265 :  a desk -0.87   led   0/255 h0.00 lvl-0.87   -
+frame   266 :  a desk -0.68   led   0/255 h0.00 lvl-0.68   -
+frame   267 :  a desk -0.53   led   0/255 h0.00 lvl-0.53   -
+frame   268 :  a desk -0.76   led   0/255 h0.00 lvl-0.76   -
+frame   269 :  a desk -0.69   led   0/255 h0.00 lvl-0.69   -
+frame   270 :  a desk -0.71   led   0/255 h0.00 lvl-0.71   -
+frame   271 :  a desk -1.06   led   0/255 h0.00 lvl-1.06   -
+frame   272 :  a desk -0.60   led   0/255 h0.00 lvl-0.60   -
+frame   273 :  a desk -0.28   led   0/255 h0.00 lvl-0.28   -
+frame   274 :  a desk -0.57   led   0/255 h0.00 lvl-0.57   -
+frame   275 :  a desk -0.50   led   0/255 h0.00 lvl-0.50   -
+frame   276 :  a desk -0.60   led   0/255 h0.00 lvl-0.60   -
+frame   277 :  a desk -0.61   led   0/255 h0.00 lvl-0.61   -
+frame   278 :  a desk -0.30   led   0/255 h0.00 lvl-0.30   -
+frame   279 :  a desk -0.39   led   0/255 h0.00 lvl-0.39   -
+frame   280 :  a desk -0.73   led   0/255 h0.00 lvl-0.73   -
+frame   281 :  a desk -0.88   led   0/255 h0.00 lvl-0.88   -
+frame   282 :  a desk -0.96   led   0/255 h0.00 lvl-0.96   -
+frame   283 :  a desk -0.74   led   0/255 h0.00 lvl-0.74   -
+frame   284 :  a desk -0.96   led   0/255 h0.00 lvl-0.96   -
+frame   285 :  a desk -0.93   led   0/255 h0.00 lvl-0.93   -
+frame   286 :  a desk -0.62   led   0/255 h0.00 lvl-0.62   -
+frame   287 :  a desk -1.11   led   0/255 h0.00 lvl-1.11   -
+frame   288 :  a desk -0.70   led   0/255 h0.00 lvl-0.70   -
+frame   289 :  a desk -0.76   led   0/255 h0.00 lvl-0.76   -
+frame   290 :  a desk -0.84   led   0/255 h0.00 lvl-0.84   -
+frame   291 :  a desk -0.93   led   0/255 h0.00 lvl-0.93   -
+frame   292 :  a desk -0.70   led   0/255 h0.00 lvl-0.70   -
+frame   293 :  a desk -0.56   led   0/255 h0.00 lvl-0.56   -
+frame   294 :  a desk -0.44   led   0/255 h0.00 lvl-0.44   -
+frame   295 :  a desk -0.54   led   0/255 h0.00 lvl-0.54   -
+frame   296 :  a desk -0.46   led   0/255 h0.00 lvl-0.46   -
+frame   297 :  a desk -0.80   led   0/255 h0.00 lvl-0.80   -
+frame   298 :  a desk -0.09   led   0/255 h0.00 lvl-0.09   -
+frame   299 :  a desk -0.04   led   0/255 h0.00 lvl-0.04   -
+background: after 30 frames (frozen, room spread), this room reads  a desk -0.125 +-0.0071 (COCO -0.148 +-0.0523)
+
+stopped   : 300 frames, 300 good, capture overlapped with the compute, configuration C
+            300 frames timed, 279 ms/frame mean (capture included)
+            262 ms encode + 0 ms waiting for the sensor + 16 ms burst; 289 ms/frame by the clock
+            374 ms shutter to LED, arming with 73 ms of compute left
+            last frame mean RGB 153 150 154
+            camera bus: worst gap 18 us against the 2000 us deadline (#12)
+            usb: 0 outages, 0 ms off the bus, 0 re-attaches (#9)

@@ -143,7 +143,36 @@ def pick_port() -> str:
     return hits[0].device
 
 
+def state() -> tuple[str, str]:
+    """One word for what the board is doing, plus the detail behind it.
+
+        port     a CDC node is there; the detail is the device path
+        bootsel  on the bus, no CDC node; the detail is hub:port and the name
+        absent   not on the bus at all; the detail is what else is enumerated
+
+    The three want different things done and two of them wear the same symptom
+    from a caller's side, which is the whole reason this returns a token rather
+    than a bool. `absent` is worth retrying - it is issue #9's outage and a
+    power cycle or a replug fixes it. `bootsel` is not: nothing on the bus is
+    going to grow a serial port on its own, so a supervisor that keeps
+    relaunching is only paying for teacher loads. host/watch.py reads this
+    before it relaunches, for exactly that reason.
+    """
+    port = find_port()
+    if port is not None:
+        return "port", port
+    seen = on_bus()
+    if seen:
+        return "bootsel", f"{seen[0]}:{seen[1]} as `{seen[2]}`"
+    return "absent", f"other modems: {neighbours()}"
+
+
 if __name__ == "__main__":
+    if "--state" in sys.argv:
+        what, detail = state()
+        print(f"{what} {detail}")
+        sys.exit(0)
+
     port = find_port()
     if port is not None:
         print(port)

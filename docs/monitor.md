@@ -190,6 +190,20 @@ reboot and nobody is standing there to hold the scenes again, so the run ends
 and says so rather than quietly continuing in a mode that means something
 different.
 
+**It leaves the board running.** `host/demo.py` on its own drops the board into
+BOOTSEL as it exits — right for a bench script, because `m9` never stops by
+itself and "the run finished" and "the board is still looping" otherwise look
+identical. It is wrong here twice over: the board somebody walks back to has no
+firmware in it, and the restart below has no serial port to come back to, so it
+relaunches into a full teacher load once a minute, for ever. `watch.py` passes
+`--leave-running`, which asks the board to reboot instead. The end-of-run
+summary is the same either way; only the destination changes.
+
+If a board *is* in BOOTSEL, `watch.py` says so in a fraction of a second and
+stops rather than starting, because nothing on the bus grows a serial port by
+being waited for. A board that has fallen off the bus entirely is the other case
+and does get waited for — that one comes back.
+
 **Ctrl-C stops it, and so does `kill -TERM`**, both of which close the serial
 port on the way out. That needed fixing rather than documenting: a shell without
 job control — `watch.py … &` in a script, `nohup`, a launchd plist — sets SIGINT
@@ -211,6 +225,7 @@ anything you care about** — this repository has twice lost logs left in `/tmp`
 | one state never wins | an absence phrase — `fit.md` Screen 0 |
 | "nothing there" never fires | the known 1/12 above; bench that transition |
 | `no /dev/cu.usbmodem*` | `uv run --script host/board.py` says which port and why not — including the case where the board is *there* and in BOOTSEL, which wants a flash and not a power cycle |
+| `cannot start: … in BOOTSEL` | run the flash command it prints. Something exited without `--leave-running` — a bare `demo.py`, or `ab.sh` |
 
 And the thing to do when none of that helps is to bench it properly rather than
 tune flags: `fit.md` Screen 2, three runs on three different days, and believe

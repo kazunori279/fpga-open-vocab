@@ -803,6 +803,10 @@ def main() -> int:
                          "send them to the running board")
     ap.add_argument("--bootsel", action="store_true",
                     help="reboot the board into BOOTSEL and wait for the drive")
+    ap.add_argument("--leave-running", action="store_true",
+                    help="do NOT drop the board into BOOTSEL when this run "
+                         "ends. For a supervisor that means to relaunch: the "
+                         "default costs it the CDC port it would come back to")
     args = ap.parse_args()
 
     if args.bootsel:
@@ -1348,6 +1352,26 @@ def main() -> int:
         # own, so "the script finished" and "the board is still looping" are the
         # same state, and the next thing anybody does is flash it.
         #
+        # UNLESS THE CALLER MEANS TO COME BACK, which is --leave-running and
+        # sends 'R' instead. That is a bench script's reason above and it is
+        # wrong for host/watch.py, which is built to relaunch this file after a
+        # fault and cannot: a BOOTSEL board has no CDC node, so every relaunch
+        # loads the teacher, asks for a port that is not there and exits -
+        # forever, at about a minute a turn, because the teacher is paid for
+        # before the port is asked for. On 2026-08-22 the board was found in
+        # BOOTSEL and written up as having "come up" that way; the USB soak has
+        # the previous run's own clean exit one second earlier. A stall is the
+        # failure watch.py exists to recover from and it is exactly the path
+        # that reaches this line.
+        #
+        # 'R' and not silence. m9.c:3201 answers both keys with the same
+        # `stopped :` block and then branches on one line, so the summary is not
+        # what is being given up - only the destination. Silence would leave the
+        # board mid-loop on the old query set, which the next run has to press
+        # 'R' to get out of anyway; this way it comes back at the bitstream
+        # prompt, which demo.py's own start-up message already calls the state
+        # it wants to find.
+        #
         # Not after a reboot, though. A board that has just rebooted is already
         # stopped, at the bitstream prompt, one demo.py away from another run -
         # and BOOTSEL would throw that away and demand a reflash to get back to
@@ -1366,7 +1390,7 @@ def main() -> int:
         # rather than chase it - this departure is the one we asked for.
         if not rebooted:
             try:
-                s.write(b"B")
+                s.write(b"R" if args.leave_running else b"B")
                 s.flush()
                 until = time.monotonic() + 1.0
                 while time.monotonic() < until:
