@@ -149,7 +149,7 @@ Eight more contrasts were shot on 2026-08-22 to make that mean worth reading:
 | [`20260822-synth-refrigerator-crop/`](20260822-synth-refrigerator-crop/) | `an open refrigerator` / `a closed refrigerator` | 24/30 | "closed" is often a flat slab with the shelves still behind it |
 | [`20260822-synth-laptop-crop/`](20260822-synth-laptop-crop/) | `an opened laptop` / `a closed laptop` | 23/28 | the editor read "closed" as "screen off" on seven pairs |
 | [`20260822-synth-bed-crop/`](20260822-synth-bed-crop/) | `an unmade bed` / `a neatly made bed` | 22/29 | the box fills the frame, so the crop is fabric, not a room |
-| [`20260822-synth-oven-crop/`](20260822-synth-oven-crop/) | `an open oven` / `a closed oven` | 19/29 | COCO `oven` is largely cooktops; regenerate before quoting alone |
+| [`20260822-synth-oven-crop/`](20260822-synth-oven-crop/) | `an open oven` / `a closed oven` | 19/29 | COCO `oven` is largely cooktops; [regenerated](20260822-synth-oven-picked/), and it changed nothing |
 
 190 pairs, 234 generated, ten contrasts with book and glass. Each set was shot
 with `--skip` naming every set before it, so **no photograph appears in two of
@@ -304,6 +304,63 @@ whole exercise is about is still **0.645 against a teacher at 0.811**. Quadrupli
 the data closed 0.04 of 0.215. At that exchange rate the rest is not a data
 problem; it is the 1.4 M parameters or the shape of the distillation, and both of
 those run straight into what the fabric will hold.
+
+### The student is not losing the difference, it is learning a different one
+
+The sweep had been computing the number that says which, ten times a run, and
+throwing it away. `probe_bisect.py` printed the cosine between the student's
+class-mean difference and the teacher's — both in the same 512-d space, because
+the student is trained to emit the projected teacher vector — and never wrote it
+to `--json`. It does now. Full column and the statistics in
+[`20260822-axis-inheritance.log`](20260822-axis-inheritance.log):
+
+| set | refrig | bowl | umbrel | toilet | laptop | bed | oven | glass | suitca | book | mean |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| axis cos | .553 | .460 | .408 | .405 | .352 | .341 | .305 | .263 | .200 | .141 | **.343** |
+| drop | +.010 | −.082 | −.246 | −.134 | −.089 | −.165 | −.258 | −.274 | −.207 | −.262 | −.171 |
+
+**Nothing is near 1.0 and the best is 0.553.** A student that had the teacher's
+axis and merely a noisier version of it would read high here and low in the sep
+table; not one of the ten does. So the 0.171 mean drop is not a blurred copy of
+the teacher's difference, it is a different difference, on every contrast.
+
+**It is not the 512-d projection.** `pca 512` minus `teacher 1152` over the ten
+sets is +0.005 on average, range −0.013 to +0.019. The frozen basis costs
+nothing measurable anywhere here, so whatever happens to the axis happens in the
+distillation.
+
+The column also tracks the drop — `r = +0.775`, and +0.726 after partialling out
+the ceiling effect that makes an easy contrast fall further — but **ten points is
+ten points**: substitute the hand-picked oven set below for the old one and the
+partial correlation goes from p = 0.018 to p = 0.113. The direction and the
+mechanism are the result; the coefficient is not measured.
+
+And it is **not a cheap number**. It needs the labelled set and both encoder
+passes, which is exactly what computing `sep` needs. It is free once `sep` is
+being computed and it says nothing about a contrast nobody has measured, so it
+does not join `fit_check.py` and it does not go near enrolment.
+
+### Regenerating the worst set changed the number by −0.001
+
+`oven` was the one row of the ten open to "that is low because the set is bad",
+and the set *was* bad: COCO `oven` boxes are largely cooktops and barbecues, and
+19 of 29 pairs survived the screen. [`20260822-synth-oven-picked/`](20260822-synth-oven-picked/)
+regenerates it from 26 sources picked off a contact sheet by eye, and keeps 23.
+
+| | teacher | pca 512 | student | axis |
+| --- | --- | --- | --- | --- |
+| `oven-crop`, 19 pairs | 0.850 | 0.870 | 0.612 | 0.305 |
+| `oven-picked`, 23 pairs | **0.957** | **0.949** | 0.599 | 0.351 |
+
+**The teacher moved +0.107 and the student moved −0.013.** Within scene the
+teacher is now 23/23 right way round and the student is 13/23, off a coin. The
+drop widened to −0.350 because the ceiling rose and the floor did not follow.
+Pooled over the ten, swapping the row moves the product metric from 0.6454 to
+0.6441.
+
+That is worth having as a negative result. Set quality was the live objection to
+this fleet; on the set where the objection was strongest, removing it entirely
+left the student's number where it was.
 
 ## What a set can and cannot answer
 

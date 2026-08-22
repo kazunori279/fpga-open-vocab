@@ -1,0 +1,184 @@
+[
+ {
+  "file": "000000000802.png",
+  "side": "A",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000054654.png",
+  "side": "A",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000091615.png",
+  "side": "A",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000111036.png",
+  "side": "A",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": "B is softer over the whole frame, not just the door"
+ },
+ {
+  "file": "000000136466.png",
+  "side": "A",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000177935.png",
+  "side": "B",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000192191.png",
+  "side": "B",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000216497.png",
+  "side": "A",
+  "object_both": true,
+  "same_scene": false,
+  "shortcut": "B is reframed - the range is smaller and further back"
+ },
+ {
+  "file": "000000222825.png",
+  "side": "A",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000226984.png",
+  "side": "B",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000237928.png",
+  "side": "A",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000280930.png",
+  "side": "B",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": "B adds a hand and a tray that are in neither the source nor the prompt"
+ },
+ {
+  "file": "000000292060.png",
+  "side": "B",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000298396.png",
+  "side": "A",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000384661.png",
+  "side": "A",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000410487.png",
+  "side": "",
+  "object_both": false,
+  "same_scene": true,
+  "shortcut": "both halves show the door down; A's cavity is repainted a flat white slab"
+ },
+ {
+  "file": "000000429598.png",
+  "side": "",
+  "object_both": false,
+  "same_scene": true,
+  "shortcut": "the two halves are indistinguishable - the edit did not land on either"
+ },
+ {
+  "file": "000000437898.png",
+  "side": "B",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000445658.png",
+  "side": "A",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000446005.png",
+  "side": "B",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000447169.png",
+  "side": "A",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000485424.png",
+  "side": "",
+  "object_both": false,
+  "same_scene": true,
+  "shortcut": "source is motion-blurred; the door state is not readable on either half"
+ },
+ {
+  "file": "000000522007.png",
+  "side": "A",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000529568.png",
+  "side": "A",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000530836.png",
+  "side": "A",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ },
+ {
+  "file": "000000531771.png",
+  "side": "B",
+  "object_both": true,
+  "same_scene": true,
+  "shortcut": ""
+ }
+]

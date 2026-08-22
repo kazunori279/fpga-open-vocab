@@ -157,7 +157,8 @@ def used(paths: list[Path]) -> set[str]:
 
 
 def crops(cats: list[str], min_side: int, n: int,
-          skip: set[str] | None = None) -> list[tuple[str, bytes]]:
+          skip: set[str] | None = None,
+          only: set[str] | None = None) -> list[tuple[str, bytes]]:
     """Square crops around one COCO instance box, largest box per image.
 
     THIS IS THE SOURCE MODE TO PREFER, and the caption mode above is kept only
@@ -173,6 +174,16 @@ def crops(cats: list[str], min_side: int, n: int,
 
     `min_side` is a floor on the box in *source* pixels. Below it the crop is
     upsampled to 128 and the pair measures the blur.
+
+    `only` is a hand-picked allowlist of stems and exists because `min_side`
+    guarantees a large *box* and not a large *thing you asked for*. COCO `oven`
+    is the case that forced it: eight of the first set's thirty were cooktops
+    with the oven out of frame, or an outdoor barbecue, and no threshold
+    separates those from an oven door. Look at the crops with --sources-only,
+    write the ones that show the contrast, and pass the file back. Selecting
+    *sources* on what is in the photograph is not selecting *results* - the
+    blind screen after generation is still the filter that decides anything,
+    and it still runs on every pair this admits.
     """
     if not INST.exists():
         sys.exit(f"no {INST} - run from the repo root")
@@ -201,6 +212,8 @@ def crops(cats: list[str], min_side: int, n: int,
         p = VAL / im["file_name"]
         if not p.exists() or (skip and p.stem in skip):
             continue
+        if only is not None and p.stem not in only:
+            continue
         # 1.25x the long side, so the object keeps a little of its context and
         # the generator has somewhere to put a shadow.
         side = min(max(w, h) * 1.25, im["width"], im["height"])
@@ -216,6 +229,27 @@ def crops(cats: list[str], min_side: int, n: int,
     if not out:
         sys.exit(f"no val2017 box of {cats} with a side >= {min_side}px")
     return out
+
+
+def sheet(srcs: list[tuple[str, bytes]], out: Path, cell: int = 256,
+          cols: int = 6) -> None:
+    """One JPEG of every candidate crop, labelled, for picking --only by eye.
+
+    Labelled with the last four digits of the stem rather than the whole
+    twelve-digit COCO id: at 256px the full id is unreadable and the last four
+    are unique within any one draw.
+    """
+    from PIL import ImageDraw
+    rows = (len(srcs) + cols - 1) // cols
+    grid = Image.new("RGB", (cols * cell, rows * cell), "black")
+    draw = ImageDraw.Draw(grid)
+    for k, (stem, data) in enumerate(srcs):
+        x, y = (k % cols) * cell, (k // cols) * cell
+        grid.paste(Image.open(io.BytesIO(data)).resize((cell, cell)), (x, y))
+        draw.rectangle((x + 2, y + 2, x + 52, y + 18), fill="black")
+        draw.text((x + 5, y + 5), stem[-4:], fill="white")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    grid.save(out, "JPEG", quality=92)
 
 
 def edit(client, data: bytes, instruction: str, size: int) -> Image.Image | None:
@@ -246,6 +280,14 @@ def main() -> int:
     ap.add_argument("--skip", type=Path, nargs="*", default=(),
                     help="sets whose sources this one must not reuse - how a "
                          "second, independent draw is taken")
+    ap.add_argument("--only", type=Path, default=None,
+                    help="a file of source stems to admit, one per line - the "
+                         "hand-picked draw. --min-side gives a big box, which "
+                         "for some categories is not a big subject")
+    ap.add_argument("--sources-only", action="store_true",
+                    help="write the crops to <out>/src and a contact sheet "
+                         "beside them, then stop. No generation, no cost. This "
+                         "is how the --only list gets written")
     ap.add_argument("--find", default=None, help="caption regex picking sources")
     ap.add_argument("--need", default=None, help="second regex the same caption must match")
     ap.add_argument("--pos", required=True, help="the phrase probe_bisect.py will use")
@@ -262,15 +304,38 @@ def main() -> int:
     skip = used(list(args.skip))
     if skip:
         print(f"skipping  : {len(skip)} sources already spent on {len(args.skip)} set(s)")
+    only = None
+    if args.only:
+        only = {s.split()[0] for s in args.only.read_text().split("\n")
+                if s.strip() and not s.startswith("#")}
+        print(f"only      : {len(only)} hand-picked stems from {args.only}")
     if args.cat:
         cats = [c.strip() for c in args.cat.split(",")]
-        srcs = crops(cats, args.min_side, args.n, skip)
+        srcs = crops(cats, args.min_side, len(only) if only else args.n, skip, only)
         print(f"sources   : {len(srcs)} crops of {cats} (box >= {args.min_side}px) from {VAL}")
+        if only and len(srcs) < len(only):
+            miss = only - {s for s, _ in srcs}
+            print(f"  !! {len(miss)} of --only did not survive --min-side "
+                  f"{args.min_side} or --skip: {', '.join(sorted(miss))}")
     else:
         srcs = [(p.stem, p.read_bytes()) for p in sources(args.find, args.need, args.n)]
         print(f"sources   : {len(srcs)} whole photographs from {VAL}")
     for stem, _ in srcs:
         print(f"            {stem}")
+
+    if args.sources_only:
+        # Written full size, not at --size. The point is to be looked at, and a
+        # 128x128 thumbnail is too small to tell an oven door from a cooktop -
+        # which is the exact judgement this mode exists to support.
+        d = args.out / "src"
+        d.mkdir(parents=True, exist_ok=True)
+        for stem, data in srcs:
+            (d / f"{stem}.jpg").write_bytes(data)
+        sheet(srcs, args.out / "src" / "_contact.jpg")
+        print(f"\nwrote     : {len(srcs)} crops to {d}, contact sheet in "
+              f"{d / '_contact.jpg'}\n  Pick the ones that actually show the "
+              f"contrast, put their stems in a file, and pass it as --only.")
+        return 0
 
     client = genai.Client(vertexai=True, project=os.environ["GOOGLE_CLOUD_PROJECT"],
                           location=os.environ.get("GOOGLE_CLOUD_LOCATION", "global"))

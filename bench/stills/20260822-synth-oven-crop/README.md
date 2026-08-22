@@ -36,8 +36,15 @@ looking at the door.
 ## Why this set is here anyway
 
 One of ten contrasts in a fleet; see [`../README.md`](../README.md#ten-contrasts-because-two-was-measuring-the-wrong-noise).
-Nineteen pairs is a thin set, and it is the one of the ten most worth
+Nineteen pairs is a thin set, and it was the one of the ten most worth
 regenerating from a hand-picked category before it is quoted on its own.
+
+**That regeneration happened the same day and is in
+[`../20260822-synth-oven-picked/`](../20260822-synth-oven-picked/README.md).**
+Twenty-six sources picked off a contact sheet, 23 kept. It moved the teacher
+from 0.850 to 0.957 and the student from 0.612 to 0.599 — so the objection this
+paragraph was written to anticipate turns out to cost the student nothing. Both
+sets stay: the pair of them is the measurement.
 **No absolute number off a generated set means anything about the appliance** —
 [`../20260822-synth-book-crop/`](../20260822-synth-book-crop/).
 

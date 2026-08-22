@@ -657,11 +657,17 @@ def main() -> int:
         # been a scary number that predicts nothing.
         ref, ta, tb, _ = stages[n_teacher - 1]
         d_t = ta.mean(0) - tb.mean(0)
+        out["axis_ref"] = ref
         for sname, a, b, _tv in stages[n_teacher:]:
             d_s = a.mean(0) - b.mean(0)
             axis = float(d_s @ d_t / (np.linalg.norm(d_s) * np.linalg.norm(d_t)))
             print(f"\n  class axis, {sname} against {ref}: cos {axis:+.3f}"
                   "   (1.0 = the same difference, 0.0 = an unrelated one)")
+            # Into --json too, beside that stage's sep. It was printed and not
+            # recorded for a fortnight, which meant every ten-set sweep threw it
+            # away and issue #23 had to say "the obvious next number" about a
+            # figure the sweep had already computed ten times.
+            out["stages"][sname]["axis"] = axis
 
     if args.json:
         args.json.parent.mkdir(parents=True, exist_ok=True)

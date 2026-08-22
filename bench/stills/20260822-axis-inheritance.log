@@ -1,0 +1,114 @@
+THE STUDENT DOES NOT LOSE THE DIFFERENCE, IT LEARNS A DIFFERENT ONE
+2026-08-22, ten contrasts, so400m-full-a05
+
+Issue #23 asked for one number the ten-set sweep had never recorded: how much
+of the teacher's class axis the student inherits. It turned out the sweep had
+been computing it ten times a run and throwing it away — probe_bisect.py
+printed `class axis, student fp32 against pca 512` and never wrote it to
+--json. One line of code, no new measurement, and the ten sets re-scored in
+four minutes.
+
+WHAT THE NUMBER IS
+
+  d_t = mean(teacher, pos) - mean(teacher, neg)      in pca-512 space
+  d_s = mean(student, pos) - mean(student, neg)      in the same space
+  axis = cos(d_s, d_t)
+
+The student is trained to emit the projected teacher vector, so the two live
+in one 512-d space and the cosine is meaningful without any alignment step.
+A difference of means also cancels anything shared by every frame, which is
+why this is reported and the per-frame cos(student, teacher) is not — that
+one measures the cone, reads 0.475 on stills and 0.428 on runs the board
+scored 100% on, and predicts nothing. See probe_bisect.py:642.
+
+THE COLUMN
+
+  set             axis  teacher    pca  student    drop
+  refrigerator   0.553    0.786  0.797    0.807  +0.010
+  bowl           0.460    0.819  0.829    0.747  -0.082
+  umbrella       0.408    0.715  0.725    0.478  -0.246
+  toilet         0.405    0.579  0.582    0.448  -0.134
+  laptop         0.352    0.781  0.767    0.679  -0.089
+  bed            0.341    0.847  0.851    0.686  -0.165
+  oven           0.305    0.850  0.870    0.612  -0.258
+  glass          0.263    0.933  0.934    0.661  -0.274
+  suitcase       0.200    0.894  0.894    0.687  -0.207
+  book           0.141    0.907  0.910    0.648  -0.262
+  mean           0.343    0.811  0.816    0.645  -0.171
+
+`sep` is the pooled cross-scene AUC, the product metric. `drop` is student
+minus pca — what distillation costs on that contrast.
+
+THE FIRST FACT: THE CEILING IS 0.553 AND NOTHING IS NEAR 1.0
+
+Not one of the ten contrasts has the student pointing where the teacher
+points. The best is refrigerator at 0.553 and the mean is 0.343, which is a
+57-degree error on a difference the student was trained to reproduce. This is
+not a tail of hard cases; it is every row.
+
+That rules out the reading the sep column invites. A student that had the
+right axis and merely a noisier one would show a high cosine and a low AUC.
+None of the ten does. The 0.171 mean drop is not the teacher's difference,
+blurred — it is a different difference.
+
+THE SECOND FACT: THE PROJECTION IS NOT WHERE IT GOES
+
+pca minus teacher, over the ten sets: mean +0.005, range -0.013 to +0.019.
+The frozen 1152->512 basis costs nothing measurable on any contrast here, so
+the axis loss cannot be blamed on the 512-d bottleneck. It happens in the
+distillation, between pca 512 and the student that is trained to hit it.
+
+THE THIRD FACT: THE COLUMN TRACKS THE DROP, AND WEAKLY ENOUGH TO SAY SO
+
+  r(axis, drop)                 = +0.775   perm p = 0.0085  (n=200k, two-sided)
+  R^2                           =  0.600
+  r(axis, pca)                  = -0.564   <- the confound
+  r(pca,  drop)                 = -0.399
+  partial r(axis, drop | pca)   = +0.726   perm p = 0.0180
+
+The confound is a ceiling: an easy contrast has more room to fall, so a high
+pca sep predicts a large drop by arithmetic alone. Controlling for it leaves
++0.726, so the axis is not just restating the ceiling.
+
+It is still ten points. Swap the oven row for the hand-picked regeneration
+of the same contrast (see 20260822-synth-oven-picked/) and the same figures
+read +0.650 (p = 0.043) raw and +0.532 (p = 0.113) partial. One row moves
+the partial correlation across the line. Quote the direction and the
+mechanism; do not quote the coefficient as though it were measured.
+
+  no constant is fitted here and none should be. The linear fit crosses zero
+  drop at axis 0.626, above every row observed, which is an extrapolation
+  from ten points and not a threshold anyone can use.
+
+WHAT THIS NUMBER IS NOT
+
+**It is not a cheap predictor.** It needs the labelled set, a teacher pass
+and a student pass — exactly what computing sep needs. It costs nothing extra
+once sep is being computed and it tells you nothing about a contrast you have
+not measured. It does not join fit_check.py and it does not go near
+enrolment. Every enrolment-time number tried so far has failed to predict a
+run, and this one was never a candidate.
+
+**It is not a per-frame agreement.** See above; that number exists, is 0.475,
+and is meaningless.
+
+**book is the extreme and nobody should read it yet.** Lowest inheritance of
+the ten at 0.141 on a contrast the teacher scores 0.907 on, and separately
+the only one of the ten that got *worse* when --infonce went 0.0 -> 0.3
+(+0.043, against nine negatives; see 20260822-infonce-10contrast.log). Two
+extremes on one row out of ten is a coincidence until a third set says
+otherwise.
+
+REPRODUCING
+
+  for s in book glass laptop refrigerator oven toilet umbrella suitcase bowl bed; do
+    d=20260822-synth-$s-crop; q=bench/stills/$d/queries.txt
+    uv run --script tools/probe_bisect.py \
+       --a bench/stills/$d/pos --b bench/stills/$d/neg \
+       --pos "$(sed -n 1p $q)" --neg "$(sed -n 2p $q)" \
+       --paired --keep bench/stills/$d/keep.txt --runs so400m-full-a05 \
+       --json model/runs/_axis_a05_$s.json
+  done
+
+model/runs/ is gitignored; the JSONs above are the only place these numbers
+live and they are reproducible from the checked-in stills in minutes.

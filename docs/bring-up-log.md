@@ -11,6 +11,68 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-22, the entry after "last" — two numbers that were already sitting there
+
+Both of today's remaining questions turned out to be about things the repository
+already had and was not reading.
+
+**The axis number issue #23 asked for had been computed ten times a run and
+discarded.** `probe_bisect.py` prints `class axis, student fp32 against pca 512`
+— the cosine between the student's class-mean difference and the teacher's, in
+the one 512-d space they share — and never wrote it to `--json`. So every
+ten-set sweep threw it away, and #23's own comment called it "the obvious next
+number" about a figure the sweep had already produced a hundred times. One line
+of code; the ten sets re-scored in four minutes; no new measurement anywhere.
+
+The column is in
+[`bench/stills/20260822-axis-inheritance.log`](../bench/stills/20260822-axis-inheritance.log).
+The headline is that **nothing is near 1.0** — 0.343 mean, 0.553 at best on
+refrigerator, 0.141 at worst on book. A student that had the teacher's axis and
+merely a noisy version of it would read high there and low on `sep`; not one of
+the ten does. So the 0.171 mean distillation drop is not the teacher's
+difference blurred, it is a different difference. And it is not the frozen
+1152→512 basis doing it: `pca 512` minus `teacher 1152` is +0.005 on average
+across the ten, range −0.013 to +0.019.
+
+The correlation with the drop is +0.775, or +0.726 once the ceiling effect is
+partialled out — and it is ten points, so swapping one row for the regenerated
+oven set below takes the partial from p = 0.018 to p = 0.113. The mechanism is
+the finding. The coefficient is not measured and no constant was fitted to it.
+Nor is this a cheap predictor: it costs a labelled set and both encoder passes,
+which is exactly what `sep` costs, so it is free where `sep` is already being
+computed and useless anywhere else. It does not go near `fit_check.py` and it
+does not go near enrolment.
+
+**And the set that was "the one most worth regenerating" was regenerated, and it
+changed nothing.** `oven` kept 19 of 29 pairs because COCO `oven` boxes are
+largely cooktops and barbecues and `--min-side` cannot tell a big box from a big
+door. `tools/synth_pairs.py` gained `--sources-only`, which dumps the candidate
+crops and a labelled contact sheet and stops before spending anything, and
+`--only`, which generates from a hand-picked list of stems. Seventy-six
+candidates, 26 picked by eye, 23 kept:
+
+| | teacher | pca 512 | student |
+| --- | --- | --- | --- |
+| `20260822-synth-oven-crop`, 19 pairs | 0.850 | 0.870 | 0.612 |
+| `20260822-synth-oven-picked`, 23 pairs | **0.957** | **0.949** | 0.599 |
+
+**The teacher moved +0.107 and the student moved −0.013.** Pooled over the ten
+contrasts the product metric goes 0.6454 → 0.6441. Set quality was the standing
+objection to this whole fleet; on the set where the objection was strongest,
+removing it entirely left the student exactly where it was.
+
+Two things to record against that number rather than under it. This set did
+**not** go through `tools/synth_sheet.py` and `tools/synth_keep.py` — the A/B
+sheets were built ad hoc and there was one screening pass, not the two
+independent judges those tools require unanimity from, so its `judge.json` is
+deliberately not named `judge-a.json` and its `keep.txt` is hand-written to the
+same three criteria. A one-judge screen is looser than a unanimous two, and 88%
+against 65% is much more than that gap, but the four points are not
+like-for-like. Second, **the picking rule ignores the source's own state**: both
+halves are generated from the same crop, so an oven photographed already open is
+as good a source as one shot closed, and three of the 26 are. What is picked for
+is the door being in frame and large enough to edit.
+
 ### 2026-08-22, last — the knob nobody turned, and the cheap metric would have turned it the wrong way
 
 Two entries below, the training-time number and the product number disagree by
