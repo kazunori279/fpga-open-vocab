@@ -374,6 +374,22 @@ int main(void)
                "register writes -> %s\n",
                p1 ? "a picture" : "CONSTANT",
                p2 ? "a picture" : "CONSTANT");
+        // HOW BRIGHT THE ROOM IS, PRINTED WITH THE SWEEP AND NOT SIXTY LINES
+        // BELOW IT. Every probe run has always measured this - it is the first
+        // row of the image-controls table - but it was in a different section
+        // and nobody put the two beside each other until 2026-08-22, when four
+        // archived runs turned out to rank perfectly: mean 72 and 63 have the
+        // fault, mean 101 and 137 do not. That may be the mechanism (auto-
+        // exposure integrating longer in the dark, so the untriggered stretch
+        // the sensor needs is longer than the one it is given) or it may be
+        // four points. Either way the number belongs on this table, because a
+        // sweep that reads 3/3 everywhere means something different in a bright
+        // room than in a dark one and the log has to say which it was.
+        if (p2) {
+            int mean[3];
+            cam_frame_means(raw, l2, mean);
+            printf("  scene     : mean RGB %d %d %d\n", mean[0], mean[1], mean[2]);
+        }
         if (!stays_started)
             printf("              *** a started sensor did not stay started, "
                    "which is not what 08-20\n"
@@ -442,6 +458,96 @@ int main(void)
             printf("  -> reliable from %d ms in both directions, with %d "
                    "partial row%s below it.\n",
                    first_up, partial, partial == 1 ? "" : "s");
+    }
+
+    // --- the same sweep against exposure (#27) ------------------------------
+    // IF THE THRESHOLD IS AN INTEGRATION TIME, IT IS NOT A CONSTANT AND NO
+    // sleep_ms(N) IS THE FIX. That is what this second axis is for.
+    //
+    // The four archived probe runs rank perfectly by scene brightness - 72 and
+    // 63 have the fault, 101 and 137 do not - which is a correlation with four
+    // points and one obvious mechanism behind it: auto-exposure lengthens the
+    // integration in the dark, the sensor needs one whole integration of not
+    // being triggered before it can write a frame, and 50 ms of quiet is enough
+    // for a bright frame and not for a dark one.
+    //
+    // #27 says "not darkness" and that is right about the thing it was arguing
+    // against. `08 01` is the ArduChip's empty-FIFO fill, not a dark picture, so
+    // the blank is not underexposure. But "the image is dark" and "the exposure
+    // is long" are different claims and only the first was ruled out.
+    //
+    // EV_CONTROL raises the auto-exposure *target*, so a higher EV in a fixed
+    // room buys a longer integration without anybody covering the lens. If the
+    // first working settle value climbs with EV, the threshold is an exposure
+    // time. If it does not move at all, the AE target is not the variable and
+    // the room's actual photons are - which still wants a covered lens to
+    // confirm, but rules this mechanism out as something a register can reach.
+    //
+    // Ascending only: the descending control ran in the table above, in this
+    // same boot, and answers the same question about cam_begin() for both.
+    {
+        static const uint8_t EV[]         = { 0, 1, 3 };
+        static const uint32_t EV_SETTLE[] = { 0, 25, 50, 100, 200, 400 };
+        const int NEV = (int)(sizeof EV / sizeof EV[0]);
+        const int NES = (int)(sizeof EV_SETTLE / sizeof EV_SETTLE[0]);
+
+        printf("\n  -- and against exposure: does the threshold move with EV? --\n");
+        printf("  %-4s %-14s", "EV", "mean RGB");
+        for (int i = 0; i < NES; i++) printf(" %5u", (unsigned)EV_SETTLE[i]);
+        printf("   first ok\n");
+
+        // THE EV WRITE GOES AFTER cam_begin() AND NOT BEFORE IT. The first
+        // version of this block set EV once per row and then called cam_begin()
+        // three times per settle value underneath it - and cam_begin() writes
+        // CAM_REG_SENSOR_RESET, which puts EV back to its default. It printed
+        // mean RGB 109 149 120 for EV 0, 1 and 3 alike: a clean null result from
+        // an axis that was never varied. The reset that makes each settle row an
+        // independent trial is the same reset that discards the setting under
+        // test, so the setting has to be re-applied inside every trial.
+        //
+        // That costs a cam_wait_idle() between the reset and the trigger, which
+        // is quiet time the plain sweep above does not spend, so this table's
+        // absolute thresholds sit below the other one's. It is constant across
+        // the three rows, which is what this table compares.
+        for (int e = 0; e < NEV; e++) {
+            // One long-settle capture first: it is the exposure readout for this
+            // row, and it leaves the sensor started rather than measuring it.
+            const cam_recipe_t warm = { "ev-warm", true, false, 400 };
+            cam_begin(id, false);
+            cam_write_reg(CAM_REG_EV_CONTROL, EV[e]);
+            if (!cam_wait_idle("EV")) continue;
+            uint32_t wl = cam_capture(&warm, m128, CAM_IMAGE_PIX_FMT_RGB565,
+                                      raw, RAW_MAX, NULL);
+            char cell[20] = "CONSTANT";
+            if (wl == 128u * 128u * 2u && !cam_frame_is_constant(raw, wl)) {
+                int mean[3];
+                cam_frame_means(raw, wl, mean);
+                snprintf(cell, sizeof cell, "%3d %3d %3d", mean[0], mean[1], mean[2]);
+            }
+            printf("  %-4u %-14s", (unsigned)EV[e], cell);
+
+            int first_ok = -1;
+            for (int i = 0; i < NES; i++) {
+                const cam_recipe_t r = { "ev-sweep", true, false, EV_SETTLE[i] };
+                int got = 0;
+                for (int k = 0; k < TRIES; k++) {
+                    cam_begin(id, false);
+                    cam_write_reg(CAM_REG_EV_CONTROL, EV[e]);
+                    cam_wait_idle("EV");
+                    uint32_t len = cam_capture(&r, m128, CAM_IMAGE_PIX_FMT_RGB565,
+                                               raw, RAW_MAX, NULL);
+                    if (len == 128u * 128u * 2u && !cam_frame_is_constant(raw, len))
+                        got++;
+                }
+                if (first_ok < 0 && got == TRIES) first_ok = (int)EV_SETTLE[i];
+                printf(" %3d/%d", got, TRIES);
+            }
+            if (first_ok < 0) printf("   none\n");
+            else              printf("   %d ms\n", first_ok);
+        }
+        // Back to where the image-controls table below expects to start.
+        cam_write_reg(CAM_REG_EV_CONTROL, 0);
+        cam_wait_idle("EV");
     }
 
     // Leave the sensor started, so the sections below measure what they were
