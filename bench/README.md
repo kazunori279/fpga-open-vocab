@@ -180,6 +180,44 @@ The cube contrast run, 08-20 13:12, is **not** degenerate — it used three
 phrases (`"a red cube / a blue cube / a cube"`), so the shared negative breaks
 the anti-symmetry. If a contrast pair is wanted, give it a third phrase.
 
+## A reference on the origin, and the unit that does not exist
+
+The third enrolment guard above — *a reference on the origin* — is the one
+[#21](https://github.com/kazunori279/fpga-open-vocab/issues/21) wants to turn
+into a refusal rather than a warning, and the issue blocks itself on a
+condition it wrote for itself: **quote the threshold in something that is not
+`sep`.** `2.0 sep` is 0.52 absolute on one bench and 5.80 on another, because a
+collapsed pair shrinks the denominator.
+
+`tools/probe_origin.py` is that condition tested, over every log in `cue/` that
+scores — 29 of 37, the rest having no sidecar, a VOID one, or no frames after
+the rule engages. Ten are inverted. Three units were scored against that:
+
+| unit | rank-AUC | best threshold fitted to these 29 |
+| --- | --- | --- |
+| `d/sep`, what the board prints | 0.642 | below 0.33 — catches 6/10, refuses 3/19 healthy |
+| `d` raw, no denominator | 0.668 | below 1.96 — catches 10/10, refuses 11/19 healthy |
+| `d/scat`, over the class's own frame spread | 0.805 | below 1.38 — catches 10/10, refuses 7/19 healthy |
+
+**All three overlap and none of them splits the archive.** Removing the
+denominator does not help; `d/scat` ranks best and then catches the same disease
+from the other side, since to reach all ten it refuses seven working benches,
+and its second-largest value belongs to 08-11 07:22 only because that bench's
+scatter of 0.13 is four times smaller than any other's.
+
+The counterexample is the part that settles it. **The reference sitting nearest
+the origin in the whole archive is, in every one of the three units, a bench
+that worked**: `d/sep` 0.01 is 08-20 06:24 at presence AUC 0.536, and `d` 0.02
+and `d/scat` 0.03 are both 08-17 15:27's `a glass with tea` at 0.754. A guard
+quoted in any of these refuses a good bench before it refuses a bad one.
+
+So the answer to #21's own precondition is no, and the reason is not the unit —
+the correlation between the origin distance and inversion is weaker than the
+three benches in the issue made it look. Every threshold in that table is fitted
+in-sample to the benches in hand, which is the sequence that has already deleted
+`sep`, two ratios and `FGX_ENROL_SNR`. `cue/analysis/20260822-origin-units.txt`
+is the run, and the per-bench table is in it.
+
 ## The `.cues` sidecars, and the three logs that have none
 
 Every log is `<name>.log` and its sidecar is `<name>.log.cues` — the suffix is
@@ -208,6 +246,7 @@ looks exactly like a real one.
     uv run --script tools/score_cue.py bench/cue/m9_cue-20260817-112606.log
     uv run --script tools/probe_sepscale.py bench/cue/*.log
     uv run --script tools/probe_reject.py bench/cue/m9_cue-20260817-112606.log
+    uv run --script tools/probe_origin.py bench/cue/m9_cue-*.log
 
 The tools all default to `/tmp/m9_cue.log`, which is where a fresh run still
 lands. Pass a path from here to look at a past one.
