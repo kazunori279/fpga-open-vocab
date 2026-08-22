@@ -18,7 +18,7 @@ uv run --script tools/synth_pairs.py --out bench/stills/20260822-synth-suitcase-
 Not to settle anything on its own. It is one of ten contrasts in a fleet, and
 the fleet exists because the contrast-to-contrast spread turned out to be the
 larger of the two variances in this eval — see
-[`../README.md`](../README.md#ten-contrasts). **No absolute number off a
+[`../README.md`](../README.md#ten-contrasts-because-two-was-measuring-the-wrong-noise). **No absolute number off a
 generated set means anything about the appliance**; the reason is in
 [`../20260822-synth-book-crop/`](../20260822-synth-book-crop/).
 

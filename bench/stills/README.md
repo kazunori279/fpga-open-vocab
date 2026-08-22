@@ -108,7 +108,7 @@ holds nothing. But a second draw resamples *scenes*, and the larger variance in
 this eval is across *contrasts*: RKD 10 held +0.10 on the book pair through both
 draws and both model families and still turned out to be worth −0.022 ± 0.023
 over ten contrasts. See the section below, and the retraction in
-[`20260822-synth-book-crop2/`](20260822-synth-book-crop2/#retracted-2026-08-22-rkd-10-is-not-worth-010).
+[`20260822-synth-book-crop2/`](20260822-synth-book-crop2/README.md#retracted-2026-08-22-rkd-10-is-not-worth-010).
 
 ## Sets
 
@@ -122,7 +122,6 @@ over ten contrasts. See the section below, and the retraction in
 | `20260822-synth-{book,glass}` and `-closeup` | the same two pairs | superseded first attempts, kept as the evidence for cropping the source: object too small, then scene re-composed |
 | the eight `-crop` sets below | eight more object states in rooms | not a result each — a fleet, for the variance in the section that follows |
 
-<a id="ten-contrasts"></a>
 ## Ten contrasts, because two was measuring the wrong noise
 
 Adding scenes to a contrast shrinks one variance and not the other.

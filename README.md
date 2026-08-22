@@ -23,6 +23,22 @@ ArduCam SPI ──▶ RP2354A ──3-bit on-board link──▶ Trion T8 ──
 
 The long version, with the numbers and the reasons, is [`docs/architecture.md`](docs/architecture.md).
 
+**Thinking of using it for something?** Read
+[`docs/fit.md`](docs/fit.md) first. Step 5 is the catch: the board is a
+*one-scene, enrolled* discriminator, not a detector that generalises to a room
+it was never shown, and **what it does depends heavily on what you ask it to
+tell apart** — four pairs benched back to back on one afternoon scored 95.8,
+90.8, 50.0 and 34.2%. That page is the three screens between an idea and an
+answer. The first is a wording rule that costs nothing and eliminates most
+ideas; the second is one command and no hardware:
+
+```sh
+uv run --script tools/fit_check.py --cat person \
+    --pos "an open hand" --neg "a fist" \
+    --pos-edit "the hand is open, fingers spread flat" \
+    --neg-edit "the hand is closed into a tight fist"
+```
+
 ## Quickstart
 
 ```sh
@@ -172,6 +188,7 @@ the frictions, the rejected designs and what they taught are in
 | where | what |
 |---|---|
 | **this file** | what the thing is and where it stands |
+| [`docs/fit.md`](docs/fit.md) | **will it work for what you want** — what the board is and is not, the three screens between an idea and an answer, and why the first two are free |
 | [`docs/architecture.md`](docs/architecture.md) | **how it works** — the board, the model, the decision rule, the pipeline, the link, the fabric, the two cores, and where each of them lives in the tree |
 | [`docs/building.md`](docs/building.md) | **how to build and run it** — toolchain, firmware, bitstream, tests, flashing, every harness |
 | [`docs/history.md`](docs/history.md) | **how it got here** — the timeline, the frictions, the learnings, the rejected alternatives, the risks |

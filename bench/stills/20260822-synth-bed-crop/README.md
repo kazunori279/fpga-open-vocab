@@ -35,7 +35,7 @@ contrast for looking hard would bias the fleet toward the easy ones.
 
 ## Why this set is here
 
-One of ten contrasts; see [`../README.md`](../README.md#ten-contrasts).
+One of ten contrasts; see [`../README.md`](../README.md#ten-contrasts-because-two-was-measuring-the-wrong-noise).
 
 Verdicts in [`judge-a.json`](judge-a.json) and [`judge-b.json`](judge-b.json),
 the blind key in [`key.json`](key.json).

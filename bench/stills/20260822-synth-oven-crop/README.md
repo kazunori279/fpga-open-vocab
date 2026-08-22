@@ -35,7 +35,7 @@ looking at the door.
 
 ## Why this set is here anyway
 
-One of ten contrasts in a fleet; see [`../README.md`](../README.md#ten-contrasts).
+One of ten contrasts in a fleet; see [`../README.md`](../README.md#ten-contrasts-because-two-was-measuring-the-wrong-noise).
 Nineteen pairs is a thin set, and it is the one of the ten most worth
 regenerating from a hand-picked category before it is quoted on its own.
 **No absolute number off a generated set means anything about the appliance** —

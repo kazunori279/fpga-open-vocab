@@ -41,7 +41,7 @@ sensitivity, not bias, for the reason spelled out in
 
 ## Why this set is here
 
-One of ten contrasts in a fleet; see [`../README.md`](../README.md#ten-contrasts).
+One of ten contrasts in a fleet; see [`../README.md`](../README.md#ten-contrasts-because-two-was-measuring-the-wrong-noise).
 **No absolute number off a generated set means anything about the appliance** —
 [`../20260822-synth-book-crop/`](../20260822-synth-book-crop/).
 

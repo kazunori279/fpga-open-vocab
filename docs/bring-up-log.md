@@ -32,7 +32,7 @@ against the plain baseline. So is everything else that has been tried:
 | teacher 1152 / pca 512 | 0.811 / 0.825 | |
 
 Per-contrast rows, and the eight new sets, are in
-[`../bench/stills/README.md`](../bench/stills/README.md#ten-contrasts); the
+[`../bench/stills/README.md`](../bench/stills/README.md#ten-contrasts-because-two-was-measuring-the-wrong-noise); the
 retraction sits beside the table it retracts, in
 [`../bench/stills/20260822-synth-book-crop2/`](../bench/stills/20260822-synth-book-crop2/).
 

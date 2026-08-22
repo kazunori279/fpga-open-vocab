@@ -626,6 +626,11 @@ def main() -> int:
     la, lb = luma(ia), luma(ib)
     print(f"\n  trivial cue: frame mean luma AUC {folded(la, lb):.3f}  "
           f"({la.mean():.1f} vs {lb.mean():.1f})")
+    # Into --json as well, under `cues` rather than `stages`: it is not a stage
+    # of the encoder and a caller iterating the stages should not meet it.
+    # tools/fit_check.py reads it to qualify a GO that might be a lamp.
+    out["cues"] = {"luma": {"sep": folded(la, lb),
+                            "mean": [float(la.mean()), float(lb.mean())]}}
 
     # The stage a student is compared against is the last teacher-side one -
     # `pca 512` when there is a basis, `teacher 1152` when there is not. Indexing

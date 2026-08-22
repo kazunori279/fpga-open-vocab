@@ -103,7 +103,7 @@ Everything above this heading about *which column to read* stands. What does not
 stand is any conclusion drawn from ranking checkpoints on two contrasts —
 including the `--infonce` and `--text` rows, none of which separate from
 baseline at C = 10 either. The ten-contrast fleet and the variance argument are
-in [`../README.md`](../README.md#ten-contrasts).
+in [`../README.md`](../README.md#ten-contrasts-because-two-was-measuring-the-wrong-noise).
 
 ## The number that matters more than the ranking
 
