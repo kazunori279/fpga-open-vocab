@@ -35,13 +35,24 @@ and did not have.
 **And a six-day bus trace:
 [`usb_watch-20260816-20260822.log.gz`](usb_watch-20260816-20260822.log.gz).**
 `host/usb_watch.py` polling every port `uhubctl` can see, once a second, from
-05:55 on 2026-08-16 to midday on 2026-08-22 — 9 434 lines, gzipped because 8 943
+05:55 on 2026-08-16 to 14:43 on 2026-08-22 — 9 603 lines, gzipped because 9 086
 of them are the once-a-minute heartbeat that is the whole point of the file. It
-is a snapshot; the run was still going when it was copied.
+is a snapshot; the run was still going when it was copied, and the copy has been
+refreshed once already, which is the cheap half of not losing it.
 
-The board's port took 217 transitions across those six days, and the two days
-nobody touched the board — 08-18 and 08-19 — have none at all, which is the
-negative result #9 wants. What it turned out to be *worth*, though, was
+The board's port took 241 transitions across those six days — 71 / 12 / 0 / 0 /
+56 / 66 / 36 by day — and the two days nobody touched the board, 08-18 and
+08-19, have **none at all**, which is the negative result #9 wants. **Six days
+of continuous watching and not one drop on a day the board was left alone.**
+
+That is not a fix for #9: the 08-15 event was real and this trace does not
+contain one. What it does is put a floor under how often it happens, and the two
+empty days are the part that matters, because they are the only stretch in the
+file where a transition would have had nobody to blame it on.
+
+The 26 transitions added by this refresh are all 2026-08-22 flashes and one
+`--power-cycle` from the #27 work, checked line by line. The rest of the file
+has not been audited event by event and should not be read as if it had. What it turned out to be *worth*, though, was
 something nobody set it up for. On 2026-08-22 at 12:04:02 the board dropped and
 came back one second later as `2e8a:000f Raspberry Pi RP2350 Boot`: not an
 outage, but `host/demo.py` doing precisely what it says it does on a clean exit.

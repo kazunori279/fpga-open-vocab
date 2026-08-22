@@ -1361,6 +1361,48 @@ static const char *acq_doubt;
 
 const char *ft_acquire_doubt(void) { return acq_doubt; }
 
+// #27's three numbers, and what each one is.
+//
+// FT_QUIET_MIN_MS is the old flat sleep, kept because it is the right delay for
+// the job the ramp does once frames are arriving - the AEC converges over
+// triggers and a longer gap only makes the boot slower. It is a floor, not a
+// threshold: nothing has to be true about the room for it to be correct.
+//
+// FT_QUIET_MAX_MS IS NOT A GIVE-UP POINT, AND THE FIRST VERSION OF THIS FIX HAD
+// IT BEING ONE. That version capped the quiet at 800 ms and gave the loop a 15 s
+// budget, which is two give-up policies for one decision - and on the very first
+// covered-lens run the wrong one bound:
+//
+//   camera : exposure ramp 5+100 5+200 5+400 5+800 5+800 ... (nineteen of them)
+//   camera : still a constant fill (08 01) after 19 frames, quiet up to 800 ms
+//
+// Nineteen tries, fourteen seconds of waiting, and the last sixteen of them all
+// asked the same question because the cap had stopped the search. Doubling that
+// cannot double is not a search.
+//
+// The reason 800 was not enough, when cam_probe.c gets a picture out of the same
+// covered lens at 300 ms, is that the two are not in the same sensor state:
+// cam_probe runs its matrix before it touches the image controls, and
+// ft_acquire() calls cam_image_defaults() first, which turns AE and AGC on. In a
+// pitch-dark scene the AEC drives the integration to the sensor's ceiling, and
+// that ceiling is longer than anything measured in a lit room. The 300 ms figure
+// in bench/soak/20260822-settle/ is the fixed-exposure case, and using it as the
+// bound here was reading one instrument's number off another instrument.
+//
+// So the cap is now what the watchdog allows and nothing else - one sleep has to
+// stay clearly inside m9's 8 s timeout, and 4 s is that with room to spare. The
+// give-up is FT_RAMP_BUDGET_US alone.
+//
+// FT_RAMP_BUDGET_US is what bounds ft_acquire(). It replaces a frame count that
+// stopped meaning "a bounded amount of time" the moment the delay started
+// varying. 25 s is long for a boot and it is only ever spent by a camera that is
+// handing back nothing at all; the alternative is what this function did for
+// three weeks, which was to spend 8 s and then quietly run the whole demo on the
+// flash test vector.
+#define FT_QUIET_MIN_MS        50u
+#define FT_QUIET_MAX_MS      4000u
+#define FT_RAMP_BUDGET_US 25000000u
+
 // Returns ft_frame() on success and NULL to mean "use the flash vector". Prints
 // its own verdict either way, because a silent fallback is how a camera that
 // stopped answering turns into six perfectly good rows about the wrong input.
@@ -1426,14 +1468,99 @@ const void *ft_acquire(float in_scale)
     int warm = 0, was = -1000, stable = 0, first = -1;
     bool rose = false, converged = false;
     acq_doubt = NULL;
+
+    // #27, AND THE REASON THIS LOOP HAD A CONSTANT IN IT AT ALL. The quiet
+    // between two triggers used to be a flat sleep_ms(50), and forty of those
+    // in a row is exactly the run #27 is about: the sensor needs one whole
+    // integration untriggered before it writes its first frame, 50 ms is longer
+    // than an integration in a lit room, and it is not longer than one in a
+    // dark one. On 2026-08-22 the same board eleven minutes apart read 3/3 at
+    // 0 ms with the room lit and 0/3 all the way to 300 ms with a hand over the
+    // lens - see bench/soak/20260822-settle/. Forty tries at 50 ms never
+    // escape, and the run falls back to the flash test vector on a camera that
+    // is working perfectly.
+    //
+    // THE FIRST TWO ATTEMPTS AT THIS FIX WERE BOTH "WAIT LONGER" AND BOTH
+    // FAILED, WHICH IS THE USEFUL PART. One backed the quiet off to 800 ms, one
+    // to 4 s; the covered-lens ramp read
+    //
+    //   5+100 5+200 5+400 5+800 5+1600 5+3200 5+4000 5+4000 5+4000 5+4000 5+4000
+    //
+    // and never left the constant fill, while cam_probe.c on the same covered
+    // lens minutes either side got a picture at 400 ms every time. Twenty-five
+    // seconds of quiet lost to an instrument that needed four hundred
+    // milliseconds of it.
+    //
+    // WHAT cam_probe's SWEEP DOES AND THIS LOOP DID NOT IS RESET. Every trial of
+    // that sweep is cam_begin() and then the settle - cam_probe.c:365, 408 - so
+    // what it measures is "reset, then N ms untriggered", and this loop was
+    // reading its number off as though it measured "N ms untriggered". They are
+    // not the same experiment. A sensor that has been triggered while it could
+    // not answer stays stuck, and no amount of silence afterwards is a reset. It
+    // fits the matrix too: row 5 escapes at settle 300 without a reset, but by
+    // then cam_probe's bus-rate sweep has had the sensor producing frames for
+    // seconds. Cold and stuck is a third state, and it is the one m9 boots into.
+    //
+    // So the recovery is now the sweep's own sequence - cam_begin(), the image
+    // defaults again because the reset discards them, then the settle inside
+    // cam_trigger() where the sweep puts it, before the FIFO clear. Not a sleep
+    // between two captures, which is where the last two attempts put it and is
+    // the one place it does nothing.
+    //
+    // The backoff stays, and is now a search over one variable rather than a way
+    // of buying more of something that was never the constraint. It doubles
+    // while the frame is constant, because a constant frame says the last try
+    // was short, and collapses to the floor the moment a real one arrives,
+    // because from there the loop's job is the opposite one: the AEC converges
+    // over *triggers* and waiting between them only makes the ramp longer. Two
+    // jobs, opposite delays, and they used to share one number.
+    //
+    // The bound is wall-clock rather than a frame count, because with a backoff
+    // those are no longer nearly the same thing.
+    uint32_t quiet_ms = FT_QUIET_MIN_MS;
+    const uint64_t ramp_until = time_us_64() + FT_RAMP_BUDGET_US;
+    bool ran_out = false, recover = false;
+    // rewrite = true, AND IT IS NOT OPTIONAL. cam_begin() writes
+    // CAM_REG_SENSOR_RESET, which puts the sensor back to its default VGA, but
+    // it does NOT clear cam.c's last_fmt/last_mode - so a rewrite = false recipe
+    // after a reset skips the CAPTURE_RESOLUTION write on the grounds that the
+    // mode has not changed, when in fact only the record of it survived. The
+    // first version of this recovery got that wrong and the next capture
+    // returned
+    //
+    //   !! FIFO length 614400, buffer is 135168
+    //
+    // which is 640x480x2 exactly: the sensor answering honestly at a resolution
+    // this code had stopped asking for. cam_probe.c's sweep recipes are all
+    // rewrite = true for the same reason - cam_probe.c:405 - and that is what
+    // makes cam_begin() safe to call per trial there.
+    cam_recipe_t ramp = { "ramp", true, false, 0 };
+
     printf("camera    : exposure ramp");
     // 24 was sized on M8b's fifteen-frame ramp with a little slack. M8c raised
     // it because the blank frames now come first and eat into that slack, and
     // because the whole loop is ~150 ms a frame and happens once a boot: six
-    // seconds of worst case against a run that is minutes long.
+    // seconds of worst case against a run that is minutes long. It is a backstop
+    // now rather than the bound - FT_RAMP_BUDGET_US is what actually stops this.
     for (; warm < 40; warm++) {
-        len = cam_capture(&CAM_RECIPE_VENDOR, mode, CAM_IMAGE_PIX_FMT_RGB565,
-                          arena, FT_ARENA_MAX, &t);
+        // #27's recovery, and it only runs once a frame has come back constant.
+        // A ramp that is producing pictures takes the vendor recipe untouched,
+        // which is the path every lit-room boot has always taken and the reason
+        // this costs those boots nothing at all.
+        //
+        // cam_image_defaults() has to be re-issued because cam_begin() writes
+        // CAM_REG_SENSOR_RESET and the reset discards AE, AGC and the white
+        // balance mode with everything else. cam_probe.c's EV block learned this
+        // the expensive way - it set the register once per row, watched every
+        // trial's reset wipe it, and recorded a clean null result from an axis
+        // that had never been varied.
+        if (recover) {
+            cam_begin(id, false);
+            cam_image_defaults();
+            ramp.settle_ms = quiet_ms;
+        }
+        len = cam_capture(recover ? &ramp : &CAM_RECIPE_VENDOR, mode,
+                          CAM_IMAGE_PIX_FMT_RGB565, arena, FT_ARENA_MAX, &t);
         if (len != want) break;
         // 40 frames at ~150 ms is six seconds of worst case, against m9's eight
         // second watchdog - too close to leave alone, and a sensor walking its
@@ -1542,7 +1669,36 @@ const void *ft_acquire(float in_scale)
             converged = true;
             break;
         }
-        sleep_ms(50);
+
+        // #27's search. Double the settle while the sensor is writing nothing,
+        // and stand the recovery down the moment it writes something - see the
+        // block above the loop for why those are two different jobs. Printed as
+        // `+N` beside the ramp so a log says what the settle got to without
+        // anybody having to know what the default is.
+        if (flat) {
+            recover = true;
+            const uint32_t next = quiet_ms * 2u;
+            quiet_ms = next > FT_QUIET_MAX_MS ? FT_QUIET_MAX_MS : next;
+            printf("+%u", (unsigned)quiet_ms);
+        } else {
+            recover = false;
+            quiet_ms = FT_QUIET_MIN_MS;
+        }
+
+        // Checked before the delay, not after, so the budget bounds the time
+        // this function costs rather than that plus one more backoff.
+        // `ran_out` separates "the room never came up" from "the loop ran its
+        // forty" in the report below; they used to be the same branch and only
+        // one of them is worth telling the operator about.
+        if (time_us_64() + (uint64_t)quiet_ms * 1000u > ramp_until) {
+            ran_out = true;
+            break;
+        }
+        // Only when the next capture will not settle for itself. The recovery
+        // path puts the whole delay inside cam_trigger(), after the register
+        // writes and before the FIFO clear, which is where cam_probe's sweep
+        // puts it and the one placement that has ever worked.
+        if (!recover) sleep_ms(quiet_ms);
     }
     printf("\n");
     // `warm` is the index the loop stopped at, so the frames actually captured
@@ -1558,8 +1714,17 @@ const void *ft_acquire(float in_scale)
         return NULL;
     }
     if (cam_frame_is_constant(arena, len)) {
-        printf("camera    : still a constant fill (%02x %02x) after %d frames "
-               "- using the flash test vector\n", arena[0], arena[1], nramp);
+        // #27. Say what the quiet got to and whether the budget or the frame
+        // cap ended it, because those are three different next actions: a run
+        // that gave up at FT_QUIET_MAX_MS has a sensor that wants longer than
+        // this firmware is willing to wait, and one that stopped at the floor
+        // never got the chance to back off at all.
+        printf("camera    : still a constant fill (%02x %02x) after %d frames, "
+               "quiet up to %u ms (%s) - using the flash test vector\n",
+               arena[0], arena[1], nramp, (unsigned)quiet_ms,
+               ran_out ? "budget spent" : "frame cap");
+        printf("camera    : if the lens is covered or the room is dark, that is "
+               "the fault - see bench/soak/20260822-settle/\n");
         return NULL;
     }
 

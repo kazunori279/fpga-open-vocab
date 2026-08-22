@@ -291,6 +291,17 @@ static bool  m21_present;                 // the presence stage's sticky state
 #define FGX_ABSENT_TRIP  2.0f
 #define FGX_ABSENT_STAY  1.5f
 
+// #27. How long the run loop stays quiet after a frame the camera could not
+// give it, doubling until it gets one. The floor is the flat 200 ms this
+// replaces, so a one-off blank - a bus fault, cam.c:90 - costs exactly what it
+// used to. The ceiling is a give-up point rather than a measurement: the one
+// dark-room number there is (400 ms with a hand over the lens,
+// bench/soak/20260822-settle/) is a lower bound on a range whose top nobody has
+// found, so the right thing to bound is the waiting and not the darkness. Both
+// are far under m9's watchdog, which the top of the loop feeds either way.
+#define FGX_BLANK_MIN_MS  200u
+#define FGX_BLANK_MAX_MS 1600u
+
 // THE ENROLMENT RATIO, AND WHY IT IS REPORTED AND NOT JUDGED. There is no
 // constant here any more, and the four attempts to put one here are the reason
 // this comment is long: it is the record of a mistake made four times, and the
@@ -2802,9 +2813,16 @@ int main(void)
     ft_pipeline(overlap);
 
     uint32_t n = 0, cur = 0, good = 0, pinned = 0;
+    // #27's retry delay, doubling while the camera has nothing to give and
+    // resetting on the first good frame. See the branch below for why it is a
+    // backoff and not the flat 200 ms it replaces. The floor is that 200 so a
+    // one-off blank still costs what it always did.
+    uint32_t blank_ms = FGX_BLANK_MIN_MS;
     // `timed` and not `good`: a dropped frame does not reach the accumulators
-    // but its 200 ms does land in the wall clock, so dividing the sums by `good`
-    // and the wall by `good - 1` was quietly comparing two different windows.
+    // but its retry sleep does land in the wall clock, so dividing the sums by
+    // `good` and the wall by `good - 1` was quietly comparing two different
+    // windows. That sleep is no longer a fixed 200 ms, which makes the mismatch
+    // worse rather than better and is why this stays.
     // 'O' zeroes all five together, which is what makes a back-to-back A/B in
     // one boot mean anything.
     uint32_t timed = 0;
@@ -2822,12 +2840,31 @@ int main(void)
 
         wd_stage(FGX_ST_CAPTURE, n);
         if (!ft_capture(m.hdr->in_scale)) {
-            printf("frame %5u : no usable frame off the camera\n", (unsigned)n);
+            // #27, THE SAME BACKOFF AS ft_acquire()'S AND FOR THE SAME REASON.
+            // ft_capture() is a single-shot primitive and says so - "no printing
+            // and no fallback" - so the retry belongs here, in the caller that
+            // owns the loop, and not inside it.
+            //
+            // The 200 ms this replaces was not chosen against anything. It
+            // happened to sit just under the 300 ms row that reads 1/3 on a
+            // covered lens, which is worse than being plainly too short: a room
+            // that darkens gradually gets a loop that recovers sometimes, and
+            // "sometimes" is what made #27 look like a hardware fault for three
+            // weeks. Doubling turns that into either a frame or a stated
+            // give-up.
+            //
+            // Reset on every good frame below, so a single blank - a bus fault,
+            // cam.c:90 - costs one short sleep and not a ramp.
+            printf("frame %5u : no usable frame off the camera "
+                   "(retrying after %u ms)\n", (unsigned)n, (unsigned)blank_ms);
             stdio_flush();
-            sleep_ms(200);
+            sleep_ms(blank_ms);
+            const uint32_t next = blank_ms * 2u;
+            blank_ms = next > FGX_BLANK_MAX_MS ? FGX_BLANK_MAX_MS : next;
             n++;
             continue;
         }
+        blank_ms = FGX_BLANK_MIN_MS;
         uint32_t exp_us, rd_us;
         ft_cap_stats(NULL, &exp_us, &rd_us);
 
