@@ -15,6 +15,7 @@ reproduced it on the first try.**
 | `cam_probe-20260822-1401.log` | **lens covered by hand** | **fault, 5 of 7 rows CONSTANT** | **0/3, 0/3** | **9 7 8** |
 | `cam_probe-20260822-1508-control.log` | still covered, an hour later | fault, same 5 rows | 0/3, 0/3 | 8 4 8 |
 | `m9-20260822-1458-covered-fixed.log` | still covered, **m9 with the fix** | — | escaped at 400 ms | 8 5 8 |
+| `m9-20260822-1525-dark-second.log` | dark room, m9 with the fix, unattended | — | escaped at 400 ms | 8 6 8 |
 
 `1508` is the control for the fix below: it says the covered lens still
 reproduces the fault on the instrument, at the same time of day the fixed `m9`
@@ -193,11 +194,32 @@ patched, because clearing the cache makes every post-reset capture rewrite
 CAPTURE_RESOLUTION, which is the write `rewrite = false` exists to avoid, and
 only the board can say whether that costs anything.
 
+### It repeats
+
+`m9-20260822-1525-dark-second.log` is the same firmware twenty-seven minutes
+later with nobody at the desk — no hand, the room simply dark at mean 8 6 8 —
+and it reads the same ramp:
+
+```
+camera : exposure ramp 5+100 5+200 5+400 5 6 7 6 7 6 7 7 7 ...
+```
+
+Three tries, out at 400 ms, nine frames scored. So the recovery is not a
+property of that one hand: the threshold this page measured on the instrument is
+the threshold `ft_acquire()` finds on its own, twice, on two different dark
+scenes.
+
+It also reproduces the honest part. The run reports `EXPOSURE NEVER SETTLED`,
+raises #26's `scene:` flag, and every score in it is against a picture of an
+unlit room. **Getting a frame is not the same as getting a usable one**, and the
+firmware says which it got.
+
 ### Not measured
 
 **A lit room, with this firmware.** The recovery is gated on a constant frame so
-a working camera should never enter it, but "should" is not a run. That check
-needs the lens uncovered and has not been done.
+a working camera should never enter it, but "should" is not a run — and both
+runs with the fix are dark ones, which exercise the path rather than the gate.
+That check needs somebody to turn a light on and has not been done.
 
 The scene mean is now printed on the sweep's own table so no future run has to
 be reconstructed out of a different section.
