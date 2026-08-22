@@ -226,6 +226,38 @@ anything you care about** — this repository has twice lost logs left in `/tmp`
 | "nothing there" never fires | the known 1/12 above; bench that transition |
 | `no /dev/cu.usbmodem*` | `uv run --script host/board.py` says which port and why not — including the case where the board is *there* and in BOOTSEL, which wants a flash and not a power cycle |
 | `cannot start: … in BOOTSEL` | run the flash command it prints. Something exited without `--leave-running` — a bare `demo.py`, or `ab.sh` |
+| `NO CAMERA: …` | the lens, the room, or the ribbon. See below |
+| `doubt : … EXPOSURE NEVER SETTLED` | the board got pictures and does not trust their exposure. Usually a room that is genuinely dark; the frames are real and the verdicts are worth less |
+
+### A board that cannot see says so, and stops
+
+```
+NO CAMERA: camera : still a constant fill (08 01) after 11 frames, quiet up
+           to 4000 ms (budget spent) - using the flash test vector
+           the board is scoring the flash test vector, so every line below
+           is about a picture it did not take
+```
+
+When `ft_acquire()` cannot get a picture it falls back to a **flash test
+vector** — one 128×128 image, baked into the firmware, scored for ever at full
+confidence. Every one of those frames parses like a real one, so until
+2026-08-22 this program forwarded them: a monitor with no camera produced a
+steady, plausible, entirely fictional event stream, and under `--restart` it did
+that again every fifteen seconds without a word.
+
+It now drops those frames, prints the board's own sentence, and stops after
+three consecutive blind runs rather than looping. Three is patience, not a
+measurement — one is too few, because a reflash or a power cycle mid-run
+legitimately costs one acquire.
+
+**Check the light before the hardware.** The camera's own settle time scales
+with how long the sensor integrates, so a dark room is slower to produce its
+first frame than a lit one — measured on 2026-08-22, the same board eleven
+minutes apart needed no wait at all in a lit room and 400 ms with a hand over
+the lens ([`bench/soak/20260822-settle/`](../bench/soak/20260822-settle/)). The
+firmware searches for that wait now, but a lens that is actually covered is a
+covered lens. `uv run --script host/cue.py --frame-check` writes a PNG of what
+the sensor sees and settles it in seconds.
 
 And the thing to do when none of that helps is to bench it properly rather than
 tune flags: `fit.md` Screen 2, three runs on three different days, and believe

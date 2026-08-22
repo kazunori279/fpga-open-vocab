@@ -167,6 +167,39 @@ MS_PER_FRAME = 322
 NOTHING = "nothing there"     # the presence gate is closed: the scene is empty
 UNNAMED_STATE = "unrecognised"   # the gate is open and no query crossed
 
+# A BOARD WITH NO CAMERA STILL PRINTS FRAMES, AND UNTIL 2026-08-22 THIS FILE
+# PASSED THEM ON. When ft_acquire() cannot get a picture it says so and then
+# scores the flash test vector instead - the same 128x128 image, for ever, at
+# full confidence. Every one of those lines parses, so the loop above forwarded
+# them, the run "worked", and the operator got a steady stream of verdicts about
+# a picture the camera never took.
+#
+# It found this file on the day #27 was fixed. A covered lens made demo.py print
+#
+#   camera : still a constant fill (08 01) after 11 frames, quiet up to 4000 ms
+#   RESULT : FAIL - no camera.
+#
+# and watch.py's answer was to say nothing, relaunch fifteen seconds later, and
+# do it again. A monitor that cannot see is the one condition it has to be loud
+# about, because it is indistinguishable from a quiet day in the output.
+#
+# Matched on "the flash test vector" rather than on any one of the four wordings
+# ft_acquire() can fail with, because that phrase is the decision - it is the
+# board saying it swapped the input - and the four reasons are prose that will
+# be reworded. RESULT is the same event seen from demo.py's end and is kept
+# because it is the line that survives if the camera block is ever quietened.
+NO_CAMERA = re.compile(r"^camera\s*:.*flash test vector|^RESULT\s*:\s*FAIL - no camera")
+
+# How many consecutive no-camera runs --restart will sit through before it stops
+# and says so. See supervise(): a policy, not a measurement.
+BLIND_TRIES = 3
+
+# Not a failure - the board got pictures and is telling you it does not trust
+# the exposure behind them. Worth one line on stderr and nothing more, because
+# a genuinely dark room is a legitimate scene and refusing it would be this
+# program deciding it knows the lighting better than the person standing in it.
+CAM_DOUBT = re.compile(r"EXPOSURE NEVER SETTLED|^\s+the exposure never moved")
+
 
 def now() -> datetime:
     return datetime.now(timezone.utc).astimezone()
@@ -422,14 +455,21 @@ def bootsel_note(port: str | None) -> str | None:
 
 
 def run_once(args, queries: list[str], sched: list[str], deb: Debounce,
-             sink) -> int:
-    """One demo.py lifetime. Returns its exit code."""
+             sink) -> tuple[int, str | None]:
+    """One demo.py lifetime.
+
+    Returns (exit code, the board's camera complaint or None). The second half
+    is separate from the exit code because they are different questions: a board
+    whose camera failed still exits 0 having "run", and the caller needs to know
+    it was scoring a test vector before it decides to do that again.
+    """
     proc = subprocess.Popen(demo_command(args, queries, sched),
                             stdout=subprocess.PIPE, stderr=None,
                             text=True, bufsize=1, cwd=ROOT)
     mode = "enrolled" if sched else "text"
     want_classes = len(sched)
     ready = Ready(want_classes)
+    no_camera = None
     try:
         for line in proc.stdout:
             if args.verbose:
@@ -441,10 +481,24 @@ def run_once(args, queries: list[str], sched: list[str], deb: Debounce,
                 # holding a glass still is going to get.
                 if line.startswith("enrol "):
                     sys.stderr.write(line)
+                # Kept first-wins. ft_acquire() prints the reason and then
+                # demo.py prints RESULT, so both match on the same failure and
+                # the first is the specific one.
+                if no_camera is None and NO_CAMERA.search(line):
+                    no_camera = line.strip()
+                    print(f"\nNO CAMERA: {no_camera}", file=sys.stderr)
+                    print("           the board is scoring the flash test "
+                          "vector, so every line below is about a picture it "
+                          "did not take", file=sys.stderr)
+                elif CAM_DOUBT.search(line):
+                    print(f"doubt   : {line.strip()}", file=sys.stderr)
                 if ready.observe(line):
                     print(f"ready   : {ready.why}", file=sys.stderr)
                 continue
-            if not ready:
+            # A frame off the flash test vector is not a frame. Dropped here
+            # rather than at the source so the doubt above still gets printed
+            # and the run still ends the way any other run ends.
+            if no_camera or not ready:
                 continue
             frame, name, margin = got
             change = deb.push(name, margin)
@@ -469,7 +523,7 @@ def run_once(args, queries: list[str], sched: list[str], deb: Debounce,
         if proc.poll() is None:
             proc.kill()
             proc.wait(timeout=5)
-    return proc.returncode or 0
+    return proc.returncode or 0, no_camera
 
 
 def install_stop_signals() -> None:
@@ -611,12 +665,32 @@ def supervise(args, sched: list[str], jsonl) -> int:
         return 1
 
     runs = 0
+    blind = 0
     try:
         while True:
             runs += 1
-            code = run_once(args, args.queries, sched, deb, sink)
+            code, no_camera = run_once(args, args.queries, sched, deb, sink)
+            blind = blind + 1 if no_camera else 0
             if not args.restart:
-                return code
+                return code or (2 if no_camera else 0)
+            # A camera that hands back nothing does not usually fix itself, and
+            # relaunching into it is a loop that runs until somebody notices -
+            # which for a monitor left alone is the failure mode, not a
+            # recovery. Two more tries and then stop with the board's own words.
+            #
+            # BLIND_TRIES IS A POLICY AND NOT A MEASUREMENT. Nobody has benched
+            # how often a camera comes back on its own; the number says how much
+            # patience is worth spending before an unattended run should be
+            # loud, and one try is too few because a reflash or a power cycle
+            # mid-run legitimately produces one bad acquire.
+            if blind >= BLIND_TRIES:
+                print(f"\nstopping after {blind} runs with no camera. The last "
+                      f"thing the board said was:\n  {no_camera}\n"
+                      f"A covered lens or an unlit room is the first thing to "
+                      f"check - `uv run --script host/cue.py --frame-check` "
+                      f"writes a PNG of what the sensor actually sees.",
+                      file=sys.stderr)
+                return 2
             # The enrolment schedule is a one-shot: relaunching demo.py would
             # re-run it, and the operator is not standing there any more. A
             # restarted monitor comes back in text mode unless the board kept
