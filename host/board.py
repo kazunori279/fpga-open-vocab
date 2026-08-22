@@ -27,6 +27,7 @@ that answers it is the vendor ID.
 """
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
@@ -57,16 +58,22 @@ RP2350_VID = "2E8A"
 _WHERE: tuple[str, str] | None = None
 
 
-def note_where() -> tuple[str, str] | None:
-    """Remember which hub port the board is on. Call it while it is still on."""
-    global _WHERE  # noqa: PLW0603  - a process-wide cache is the point: the
-    # whole reason this exists is that the answer must outlive the board leaving
-    # the bus, so it cannot live on anything the caller holds.
+def on_bus() -> tuple[str, str, str] | None:
+    """(hub, port, what uhubctl calls it) for the RP2350, or None if it is gone.
+
+    This is a different question from `ports()` and the difference is the whole
+    reason it exists. `ports()` asks whether the board is presenting a *serial*
+    node; this asks whether it is on the bus at all. In BOOTSEL the answer is
+    yes-and-no: enumerated, visible, mass storage, no CDC. Reporting that as
+    "not enumerating" sends the reader after issue #9's outage instead of at a
+    board that is sitting there waiting for a .uf2 - and the advice for the
+    outage is a power cycle, which would drop it out of BOOTSEL.
+    """
     try:
         out = subprocess.run(["uhubctl"], capture_output=True, text=True,
                              timeout=20, check=False).stdout
     except (FileNotFoundError, subprocess.SubprocessError):
-        return _WHERE
+        return None
     hub = None
     for line in out.splitlines():
         m = re.match(r"\s*Current status for hub (\S+)", line)
@@ -75,8 +82,19 @@ def note_where() -> tuple[str, str] | None:
             continue
         m = re.match(r"\s*Port (\d+):", line)
         if m and hub and f"{RP2350_VID.lower()}:" in line.lower():
-            _WHERE = (hub, m.group(1))
-            break
+            desc = re.search(r"\[([^\]]*)\]", line)
+            return (hub, m.group(1), desc.group(1) if desc else line.strip())
+    return None
+
+
+def note_where() -> tuple[str, str] | None:
+    """Remember which hub port the board is on. Call it while it is still on."""
+    global _WHERE  # noqa: PLW0603  - a process-wide cache is the point: the
+    # whole reason this exists is that the answer must outlive the board leaving
+    # the bus, so it cannot live on anything the caller holds.
+    seen = on_bus()
+    if seen:
+        _WHERE = (seen[0], seen[1])
     return _WHERE
 
 
@@ -111,9 +129,13 @@ def neighbours() -> str:
 def pick_port() -> str:
     hits = ports()
     if not hits:
+        seen = on_bus()
+        where = (f" It IS on the bus at {seen[0]}:{seen[1]} as `{seen[2]}`, so "
+                 f"it is in BOOTSEL and needs flashing, not recovering."
+                 if seen else " It is not on the bus at all.")
         raise SystemExit(
             f"no RP2350 CDC port (USB VID {RP2350_VID}) found. Other modems: "
-            f"{neighbours()}. Is the board plugged in, or still in BOOTSEL?")
+            f"{neighbours()}.{where}")
     if len(hits) > 1:
         raise SystemExit("several RP2350s, pass --port: "
                          + ", ".join(p.device for p in hits))
@@ -123,10 +145,31 @@ def pick_port() -> str:
 
 if __name__ == "__main__":
     port = find_port()
-    if port is None:
-        print(f"no RP2350 (VID {RP2350_VID}) - the board is not enumerating.",
+    if port is not None:
+        print(port)
+        sys.exit(0)
+
+    # Two failures wear the same symptom here - no CDC node - and they want
+    # opposite things done. Tell them apart before printing advice.
+    seen = on_bus()
+    if seen:
+        hub, prt, desc = seen
+        print(f"RP2350 is on the bus at {hub}:{prt} as `{desc}`, with no CDC "
+              f"port. That is BOOTSEL: it is enumerating fine and running no "
+              f"firmware.", file=sys.stderr)
+        print("  uv run host/bootsel.py --flash firmware/build/forgix_m9.uf2",
               file=sys.stderr)
-        print(f"  other modems: {neighbours()}", file=sys.stderr)
-        print(f"  {recover()}", file=sys.stderr)
+        print("  Do NOT power-cycle the hub. That is the other failure's fix, "
+              "and here it only drops the board out of BOOTSEL.",
+              file=sys.stderr)
+        if os.path.isdir("/Volumes/RP2350"):
+            print("  /Volumes/RP2350 is mounted. Never copy the .uf2 to it - "
+                  "see docs/building.md; bootsel.py unmounts it for you.",
+                  file=sys.stderr)
         sys.exit(1)
-    print(port)
+
+    print(f"no RP2350 (VID {RP2350_VID}) - the board is not on the bus.",
+          file=sys.stderr)
+    print(f"  other modems: {neighbours()}", file=sys.stderr)
+    print(f"  {recover()}", file=sys.stderr)
+    sys.exit(1)

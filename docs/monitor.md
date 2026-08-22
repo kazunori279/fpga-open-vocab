@@ -178,7 +178,7 @@ anything you care about** — this repository has twice lost logs left in `/tmp`
 | events every few seconds | raise `--confirm`; if that does not fix it, the contrast is the problem |
 | one state never wins | an absence phrase — `fit.md` Screen 0 |
 | "nothing there" never fires | the known 1/12 above; bench that transition |
-| `no /dev/cu.usbmodem*` | `uv run --script host/board.py` says which port and why not |
+| `no /dev/cu.usbmodem*` | `uv run --script host/board.py` says which port and why not — including the case where the board is *there* and in BOOTSEL, which wants a flash and not a power cycle |
 
 And the thing to do when none of that helps is to bench it properly rather than
 tune flags: `fit.md` Screen 2, three runs on three different days, and believe
