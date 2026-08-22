@@ -100,6 +100,36 @@ every row carries the drift of the rows before it. It is the right instrument fo
 "does this register do anything" and the wrong one for "what should the number
 be".
 
+## Does this invalidate the archive? No, and here is the number
+
+The first question after a fix like this is whether every recognition figure in
+`bench/cue/` has to be thrown away. Replaying the `exposure ramp` line out of all
+39 archived logs and applying the new predicate to the ramp each one recorded:
+
+**33 of 39 reported `settled` while still climbing.** The four that did not are
+the ones that spent the whole 40-frame budget, and two of those are the same run
+(`20260816-172256` and its `fake_d` copy).
+
+That is the point. The fault is **near-universal, so it is a constant and not a
+variable**, and a constant cannot explain a spread. Joining the terminal ramp
+luma against `probe_ceiling.py`'s columns over the 27 scored benches:
+
+| | ceiling `best` | `lost` |
+| --- | --- | --- |
+| all 27 benches | r = **−0.099** | r = **+0.027** |
+| the book pair, 20 runs | r = **−0.324** | r = **+0.078** |
+
+Nothing, and what little there is points the wrong way. The brightest book bench
+on record (`133552`, luma 138) lost 37 points to #19; the darkest usable one
+(`073335`, luma 41) reached a 99.4% ceiling and lost 3.3. The book pair's 1.000
+run sits at luma 132 and its 0.579 run at luma 123.
+
+So: the archive is under-exposed, the numbers in it were measured on
+under-exposed frames, and **exposure is not the hidden variable behind #19, #18
+or the 42-point ceiling spread**. It was worth ruling out and it is ruled out.
+What the fix buys is future benches that are not doing this, and one fewer
+per-boot coin flip in anything measured from here on.
+
 ## Files
 
 | file | what it is |
