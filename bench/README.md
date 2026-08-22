@@ -46,6 +46,32 @@ replay column, and the correction that went in with `2e48d86` moved them the
 wrong way. The manifest below carries both columns so the next person does not
 have to guess which one a row came from.
 
+### The one disagreement that is neither column being wrong
+
+The two can also part company because **the operator pressed the wrong digit**,
+and that case is worth naming because both numbers look reportable.
+
+The board binds `'1'`..`'6'` to the query list by position and checks nothing
+about what is in front of the lens. Every offline tool instead labels a
+reference by the cued segment its enrolment window fell in. Press `'1'` while
+holding up the other state and the two disagree silently, in opposite
+directions.
+
+`m9_cue-20260823-0710` is the worked example, and it is why that sidecar is
+VOID. Key 1 was pressed during the `an opened book` segment against a board that
+had bound key 1 to `a closed book`, so both references went in swapped.
+`score_cue.py` read the board and reported **15.0%** held out with
+`an opened book 0/60`; `probe_ceiling.py` relabelled off the cues, quietly
+undid the mistake, and reported **85.0%** and `the pair works`. The exact
+complement, seventy points apart, for a run that never happened — and the
+presence gate had nothing to do with it, the worst class sitting at 1.86 sep
+against a 2.0 trip.
+
+`tools/probe_reject.py`'s `load()` refuses this shape now, so the next one stops
+at the tool rather than in a table. It only fires on a genuine permutation: a
+board whose query names are a *different set* from the cued labels is a
+different fault with its own message.
+
 ## Manifest
 
 `live` is `HELD OUT`, `replay` is `one visit per state, then held out`; `—`

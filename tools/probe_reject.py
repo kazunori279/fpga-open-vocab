@@ -46,6 +46,10 @@ from pathlib import Path
 FRAME = re.compile(r"^frame\s+(\d+) :\s+(.*?)\s+led")
 SCORE = re.compile(r"(\S.*?)\s([-+]\d+\.\d+)\*?(?=\s|$)")
 LVL = re.compile(r"\slvl([-+][\d.]+)")
+# What the board said it was enrolling when the operator pressed a digit. The
+# digit is bound to a query by position, and nothing on the board checks that
+# the scene in front of it is that query - see the crossed-keys guard in load().
+BOUND = re.compile(r"enrol\s*: the next \d+ frames are '([^']+)'")
 EMPTY = "empty"                     # MUST MATCH host/cue.py
 BASELINE = "baseline"
 
@@ -77,8 +81,9 @@ def load(log: Path):
         # the two tools report different denominators for the same run.
         spans.append((int(a) + settle, int(b), label))
 
+    text_log = log.read_text(errors="replace")
     frames = {}
-    for line in log.read_text(errors="replace").splitlines():
+    for line in text_log.splitlines():
         if m := FRAME.match(line):
             z = {n: float(v) for n, v in SCORE.findall(m.group(2))}
             lv = LVL.search(line)
@@ -86,6 +91,48 @@ def load(log: Path):
     if not enrol:
         raise SystemExit(f"{log}: no enrolment in the sidecar - this rule needs "
                          f"references. Run ./ab.sh ... --enrol")
+
+    # CROSSED KEYS, AND WHY THIS HAS TO REFUSE RATHER THAN COPE. Every tool
+    # downstream of here labels a reference by the cued segment its enrolment
+    # window fell in - references() below, and the same arithmetic in
+    # score_cue.py. The BOARD labels it by which query the digit is bound to,
+    # positionally, and checks nothing about the scene. When the operator
+    # presses '1' while holding up the wrong state those two disagree, and the
+    # disagreement is silent on both sides.
+    #
+    # 2026-08-23 07:10 is what that costs. Key 1 was pressed during the opened
+    # book segment and the board had bound key 1 to 'a closed book', so the
+    # references went in swapped. score_cue.py read the board and reported
+    # HELD OUT 18/120 = 15.0% with `an opened book 0/60`. probe_ceiling.py
+    # relabelled both references off the cues, quietly undid the operator's
+    # mistake, and reported state 85.0% and `the pair works` - the exact
+    # complement, and a number no board produced. Seventy points, with the
+    # presence gate untouched: the worst class sat at 1.86 sep against a 2.0
+    # trip, so nothing was rejected and the usual explanation does not apply.
+    #
+    # Only a genuine PERMUTATION trips this. If the board's names and the cued
+    # labels are different sets - the `~`-suffixed query sets of 08-20 13:12
+    # and 14:22 - that is a different fault with a clearer message already
+    # waiting downstream, and this guard stays out of its way.
+    bound = [n.rstrip("~") for n in BOUND.findall(text_log)]
+    pressed = [f for f, k in enrol if k != "0"]
+    pairs = [(b, next((lab for a, z, lab in spans if a - 1 <= f + 2 <= z), None))
+             # strict=False deliberately: a run cut short mid-enrolment has
+             # fewer board lines than presses, and the pairs that DID land are
+             # still worth checking.
+             for b, f in zip(bound, pressed, strict=False)]
+    named = [(b, c) for b, c in pairs if c is not None]
+    if named and {b for b, _ in named} == {c for _, c in named}:
+        crossed = [(b, c) for b, c in named if b != c]
+        if crossed:
+            how = "; ".join(f"the board enrolled '{b}' from the '{c}' segment"
+                            for b, c in dict.fromkeys(crossed))
+            raise SystemExit(
+                f"{log}: the enrolment keys are crossed - {how}. The board and "
+                f"the cues disagree about which reference is which, so every "
+                f"figure from this run is either the board's (wrong) or this "
+                f"tool's (a run that never happened). Mark the sidecar VOID.")
+
     return spans, frames, enrol, window
 
 

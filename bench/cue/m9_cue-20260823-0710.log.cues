@@ -1,0 +1,26 @@
+# host/cue.py, settle 10, hold 30, baseline 30, bg-tau 30
+# demo.py (no extra flags)
+# log bench/cue/m9_cue-20260823-0710.log
+# VOID the enrolment keys are crossed. Key 1 was pressed during the 'an opened book' segment and the board had bound key 1 to 'a closed book', so both references went in swapped. The board's own figure is 15.0% held out with 'an opened book' 0/60; probe_ceiling.py relabels off these cues and read 85.0%, the exact complement, for a run that never happened. Neither number is about the book pair. The frames are kept because the swap is the record of it. tools/probe_reject.py refuses this shape now without needing the line.
+# enrol-window 20
+# enrol 72 1
+# enrol 112 2
+# enrol 192 1
+# enrol 232 2
+# snap 84
+# snap 124
+# snap 204
+# snap 244
+30	59	baseline
+60	99	an opened book
+100	139	a closed book
+140	179	empty
+180	219	an opened book
+220	259	a closed book
+260	299	empty
+300	339	an opened book
+340	379	a closed book
+380	419	empty
+420	459	an opened book
+460	499	a closed book
+500	539	empty
