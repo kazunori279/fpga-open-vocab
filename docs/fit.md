@@ -27,9 +27,11 @@ What it is **not**:
   pooled cross-scene AUC where its own teacher reads **0.811**
   ([`bench/stills/README.md`](../bench/stills/README.md#ten-contrasts-because-two-was-measuring-the-wrong-noise)).
   That gap is not for want of trying: six distillation losses moved it by
-  nothing at all, training twice as long moved it by nothing at all, and
-  quadrupling the training data bought 0.05 of the 0.17. The
-  enrolment step is not a convenience. It is the thing carrying the accuracy.
+  nothing at all, training twice as long moved it by nothing at all, quadrupling
+  the training data bought 0.05 of the 0.17, and the largest knob found so far —
+  the InfoNCE weight, worth 0.08 — was already set to its best value before
+  anybody measured it. The enrolment step is not a convenience. It is the thing
+  carrying the accuracy.
 - **Not a fixed-accuracy component.** Four pairs benched back to back on one
   afternoon scored **95.8 / 90.8 / 50.0 / 34.2%**. What the appliance does
   depends on what you ask it to tell apart, and the spread is the headline

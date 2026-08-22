@@ -1,0 +1,97 @@
+==============================================================================
+THE ONE KNOB THAT MOVED IT, AND THE CHEAP METRIC WOULD HAVE TURNED IT TOO FAR
+scored 2026-08-22 by tools/probe_bisect.py --paired --json, one pass per
+checkpoint per set, all three in the plain basis.
+
+Every checkpoint in this project has been trained at --infonce 0.3. It was
+inherited from the first distillation script and never measured. These are
+the two neighbouring points, 30 000 images and 20 epochs, everything else
+held identical (batch 512, lr 0.006, rkd 0, text 0, same target file):
+
+run              nce      book   glass  laptop  refrig    oven  toilet  umbrel  suitca    bowl     bed    mean
+so400m-s30k-nce00 0.0    0.608   0.522   0.393   0.639   0.471   0.430   0.325   0.556   0.658   0.560   0.516
+so400m-s30k       0.3    0.565   0.600   0.616   0.714   0.604   0.435   0.421   0.646   0.742   0.618   0.596
+so400m-s30k-nce10 1.0    0.577   0.562   0.577   0.698   0.537   0.427   0.446   0.628   0.779   0.587   0.582
+
+teacher 1152             0.907   0.933   0.781   0.786   0.850   0.579   0.715   0.894   0.819   0.847   0.811
+pca 512 (plain)          0.917   0.933   0.775   0.804   0.873   0.595   0.725   0.888   0.866   0.872   0.825
+
+Paired differences over the ten sets:
+  0.0 -> 0.3 : +0.080 +-0.022
+  0.3 -> 1.0 : -0.014 +-0.010
+  0.0 -> 1.0 : +0.066 +-0.020
+
++0.080 is the largest effect any training knob has produced on this eval.
+For scale, in the same units and on the same ten sets: six distillation
+losses moved the mean by nothing, doubling the schedule moved it by nothing
+(-0.011 +-0.026), and quadrupling the training data bought +0.051 +-0.020.
+Turning the InfoNCE term on is worth more than 4x the images.
+
+0.0 is worse on nine of the ten sets and the exception is book, +0.043. The
+loss is spread rather than carried by one row: laptop -0.223, oven -0.133,
+umbrella -0.096, suitcase -0.090, bowl -0.084, glass -0.078, refrigerator
+-0.075, bed -0.058, and toilet -0.005, which is toilet doing what toilet
+always does. Without the contrastive term the student regresses onto teacher
+vectors and keeps the cone without keeping the directions inside it.
+
+AND NOW THE PART WORTH THE FILE
+-------------------------------
+Holdout top-1, the number model/distill.py prints every epoch:
+
+  infonce   holdout top-1    ten contrasts
+     0.0        0.126            0.516
+     0.3        0.375            0.596
+     1.0        0.434            0.582
+
+Top-1 climbs monotonically and by a lot: 0.126 to 0.434 is a factor of 3.4.
+The product metric peaks in the middle and comes back down. A search run on
+the cheap number picks 1.0 and ships a checkpoint 0.014 worse, having watched
+its headline figure improve by +0.059 on the way.
+
+This is the third time these two have disagreed - see the 20-vs-40-epoch pair
+in 20260822-epochs-10contrast.log, where top-1 went +0.054 while the
+contrasts went -0.011 - and it is the clearest, because here the cheap metric
+is not merely insensitive but confidently wrong about the direction.
+
+The reason is not mysterious. InfoNCE is a retrieval objective and holdout
+top-1 is a retrieval measurement, so raising the weight buys the metric
+directly. Pooled cross-scene AUC asks a different question: tell this object
+state from that one, in a room you have not seen. Retrieval and discrimination
+want different amounts of the same term.
+
+So 0.3 was right, by inheritance rather than by measurement, and it is right
+by a margin small enough (-0.014 +-0.010 against 1.0) that nobody would have
+noticed it being wrong. Leave it there. It is not a fifth constant and there
+is no schedule to tune around it - two neighbouring points is what was
+measured and two is what may be claimed.
+
+REPRODUCING
+-----------
+model/runs/ is gitignored, so the commands are here.
+
+  for nce in 0.0 1.0; do
+    n=$(echo $nce | tr -d .); n=${n:0:2}
+    uv run model/distill.py --split train2017 --epochs 20 \
+        --batch 512 --lr 0.006 --infonce $nce --subset 30000 \
+        --targets model/cache/emb_train2017_SO400M-pca512_s30000.npy \
+        --name so400m-s30k-nce$n
+  done
+
+  for r in so400m-s30k-nce00 so400m-s30k-nce10; do
+    for s in book glass laptop refrigerator oven toilet umbrella suitcase bowl bed; do
+      d=20260822-synth-$s-crop; q=bench/stills/$d/queries.txt
+      uv run --script tools/probe_bisect.py \
+         --a bench/stills/$d/pos --b bench/stills/$d/neg \
+         --pos "$(sed -n 1p $q)" --neg "$(sed -n 2p $q)" \
+         --paired --keep bench/stills/$d/keep.txt --runs $r \
+         --json model/runs/_full_score_${r}_$s.json
+    done
+  done
+
+The 0.3 row is so400m-s30k, read from model/runs/_text_score_select_*.json,
+which scored it alongside the text sieve on these same sets. All three share
+one target file, so the teacher and pca rows are one set of numbers for all
+three and the comparison never crosses a space.
+
+The two -a05 checkpoints are NOT in this table. They live in a differently
+whitened basis and belong to their own log.

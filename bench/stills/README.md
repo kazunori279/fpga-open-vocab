@@ -234,7 +234,9 @@ and how long**, and the fleet finally reads a difference. Log in
 basis, and `full-a05` over `s30k-a05` is +0.070 ± 0.020 in the α = 0.5 one. Those
 two comparisons are each within a basis, which is what makes them clean. Set
 against six loss terms that between them moved the mean by −0.034 to −0.007, this
-is the first setting in the project that the eval can see.
+was the first setting anyone varied that the eval could see. It is no longer the
+largest: `--infonce`, below, is +0.080, and it had been sitting at one value in
+every run on this page.
 
 **And it is the data, not the schedule.** `so400m-full` moved two things at once
 — 4× the images *and* 2× the epochs — so the missing cell was trained: 30 000
@@ -261,6 +263,32 @@ product. The 118k run's 0.650 is not wrong either, it just cannot be read as
 constant, and this pair of runs is the demonstration. **The eval that answers a
 question is the one downstream of it**, which is the argument for
 [`fit.md`](../../docs/fit.md) and for these sets existing at all.
+
+**The biggest knob was the one nobody had ever turned.** Every checkpoint above
+was trained at `--infonce 0.3`, inherited from the first distillation script and
+never measured. Its two neighbours, at 30k and 20 epochs with everything else
+held, are in
+[`20260822-infonce-10contrast.log`](20260822-infonce-10contrast.log):
+
+| run | infonce | book | glass | laptop | refrig | oven | toilet | umbrel | suitca | bowl | bed | mean |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| so400m-s30k-nce00 | **0.0** | .608 | .522 | .393 | .639 | .471 | .430 | .325 | .556 | .658 | .560 | .516 |
+| so400m-s30k | 0.3 | .565 | .600 | .616 | .714 | .604 | .435 | .421 | .646 | .742 | .618 | .596 |
+| so400m-s30k-nce10 | **1.0** | .577 | .562 | .577 | .698 | .537 | .427 | .446 | .628 | .779 | .587 | .582 |
+
+Turning it on is **+0.080 ± 0.022**, which is larger than quadrupling the images.
+Turning it up to 1.0 is **−0.014 ± 0.010**. So 0.3 is at or near the optimum, and
+was right by inheritance rather than by measurement.
+
+**And here the training-time metric is not merely blind, it points the wrong
+way.** Holdout top-1 across the same three runs goes **0.126 → 0.375 → 0.434**,
+monotone and by a factor of 3.4, while the contrasts peak in the middle. A search
+run on the cheap number picks 1.0, ships a checkpoint 0.014 worse, and watches its
+headline figure improve by +0.059 on the way. The mechanism is plain enough once
+stated: InfoNCE is a retrieval objective and holdout top-1 is a retrieval
+measurement, so raising the weight buys that metric directly. Pooled cross-scene
+AUC is asking something else. This is the third disagreement between the two
+numbers and the first where the direction, not just the size, is wrong.
 
 **Whitening α = 0.5 is not the reason.** It is +0.009 ± 0.014 at 118k and
 −0.021 ± 0.016 at 30k: the sign flips with the other variable, which is the same

@@ -11,6 +11,46 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-22, last — the knob nobody turned, and the cheap metric would have turned it the wrong way
+
+Two entries below, the training-time number and the product number disagree by
+being insensitive to each other. Here they disagree about the direction, which is
+worse and much more useful.
+
+`--infonce 0.3` has been in every distillation command in this project. It came
+out of the first script and was never varied, so the fortnight spent ranking loss
+terms was ranking additions *on top of* a term nobody had measured. Its two
+neighbours at 30k/20ep, everything else held
+([`bench/stills/20260822-infonce-10contrast.log`](../bench/stills/20260822-infonce-10contrast.log)):
+
+```
+  infonce   holdout top-1    ten contrasts
+     0.0        0.126            0.516
+     0.3        0.375            0.596
+     1.0        0.434            0.582
+
+  0.0 -> 0.3 : +0.080 +-0.022
+  0.3 -> 1.0 : -0.014 +-0.010
+```
+
+**+0.080 is the largest effect any training setting has produced on this eval** —
+larger than quadrupling the images, which is +0.051. And holdout top-1 climbs
+monotonically by a factor of 3.4 straight through the point where the product
+metric turns around. A sweep run on the cheap number picks 1.0, ships a
+checkpoint 0.014 worse, and reports +0.059 for the trouble.
+
+Nothing changes on the board. 0.3 was already right, by inheritance, and the
+margin over 1.0 is small enough that nobody would have caught it being wrong.
+Two neighbouring points is what was measured and two is what may be claimed:
+this is not a schedule and it is not a new constant.
+
+The mechanism does not need a theory. InfoNCE is a retrieval objective and
+holdout top-1 is a retrieval measurement, so the weight buys the metric directly.
+Pooled cross-scene AUC asks whether the student can tell an object state from its
+opposite in a room it has not seen. The standing rule from the entry below holds
+and now has a third instance behind it: **`distill.py` never ranks a checkpoint.
+`tools/probe_bisect.py` over the ten sets does.**
+
 ### 2026-08-22, evening — the first live run of the monitor, and the two bugs no corpus was going to find
 
 `host/watch.py` had been checked against 14 874 recorded frame lines and had

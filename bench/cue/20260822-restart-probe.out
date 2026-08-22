@@ -1,0 +1,66 @@
+watching: a desk
+mode    : text - MATCH is against a calibrated threshold, see docs/fit.md
+states  : your queries, plus 'nothing there' and 'unrecognised'
+confirm : 5 frames
+bitstream : rtl/bitstreams/m16/gemm_top_wide.hex (Efinity ASCII hex), 173124 bytes, crc32=0x0A2E9953
+export    : model/runs/so400m-full-a05/export/weights.bin, run so400m-full-a05, 780720 bytes, crc32=0xF368CC6E
+thresholds: model/cache/thresholds_so400m-full-a05.json, 67 queries at 10% FPR on camera geometry, median z 1.23
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates, on mps
+space     : projected by emb_train2017_SO400M-pca512-a0.5.basis.npz -> 512-d
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+embeddings: model/cache/eval_int8_so400m-full-a05_camera.npy, 5000 x 512 on camera geometry - free-text queries get measured calibration, not the median
+query     : a desk               plain    z> 1.23 (background -0.148 +-0.052, cos -0.084)   measured on 5000 eval images, z from the median row
+            1 calibrated from the embedding cache (a desk) - measured, but over all images rather than that query's negatives, and with no AUC behind the threshold
+queries   : 1 x 512-d, 2104 bytes, background frozen after 30 frames, room spread, z smoothed
+no RP2350 CDC port (USB VID 2E8A) found. Other modems: /dev/cu.usbmodem3102. It IS on the bus at 2-1:2 as `2e8a:000f Raspberry Pi RP2350 Boot 118E1FFA149C9E95`, so it is in BOOTSEL and needs flashing, not recovering.
+
+(demo.py exited [1] after run 1; relaunching in 3s - Ctrl-C to stop)
+bitstream : rtl/bitstreams/m16/gemm_top_wide.hex (Efinity ASCII hex), 173124 bytes, crc32=0x0A2E9953
+export    : model/runs/so400m-full-a05/export/weights.bin, run so400m-full-a05, 780720 bytes, crc32=0xF368CC6E
+thresholds: model/cache/thresholds_so400m-full-a05.json, 67 queries at 10% FPR on camera geometry, median z 1.23
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates, on mps
+space     : projected by emb_train2017_SO400M-pca512-a0.5.basis.npz -> 512-d
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Traceback (most recent call last):
+  File "/Users/kaz/Documents/GitHub/fpga-open-vocab/host/demo.py", line 1469, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/Users/kaz/Documents/GitHub/fpga-open-vocab/host/demo.py", line 874, in main
+    names, vecs, cal, roles = enc.encode(args.queries, args.gate)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kaz/Documents/GitHub/fpga-open-vocab/host/demo.py", line 470, in encode
+    model = self._clip()
+            ^^^^^^^^^^^^
+  File "/Users/kaz/Documents/GitHub/fpga-open-vocab/host/demo.py", line 404, in _clip
+    self.model, self.tokenizer = teacher.load_spec(self.spec,
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kaz/Documents/GitHub/fpga-open-vocab/model/teacher.py", line 126, in load_spec
+    model, _, _ = open_clip.create_model_and_transforms(name, pretrained=pretrained)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kaz/.cache/uv/environments-v2/demo-baf714d86c3f3e96/lib/python3.12/site-packages/open_clip/factory.py", line 930, in create_model_and_transforms
+    model = create_model(
+            ^^^^^^^^^^^^^
+  File "/Users/kaz/.cache/uv/environments-v2/demo-baf714d86c3f3e96/lib/python3.12/site-packages/open_clip/factory.py", line 501, in create_model
+    model = model_class(**final_model_cfg, cast_dtype=cast_dtype)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kaz/.cache/uv/environments-v2/demo-baf714d86c3f3e96/lib/python3.12/site-packages/open_clip/model.py", line 500, in __init__
+    self.text = _build_text_tower(embed_dim, text_cfg, quick_gelu, cast_dtype)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kaz/.cache/uv/environments-v2/demo-baf714d86c3f3e96/lib/python3.12/site-packages/open_clip/model.py", line 235, in _build_text_tower
+    text = TextTransformer(
+           ^^^^^^^^^^^^^^^^
+  File "/Users/kaz/.cache/uv/environments-v2/demo-baf714d86c3f3e96/lib/python3.12/site-packages/open_clip/transformer.py", line 1032, in __init__
+    self.init_parameters()
+  File "/Users/kaz/.cache/uv/environments-v2/demo-baf714d86c3f3e96/lib/python3.12/site-packages/open_clip/transformer.py", line 1047, in init_parameters
+    nn.init.normal_(block.mlp.c_proj.weight, std=proj_std)
+  File "/Users/kaz/.cache/uv/environments-v2/demo-baf714d86c3f3e96/lib/python3.12/site-packages/torch/nn/init.py", line 298, in normal_
+    return _no_grad_normal_(tensor, mean, std, generator)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kaz/.cache/uv/environments-v2/demo-baf714d86c3f3e96/lib/python3.12/site-packages/torch/nn/init.py", line 83, in _no_grad_normal_
+    return tensor.normal_(mean, std, generator=generator)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+stopped.
