@@ -11,6 +11,66 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-22, evening — the first live run of the monitor, and the two bugs no corpus was going to find
+
+`host/watch.py` had been checked against 14 874 recorded frame lines and had
+never once talked to a board. Flashing a fresh `forgix_m9` and pointing it at a
+desk with the single text query `a desk` took about fifteen minutes and produced
+two failures, neither of which the recorded corpus could have shown.
+
+**It reported `a desk`.** The board had scored the phrase at −0.10 against a
+threshold of 1.23, printed a bare `-`, and `demo.py`'s own tally at the end of
+the run says `no match 166 frames (100%)`. `firmware/m9.c:2366-2377` emits three
+verdicts and this file read two of them: a `MATCH` line, a `- (nothing there)`
+when the presence gate is closed, and a bare `-` when the gate is open and
+nothing cleared its threshold. That third case fell through to a branch that
+read the per-frame score leaderboard and announced the argmax.
+
+The branch was named for text mode, and the name is what hid it. The leaderboard
+is printed on every frame, so it read as the no-enrolment path — but a query
+that clears its threshold produces a `MATCH` line, so *the only frames that ever
+reach the branch are frames the board has already declined*. It was not a
+fallback. It was an override, and it was unconditional in text mode.
+
+Why fourteen thousand lines missed it: 3 722 of them take that path, all from
+`--enrol` runs, and with classes enrolled the argmax and the verdict agree on
+every frame that survives `--confirm`. Replaying all three cue runs through the
+old parser and the new one gives byte-identical event streams. The measured
+table in [`monitor.md`](monitor.md) did not move, which is the uncomfortable
+part: a corpus can be large, real, and structurally incapable of exercising the
+mode you are about to ship.
+
+The fix deletes the leaderboard reader and splits the two declines into two
+states, `nothing there` and `unrecognised`, because on a monitor they are
+different events — the parcel is gone, against there is something on the step
+and it is not the parcel. Also gone: a single-query margin of `0.0`, two lines
+below a docstring paragraph explaining why a margin must never be `0.0`. The
+`, by N` form at m9.c:2372 appears nowhere in `bench/cue/` and would have fallen
+through the same way; it parses now.
+
+**Then it could not be stopped.** The smoke run was backgrounded and survived
+`kill -INT`. A shell without job control sets SIGINT to `SIG_IGN` in the child
+and CPython leaves an inherited `SIG_IGN` alone, so `watch.py … &` in a script,
+`nohup` and a launchd plist all produce a monitor that ignores Ctrl-C and dies
+only to a signal that skips every `finally` and orphans `demo.py` holding the
+port. That is exactly the unattended case the docs recommend. Both signals are
+installed explicitly now and the child teardown escalates rather than sending
+one polite signal to a process that inherited the same deafness.
+
+**Two smaller things from the same fifteen minutes.** The board came up in
+BOOTSEL and `host/board.py` said "not enumerating" and pointed at issue #9's
+power cycle, while `uhubctl` was plainly showing `2e8a:000f Raspberry Pi RP2350
+Boot` at 2-1:2. Two failures wear one host-side symptom — no CDC node — and they
+want opposite things done, since a power cycle drops a board *out* of BOOTSEL.
+`board.py` now asks whether the RP2350 is on the bus at all, separately from
+whether it presents a serial node, and prints the flash command for the one and
+the recovery command for the other. And `picotool load` wrote in 2.9 s and
+verified as not-written; `host/bootsel.py --flash` handled it exactly as its
+docstring says it would — cycled the hub port, re-entered BOOTSEL, wrote in
+15.5 s, verified.
+
+Evidence for all of the above is in `bench/cue/20260822-watch-smoke.{log,jsonl,out}`.
+
 ### 2026-08-22, later still — it was the data, and the metric that watched it happen looked the other way
 
 The entry below reports +0.040 for `so400m-full` over `so400m-s30k` and says the
