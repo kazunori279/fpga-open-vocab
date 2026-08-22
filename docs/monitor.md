@@ -63,24 +63,39 @@ and framing are decided here, before ten minutes are spent on a run.
 # 1. Is my idea possible at all?  Minutes, no hardware.
 uv run --script tools/fit_check.py --pos "a red cube" --neg "a blue cube"
 
-# 2. Watch, using words only.  No setup, and no reject option.
+# 2. Watch, using words only.  No setup; the board answers against a threshold.
 uv run --script host/watch.py "a red cube / a blue cube / a cube"
 
 # 3. Watch, enrolled.  Six seconds per state, and the board can say "nothing".
 uv run --script host/watch.py --enrol "a red cube" "a blue cube"
 ```
 
-**Mode 2 has no reject.** The board ranks your phrases and the top one wins;
-point the camera at a bare wall and it will still name a state, because you
-never gave it the option of saying nothing is there. It is the mode for finding
-out in thirty seconds whether the camera is pointed at the right thing.
+**Both modes can decline**, and mode 2 declines often. A text query is compared
+against a calibrated threshold rather than against the other phrases, so on a
+scene that fits none of them the board says so instead of picking a favourite.
+Pointed at a desk with the single query `a desk`, a 166-frame run on 2026-08-22
+reported `unrecognised` on all 166.
 
 **Mode 3 is the appliance.** `--enrol` walks you through holding each state in
 front of the camera while the board takes a reference off twenty frames. From
-then on the board answers with its own verdict, which includes `unknown` when
-nothing it was shown is in frame. That is the decision rule
-[`architecture.md`](architecture.md) describes, and the accuracy numbers in this
-repository are all measured on it.
+then on a match is against those references under the two-stage rule
+[`architecture.md`](architecture.md) describes, which is the rule every accuracy
+number in this repository is measured on.
+
+### The three states the board can report
+
+Your query names are not the whole vocabulary. Every frame ends in one of three
+verdicts and `watch.py` reports whichever one the board printed:
+
+| state | what the board decided |
+| --- | --- |
+| one of your phrases | it cleared its threshold, or it is the nearest enrolled reference |
+| `nothing there` | the presence stage says the scene is empty |
+| `unrecognised` | something is in frame and none of your phrases fit it |
+
+`unrecognised` is worth wiring up rather than filtering out. On a monitor it is
+the difference between "the parcel is gone" and "there is something on the step
+and it is not the parcel".
 
 ## What it catches, measured
 
@@ -105,6 +120,15 @@ The glass row is not a different bug: `an empty glass` is an absence, `fit.md`
 Screen 0 says not to ask for one, and the board's own per-frame winner is right
 on 6.7% of the frames where that state is the truth. Debouncing a backwards axis
 produces steady, confident, wrong events.
+
+**These numbers are unchanged by the verdict fix**, which is worth stating
+because the fix was a real one. Until 2026-08-22 this file read the score
+leaderboard whenever the board's tail was a bare `-` and reported the top phrase,
+overriding a board that had just declined to name anything. Replayed through both
+parsers, all three runs below produce **byte-identical event streams** — with
+classes enrolled the two agree on every frame that survives `--confirm`. The bug
+was total in text mode and invisible here, which is why it took a live run to
+find and why the table did not have to move.
 
 **"The object went away" is not reliable — 1 of 12.** The reject option exists
 and does fire, but on these runs emptying the scene usually left the board still
@@ -146,9 +170,9 @@ while the run is still going:
  "margin": 5.72, "held": 252.0}
 ```
 
-`mode` is in every record on purpose. A file whose `mode` is `text` contains no
-`unknown` events — not because nothing was ever unrecognisable, but because
-nothing could be.
+`mode` is in every record on purpose: `enrolled` and `text` produce the same
+three kinds of state but a match means a different thing in each, so a file that
+mixes them without saying which is which cannot be read afterwards.
 
 `--on-change` gets `FGX_STATE`, `FGX_PREV`, `FGX_FRAME` and `FGX_MARGIN` in its
 environment. It is spawned and not waited on: a hook that blocks would stall the
@@ -166,6 +190,13 @@ reboot and nobody is standing there to hold the scenes again, so the run ends
 and says so rather than quietly continuing in a mode that means something
 different.
 
+**Ctrl-C stops it, and so does `kill -TERM`**, both of which close the serial
+port on the way out. That needed fixing rather than documenting: a shell without
+job control — `watch.py … &` in a script, `nohup`, a launchd plist — sets SIGINT
+to ignored in the child, and Python leaves an inherited SIG_IGN alone, so the
+first version of this file could not be stopped by any signal it would survive.
+It handles both signals explicitly now.
+
 The raw per-frame log keeps going to `--log` (default `/tmp/fgx-watch-demo.log`)
 if you need to see what the board actually said. **Move it somewhere real for
 anything you care about** — this repository has twice lost logs left in `/tmp`.
@@ -175,6 +206,7 @@ anything you care about** — this repository has twice lost logs left in `/tmp`
 | what you see | what it usually is |
 | --- | --- |
 | no events at all, ever | the states are too close; check `ready :` printed, then `tools/fit_check.py` |
+| always `unrecognised` | in text mode the phrases are below their thresholds — rephrase, or use `--enrol` |
 | events every few seconds | raise `--confirm`; if that does not fix it, the contrast is the problem |
 | one state never wins | an absence phrase — `fit.md` Screen 0 |
 | "nothing there" never fires | the known 1/12 above; bench that transition |

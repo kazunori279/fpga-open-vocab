@@ -44,22 +44,29 @@ confirmation turns "wrong most of the time" into "wrong, steadily, with an
 event to prove it". If your contrast has an absence on one side, read
 `docs/fit.md` Screen 0 before you read any output from this file.
 
-TEXT MODE HAS NO REJECT, AND SAYS SO
-------------------------------------
-Without `--enrol` the board ranks your phrases and the top one wins. Something
-always wins. Point the camera at a wall and it will still name a state, because
-you never gave it the option of saying nothing is there.
+THREE VERDICTS, NOT TWO, AND ALL THREE COME FROM THE BOARD
+----------------------------------------------------------
+Every frame line ends in one of `MATCH <name>`, `- (nothing there)`, or a bare
+`-`, and this file mirrors all three and computes none of them:
 
-`--enrol` is the option. It walks you through holding each state in front of the
-camera while the board takes a reference off 20 frames, and from then on the
-board answers with its own `MATCH ...` / `- (nothing there)` verdict, which this
-file mirrors and never recomputes. That verdict is the one `docs/architecture.md`
-describes and the only one with a reject in it.
+    MATCH <name>       a query or an enrolled class cleared its threshold
+    - (nothing there)  the presence gate is closed; the scene is empty
+    -                  the gate is open and nothing cleared: `unrecognised`
 
-The state names in the two modes are not interchangeable and the JSONL says
-which mode produced a line, because a run whose `mode` is `text` has no
-`unknown` in it - not because nothing was ever unrecognisable, but because
-nothing could be.
+The third one is the one that is easy to lose, and losing it is what this file
+did until 2026-08-22 - see `parse_frame`. It is not an absence of a verdict. It
+is the board saying something is in front of the camera that none of your
+phrases fit, which for a monitor is often the event you most wanted.
+
+`--enrol` changes what a MATCH means, not whether there is a reject. It walks
+you through holding each state in front of the camera while the board takes a
+reference off 20 frames, and from then on `MATCH` is against those references
+under the two-stage rule `docs/architecture.md` describes rather than against a
+text threshold. Without it the board still declines - a text query has a
+calibrated threshold and sits below it most of the time.
+
+The JSONL still records which mode produced a line, because the state names are
+not interchangeable between them even though the verdicts are.
 
 WHAT COMES OUT
 --------------
@@ -97,23 +104,40 @@ ROOT = Path(__file__).resolve().parent.parent
 # files should break rather than one file silently reading the wrong column.
 #   frame   125 :  an opened book~ +1.35*  a closed book~ -1.86   led 255/  0 ...
 FRAME = re.compile(r"^frame\s+(\d+) :\s+(.*?)\s+led\s")
-SCORE = re.compile(r"([^+\-]+?)\s+([+-][\d.]+)(\*?)(?=\s\s|\s*$)")
 
-# The tail of the same line, which is the board's own #18 verdict. Present only
-# once something has been enrolled. MIRROR, DO NOT RECOMPUTE - host/cue.py
-# learned that the hard way when its bars ran a softmax over the raw z and
-# disagreed with the board's MATCH on the same frame.
+# There is deliberately no regex for the score column. This file used to have
+# one and read the leaderboard off it, which is the bug parse_frame's docstring
+# is about: the scores are the board's working, the tail is its answer, and
+# MIRROR, DO NOT RECOMPUTE means reading the answer. host/cue.py learned the
+# same lesson when its bars ran a softmax over the raw z and disagreed with the
+# board's MATCH on the same frame.
+#
+# The tail is the board's own #18 verdict, and every frame line has one.
 #
 # `, nearer by N` IS OPTIONAL, and getting that wrong is how this regex first
 # shipped. firmware/m9.c:2371 prints it only `if (m21)`, so a real log carries
 # both forms - 416 MATCH lines and 354 `nearer by` in
-# bench/cue/m9_cue-20260820-142249.log alone. Requiring it does not fail
-# loudly: the 15% without it fall through to the text-mode branch below and get
-# read off the score leaderboard instead of off the board's verdict, in
-# different units, with nothing in the output saying so.
+# bench/cue/m9_cue-20260820-142249.log alone.
+# The margin clause has three forms, all of them from firmware/m9.c:2366-2373:
+# nothing at all, `, nearer by N` under the two-stage rule, and `, by N` on the
+# single-stage path. The third has never appeared in bench/cue/, which is
+# exactly why it is here - a form that is unreachable today and reachable in the
+# source is a parser bug waiting for a firmware flag to change.
 MATCHED = re.compile(r"\sMATCH (.+?) \(cos [-+]?[\d.]+"
-                     r"(?:, nearer by ([-+]?[\d.]+))?\)")
-ABSENT = re.compile(r"\s-\s\(nothing there\)")
+                     r"(?:,(?: nearer)? by ([-+]?[\d.]+))?\)")
+
+# THE TWO WAYS THE BOARD DECLINES ARE NOT THE SAME VERDICT, and reading them as
+# one was this file's worst bug. firmware/m9.c:2373-2377:
+#
+#     } else if (!open_gate) { printf("   - (nothing there)\n"); }
+#     else                   { printf("   -\n"); }
+#
+# The gate is the presence stage. Closed, the board is saying the scene is
+# empty. Open with no winner, it is saying something IS in front of the camera
+# and nothing it was given fits - which for a monitor is a different event, and
+# usually the more interesting one.
+ABSENT = re.compile(r"\s-\s\(nothing there\)\s*$")
+UNNAMED = re.compile(r"\slvl[-+][\d.]+(?: d[\d.]+)?(?: !led)?\s+-\s*$")
 
 # THE BOARD IS NOT READY WHEN IT STARTS PRINTING FRAMES, AND SAYS WHEN IT IS.
 # demo.py freezes the background over the first --bg-tau frames, so everything
@@ -139,7 +163,9 @@ ENROL_FRAMES = 20
 # schedule and to print a human countdown, so being 10% out is harmless.
 MS_PER_FRAME = 322
 
-UNKNOWN = "unknown"
+# The board's two declines, in its own words rather than in a word of ours.
+NOTHING = "nothing there"     # the presence gate is closed: the scene is empty
+UNNAMED_STATE = "unrecognised"   # the gate is open and no query crossed
 
 
 def now() -> datetime:
@@ -149,38 +175,45 @@ def now() -> datetime:
 def parse_frame(line: str) -> tuple[int, str, float | None] | None:
     """(board frame, state name, margin) off one demo.py frame line, or None.
 
-    Two sources, and which one is used is the difference between the two modes:
-    the board's MATCH tail when something has been enrolled, and the top-scoring
-    phrase when nothing has. The tail wins whenever it is there - it is the
-    board's verdict, the other is this side reading a leaderboard.
+    ONE SOURCE: the verdict the board printed. It has exactly three values -
+    `MATCH <name>`, `- (nothing there)`, and a bare `-` - and every frame line
+    carries one of them, in both modes. This function chooses between them and
+    invents nothing.
 
-    The margin is None when the board named a match but did not quote a gap.
-    Not 0.0: zero is a real margin and means the opposite thing, and a caller
+    It used to have a second source. When neither MATCH nor `(nothing there)`
+    matched, it read the score leaderboard and returned the top phrase, which it
+    called "text mode". That branch was wrong in a way worth spelling out,
+    because it looked like the sensible fallback: the leaderboard is printed on
+    every frame, so the branch appeared to be handling the no-enrolment case.
+    It was not. A query that clears its threshold produces a MATCH line
+    (m9.c:2332), so the *only* frames that ever reached the leaderboard branch
+    were the ones ending in a bare `-` - frames on which the board had already
+    looked at the same numbers and declined to name a state. This side then
+    overrode it with the argmax. 3,722 of the 14,874 recorded frame lines in
+    bench/cue/ take that path, and on a single-query text run it is every frame:
+    a smoke run on 2026-08-22 pointed at a desk with `a desk` scoring -0.10
+    against a 1.23 threshold, and this file announced `a desk`.
+
+    The margin is None when the board named no gap, and on both declines. Not
+    0.0: zero is a real margin and means the opposite thing, and a caller
     comparing it against --floor would drop exactly the frames the board was
-    most sure about.
+    most sure about. The old code returned 0.0 for a single query anyway,
+    contradicting this paragraph two lines below where it was written.
     """
     m = FRAME.match(line)
     if not m:
         return None
     frame = int(m.group(1))
 
-    if ABSENT.search(line):
-        return frame, UNKNOWN, None
     hit = MATCHED.search(line)
     if hit:
         gap = float(hit.group(2)) if hit.group(2) else None
         return frame, hit.group(1).strip().rstrip("~"), gap
-
-    # Text mode. The scores are printed best-first, so the head of the list is
-    # the winner and the margin is its gap to the runner-up. A single query has
-    # no runner-up and so no margin; it also has no contrast, which is a
-    # different problem and one docs/fit.md Screen 0 is about.
-    scores = [(n.strip().rstrip("~"), float(v))
-              for n, v, _ in SCORE.findall(m.group(2))]
-    if not scores:
-        return None
-    gap = scores[0][1] - scores[1][1] if len(scores) > 1 else 0.0
-    return frame, scores[0][0], gap
+    if ABSENT.search(line):
+        return frame, NOTHING, None
+    if UNNAMED.search(line):
+        return frame, UNNAMED_STATE, None
+    return None
 
 
 class Debounce:
@@ -210,7 +243,7 @@ class Debounce:
         # announces the midpoint. A frame with no margin at all is not screened
         # - absence of the number is not a small number.
         if (self.floor and margin is not None and abs(margin) < self.floor
-                and name != UNKNOWN):
+                and name not in (NOTHING, UNNAMED_STATE)):
             self._cand, self._run = None, 0
             return None
 
@@ -380,16 +413,49 @@ def run_once(args, queries: list[str], sched: list[str], deb: Debounce,
             new, prev, held = change
             sink(new, prev, held, frame, margin, mode)
     finally:
-        if proc.poll() is None:
-            proc.send_signal(signal.SIGINT)
+        # SIGINT first, because demo.py closes the port and prints its tallies
+        # on it. Then escalate, and the middle rung is not decoration: demo.py
+        # inherits this process's signal dispositions, so when watch.py itself
+        # was started with SIGINT ignored - `&` from a script, nohup, launchd -
+        # the polite signal lands on a child that cannot act on it either.
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            if proc.poll() is not None:
+                break
+            proc.send_signal(sig)
             try:
                 proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
-                proc.kill()
+                continue
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait(timeout=5)
     return proc.returncode or 0
 
 
+def install_stop_signals() -> None:
+    """Make SIGINT and SIGTERM both stop this process, from any parent.
+
+    THE DEFAULT IS NOT ENOUGH FOR THE JOB THIS FILE IS FOR. A shell without job
+    control - `watch.py ... &` in a script, a nohup, a launchd plist, anything
+    that is not a person at a terminal - sets SIGINT to SIG_IGN in the child,
+    and CPython leaves an inherited SIG_IGN alone rather than installing its
+    own handler. The result is a monitor that ignores Ctrl-C, ignores `kill
+    -INT`, and can only be stopped with a signal that skips every `finally` in
+    the file: the demo.py subprocess is orphaned and keeps the serial port.
+
+    That was reproduced on 2026-08-22 and it is exactly the "leaving it running"
+    case docs/monitor.md is about, so it is fixed here rather than documented as
+    a quirk. SIGTERM is handled for the same reason - a supervisor stopping the
+    service should get the same clean shutdown a person does.
+    """
+    def stop(signum, _frame):
+        raise KeyboardInterrupt(signum)
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, stop)
+
+
 def main() -> int:
+    install_stop_signals()
     ap = argparse.ArgumentParser(
         description="Watch one scene and report confirmed state changes.")
     ap.add_argument("queries", nargs="+",
@@ -487,7 +553,10 @@ def supervise(args, sched: list[str], jsonl) -> int:
             fire_hook(args.on_change, event)
 
     print(f"watching: {', '.join(args.queries)}", file=sys.stderr)
-    print(f"mode    : {'enrolled - the board can say nothing is there' if sched else 'text - something always wins, see docs/fit.md'}",
+    mode = ("enrolled - MATCH is against references you hold up" if sched else
+            "text - MATCH is against a calibrated threshold, see docs/fit.md")
+    print(f"mode    : {mode}", file=sys.stderr)
+    print(f"states  : your queries, plus '{NOTHING}' and '{UNNAMED_STATE}'",
           file=sys.stderr)
     print(f"confirm : {args.confirm} frames"
           f"{f', margin floor {args.floor}' if args.floor else ''}",

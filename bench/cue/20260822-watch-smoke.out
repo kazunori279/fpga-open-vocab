@@ -1,0 +1,28 @@
+watching: a desk / a hand / an empty scene
+mode    : text - MATCH is against a calibrated threshold, see docs/fit.md
+states  : your queries, plus 'nothing there' and 'unrecognised'
+confirm : 5 frames
+bitstream : rtl/bitstreams/m16/gemm_top_wide.hex (Efinity ASCII hex), 173124 bytes, crc32=0x0A2E9953
+export    : model/runs/so400m-full-a05/export/weights.bin, run so400m-full-a05, 780720 bytes, crc32=0xF368CC6E
+thresholds: model/cache/thresholds_so400m-full-a05.json, 67 queries at 10% FPR on camera geometry, median z 1.23
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates, on mps
+space     : projected by emb_train2017_SO400M-pca512-a0.5.basis.npz -> 512-d
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+embeddings: model/cache/eval_int8_so400m-full-a05_camera.npy, 5000 x 512 on camera geometry - free-text queries get measured calibration, not the median
+query     : a desk~              plain    z> 1.23 (background -0.028 +-0.062, cos 0.048)   measured on 5000 eval images, z from the median row
+            ~ = 'a desk' against 'a hand', 'an empty scene'
+            1 calibrated from the embedding cache (a desk~) - measured, but over all images rather than that query's negatives, and with no AUC behind the threshold
+queries   : 1 x 512-d, 2104 bytes, background frozen after 30 frames, room spread, z smoothed
+port      : /dev/cu.usbmodem21201
+
+(the board is still in the frame loop from an earlier run - pressing 'R' to restart it rather than sending a bitstream into a running loop.)
+flash     : crc32 0xF368CC6E matches model/runs/so400m-full-a05/export/export.json
+ready   : background frozen
+12:03:16  unrecognised                
+
+saved     : bench/cue/20260822-watch-smoke.log  (166 frame lines, 1 query set)
+            no match                       166 frames  (100%)
+(stopped by Ctrl-C)
+
+stopped.
