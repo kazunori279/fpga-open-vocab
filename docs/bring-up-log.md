@@ -11,6 +11,69 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-22, night — a second draw is not a second contrast, and RKD 10 is worth nothing
+
+Two entries down, this log says **"RKD 10 is worth about +0.10 AUC on the book
+pair"** — both draws, both model families — and the entry below it corrects an
+earlier claim by reading a different column. Both of those corrections were real.
+The number was still wrong.
+
+Scored across **ten** contrasts instead of two, RKD 10 is **−0.022 ± 0.023**
+against the plain baseline. So is everything else that has been tried:
+
+| run | mean over 10 | vs baseline |
+| --- | --- | --- |
+| so400m 30k baseline, plain `1 - cos` | **0.596** | — |
+| + `--text 0.1` | 0.590 | −0.007 ± 0.017 |
+| + `--rkd 10` | 0.574 | −0.022 ± 0.023 |
+| + `--text 0.3` | 0.571 | −0.025 ± 0.014 |
+| + `--text 1.0` | 0.567 | −0.029 ± 0.018 |
+| + `--text 0.3 --rkd 10` | 0.562 | −0.034 ± 0.020 |
+| teacher 1152 / pca 512 | 0.811 / 0.825 | |
+
+Per-contrast rows, and the eight new sets, are in
+[`../bench/stills/README.md`](../bench/stills/README.md#ten-contrasts); the
+retraction sits beside the table it retracts, in
+[`../bench/stills/20260822-synth-book-crop2/`](../bench/stills/20260822-synth-book-crop2/).
+
+**The mistake was in what "replicate" was taken to mean.** A second draw
+resamples *scenes* within a contrast, so it guards against a lucky set of rooms
+— and it did its job, killing RKD 100, which swung .73/.59 and .50/.68. It says
+nothing about a lucky *contrast*, and that is the bigger term. RKD 10 is +0.120
+on book, −0.168 on laptop, −0.059 on refrigerator. **The sign depends on which
+object you ask about.**
+
+The arithmetic, which was available the whole time: the paired difference has a
+between-contrast sd of 0.05–0.07, so C = 2 gives a standard error of about 0.05
+on an effect of 0.05, and C = 10 gives 0.014–0.023. Every ranking this project
+made on two contrasts was made at a noise floor equal to the thing being ranked.
+Two draws of two contrasts look like four measurements and are closer to two.
+
+What this costs and what it buys:
+
+- **The `--text` term is a negative result.** It was built to close the gap
+  between what a phrase can reach (AUC 0.60–0.70) and what a fitted direction
+  can reach (0.75–0.84). It is biting the training — top1 falls 0.375 → 0.239
+  monotonically in the weight — and it does not move the eval at any weight, nor
+  shrink the `oracle_scene − sep` alignment gap it was designed to shrink. Kept
+  in `model/distill.py`, default 0, with the finding written into its docstring.
+- **`oracle_scene` itself wobbles** 0.617–0.808 across variants on the book pair,
+  so the earlier "0.20 representation loss / 0.12 alignment loss" split should
+  be quoted with a width, not as two numbers.
+- **The plain cos-distilled student is still the best student**, and it sits at
+  0.596 where its teacher sits at 0.811. Nothing in the loss-term family has
+  touched that gap. That is the result, and it is a more useful one than a
+  +0.10 that was never there.
+- **The held-out second draws were not spent.** There was no winner to confirm.
+
+Two contrasts have no headroom to measure against: the teacher is at 0.579 on
+`toilet` and 0.715 on `umbrella`, and the student is *below chance* on both
+(0.435, 0.421). Dropping them changes no conclusion. They stay in, because
+gating a contrast on its teacher score after seeing the results is one more
+decision made with the answers in view — the failure the whole entry is about.
+
+---
+
 ### 2026-08-22, evening — the sweep did measure something; I had read the wrong column
 
 The entry below — *a second draw, and two sweeps that measured nothing* —

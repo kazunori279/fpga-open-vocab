@@ -77,6 +77,34 @@ from baseline.
 An earlier reading of this set said the sweeps measured nothing. That was the
 paired column talking, and it was wrong.
 
+### Retracted, 2026-08-22: RKD 10 is not worth +0.10
+
+The table above is still what those two pairs say. It is not what RKD 10 does.
+Scored across **ten** contrasts instead of two, RKD 10 is **−0.022 ± 0.023**
+against the same baseline — indistinguishable from nothing, and if anything on
+the wrong side:
+
+| | book | glass | laptop | refrig | oven | toilet | umbrel | suitca | bowl | bed | vs base |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| so400m 30k baseline | .565 | .600 | .616 | .714 | .604 | .435 | .421 | .646 | .742 | .618 | — |
+| so400m + RKD 10 | .685 | .565 | .448 | .655 | .587 | .453 | .405 | .613 | .746 | .585 | **−0.022 ±0.023** |
+
++0.120 on book, −0.168 on laptop, −0.059 on refrigerator. **The sign depends on
+the object.** Two contrasts could not see that, and replicating on a second draw
+of the same two contrasts could not either — a second draw resamples scenes,
+which is the variance that was never the problem.
+
+The arithmetic that was missed: the paired difference has a between-contrast sd
+of about 0.05–0.07, so at C = 2 its standard error is ~0.05 and at C = 10 it is
+~0.02. The +0.10 was inside one standard error of nothing the whole time, and
+"it replicated on draw 2" measured the wrong replication.
+
+Everything above this heading about *which column to read* stands. What does not
+stand is any conclusion drawn from ranking checkpoints on two contrasts —
+including the `--infonce` and `--text` rows, none of which separate from
+baseline at C = 10 either. The ten-contrast fleet and the variance argument are
+in [`../README.md`](../README.md#ten-contrasts).
+
 ## The number that matters more than the ranking
 
 The student sits near **0.6** where its teacher sits near **0.93**. Every

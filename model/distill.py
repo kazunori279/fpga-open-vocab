@@ -20,6 +20,24 @@ image from the teacher's 5000-image bank. `--infonce` and `--rkd` add the
 missing repulsion; both default to 0, so the plain command above is unchanged.
 distill_loss() carries the evidence and the choice between them.
 
+**And what survives distillation is not the same as what a phrase can reach.**
+On generated cross-scene sets the student's state axis is worth AUC 0.75-0.84
+when the direction is fitted on its own embeddings, but only 0.60-0.70 when a
+sentence asks for it. `--text W --text-bank <npy>` spends the error budget where
+sentences point, by matching the teacher's ranking of each image against a bank
+of COCO captions; `tools/text_bank.py` builds the bank and distill_loss() has
+the argument. It defaults to 0 as well.
+
+**`--text` did not work, and neither did `--rkd`.** Over ten generated
+contrasts, no weight of `--text` and no `--rkd` setting beats plain `1 - cos`:
+the baseline is the top row at 0.596 mean cross-scene AUC and the best variant
+is -0.007 +-0.017 below it. `--text` is biting the training - top1 falls
+0.375 -> 0.239 monotonically in the weight - and it does not reach the eval, nor
+shrink the `oracle_scene - sep` alignment gap it was built to shrink. The
+earlier "RKD 10 is +0.10" came from two contrasts and is retracted; see
+`docs/bring-up-log.md` for 2026-08-22 night. **Both flags stay, both default to
+0, and the honest default for this student is the plain cosine loss.**
+
 Held-out cosine is printed before training starts and after every epoch, so a
 broken run is visible in the first two minutes rather than at hour three - and
 alongside it now the two numbers that actually caught this, retrieval top-1 and
@@ -159,7 +177,8 @@ def constant_baseline(targets: np.ndarray, train_idx: np.ndarray, hold_idx: np.n
     return float((held @ mean).mean())
 
 
-def distill_loss(pred, target, w_infonce: float, w_rkd: float, tau: float):
+def distill_loss(pred, target, w_infonce: float, w_rkd: float, tau: float,
+                 bank=None, w_text: float = 0.0, tau_text: float = 0.05):
     """`1 - cos` plus, optionally, a term that pushes the batch apart.
 
     WHY THERE IS ANYTHING BESIDES `1 - cos`
@@ -192,18 +211,74 @@ def distill_loss(pred, target, w_infonce: float, w_rkd: float, tau: float):
                 genuinely similar images should be, instead of driving every
                 non-pair apart. Preferable if InfoNCE proves too aggressive on
                 COCO's near-duplicates, which are false negatives to it.
+      text      Match the teacher's ranking of each image against a BANK OF
+                SENTENCES, not only against the other images. See below.
 
     tau is InfoNCE's temperature. In-batch teacher cosines span roughly 0.4-0.9,
     so 0.07 (CLIP's own value) spreads them over ~7 logits - enough to be a real
     ranking problem and not so sharp that one hard negative owns the gradient.
+
+    WHY A TEXT TERM, WHEN THE STUDENT ALREADY REGRESSES THE TEACHER'S VECTOR
+    -----------------------------------------------------------------------
+    A student that matched its target exactly would match every text similarity
+    for free, so the term adds nothing a *perfect* student would need. This
+    student cannot be perfect - 1.4 M parameters against SO400M - so the
+    question is not whether it has error but WHERE THE ERROR GOES. `1 - cos`
+    treats all 512 directions as equally worth getting right, and most of them
+    are directions no sentence ever points at.
+
+    The measurement asking for it is in
+    `bench/stills/20260822-synth-book-crop2/README.md`. Across generated scenes
+    the student ranks the two states at AUC 0.60-0.70 when asked with a phrase,
+    but at 0.75-0.84 when the direction is *fitted* on the student's own
+    embeddings and held out by scene (`probe_bisect.py`'s scene-held-out
+    oracle). Part of the axis is present and the sentence misses it. That
+    difference is the alignment half of the gap and it is what this term aims
+    at. The other half - that oracle reading 0.78 where the teacher's reads 0.96
+    - is a representation gap, and no reweighting of the error budget fixes it.
+
+    KL rather than smooth-L1 on the similarities, because what matters is the
+    ORDER of the bank under an image and not the absolute cosines, which the
+    modality gap keeps small and bunched. The bank rows are near-duplicates of
+    each other by construction, so the softmax stays soft on purpose - this is a
+    profile match, not a retrieval task, and retrieval is what `--infonce`
+    already does against image targets.
+
+    **tau_text is in units of the teacher's own spread, not in cosine.** A fixed
+    cosine temperature means something different for every teacher: over the
+    4096-caption bank, val2017 image-text cosines have sd 0.039 under
+    ViT-B/16 and 0.064 under SO400M-pca512, and their means sit at +0.16 and
+    -0.31. At a shared tau of 0.05 the same flag would leave one profile nearly
+    uniform (7.95 nats of a possible 8.32) and the other with real structure
+    (7.13). Dividing by the teacher's per-batch sd first makes 0.5 mean the same
+    thing to both - about 5.3 nats, soft but far from flat - so a weight swept
+    against one teacher transfers to the other. The student's similarities are
+    divided by the TEACHER's sd, not their own: a student whose profile is
+    flatter than the teacher's is wrong in a way the term should see, and
+    self-normalising would hide exactly that.
+
+    `tools/text_bank.py` builds a bank in the student's own target space out of
+    COCO captions. **Never out of the eval's state phrases** - that would be
+    fitting the objective to the test set, and the AUC afterwards would mean
+    nothing.
     """
     loss = (1 - torch.nn.functional.cosine_similarity(pred, target, dim=-1)).mean()
     parts = {"cos": float(loss.detach())}
-    if not (w_infonce or w_rkd):
+    if not (w_infonce or w_rkd or (w_text and bank is not None)):
         return loss, parts
 
     p = torch.nn.functional.normalize(pred, dim=-1)
     t = torch.nn.functional.normalize(target, dim=-1)
+    if w_text and bank is not None:
+        ts, ps = t @ bank.T, p @ bank.T
+        scale = ts.detach().std().clamp_min(1e-6) * tau_text
+        log_softmax = torch.nn.functional.log_softmax
+        term = torch.nn.functional.kl_div(
+            log_softmax(ps / scale, dim=-1),
+            log_softmax(ts / scale, dim=-1),
+            log_target=True, reduction="batchmean")
+        loss = loss + w_text * term
+        parts["txt"] = float(term.detach())
     if w_infonce:
         logits = p @ t.T / tau
         labels = torch.arange(len(p), device=p.device)
@@ -280,6 +355,19 @@ def main() -> int:
                          "(0 = off; 10.0 puts it on the same scale as 1-cos)")
     ap.add_argument("--tau", type=float, default=0.07,
                     help="InfoNCE temperature")
+    # The bank has to be built in the same space as --targets, by the same
+    # teacher. tools/text_bank.py takes that teacher string and does it; the
+    # dimension check below is a backstop, not the contract.
+    ap.add_argument("--text", type=float, default=0.0, metavar="W",
+                    help="weight on matching the teacher's image-vs-text "
+                         "ranking over --text-bank (0 = off; needs the bank)")
+    ap.add_argument("--text-bank", type=Path, default=None, metavar="NPY",
+                    help="sentence bank in the target space, from "
+                         "tools/text_bank.py")
+    ap.add_argument("--tau-text", type=float, default=0.5,
+                    help="text-profile temperature IN UNITS OF THE TEACHER'S "
+                         "OWN SPREAD, so it means the same thing across "
+                         "teachers (0.5 leaves ~5.3 of 8.3 nats)")
     # Sieving loss variants on the full split costs 54 minutes a candidate, and
     # the variants separate within the first few epochs. The holdout is carved
     # out *before* the subset, so every candidate is scored on the same 1000
@@ -309,6 +397,24 @@ def main() -> int:
     else:
         targets = teacher_mod.load_cache(args.split)
     device = teacher_mod.pick_device()
+
+    # A bank in the wrong space still multiplies, as long as the widths agree,
+    # and returns a profile of noise the student would spend its capacity
+    # matching. The width check catches the common mistake - a bank built
+    # before the PCA - and the run's `bank` line puts the file in the log so
+    # the rest is auditable after the fact.
+    bank = None
+    if args.text:
+        if not args.text_bank:
+            raise SystemExit("--text needs --text-bank; build one with "
+                             "tools/text_bank.py --teacher <the run's teacher>")
+        b = np.load(args.text_bank).astype(np.float32)
+        if b.shape[1] != targets.shape[1]:
+            raise SystemExit(f"{args.text_bank}: {b.shape[1]}-d bank against "
+                             f"{targets.shape[1]}-d targets. The bank must be "
+                             f"built by the same teacher, in the same space.")
+        bank = torch.from_numpy(b).to(device)
+        bank = torch.nn.functional.normalize(bank, dim=-1)
 
     train_idx, hold_idx = split_indices(len(names), args.holdout)
     if args.subset:
@@ -343,9 +449,12 @@ def main() -> int:
     print(f"augment  : {'yes' if augment else 'no'}")
     print(f"epochs   : {args.epochs}   batch {args.batch}   lr {args.lr}")
     extra = ([f"infonce {args.infonce} (tau {args.tau})"] if args.infonce else []) \
-        + ([f"rkd {args.rkd}"] if args.rkd else [])
+        + ([f"rkd {args.rkd}"] if args.rkd else []) \
+        + ([f"text {args.text} (tau {args.tau_text} sd)"] if bank is not None else [])
     print("loss     : 1-cos" + ("  +  " + "  +  ".join(extra) if extra
                                  else "   (M9 objective, no repulsion)"))
+    if bank is not None:
+        print(f"bank     : {args.text_bank.name}   {bank.shape[0]} sentences")
     print()
 
     train_loader = DataLoader(
@@ -390,7 +499,8 @@ def main() -> int:
         for step, (pixels, target) in enumerate(train_loader):
             pixels, target = pixels.to(device), target.to(device)
             pred = model(pixels)
-            loss, parts = distill_loss(pred, target, args.infonce, args.rkd, args.tau)
+            loss, parts = distill_loss(pred, target, args.infonce, args.rkd,
+                                       args.tau, bank, args.text, args.tau_text)
             opt.zero_grad(set_to_none=True)
             loss.backward()
             opt.step()
@@ -459,6 +569,8 @@ def main() -> int:
         "teacher": teacher_name,
         # vars(args) carries a PosixPath, which json refuses.
         "targets": str(args.targets) if args.targets else None,
+        "text_bank": str(args.text_bank) if args.text_bank else None,
+        "text_bank_n": int(bank.shape[0]) if bank is not None else 0,
     }, indent=2))
 
     print()

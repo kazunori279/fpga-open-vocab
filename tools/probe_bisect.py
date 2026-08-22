@@ -134,16 +134,27 @@ draws it repeats to about +-0.05, and it says something the paired column hid:
   glass   .93/.95   .60/.59    .57/.62      SO400M group
   glass   .89/.89   .67/.66    .61/.59      ViT-B/16 sieve group
 
-RKD is worth about +0.10 AUC ON THE BOOK PAIR, in both draws and in both model
-families, and nothing at all on the glass pair. RKD 100 does not replicate
+RKD looks worth about +0.10 AUC ON THE BOOK PAIR here, in both draws and in both
+model families, and nothing at all on the glass pair. RKD 100 does not replicate
 (.73/.59 and .50/.68) and should not be read as the same result with more of
 it. InfoNCE alone does not separate from baseline anywhere.
+
+**AND THE RKD READING ABOVE WAS WRONG, WHICH IS THE POINT.** Scored on ten
+contrasts instead of two, RKD 10 is -0.022 +-0.023 against the same baseline.
+The +0.10 was one contrast: +0.120 on book, -0.168 on laptop, -0.059 on
+refrigerator. A SECOND DRAW DOES NOT PROTECT YOU FROM THIS - it resamples
+scenes, and the sd across contrasts (0.05-0.07 on the paired difference) is the
+larger term. Two contrasts give a standard error of ~0.05 on a difference of
+0.05. Ten give ~0.02. Rank checkpoints with tools/sieve_text.py, which scores
+all ten and prints the paired mean with its SE; a `sep` from this script on one
+pair is a measurement of that pair.
 
 And the headline the sweep exists to surface: the student sits near 0.6 where
 its teacher sits near 0.93. It is barely scene-invariant, which is the property
 "is the book open" needs in a room the appliance was not enrolled in.
 """
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -245,7 +256,7 @@ def shortnames(runs: list[str]) -> list[str]:
 
 
 def report(name: str, ma: np.ndarray, mb: np.ndarray,
-           ra: list[str], rb: list[str]) -> None:
+           ra: list[str], rb: list[str]) -> float:
     """One stage's rows: the AUCs, and the effect sizes for when they saturate.
 
     AUC ALONE IS NOT ENOUGH HERE and the first run of this script proved it: the
@@ -303,6 +314,7 @@ def report(name: str, ma: np.ndarray, mb: np.ndarray,
              else "not measured - one round")
           + f"   (sd {sd:.4f})")
     print(f"  {'':<20} per round: {'  '.join(cells)}")
+    return sep
 
 
 def paired(name: str, ma: np.ndarray, mb: np.ndarray,
@@ -378,6 +390,59 @@ def oracle(name: str, va: np.ndarray, vb: np.ndarray,
           f"per round: {'  '.join(cells)}")
 
 
+def oracle_scene(name: str, va: np.ndarray, vb: np.ndarray,
+                 fa: list[Path], fb: list[Path], folds: int = 5) -> float:
+    """The best SCENE-INDEPENDENT direction this stage has, held out by scene.
+
+    `oracle()` above holds out a round, which a generated set does not have. The
+    question here is the other one: a set of thirty rooms asks whether one fixed
+    direction ranks the positive state above the negative one ACROSS scenes, and
+    this is the ceiling for that - fit `normalize(mean(A) - mean(B))` on four
+    fifths of the scenes and score the cross-scene AUC on the fifth, five times.
+
+    It is the row that says which kind of work is left, and they are not the
+    same size:
+
+      low here      the stage has no scene-independent state axis at all. No
+                    query, no head rotation and no rewording gets one, because
+                    there is nothing to point at. Distillation or capacity.
+      high here,    the axis exists and the text vector misses it. That is the
+      low above     alignment failure, and it is the cheap end.
+
+    The scores are NOT folded to max(v, 1-v). `oracle()` folds because a fitted
+    direction's sign is arbitrary; here the sign comes from the training folds,
+    so a direction that fails to generalise SHOULD read below 0.5 and folding
+    would print that failure as a success.
+    """
+    ka = {f.stem: i for i, f in enumerate(fa)}
+    kb = {f.stem: i for i, f in enumerate(fb)}
+    keys = sorted(set(ka) & set(kb))
+    k = min(folds, len(keys))
+    if k < 2:
+        print(f"  {name:<20} scene-held-out oracle n/a - {len(keys)} paired scenes")
+        return float("nan")
+    ia = np.array([ka[s] for s in keys])
+    ib = np.array([kb[s] for s in keys])
+    # Folds by position in the sorted stem list: deterministic, and the stems
+    # are COCO ids, so neighbouring positions are not related scenes.
+    part = np.arange(len(keys)) % k
+    scores = []
+    for f in range(k):
+        tr, te = part != f, part == f
+        if not (tr.any() and te.any()):
+            continue
+        d = va[ia[tr]].mean(0) - vb[ib[tr]].mean(0)
+        n = np.linalg.norm(d)
+        if n == 0:
+            continue
+        scores.append(auc(va[ia[te]] @ (d / n), vb[ib[te]] @ (d / n)))
+    m = float(np.mean(scores))
+    print(f"  {name:<20} scene-held-out oracle AUC {m:.3f}   "
+          f"{len(keys)} scenes, {k} folds: "
+          + "  ".join(f"{s:.3f}" for s in scores))
+    return m
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--a", type=Path, required=True, help="stills of the positive scene")
@@ -399,6 +464,12 @@ def main() -> int:
     ap.add_argument("--keep", type=Path, default=None,
                     help="a file of stems to admit, one per line - the subset a "
                          "set's README argues for, applied to both --a and --b")
+    # For tools that RANK checkpoints rather than read one - tools/
+    # sieve_text.py. Scraping `sep` out of the printed table would work until
+    # someone widens a column, and a sieve that silently reads the wrong number
+    # is worse than one that crashes.
+    ap.add_argument("--json", type=Path, default=None, metavar="PATH",
+                    help="also write the per-stage AUCs as JSON")
     args = ap.parse_args()
 
     runs = [r.strip() for r in args.runs.split(",")] if args.runs else [args.run]
@@ -512,16 +583,28 @@ def main() -> int:
             stages.append((label, student_embed(net, ia), student_embed(net, ib),
                            tv_pca))
 
+    out = {"pos": args.pos, "neg": args.neg, "a": str(args.a), "b": str(args.b),
+           "keep": str(args.keep) if args.keep else None,
+           "n": [len(fa), len(fb)], "runs": runs, "stages": {}}
+
     print(f"{'='*78}\nMARGIN AUC BY STAGE, on the phrases as the board sends "
           "them")
     for sname, a, b, tv in stages:
-        report(sname, *margins(a, b, tv), ra, rb)
+        out["stages"][sname] = {"sep": report(sname, *margins(a, b, tv), ra, rb)}
 
     if args.paired:
         print(f"\n{'='*78}\nWITHIN SCENE - the same picture in two states, so "
               "the scene cancels")
         for sname, a, b, tv in stages:
             paired(sname, *margins(a, b, tv), fa, fb)
+
+        print(f"\n{'='*78}\nACROSS SCENES, QUERY TAKEN OUT - one fitted "
+              "direction, held out by scene")
+        for sname, a, b, _tv in stages:
+            out["stages"][sname]["oracle_scene"] = oracle_scene(sname, a, b, fa, fb)
+        print("  High here and low in the table above means the axis is there "
+              "and the\n  text vector misses it. Low here means there is no "
+              "scene-independent axis\n  to point at, whatever the query says.")
 
     print(f"\n{'='*78}\nAND WITH THE QUERY TAKEN OUT OF IT - a fitted axis, "
           "held out by round")
@@ -574,6 +657,11 @@ def main() -> int:
             axis = float(d_s @ d_t / (np.linalg.norm(d_s) * np.linalg.norm(d_t)))
             print(f"\n  class axis, {sname} against {ref}: cos {axis:+.3f}"
                   "   (1.0 = the same difference, 0.0 = an unrelated one)")
+
+    if args.json:
+        args.json.parent.mkdir(parents=True, exist_ok=True)
+        args.json.write_text(json.dumps(out, indent=1) + "\n")
+        print(f"\n  wrote {args.json}")
     return 0
 
 

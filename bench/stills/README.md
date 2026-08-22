@@ -100,11 +100,15 @@ draws with the model held fixed. The pooled cross-scene AUC repeats to about
 ±0.05 and is the number a user's requirement is actually written in — *is the
 book open, whatever else changed*.
 
-**Draw a second set before believing a difference between two checkpoints.**
-`synth_pairs.py --skip <set>` builds one on scenes the first never used, and it
-is what separates a replicated effect from a lucky draw: RKD 10 holds +0.10 AUC
-on the book pair across both draws and both model families, while RKD 100 swings
-0.73/0.59 and 0.50/0.68 and holds nothing.
+**Draw a second set before believing a difference between two checkpoints, and
+then draw a different CONTRAST before believing it again.** `synth_pairs.py
+--skip <set>` builds a set on scenes the first never used, which catches the
+loudest failures — RKD 100 swings 0.73/0.59 and 0.50/0.68 across two draws and
+holds nothing. But a second draw resamples *scenes*, and the larger variance in
+this eval is across *contrasts*: RKD 10 held +0.10 on the book pair through both
+draws and both model families and still turned out to be worth −0.022 ± 0.023
+over ten contrasts. See the section below, and the retraction in
+[`20260822-synth-book-crop2/`](20260822-synth-book-crop2/#retracted-2026-08-22-rkd-10-is-not-worth-010).
 
 ## Sets
 
@@ -113,9 +117,98 @@ on the book pair across both draws and both model families, while RKD 100 swings
 | [`20260821-bisect/`](20260821-bisect/) | `a glass with tea` / `an empty glass`, plus a book control | the axis is lost at the student and nowhere earlier — not the resolution, not the projection ([#24](https://github.com/kazunori279/fpga-open-vocab/issues/24)) |
 | [`20260822-synth-book-crop/`](20260822-synth-book-crop/) | `an opened book` / `a closed book`, generated | the control that caught it: a generated set cannot rank pairs for the appliance, and the teacher-only remit that leaves |
 | [`20260822-synth-glass-crop/`](20260822-synth-glass-crop/) | `a glass with tea` / `an empty glass`, generated | the teacher binds fill state, not brightness — 25/25 with the luma cue at AUC 0.658 ([#28](https://github.com/kazunori279/fpga-open-vocab/issues/28)) |
-| [`20260822-synth-book-crop2/`](20260822-synth-book-crop2/) | `an opened book` / `a closed book`, second draw | which column to read — cross-scene AUC, not the paired one — and the sweep that reading turns into a result: RKD 10 is +0.10 on this pair and nothing on the other |
+| [`20260822-synth-book-crop2/`](20260822-synth-book-crop2/) | `an opened book` / `a closed book`, second draw | which column to read — cross-scene AUC, not the paired one. Its sweep table also carries the project's most instructive retraction: `RKD 10 is +0.10` survived a second draw and did not survive a second contrast |
 | [`20260822-synth-glass-crop2/`](20260822-synth-glass-crop2/) | `a glass with tea` / `an empty glass`, second draw | the teacher's 25/25 replicates on unseen scenes at 23/23; the student's cross-scene AUC is 0.61 against its 0.95 |
 | `20260822-synth-{book,glass}` and `-closeup` | the same two pairs | superseded first attempts, kept as the evidence for cropping the source: object too small, then scene re-composed |
+| the eight `-crop` sets below | eight more object states in rooms | not a result each — a fleet, for the variance in the section that follows |
+
+<a id="ten-contrasts"></a>
+## Ten contrasts, because two was measuring the wrong noise
+
+Adding scenes to a contrast shrinks one variance and not the other.
+
+*Within* a contrast, the Hanley–McNeil standard error of a cross-scene AUC is
+0.095 at n = 18 and 0.080 at n = 25 — real, and it does shrink with more scenes.
+*Between* contrasts it does not: RKD 10 beats the plain baseline by **+0.120 on
+the book pair and −0.035 on the glass pair.** The effect changes sign depending
+on which object you asked about. The spread across contrasts is about 0.11, and
+no number of extra rooms per contrast touches it, because it is not sampling
+error in the contrast — it is the contrast.
+
+So the book/glass sweeps were quoting one number that is a mean of two, with a
+standard error of 0.11/√2 ≈ 0.078 on a difference of 0.05. That is the whole
+reason the `--text` term could not be resolved.
+
+Eight more contrasts were shot on 2026-08-22 to make that mean worth reading:
+
+| set | pair | kept | note |
+| --- | --- | --- | --- |
+| [`20260822-synth-suitcase-crop/`](20260822-synth-suitcase-crop/) | `an open suitcase` / `a closed suitcase` | 27/29 | the healthiest of the eight |
+| [`20260822-synth-toilet-crop/`](20260822-synth-toilet-crop/) | `a toilet with the lid up` / `lid down` | 25/30 | best-preserved scenes; 30/30 `same_scene` |
+| [`20260822-synth-bowl-crop/`](20260822-synth-bowl-crop/) | `a bowl full of food` / `an empty bowl` | 25/30 | the fill state nearest the desk contrast |
+| [`20260822-synth-umbrella-crop/`](20260822-synth-umbrella-crop/) | `an open umbrella` / `a folded umbrella` | 25/29 | five kept pairs *add* a furled umbrella instead of folding one |
+| [`20260822-synth-refrigerator-crop/`](20260822-synth-refrigerator-crop/) | `an open refrigerator` / `a closed refrigerator` | 24/30 | "closed" is often a flat slab with the shelves still behind it |
+| [`20260822-synth-laptop-crop/`](20260822-synth-laptop-crop/) | `an opened laptop` / `a closed laptop` | 23/28 | the editor read "closed" as "screen off" on seven pairs |
+| [`20260822-synth-bed-crop/`](20260822-synth-bed-crop/) | `an unmade bed` / `a neatly made bed` | 22/29 | the box fills the frame, so the crop is fabric, not a room |
+| [`20260822-synth-oven-crop/`](20260822-synth-oven-crop/) | `an open oven` / `a closed oven` | 19/29 | COCO `oven` is largely cooktops; regenerate before quoting alone |
+
+190 pairs, 234 generated, ten contrasts with book and glass. Each set was shot
+with `--skip` naming every set before it, so **no photograph appears in two of
+them**, and the two second draws stay unspent for confirmation.
+
+Two contrasts were considered and left out on purpose. `tv` on/off is answerable
+by mean frame luma, which is the trivial cue `probe_bisect.py` already prints.
+`dining table` set/cleared is a state of the scene rather than of the object.
+
+### What the ten said
+
+Cross-scene AUC, `tools/sieve_text.py --score-only`, log in
+`model/runs/_text_sieve_10contrast.log`:
+
+| run | book | glass | laptop | refrig | oven | toilet | umbrel | suitca | bowl | bed | mean | vs base |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| so400m-s30k | .565 | .600 | .616 | .714 | .604 | .435 | .421 | .646 | .742 | .618 | **.596** | (baseline) |
+| + `--text 0.1` | .673 | .589 | .533 | .726 | .554 | .374 | .405 | .636 | .779 | .626 | .590 | −0.007 ±0.017 |
+| + `--rkd 10` | .685 | .565 | .448 | .655 | .587 | .453 | .405 | .613 | .746 | .585 | .574 | −0.022 ±0.023 |
+| + `--text 0.3` | .614 | .576 | .571 | .741 | .535 | .339 | .435 | .602 | .728 | .568 | .571 | −0.025 ±0.014 |
+| + `--text 1.0` | .577 | .586 | .588 | .618 | .512 | .394 | .507 | .620 | .749 | .519 | .567 | −0.029 ±0.018 |
+| + `--text 0.3 --rkd 10` | .664 | .563 | .512 | .597 | .557 | .378 | .386 | .646 | .762 | .556 | .562 | −0.034 ±0.020 |
+| teacher 1152 | .907 | .933 | .781 | .786 | .850 | .579 | .715 | .894 | .819 | .847 | .811 | |
+| pca 512 | .917 | .933 | .775 | .804 | .873 | .595 | .725 | .888 | .866 | .872 | .825 | |
+
+**Plain `1 - cos` distillation is the top row and every added term is below it.**
+None of the gaps clears two standard errors, so the honest statement is not
+"these hurt" but **"not one of them helps, and the two that looked like they did
+were reading two contrasts"** — `--rkd 10`, retracted above, and `--text`, which
+never separated from baseline at any weight and did not shrink the
+`oracle_scene − sep` alignment gap it was designed to shrink.
+
+The fleet did the job it was built for. The paired difference has a
+between-contrast sd of 0.045–0.071, so its standard error is ~0.05 at C = 2 and
+0.014–0.023 at C = 10 — a three-to-five-fold gain, and the first time this eval
+could resolve an effect the size it is being asked about.
+
+Two caveats on the columns. **`toilet` and `umbrella` have no headroom**: the
+teacher is at 0.579 and 0.715 there, so nothing downstream can be measured
+against much. Dropping both changes no conclusion (`--rkd 10` −0.028 ± 0.028,
+`--text 0.1` +0.001 ± 0.020), and they stay in because gating a contrast on the
+teacher after the fact is one more decision made with the answers in view. And
+the student is *below chance* on exactly those two — 0.435 and 0.421 — which is
+an axis pointing backwards, not a weak axis.
+
+**Each set's own README lists what its judges broke**, and several are ugly. The
+distinction that decides whether that matters: a *shortcut* — a visible edit
+seam, a resolution mismatch, an object that changed colour — inflates every
+checkpoint alike and largely cancels in a paired comparison across checkpoints,
+which is what this fleet is for. A *negative frame that contains the positive
+state* is different in kind, but it too pulls toward 0.5 rather than toward a
+wrong answer, so it costs sensitivity and not validity. Neither licenses quoting
+an absolute number, which was never on offer here anyway.
+
+The screen's three criteria were fixed before the sets were shot and stayed
+fixed after the verdicts came back. Adding a fourth on reading them would be
+screening on what was seen, which is the failure `tools/synth_keep.py` was
+written to avoid.
 
 ## What a set can and cannot answer
 
