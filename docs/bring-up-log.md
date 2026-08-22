@@ -11,6 +11,66 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-23, what `lost` is made of, and a trend that turned round while nobody re-ran it
+
+Two board-free days of replay, both of which corrected something this file had
+already written down.
+
+**#19 is not one failure, it is two, and the larger one is a label.** With two
+queries the centred space is one-dimensional, so nearest-reference is a single
+threshold on the margin, sitting at the midpoint of the two references and fixed
+at enrolment. `tools/probe_midpoint.py` puts that midpoint next to the best cut
+the same held-out frames admit, and `lost` comes apart exactly:
+`lost = SWAP + cut`, checked on all twenty-five two-query benches by scoring the
+rule's own threshold and confirming it reproduces the shipped figure.
+
+    bench             lost  SWAP   cut   ENROL   ASYM  drift
+    20260817-085504   71.7  47.5  24.2   -1.20   3.50   0.16   BACKWARDS
+    20260817-105251   47.9  31.2  16.7    1.22   1.86  -0.07   BACKWARDS
+    20260817-133552   36.7   0.0  36.7   -2.01   0.46   0.98
+    20260816-172256   29.2   0.0  29.2    0.94   0.38  -0.48
+    20260817-104849   25.0   0.0  25.0   -4.76   0.22   3.03
+    20260817-152757   15.0   0.0  15.0    0.24   0.58  -0.09
+
+**Four of the twenty-five enrolled backwards** — 08:55, 10:52, 06:33 and 09:55 —
+and on #19's two largest that is most of the loss. A pair enrolled the wrong way
+round is not a misplaced cut and no radius, unit or hysteresis recovers it; the
+board would have to notice at enrolment that the reference it calls A sits on the
+B side of the margin. That is a different bug from the drift 13:35 shows, and the
+two had been sharing one number.
+
+**And the drift is a step between visits, not a slide through the run.** The
+obvious reading of the table above is that `ENROL` tracks `drift` — it does,
+at r = −0.937 — but both are computed from the same frames, so that is the
+decomposition being consistent with itself and not evidence. Splitting the slope
+across the taught / held-out boundary, so the two halves share no frame, the
+signs agree on **12 of 25 against a chance of 12.5, r = +0.201**. Re-enrolling
+later in the same run would not help. Whether the step is the scene or the object
+is [#22](https://github.com/kazunori279/fpga-open-vocab/issues/22)'s question;
+seven of the nine worst benches move both references the same way, which against
+a 60% base rate is a lean and not a finding.
+
+**The #18 leave-one-out trend reversed, and the entry above at fourteen benches
+said the opposite.** That entry read "the gain is gone". At twenty-three benches
+the best unit gains **10.2 points over the shipped `2.0 sep`, paying 8.8** — up
+from 2.5 paying 12.0. `probe_presence.py` has not changed since the fourteen-bench
+row except for lint, so this is the seven 08-20 benches and not the arithmetic.
+It is still not a reason to move `FGX_ABSENT_TRIP`: the unit that gains is
+`scat`, which picks r = 1.25 on every one of the twenty-three folds, and every
+fold it scores below the 50% floor on is one of the eight inverted benches. It
+is right about the benches that already work. The inversions are what #18 needs.
+
+The stale figures that fell out of checking all this are corrected in place in
+`README.md`, `docs/architecture.md`, `docs/fit.md`, `docs/monitor.md` and
+`bench/README.md`: the archive holds twenty-six pair benches and not eighteen or
+twenty-two, twenty-three presence benches and not fourteen, eight inversions and
+not six, and the book pair's ceiling spans 1.000 to 0.579 over nineteen runs and
+not fourteen or sixteen. `bench/README.md` also claimed the soak, thermal and
+USB-drop logs were "still in `/tmp` and still at risk" two days after they were
+archived under `bench/soak/`.
+
+---
+
 ### 2026-08-22, the entry after "last" — two numbers that were already sitting there
 
 Both of today's remaining questions turned out to be about things the repository

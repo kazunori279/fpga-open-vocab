@@ -180,6 +180,72 @@ The cube contrast run, 08-20 13:12, is **not** degenerate — it used three
 phrases (`"a red cube / a blue cube / a cube"`), so the shared negative breaks
 the anti-symmetry. If a contrast pair is wanted, give it a third phrase.
 
+## What #19 actually is, once `lost` is taken apart
+
+`tools/probe_ceiling.py` narrowed
+[#19](https://github.com/kazunori279/fpga-open-vocab/issues/19) from "a
+regression since 08-11" to a handful of benches that threw away a ceiling their
+own scenes had shown. It could not say why, because `lost` is a difference of
+two accuracies and an accuracy has no direction.
+
+`tools/probe_midpoint.py` gives it one. With two queries the centred space is
+one-dimensional, so **the shipped rule is a single threshold and its value is
+fixed at enrolment** — the midpoint of the two references on the margin axis.
+The oracle is the best threshold on that same axis. So `lost` is the distance
+between two cuts, and it splits exactly:
+
+    lost = SWAP + cut
+
+| bench | lost | SWAP | cut | ENROL | ASYM | pair |
+| --- | --- | --- | --- | --- | --- | --- |
+| 08-17 08:55 | 71.7 | **47.5** | 24.2 | −1.20 | 3.50 | book, **backwards** |
+| 08-17 10:52 | 47.9 | **31.2** | 16.7 | 1.22 | 1.86 | book, **backwards** |
+| 08-17 13:35 | 36.7 | 0.0 | 36.7 | −2.01 | 0.46 | book |
+| 08-16 17:22 | 29.2 | 0.0 | 29.2 | 0.94 | 0.38 | book |
+| 08-17 10:48 | 25.0 | 0.0 | 25.0 | −4.76 | 0.22 | book |
+| 08-17 15:27 | 15.0 | 0.0 | 15.0 | 0.24 | 0.58 | glass |
+
+**`SWAP` is the enrolment choosing the direction the held-out frames
+contradict**, and it is a different bug from a misplaced cut: no threshold
+anywhere on the axis recovers a backwards enrolment. Four of the twenty-five
+benches did it — 08-17 08:55, 08-17 10:52, 08-17 09:55 and 08-20 06:33 — and on
+#19's two largest it is most of the loss.
+
+**`SWAP` is not the same thing as an inverted margin**, and 08-16 17:22 is the
+bench that makes the difference concrete. Its margin AUC is 0.176, as inverted as
+anything in the archive, and its `SWAP` is 0.0: the enrolment learned the same
+inverted direction the frames use, so the naming error cost the rule nothing and
+all 29.2 points are a misplaced cut. `SWAP` is only charged when the references
+and the held-out frames disagree — which is why the column exists separately
+from `probe_ceiling.py`'s `!` marker and does not track it.
+
+**`cut` is then one scalar**, how far the enrolment's midpoint sits from the
+best cut, split into the references not being where the frames are (`ENROL`) and
+the price of cutting at the midpoint of two unequal spreads (`ASYM`).
+
+**And the displacement is a step between visits, not a slide through the run.**
+That distinction decides whether re-enrolling periodically would fix anything,
+so it was tested rather than assumed. The margin axis's slope correlates with
+`ENROL` at −0.937, but both are computed from the same frames, so that number is
+the decomposition agreeing with itself. Measured separately on the taught spans
+and on the held-out ones — disjoint frames, nothing shared — the slope agrees in
+sign on **12 of 25 against a chance of 12.5, r = +0.201**. There is no run-long
+drift. Re-enrolling later in the same run, which is the obvious fix and would
+cost firmware, would not have helped.
+
+What is **not** settled is whether that step is the whole scene or one object.
+Both references are displaced the same way on 7 of the 9 worst benches against a
+60% base rate, which is a lean and not a finding. That is
+[#22](https://github.com/kazunori279/fpga-open-vocab/issues/22), and it needs a
+run designed for it rather than more replay of these.
+
+`cue/analysis/20260823-midpoint.txt` is the run. Every row carries an `=state`
+column: scoring the held-out frames against that single threshold has to
+reproduce the rule's own accuracy, and if it does not on any bench the whole
+table is void. It caught a real error while this was being written — the first
+version hardcoded the upright direction and six benches came back with a
+negative `lost`, which is the rule beating its own ceiling.
+
 ## A reference on the origin, and the unit that does not exist
 
 The third enrolment guard above — *a reference on the origin* — is the one
@@ -247,6 +313,8 @@ looks exactly like a real one.
     uv run --script tools/probe_sepscale.py bench/cue/*.log
     uv run --script tools/probe_reject.py bench/cue/m9_cue-20260817-112606.log
     uv run --script tools/probe_origin.py bench/cue/m9_cue-*.log
+    uv run --script tools/probe_ceiling.py bench/cue/m9_cue-2026*.log
+    uv run --script tools/probe_midpoint.py bench/cue/m9_cue-2026*.log
 
 The tools all default to `/tmp/m9_cue.log`, which is where a fresh run still
 lands. Pass a path from here to look at a past one.
@@ -254,4 +322,7 @@ lands. Pass a path from here to look at a past one.
 ## What is not in here
 
 Only the cue benches. The soak, thermal and USB-drop logs that issues #9 and #12
-rest on are still in `/tmp` and still at risk.
+rest on live in [`../soak/`](../soak/) — `20260820-usb-p2/` for the drop,
+`20260821-lastwords/` for what the board said last, and `20260822-settle/` for
+the camera. They were archived on 2026-08-21 and 08-22, and this paragraph went
+on saying they were in `/tmp` until 08-23.

@@ -1,0 +1,77 @@
+  m9_cue-20260815-111130.log                 skipped: bench/cue/m9_cue-20260815-111130.log: no .cues sidecar, so the boundaries are opinion
+  m9_cue-20260815-111750.log                 skipped: bench/cue/m9_cue-20260815-111750.log: the sidecar is marked VOID
+  m9_cue-20260817-085204.log                 skipped: bench/cue/m9_cue-20260817-085204.log: no .cues sidecar, so the boundaries are opinion
+  m9_cue-20260817-103054.log                 skipped: bench/cue/m9_cue-20260817-103054.log: no .cues sidecar, so the boundaries are opinion
+  m9_cue-20260817-103550.log                 skipped: bench/cue/m9_cue-20260817-103550.log: the sidecar is marked VOID
+  m9_cue-20260817-103720.log                 skipped: bench/cue/m9_cue-20260817-103720.log: the sidecar is marked VOID
+  m9_cue-20260817-104419.log                 skipped: not a two-query bench with the cued labels as the queries
+  m9_cue-20260817-105019.log                 skipped: no held-out frames of both classes after the rule engaged
+  m9_cue-20260817-112155.log                 skipped: bench/cue/m9_cue-20260817-112155.log: the sidecar is marked VOID
+  m9_cue-20260820-131217.log                 skipped: not a two-query bench with the cued labels as the queries
+  m9_cue-20260820-142249.log                 skipped: not a two-query bench with the cued labels as the queries
+
+bench             lost  SWAP   cut  =state   ENROL   ASYM     dA     dB  drift      s  pair
+20260817-085504   71.7  47.5  24.2      ok   -1.20   3.50  -0.39  -2.79   0.16   2.43  BACKWARDS  a closed book / an opened book
+20260817-105251   47.9  31.2  16.7      ok    1.22   1.86  -2.14   0.29  -0.07   1.46  BACKWARDS  a closed book / an opened book
+20260817-133552   36.7   0.0  36.7      ok   -2.01   0.46   1.26  -2.76   0.98   1.41  a closed book / an opened book
+20260816-172256   29.2   0.0  29.2      ok    0.94   0.38  -0.97   0.92  -0.48   1.84  a closed book / an opened book
+20260817-104849   25.0   0.0  25.0      ok   -4.76   0.22   3.80  -5.71   3.03   0.30  a closed book / an opened book
+20260817-152757   15.0   0.0  15.0      ok    0.24   0.58  -0.11   0.37  -0.09   0.66  a glass with tea / an empty glass
+20260817-093309   14.2   0.0  14.2      ok   -0.33  -0.38  -0.07  -0.73   0.21   2.63  a closed book / an opened book
+20260817-133952   12.5   0.0  12.5      ok   -0.47  -0.71   0.28  -0.66   0.43   1.95  a closed book / an opened book
+20260817-153747   10.8   0.0  10.8      ok    1.26   0.32  -0.53   1.98  -0.71   0.98  a person standing / a person, hands up
+20260820-063324   10.8   5.8   5.0      ok    0.88   0.36  -2.01  -0.25  -0.28   0.97  BACKWARDS  a glass with tea / an empty glass
+20260817-095529   10.0   6.7   3.3      ok   -0.37   1.32  -0.24  -0.98   0.04   1.22  BACKWARDS  a closed book / an opened book
+20260817-095808   10.0   0.0  10.0      ok   -0.04   0.67  -0.70  -0.77   0.03   2.51  a closed book / an opened book
+20260816-173537    9.2   0.0   9.2      ok   -0.22   0.52   0.02  -0.43   0.19   2.68  a closed book / an opened book
+20260820-062406    5.0   0.0   5.0      ok   -0.10  -0.26   0.25   0.06  -0.03   2.09  a closed book / an opened book
+20260820-062932    5.0   0.0   5.0      ok   -1.64   0.84   1.59  -1.69   0.54   0.95  a glass with tea / an empty glass
+20260817-073335    3.3   0.0   3.3      ok    0.43   0.04  -0.50   0.36   0.01   1.35  a closed book / an opened book
+20260817-152044    3.3   0.0   3.3      ok    0.43   0.46  -0.35   0.50  -0.17   1.08  a closed hand / an opened hand
+20260817-113304    2.5   0.0   2.5      ok   -0.71   0.16   0.31  -1.11   0.16   1.88  a closed book / an opened book
+20260817-112606    2.5   0.0   2.5      ok    0.18  -0.78   0.59   0.96   0.04   0.85  a closed book / an opened book
+20260820-063704    1.7   0.0   1.7      ok    0.33   0.26   0.84   1.50  -0.21   1.82  a closed book / an opened book
+20260817-091826    0.8   0.0   0.8      ok    0.31  -0.27   0.11   0.73   0.18   2.21  a closed book / an opened book
+20260817-085747    0.8   0.0   0.8      ok   -0.52   0.60   0.02  -1.02  -0.10   5.55  a closed book / an opened book
+20260817-154206    0.8   0.0   0.8      ok   -0.06   0.36  -0.84  -0.95   0.23   1.50  a big bag / a small bag
+20260820-132448    0.8   0.0   0.8      ok    0.35   0.25  -0.22   0.47  -0.14   5.85  a blue cube / a red cube
+20260811-072207    0.0   0.0   0.0      ok    1.57  -0.67  -0.06   3.08  -0.68   0.82  a closed book / an opened book
+
+  lost   = probe_ceiling.py's column: its oracle minus the rule, in points.
+  SWAP   = of those points, the ones lost to the enrolment choosing the direction
+           the held-out frames disagree with. Not a misplaced cut - a backwards one.
+  cut    = the rest: the best cut in the rule's own direction, minus the rule.
+           lost = SWAP + cut, exactly.
+  =state = scoring the held-out frames against the single threshold t_rule
+           reproduces the rule's own accuracy. If this is not `ok` everywhere,
+           the reduction is wrong and the rest of the table means nothing.
+  ENROL  = (t_rule - t_mid)/s, the references not being where the frames are.
+  ASYM   = (t_mid - t_best)/s, the price of cutting at the midpoint of the means.
+           ENROL + ASYM is the whole distance from the rule's cut to the best one
+           in its own direction, and it is what `cut` is made of.
+  dA, dB = each reference's own displacement, signed so positive costs accuracy.
+  drift  = the margin axis's own slope over the run, in s per 100 frames, after
+           each class's mean is removed - so what is left is shared by both classes
+           and is the run rather than the objects.
+  s      = pooled within-class SD of the held-out margins, the unit for all of them.
+
+  4 of 25 benches enrolled BACKWARDS: 20260817-085504, 20260817-105251, 20260820-063324, 20260817-095529
+  On those, SWAP is a labelling failure on a signal that was there, and no
+  threshold placed anywhere on the axis would have recovered it.
+
+  drift vs ENROL: r = -0.937 over 25 benches
+  Predicted negative: an axis rising during the run leaves both references
+  below the frames they are later scored against. ENROL is built from both
+  halves of the run, so this is the decomposition being consistent, not evidence.
+
+  AND THE SLOPE DOES NOT SURVIVE BEING SPLIT. Measured on the taught spans and
+  on the held-out ones - disjoint frames, nothing shared - it agrees in sign on
+  12 of 25, r = +0.201. Chance is 12.5. So the axis is NOT sliding
+  steadily through a run: the displacement is a step between visits, not a trend
+  within them, and re-enrolling later in the same run would not have fixed it.
+
+  WHICH REFERENCE MOVED, and this one is NOT settled: both displaced the same way
+  on 15 of 25 benches, and on 7 of the 9 that lost 10 points or more to `cut`.
+  7/9 against a 60% base rate is a lean, not a finding - too few benches to
+  separate 'the whole scene sat differently that visit' from 'one object was
+  restaged'. That separation is issue #22 and it needs a run designed for it.

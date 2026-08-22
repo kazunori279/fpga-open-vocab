@@ -262,7 +262,7 @@ the sensor sees and settles it in seconds.
 And the thing to do when none of that helps is to bench it properly rather than
 tune flags: `fit.md` Screen 2, three runs on three different days, and believe
 the low one. The same desk and the same pair have spanned a margin of 1.000 to
-0.579 across fourteen runs.
+0.579 across nineteen runs.
 
 ---
 

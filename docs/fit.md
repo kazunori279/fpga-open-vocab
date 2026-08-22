@@ -168,7 +168,7 @@ worst — and it got **one of the four** right.
 
 **And one bench is not a measurement.** Replaying every archived run of *the
 same book pair on the same desk*, the ceiling — the best any decision rule could
-have scored on that morning's frames — spans **1.000 to 0.579 across fourteen
+have scored on that morning's frames — spans **1.000 to 0.579 across nineteen
 runs**. Forty-two points are decided before the rule is reached, by staging you
 cannot see and did not change on purpose. A single 90% is not a capability and a
 single 55% is not a limit.
@@ -193,8 +193,8 @@ collected 60% of a 67.5% ceiling has a scene problem, not a rule problem.
   of 60 held-out opened frames were called right against 66 of 66 closed ones.
   The encoder was fine that morning; the margin still separated those scenes at
   93.8%.
-- **Whether the empty scene will land where you expect.** Across fourteen
-  archived benches, **six are inverted**: the empty desk reads *nearer* the
+- **Whether the empty scene will land where you expect.** Across twenty-three
+  archived benches, **eight are inverted**: the empty desk reads *nearer* the
   references than the objects do. No threshold repairs that, which is why the
   presence stage rejects on distance in the centred space rather than on a level
   ([#18](https://github.com/kazunori279/fpga-open-vocab/issues/18)).
