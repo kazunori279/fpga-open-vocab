@@ -1465,7 +1465,12 @@ const void *ft_acquire(float in_scale)
     // making every mode constant. With the guard, a repeat capture writes no
     // registers at all.
     int mean[3] = { 0, 0, 0 };
-    int warm = 0, was = -1000, stable = 0, first = -1;
+    int warm = 0, first = -1;
+    // The last SETTLE_WIN non-blank lumas, oldest first, reset by any blank
+    // frame. See the convergence test below for why the window and not a pair.
+    #define SETTLE_WIN 6
+    int hist[SETTLE_WIN];
+    int nhist = 0;
     bool rose = false, converged = false;
     acq_doubt = NULL;
 
@@ -1658,14 +1663,79 @@ const void *ft_acquire(float in_scale)
         // reports rather than
         // refused, by the warning after the loop: refusing would mean firmware
         // deciding it knows the lighting better than the person standing in it.
-        const int FLOOR = 16, MOVED = 8;
+        // AND THE TOLERANCE WAS STILL THE BUG, ONE LAYER DOWN. Everything above
+        // is about telling a working camera from a stuck one, and it does that.
+        // What it does not do is tell a *finished* ramp from a slow one, and on
+        // 2026-08-23 that turned out to be the reason every frame this project
+        // has ever scored came out under-exposed: m9's banner asks for about
+        // 115 107 105 on a neutral scene and the archive is full of 75 83 72.
+        //
+        // The old test was `|luma - was| <= 2` three times over, with a floor of
+        // six frames. Six consecutive boots in one bright room, same binary,
+        // seconds apart, read
+        //
+        //     66 77 86 95 103 111 116 117 119 120     settled after 10
+        //     70 81 90 99 107 115 117 119 121         settled after 9
+        //     74 77 78 80 82 84                       settled after 6
+        //     77 88 97 106 112 113 115 116            settled after 8
+        //     78 80 83 85 86 88                       settled after 6
+        //     81 83 85 87 89 91                       settled after 6
+        //
+        // Three of the six stopped at the six-frame floor while the AEC was
+        // still climbing at two counts a frame, and two counts a frame is
+        // exactly what a +-2 window calls stable. Every step satisfies it, so
+        // `stable` reaches three on frame three and the loop leaves at the floor
+        // - thirty counts short, and the run reports `settled` while saying so.
+        // The other three happened to start with steps of nine or eleven, which
+        // reset the counter and forced the ramp to finish. Same code, same room,
+        // and the difference is which side of the tolerance the AEC's step size
+        // landed on that boot. That is the M8b/M8c race again, at a smaller
+        // scale and with a worse symptom, because this one does not fall back to
+        // the test vector - it hands back a real, dark, plausible picture.
+        //
+        // Widening or narrowing the window cannot fix it. The plateau is not
+        // quiet either: the long ramps hunt over 147..154 once they arrive, so
+        // +-2 per step is simultaneously too loose for the climb and too tight
+        // for the top. The two populations overlap on step size and separate on
+        // something else entirely - a climb is MONOTONE and a plateau
+        // OSCILLATES. So the test is now a trend across a six-frame window, the
+        // sum of the last three against the sum of the first three, which is
+        // +-2 per frame of drift measured where drift accumulates instead of
+        // where it hides. The three short ramps above move that statistic by 6;
+        // the hunting plateau moves it by 0 to 2.
+        //
+        // The cost is the runs that no longer exit at all, and it is the bound
+        // that catches them rather than a verdict: 40 frames or
+        // FT_RAMP_BUDGET_US, then `EXPOSURE NEVER SETTLED` on the doubt line and
+        // the frames get used anyway. A room whose true exposure never stops
+        // creeping is a room this code should describe, not one it should
+        // declare converged.
+        const int FLOOR = 16, MOVED = 8, DRIFT = 2 * (SETTLE_WIN / 2);
         const bool flat = cam_frame_is_constant(arena, len);
         if (!flat && first < 0) first = luma;
         if (first >= 0 && (luma - first > MOVED || first - luma > MOVED))
             rose = true;
-        if (!flat && luma - was <= 2 && was - luma <= 2) stable++; else stable = 0;
-        was = flat ? -1000 : luma;
-        if (warm >= 5 && stable >= 3 && luma >= FLOOR && rose) {
+
+        if (flat) {
+            nhist = 0;
+        } else if (nhist < SETTLE_WIN) {
+            hist[nhist++] = luma;
+        } else {
+            for (int j = 1; j < SETTLE_WIN; j++) hist[j - 1] = hist[j];
+            hist[SETTLE_WIN - 1] = luma;
+        }
+
+        bool steady = false;
+        if (nhist == SETTLE_WIN) {
+            int lo = 0, hi = 0;
+            for (int j = 0; j < SETTLE_WIN / 2; j++) {
+                lo += hist[j];
+                hi += hist[SETTLE_WIN / 2 + j];
+            }
+            steady = (hi - lo <= DRIFT) && (lo - hi <= DRIFT);
+        }
+
+        if (steady && luma >= FLOOR && rose) {
             converged = true;
             break;
         }
