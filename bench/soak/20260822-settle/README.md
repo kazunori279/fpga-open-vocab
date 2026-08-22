@@ -13,6 +13,12 @@ reproduced it on the first try.**
 | `cam_probe-20260822-1343-ev.log` | first EV axis, **void — see below** | matches 08-03 | 3/3, 3/3 | 111 148 123 |
 | `cam_probe-20260822-1350-ev2.log` | EV axis, fixed | matches 08-03 | 3/3, 3/3 | 120 154 124 |
 | `cam_probe-20260822-1401.log` | **lens covered by hand** | **fault, 5 of 7 rows CONSTANT** | **0/3, 0/3** | **9 7 8** |
+| `cam_probe-20260822-1508-control.log` | still covered, an hour later | fault, same 5 rows | 0/3, 0/3 | 8 4 8 |
+| `m9-20260822-1458-covered-fixed.log` | still covered, **m9 with the fix** | — | escaped at 400 ms | 8 5 8 |
+
+`1508` is the control for the fix below: it says the covered lens still
+reproduces the fault on the instrument, at the same time of day the fixed `m9`
+run was getting pictures out of it.
 
 ## The covered-lens run, which is the whole point of this directory
 
@@ -125,23 +131,69 @@ Two observed runs is not a measurement, and both of them were the same evening.
 So the prediction was written down first and then tested: **cover the lens and
 run the probe.** It took ten seconds and the fault came back.
 
-## What this means for the fix
+## The fix, and the two wrong ones that came first
 
 **No `sleep_ms(N)` is the fix.** Any constant is a number measured in some
-particular room, and this directory now contains two rooms whose correct
-constants differ by 400 ms — with no reason to believe 400 is the end of the
-range rather than the darkest desk anybody has tried. A 400 ms sleep would also
-cost every bright-room capture 400 ms it does not need.
+particular room, and this directory contains two rooms whose correct constants
+differ by 400 ms.
 
-`ft_acquire()` has to **wait for a non-constant frame with a bounded timeout**:
-trigger, check for the ArduChip's `c80a8564` empty-FIFO fill, re-trigger, and
-give up with an error after a ceiling well above any plausible integration. That
-turns the room's brightness into latency instead of into a blank frame, and it
-turns a silent wrong answer into a reportable one.
+So the first attempt made the quiet back off — 50, 100, 200, 400, 800 — and it
+did not work. Nor did the second, which took the cap to 4 s:
 
-`cam_frame_is_constant()` already exists and is what the sweep counts with, so
-the check is written. What is not written is the retry loop in the acquire path
-and a decision about what the ceiling should be.
+```
+camera : exposure ramp 5+100 5+200 5+400 5+800 5+1600 5+3200 5+4000 5+4000
+                       5+4000 5+4000 5+4000
+camera : still a constant fill (08 01) after 11 frames, quiet up to 4000 ms
+```
+
+Twenty-five seconds of silence bought nothing, while `cam_probe` on the same
+covered lens minutes either side got a picture at 400 ms every time.
+
+**The difference is that every trial of the sweep on this page calls
+`cam_begin()` first.** What the table above measures is *reset, then N ms
+untriggered*, and `ft_acquire()` was reading the number off as though it
+measured *N ms untriggered*. A sensor triggered while it cannot answer stays
+stuck, and silence afterwards is not a reset. The matrix fits too: row 5 escapes
+at `settle300` with no reset, but by then `cam_probe`'s bus-rate sweep has had
+the sensor producing frames for seconds. **Cold and stuck is a third state, and
+it is the one m9 boots into.**
+
+The working recovery is the sweep's own sequence — `cam_begin()`,
+`cam_image_defaults()` again because the reset discards them, then the settle
+inside `cam_trigger()` where the sweep puts it, before the FIFO clear. It runs
+only after a frame has come back constant, so a lit-room boot takes the
+untouched vendor recipe and pays nothing:
+
+```
+camera : exposure ramp 5+100 5+200 5+400 5 6 7 7 6 6 6 7 7 7 ...
+```
+
+Three tries, escaped at 400 ms — the number this page measured — and then nine
+frames scored instead of a silent fall back to the flash test vector.
+`m9-20260822-1458-covered-fixed.log` is that run. The mean stays `8 5 8` and it
+reports `EXPOSURE NEVER SETTLED`, which is correct: the lens really is covered.
+
+### What fell out of getting it wrong
+
+`cam_begin()` writes `CAM_REG_SENSOR_RESET`, which puts the sensor back to VGA,
+and it does **not** clear `cam.c`'s `last_fmt` / `last_mode`. So a
+`rewrite = false` recipe after a reset skips the `CAPTURE_RESOLUTION` write on
+the grounds that the mode has not changed, when only the record of it survived:
+
+```
+!! FIFO length 614400, buffer is 135168
+```
+
+640 × 480 × 2 exactly. Every recipe in this page's sweep is `rewrite = true`,
+which is what makes `cam_begin()` safe to call per trial there, and the comment
+in `cam.c` claiming `-1` "after a reset or a `cam_begin()`" describes an
+intention the code does not carry out.
+
+### Not measured
+
+**A lit room, with this firmware.** The recovery is gated on a constant frame so
+a working camera should never enter it, but "should" is not a run. That check
+needs the lens uncovered and has not been done.
 
 The scene mean is now printed on the sweep's own table so no future run has to
 be reconstructed out of a different section.
