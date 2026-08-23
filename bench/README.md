@@ -124,7 +124,8 @@ timestamp in the filename — see 11:44 below.
 | `m9_cue-20260820-132448.log` | 96.7% | 96.1% | 08-20 13:24 | **a red cube / a blue cube, bare** — the comparable half, twelve minutes after the contrast one and with the cubes unmoved. Margin AUC 0.992, `within` 0.993, `lost` 0.8. **Colour is carried**, which puts it in the hands-and-bags tier and takes colour off the list of explanations for the glass pair. Also reproduces the presence-stage failure of 13:12 with a wider overlap (−0.16 sep against −0.08), so that one is not a query-form artefact — see [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) |
 | `m9_cue-20260820-142249.log` | 54.2% | 64.4% | 08-20 14:22 | **the glass pair, contrast** — `"a glass with tea / an empty glass"` and its mirror, run to test whether rephrasing repairs a pair that fails bare. **Margin AUC 0.674, against bare's 0.699 / 0.680 / 0.591 — it bought nothing.** The enrolment is also **degenerate**: two contrast queries built from the same two phrases are exact negatives, so `lvl` reads `+0.00` on all 546 frames and both of M21's axes collapse to the raw pair. The margin survives that (it is `2·z`, so the AUC is unchanged) and is the number this run was for; **the live figure and every presence number in it are not usable.** See the note below |
 | `m9_cue-20260823-0710.log` | **VOID** | **VOID** | | **the enrolment keys were crossed** — the board had bound key 1 to `a closed book` and the key was pressed during the `an opened book` segment, so both references went in swapped. Its two columns are 15.0% and 85.0%, exact complements, and neither is about the book pair. See the subsection above; `tools/probe_reject.py` refuses this shape now |
-| `m9_cue-20260824-0651.log` | 75.8% | 80.0% | 08-24 06:51 | **issue #22's bench**: the book taken out of shot and re-staged from scratch before every visit. The `an opened book` centres scatter (+0.43, −0.04, +0.08, +1.35) where 13:35's walked, and `lost` falls from 36.7 to **4.2** — the rule stops collapsing. Ceiling 86.7% at AUC 0.813, lower than 13:35's, which is the within-class spread that correlated stagings were hiding. Presence half is a total failure: 0/90 empty frames held. See the section above for the three reasons this is not a clean A/B |
+| `m9_cue-20260824-0651.log` | 75.8% | 80.0% | 08-24 06:51 | **issue #22's treatment run**: the book taken out of shot and re-staged from scratch before every visit. Ceiling 86.7%, `lost` 4.2, presence 0/90. Paired with 08:39 below, which is the same run staged the old way — read the two together or not at all |
+| `m9_cue-20260824-0839.log` | 73.6% | 78.4% | 08-24 08:39 | **issue #22's control**, 108 minutes after the treatment on one firmware and one schedule: staged the old way, the book never leaving the frame. Ceiling 86.3%, `lost` 15.7, presence 0/90. **2.2 points from the treatment**, so re-staging bought nothing, and it did not reproduce 13:35's walk either. This is the run that took the mechanism out of #19 |
 | `m9_cue-smoke-2e48d86.log` | 37.5% | 37.5% | | `/tmp/m9_cue.log` as it stood after flashing the one-sided guard — a smoke test, kept because it is the only log of that firmware running |
 | `m9_cue_fake_d.log` | 58.3% | 48.3% | | **synthetic.** A doctored copy of `m9_cue-20260816-172256.log`, made to exercise a probe against a class that was never in the room. Not a bench, and it will happily score like one if you forget that |
 
@@ -273,6 +274,10 @@ Both references are displaced the same way on 7 of the 9 worst benches against a
 [#22](https://github.com/kazunori279/fpga-open-vocab/issues/22), and it needs a
 run designed for it rather than more replay of these.
 
+**That run has now happened, twice, and the next section is what it found.**
+Read the two together: this section says the loss is a step between visits, and
+the next one says the size of that step does not predict the loss.
+
 `cue/analysis/20260823-midpoint.txt` is the run. Every row carries an `=state`
 column: scoring the held-out frames against that single threshold has to
 reproduce the rule's own accuracy, and if it does not on any bench the whole
@@ -280,67 +285,93 @@ table is void. It caught a real error while this was being written — the first
 version hardcoded the upright direction and six benches came back with a
 negative `lost`, which is the rule beating its own ceiling.
 
-## Re-stage the book every visit, and the walk becomes scatter
+## Re-stage the book every visit, and nothing happens
 
 [#22](https://github.com/kazunori279/fpga-open-vocab/issues/22) is the run the
-section above says it needs. `m9_cue-20260824-0651.log`: the same pair, the same
-desk, and one change — **the book was taken completely out of shot and re-staged
-from scratch before every visit**, no nudging and no adjusting the previous
-placement. The point was to break the correlation between consecutive stagings
-and change nothing else.
+section above says it needs, and it was run twice on 2026-08-24 — once each way,
+108 minutes apart, same firmware, same schedule, same desk, same morning.
 
-Read the visit centres first, which is what #22 asks for, because this is the
-case the ratios cannot see:
+- `m9_cue-20260824-0651.log`, **the treatment**: the book taken completely out
+  of shot and re-staged from scratch before every visit, no nudging and no
+  adjusting the previous placement.
+- `m9_cue-20260824-0839.log`, **the control**: staged the old way. The book stays
+  in shot, is opened and closed where it lies, and its position is corrected by
+  eye against the last visit.
 
-| | 08-17 13:35 | 08-24 06:51, re-staged |
+| | 08-17 13:35 | 08-24 06:51 **re-staged** | 08-24 08:39 **control** |
+| --- | --- | --- | --- |
+| `an opened book` centres | +1.96, +3.25, +4.64, +4.39 | +0.43, −0.04, +0.08, +1.35 | −0.67, −0.98, −0.44, +1.06 |
+| `a closed book` centres | flat near +5.8 | +1.30, +1.19, +1.99, +1.53 | −0.08, +1.94, +1.66, +2.09 |
+| margin AUC | 0.970 | 0.813 | 0.871 |
+| ceiling `best` | 93.8% | 86.7% | 86.3% |
+| oracle on the scored frames `held` | 94.2% | 80.0% | 89.3% |
+| **live `HELD OUT n/120`** | 57.5% | **75.8%** | **73.6%** |
+| `lost` = `SWAP` + `cut` | 36.7 = 0 + 36.7 | 4.2 = 0 + 4.2 | 15.7 = 0 + 15.7 |
+| empty desk held | — | 0/90 | 0/90 |
+
+**Re-staging bought 2.2 points, which is nothing.** That is the result. Read
+against 13:35 alone the treatment looks like an 18-point win; the control says
+the win is an artefact of comparing across a week. Both of 08-24's runs land
+within 1.6 points of 08-17 13:39 (74.2%), which was nudged.
+
+`lost` did move, 15.7 to 4.2, and it is worth being precise about what that
+means, because it is easy to read as an improvement. The ceilings are the same
+to within half a point (86.3% and 86.7%). What changed is where the loss sits:
+re-staging lowered the oracle on the scored frames by 9.3 points and lowered the
+rule's shortfall by 11.5. **The loss moved from the rule to the ceiling and the
+board's own column did not move.**
+
+### The walk did not reproduce, and it does not predict anything
+
+The control was supposed to reproduce 13:35's monotone walk, since it staged the
+way 13:35 did. It did not — neither of 08-24's runs walks.
+
+That is worth more than one run's worth of doubt, so the archive was asked
+directly. For every bench with two classes and three or more visits each,
+`cue/analysis/20260824-walk.txt` measures the net movement of the worse-behaved
+class's centres **toward the other class's mean**, and puts it against `lost`:
+
+| scaling | r | benches |
 | --- | --- | --- |
-| `an opened book` centres | +1.96 → +3.25 → +4.64 → +4.39 | +0.43, −0.04, +0.08, +1.35 |
-| `a closed book` centres | flat near +5.8 | +1.30, +1.19, +1.99, +1.53 |
-| shape | **monotone** | **scatter** |
-| margin AUC | 0.970 | 0.813 |
-| ceiling `best` | 93.8% | 86.7% |
-| live `HELD OUT n/120` | **57.5%** | **75.8%** |
-| `lost` | **36.7** | **4.2** |
-| `SWAP` + `cut` | 0.0 + 36.7 | 0.0 + 4.2 |
+| raw units | **−0.150** | 27 |
+| divided by the gap between the class means | **+0.163** | 27 |
 
-**The monotone walk is gone, and so is the rule collapse.** Those are two
-findings and the second is the load-bearing one. 13:35 was a bench whose scene
-showed a 93.8% ceiling and whose nearest-reference rule threw 37 points of it
-away. Here the rule collects almost all of what is there — `lost` 4.2, against a
-15-to-37 range on every bench in #19's table — and what is left is a ceiling of
-86.7%.
+Nothing, on either scaling, and the raw one points the wrong way. Two rows make
+the point better than the correlation does:
 
-So the drift #19 has been chasing was **the operator**: each staging was a small
-correction on the last one, and the corrections accumulated in one direction
-across a session. Break that and the class stops walking. It also gets wider —
-independent stagings expose a within-class spread that correlated ones were
-hiding, which is why AUC falls from 0.970 to 0.813 while accuracy rises. The
-scene was never less separable than it looked; it was less *reliably staged*
-than it looked, and the nearest-reference rule is the part that could not
-survive the difference.
+- **08-17 13:35 and 13:39 are four minutes apart, same operator, same book, same
+  desk.** They walk by +2.43 and +2.51 — indistinguishable — and lose 36.7 and
+  12.5.
+- **`m9_cue-20260820-063704.log` is book control B, 98.3% and `lost` 1.7**, and
+  its `an opened book` centres are the most nearly monotone of any book bench:
+  +2.20, +1.03, +0.49, −0.41.
 
-**Three things stop this from closing #19 on its own.** 13:35 ran
-`--no-revisit-empty` and this run has the empty rotation on; 13:35 predates the
-2026-08-23 settle fix in `firmware/frame.c`; and it is one run against one run.
-The *shape* — walk against scatter — is measured within each run and survives
-all three. The 18-point score difference does not, and should not be quoted as
-if it were an A/B. The clean version is two runs back to back on one firmware
-and one schedule, nudged and re-staged, and that is what #22 should ask for
-next.
+So **the pose drift named as #19's visible mechanism is not one.** The centres
+do move between visits, on almost every bench; what they do not do is tell you
+which runs the rule is about to fail on. 13:35 remains a real 36.7-point
+collapse and remains unexplained — what has been removed is the explanation, not
+the observation.
 
-**The presence stage failed completely on this run and that is a separate
-finding.** All 90 held-out empty-desk frames were called present, all 90 of them
-as `an opened book`, and `tools/probe_reject.py` finds no radius that helps: the
-best balanced point is 81.2% at r = 1.0, and the worst empty frame and the worst
-class frame overlap by 2.92 sep, so no single pair of edges separates them.
-That belongs to [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18)
-and [#21](https://github.com/kazunori279/fpga-open-vocab/issues/21), not here.
+An honest caveat about the control: the operator knew which condition was being
+run. "Correct it by eye against the last visit" is exactly the behaviour a
+person performs differently when they are watching themselves do it. That cannot
+be ruled out from these two runs, and it is an argument for the next attempt at
+#19 being something other than a staging protocol.
 
-`within` 0.858 against `|sep|` 0.813 leans the same way as the 08-20 glass runs
-but at 4.5 points against their 11 and 19 — **below `probe_ceiling.py`'s own
-`NOTABLE` of 0.10, so the tool does not report it and neither should a table.**
-It is here because the direction is worth watching on a pair that has now been
-staged both ways, not because 4.5 points is a finding.
+### The presence stage failed identically in both
+
+All 90 held-out empty-desk frames were called present in each run — 0/90 held,
+twice. `tools/probe_reject.py` finds no radius that helps on 06:51 (best
+balanced 81.2% at r = 1.0; the worst empty frame and the worst class frame
+overlap by 2.92 sep). Being reproducible across a staging change is the useful
+part: it is not a staging artefact. That belongs to
+[#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) and
+[#21](https://github.com/kazunori279/fpga-open-vocab/issues/21).
+
+`within` against `|sep|` is 0.858/0.813 on the treatment and 0.886/0.871 on the
+control — both **below `probe_ceiling.py`'s own `NOTABLE` of 0.10, so the tool
+does not report either and neither should a table.** Noted only because the
+direction is now the same on a pair staged both ways.
 
 ## A reference on the origin, and the unit that does not exist
 

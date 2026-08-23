@@ -1,7 +1,7 @@
 # host/cue.py, settle 10, hold 30, baseline 30, bg-tau 30
 # demo.py (no extra flags)
 # log bench/cue/m9_cue-20260824-0651.log
-# ISSUE 22. The book was taken completely out of shot and re-staged from scratch before every visit - no nudging, no adjusting the previous placement. Board uptime 22 h at the start of the run (last USB transition 2026-08-23 08:27:52), so the sensor was thermally settled, which the archived benches were not; that is a difference from 08-17 13:35 and so are the empty rotation being ON here and the 08-23 settle fix in frame.c.
+# ISSUE 22. The book was taken completely out of shot and re-staged from scratch before every visit - no nudging, no adjusting the previous placement. The paired control staged the old way is m9_cue-20260824-0839.log, 108 minutes later. Board uptime 22 h at the start of the run (last USB transition 2026-08-23 08:27:52), so the sensor was thermally settled, which the archived benches were not; that is a difference from 08-17 13:35 and so are the empty rotation being ON here and the 08-23 settle fix in frame.c.
 # enrol-window 20
 # enrol 72 1
 # enrol 112 2
