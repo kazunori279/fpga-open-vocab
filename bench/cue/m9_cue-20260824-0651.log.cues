@@ -1,0 +1,26 @@
+# host/cue.py, settle 10, hold 30, baseline 30, bg-tau 30
+# demo.py (no extra flags)
+# log bench/cue/m9_cue-20260824-0651.log
+# ISSUE 22. The book was taken completely out of shot and re-staged from scratch before every visit - no nudging, no adjusting the previous placement. Board uptime 22 h at the start of the run (last USB transition 2026-08-23 08:27:52), so the sensor was thermally settled, which the archived benches were not; that is a difference from 08-17 13:35 and so are the empty rotation being ON here and the 08-23 settle fix in frame.c.
+# enrol-window 20
+# enrol 72 1
+# enrol 112 2
+# enrol 192 1
+# enrol 232 2
+# snap 84
+# snap 124
+# snap 204
+# snap 244
+30	59	baseline
+60	99	a closed book
+100	139	an opened book
+140	180	empty
+181	220	a closed book
+221	260	an opened book
+261	300	empty
+301	340	a closed book
+341	380	an opened book
+381	420	empty
+421	460	a closed book
+461	500	an opened book
+501	540	empty

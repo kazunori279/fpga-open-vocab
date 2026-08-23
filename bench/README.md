@@ -123,6 +123,8 @@ timestamp in the filename — see 11:44 below.
 | `m9_cue-20260820-131217.log` | 97.5% | 97.2% | 08-20 13:12 | **a red cube / a blue cube**, and **the only bench in here run with contrast queries** — the frame lines say `a red cube~`, and the `~` is the difference. `probe_ceiling.py` refuses it (the cued labels are not the query names) and **the live figure is not comparable to any row above**: each query was phrased as the negative of the other, so part of the separation was built in the text tower rather than measured in the encoder. Kept as one half of a pair — see the note below |
 | `m9_cue-20260820-132448.log` | 96.7% | 96.1% | 08-20 13:24 | **a red cube / a blue cube, bare** — the comparable half, twelve minutes after the contrast one and with the cubes unmoved. Margin AUC 0.992, `within` 0.993, `lost` 0.8. **Colour is carried**, which puts it in the hands-and-bags tier and takes colour off the list of explanations for the glass pair. Also reproduces the presence-stage failure of 13:12 with a wider overlap (−0.16 sep against −0.08), so that one is not a query-form artefact — see [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) |
 | `m9_cue-20260820-142249.log` | 54.2% | 64.4% | 08-20 14:22 | **the glass pair, contrast** — `"a glass with tea / an empty glass"` and its mirror, run to test whether rephrasing repairs a pair that fails bare. **Margin AUC 0.674, against bare's 0.699 / 0.680 / 0.591 — it bought nothing.** The enrolment is also **degenerate**: two contrast queries built from the same two phrases are exact negatives, so `lvl` reads `+0.00` on all 546 frames and both of M21's axes collapse to the raw pair. The margin survives that (it is `2·z`, so the AUC is unchanged) and is the number this run was for; **the live figure and every presence number in it are not usable.** See the note below |
+| `m9_cue-20260823-0710.log` | **VOID** | **VOID** | | **the enrolment keys were crossed** — the board had bound key 1 to `a closed book` and the key was pressed during the `an opened book` segment, so both references went in swapped. Its two columns are 15.0% and 85.0%, exact complements, and neither is about the book pair. See the subsection above; `tools/probe_reject.py` refuses this shape now |
+| `m9_cue-20260824-0651.log` | 75.8% | 80.0% | 08-24 06:51 | **issue #22's bench**: the book taken out of shot and re-staged from scratch before every visit. The `an opened book` centres scatter (+0.43, −0.04, +0.08, +1.35) where 13:35's walked, and `lost` falls from 36.7 to **4.2** — the rule stops collapsing. Ceiling 86.7% at AUC 0.813, lower than 13:35's, which is the within-class spread that correlated stagings were hiding. Presence half is a total failure: 0/90 empty frames held. See the section above for the three reasons this is not a clean A/B |
 | `m9_cue-smoke-2e48d86.log` | 37.5% | 37.5% | | `/tmp/m9_cue.log` as it stood after flashing the one-sided guard — a smoke test, kept because it is the only log of that firmware running |
 | `m9_cue_fake_d.log` | 58.3% | 48.3% | | **synthetic.** A doctored copy of `m9_cue-20260816-172256.log`, made to exercise a probe against a class that was never in the room. Not a bench, and it will happily score like one if you forget that |
 
@@ -277,6 +279,66 @@ reproduce the rule's own accuracy, and if it does not on any bench the whole
 table is void. It caught a real error while this was being written — the first
 version hardcoded the upright direction and six benches came back with a
 negative `lost`, which is the rule beating its own ceiling.
+
+## Re-stage the book every visit, and the walk becomes scatter
+
+[#22](https://github.com/kazunori279/fpga-open-vocab/issues/22) is the run the
+section above says it needs. `m9_cue-20260824-0651.log`: the same pair, the same
+desk, and one change — **the book was taken completely out of shot and re-staged
+from scratch before every visit**, no nudging and no adjusting the previous
+placement. The point was to break the correlation between consecutive stagings
+and change nothing else.
+
+Read the visit centres first, which is what #22 asks for, because this is the
+case the ratios cannot see:
+
+| | 08-17 13:35 | 08-24 06:51, re-staged |
+| --- | --- | --- |
+| `an opened book` centres | +1.96 → +3.25 → +4.64 → +4.39 | +0.43, −0.04, +0.08, +1.35 |
+| `a closed book` centres | flat near +5.8 | +1.30, +1.19, +1.99, +1.53 |
+| shape | **monotone** | **scatter** |
+| margin AUC | 0.970 | 0.813 |
+| ceiling `best` | 93.8% | 86.7% |
+| live `HELD OUT n/120` | **57.5%** | **75.8%** |
+| `lost` | **36.7** | **4.2** |
+| `SWAP` + `cut` | 0.0 + 36.7 | 0.0 + 4.2 |
+
+**The monotone walk is gone, and so is the rule collapse.** Those are two
+findings and the second is the load-bearing one. 13:35 was a bench whose scene
+showed a 93.8% ceiling and whose nearest-reference rule threw 37 points of it
+away. Here the rule collects almost all of what is there — `lost` 4.2, against a
+15-to-37 range on every bench in #19's table — and what is left is a ceiling of
+86.7%.
+
+So the drift #19 has been chasing was **the operator**: each staging was a small
+correction on the last one, and the corrections accumulated in one direction
+across a session. Break that and the class stops walking. It also gets wider —
+independent stagings expose a within-class spread that correlated ones were
+hiding, which is why AUC falls from 0.970 to 0.813 while accuracy rises. The
+scene was never less separable than it looked; it was less *reliably staged*
+than it looked, and the nearest-reference rule is the part that could not
+survive the difference.
+
+**Three things stop this from closing #19 on its own.** 13:35 ran
+`--no-revisit-empty` and this run has the empty rotation on; 13:35 predates the
+2026-08-23 settle fix in `firmware/frame.c`; and it is one run against one run.
+The *shape* — walk against scatter — is measured within each run and survives
+all three. The 18-point score difference does not, and should not be quoted as
+if it were an A/B. The clean version is two runs back to back on one firmware
+and one schedule, nudged and re-staged, and that is what #22 should ask for
+next.
+
+**The presence stage failed completely on this run and that is a separate
+finding.** All 90 held-out empty-desk frames were called present, all 90 of them
+as `an opened book`, and `tools/probe_reject.py` finds no radius that helps: the
+best balanced point is 81.2% at r = 1.0, and the worst empty frame and the worst
+class frame overlap by 2.92 sep, so no single pair of edges separates them.
+That belongs to [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18)
+and [#21](https://github.com/kazunori279/fpga-open-vocab/issues/21), not here.
+
+`within` 0.858 against `|sep|` 0.813 is the 08-20 glass shape appearing on the
+book for the first time, at 4.5 points rather than the glass's 11 and 19. One
+run; not yet a number.
 
 ## A reference on the origin, and the unit that does not exist
 
