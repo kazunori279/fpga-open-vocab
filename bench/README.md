@@ -336,9 +336,11 @@ class frame overlap by 2.92 sep, so no single pair of edges separates them.
 That belongs to [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18)
 and [#21](https://github.com/kazunori279/fpga-open-vocab/issues/21), not here.
 
-`within` 0.858 against `|sep|` 0.813 is the 08-20 glass shape appearing on the
-book for the first time, at 4.5 points rather than the glass's 11 and 19. One
-run; not yet a number.
+`within` 0.858 against `|sep|` 0.813 leans the same way as the 08-20 glass runs
+but at 4.5 points against their 11 and 19 — **below `probe_ceiling.py`'s own
+`NOTABLE` of 0.10, so the tool does not report it and neither should a table.**
+It is here because the direction is worth watching on a pair that has now been
+staged both ways, not because 4.5 points is a finding.
 
 ## A reference on the origin, and the unit that does not exist
 

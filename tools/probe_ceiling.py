@@ -328,7 +328,15 @@ def verdict(sep, within, held, state, pair_best, runs):
                else "on a scene that showed it")
         return f"lost {lost:.0f} points the ceiling allowed, {why} - #19"
     if within - f > NOTABLE:
-        return "separates within a visit and not across them - the staging moved"
+        # This line used to end "- the staging moved", which is one cause of the
+        # gap and was the wrong one on the 2026-08-20 glass runs: all four
+        # archived visits were rendered and the glass had not been touched
+        # between them. An unmoved scene's embedding drifts over a run as well,
+        # and this column cannot tell the two apart - it is computed from the
+        # margins and never sees a pixel. So it now reports what it measured and
+        # leaves the cause to the frames.
+        return (f"separates within a visit ({within:.3f}) and not across them "
+                f"({f:.3f}) - render the visits before naming a cause")
     if deficit > NOTABLE:
         return (f"the rule collected the ceiling; the scene did not show it "
                 f"this run - this pair has reached {pair_best:.3f}")
