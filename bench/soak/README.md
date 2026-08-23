@@ -50,7 +50,29 @@ contain one. What it does is put a floor under how often it happens, and the two
 empty days are the part that matters, because they are the only stretch in the
 file where a transition would have had nobody to blame it on.
 
-The 26 transitions added by this refresh are all 2026-08-22 flashes and one
+**The trace continues in
+[`usb_watch-20260822-20260824.log.gz`](usb_watch-20260822-20260824.log.gz)** —
+the same process, still running, snapshotted again on 2026-08-24 at 06:19. The
+two files do not overlap: the continuation starts on the line after the last one
+in the six-day file. Board-port transitions by day across the whole eight days
+are now **71 / 12 / 0 / 0 / 56 / 66 / 65 / 72 / 0**, 342 in total.
+
+Two of those numbers are the interesting ones. 08-22's 36 became **65** because
+the six-day snapshot was taken at 14:43 and the settle work ran on into the
+afternoon; anyone quoting 36 is quoting a copy, not a day. And **08-24 is zero**:
+the last transition on the board's port is `2026-08-23 08:27:52`, the tail of the
+exposure work, and the board has been enumerated as `2e8a:0009` continuously for
+the twenty-two hours since, with the once-a-second poll never missing a
+heartbeat by more than the poll's own drift. That is a third untouched stretch
+to set beside 08-18 and 08-19, and it is the first one that is not a whole
+calendar day, so it is the first that can be read as *uptime* rather than as
+*absence*.
+
+What this does not say is that the board is healthy — `usb_watch.py` sees the
+bus and nothing above it, so a core wedged behind a live CDC looks exactly like
+a quiet day. Pair it with something that asks the board a question.
+
+The 26 transitions added by the first refresh are all 2026-08-22 flashes and one
 `--power-cycle` from the #27 work, checked line by line. The rest of the file
 has not been audited event by event and should not be read as if it had. What it turned out to be *worth*, though, was
 something nobody set it up for. On 2026-08-22 at 12:04:02 the board dropped and
