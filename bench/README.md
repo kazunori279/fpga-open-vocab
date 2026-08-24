@@ -380,8 +380,9 @@ twice. `tools/probe_reject.py` finds no radius that helps on 06:51 (best
 balanced 81.2% at r = 1.0; the worst empty frame and the worst class frame
 overlap by 2.92 sep). Being reproducible across a staging change is the useful
 part: it is not a staging artefact. That belongs to
-[#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) and
-[#21](https://github.com/kazunori279/fpga-open-vocab/issues/21).
+[#18](https://github.com/kazunori279/fpga-open-vocab/issues/18); it was also
+half of [#21](https://github.com/kazunori279/fpga-open-vocab/issues/21), which
+is closed, because neither run enrolled a reference near the origin.
 
 `within` against `|sep|` is 0.858/0.813 on the treatment and 0.886/0.871 on the
 control — both **below `probe_ceiling.py`'s own `NOTABLE` of 0.10, so the tool
@@ -530,8 +531,9 @@ level and turn the rule into "is this frame above the recent average", which is
 not a classifier. The arm without that flaw is `empty`, and it needs a presence
 stage that works — 0 of 90 on every recent bench,
 [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) and
-[#21](https://github.com/kazunori279/fpga-open-vocab/issues/21). **#18's rule as
-written cannot be that stage**, and the reason is two sections below: with two
+[#21](https://github.com/kazunori279/fpga-open-vocab/issues/21) — of which #21
+is now closed, having answered *warning* and not *refusal*. **#18's rule as
+written cannot be that stage either**, and the reason is two sections below: with two
 queries it is a band on this same margin axis, and the empty desk falls inside
 it on ten benches of 28.
 
@@ -540,9 +542,10 @@ it on ten benches of 28.
 ## A reference on the origin, and the unit that does not exist
 
 The third enrolment guard above — *a reference on the origin* — is the one
-[#21](https://github.com/kazunori279/fpga-open-vocab/issues/21) wants to turn
-into a refusal rather than a warning, and the issue blocks itself on a
-condition it wrote for itself: **quote the threshold in something that is not
+[#21](https://github.com/kazunori279/fpga-open-vocab/issues/21) wanted to turn
+into a refusal rather than a warning. **That issue is closed and the answer was
+the warning** — the two runs below are why. It blocked itself on a condition it
+wrote for itself: **quote the threshold in something that is not
 `sep`.** `2.0 sep` is 0.52 absolute on one bench and 5.80 on another, because a
 collapsed pair shrinks the denominator.
 
@@ -574,6 +577,34 @@ three benches in the issue made it look. Every threshold in that table is fitted
 in-sample to the benches in hand, which is the sequence that has already deleted
 `sep`, two ratios and `FGX_ENROL_SNR`. `cue/analysis/20260822-origin-units.txt`
 is the run, and the per-bench table is in it.
+
+### The guard's own kill condition fired, and #21 is closed
+
+#21 wrote itself a stop rule as well as a precondition: *kill it if a bench ever
+enrols a reference inside the threshold and still scores its presence half above
+~80%.* Re-run on 2026-08-25, with the archive grown to 36 scoreable benches and
+15 inverted, that bench exists and it is inside **all three** units at once:
+
+| bench | presence AUC | `d/sep` | `d` raw | `d/scat` |
+| --- | --- | --- | --- | --- |
+| threshold fitted to these 36 | — | below 0.33 | below 1.96 | below 1.38 |
+| `20260817-113304` | **0.904** | 0.22 | 0.49 | 0.63 |
+
+Every guard the issue could have shipped would have refused a bench that scored
+0.904. Two more sit inside two of the three — 08-17 13:39 at 0.911 and 08-16
+17:35 at 0.909 — so it is not one bench being odd.
+
+The refreshed run also moves the table above in the direction that matters:
+seven more benches, and `d/scat`'s rank-AUC falls from 0.805 to **0.749** while
+`d/sep`'s rises from 0.642 to 0.683. The best unit got worse as the archive got
+bigger, which is what an in-sample fit does. `cue/analysis/20260825-origin-units.txt`
+is that run; the 08-22 one is kept beside it because the two together are the
+evidence, not either alone.
+
+So the origin distance stays a **warning the operator reads**, and it is not
+promoted. That is the answer to the issue's title, and it is a decision rather
+than a measurement waiting on more benches. The reason presence inverts is in
+the next section, and it is not this.
 
 ## The empty desk has nowhere to stand
 
