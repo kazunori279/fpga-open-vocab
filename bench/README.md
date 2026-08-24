@@ -453,6 +453,87 @@ and the run read 92.5% over 120 frames. It is 91.1% over 90 above. The
 references are untouched either way: enrolment is visits 1 and 2 only, and this
 was visit 12.
 
+## A threshold that follows the scene, and why it is still not a fix
+
+The five-run session left one bench, `m9_cue-20260825-0558.log`, that collapsed
+on the current firmware with its ceiling intact — margin AUC 0.962 and `best`
+93.3%, the highest of the five, and 20.8 points thrown away. `probe_midpoint.py`
+puts all of it in `cut` and almost all of `cut` in ENROL, at −2.13 against
+−0.62..+0.48 on its four siblings. Reading that run's spans on the margin axis:
+
+| span | visit 1 | visit 2 | visit 3 | visit 4 |
+| --- | --- | --- | --- | --- |
+| `a closed book` | +5.99 | +8.13 | +11.57 | +9.48 |
+| `an opened book` | −1.01 | −1.17 | +3.21 | +2.05 |
+| `empty` | −3.02 | −0.59 | +1.02 | +1.01 |
+
+**Both classes and the empty desk all translated about +4 up the axis after the
+references were taken, and the distance between the classes barely moved** —
+4.08 early, 3.94 late. The empty span contains no book, so whatever moved is not
+the book, the pose or the staging. The separation was never lost; the cut was
+left behind.
+
+`tools/probe_adapt.py` asks the obvious next question in replay: give the
+threshold a causal running estimate of where the scene sits, `t_n = t_rule +
+(c_n − c_enrol)`, and see what comes back. `c_n` is an EMA over frames seen so
+far, updated after each frame is classified so nothing informs the threshold
+that judges it. Tau is 120 frames — one rotation of the standard schedule, taken
+from `host/cue.py` and not from the data.
+
+Over 32 two-query benches (the synthetic `fake_d` and the smoke tests are
+refused in code, because this tool pools into a mean and a duplicate of the
+biggest winner would corrupt it):
+
+| arm | pooled |
+| --- | --- |
+| `rule`, the shipped fixed cut | 74.7% |
+| `adapt`, the correction | **76.4%** |
+| `flip`, the correction negated | 70.5% |
+| `empty`, the correction from empty spans only | 73.8% |
+| `oracle`, the best fixed cut, known only afterwards | 83.4% |
+
+**+1.7 points with a per-bench standard deviation of 9.3 is t = 1.00 on 31
+degrees of freedom. It does not clear, and it is not a fix.** Three things
+around that null are worth the file existing.
+
+**The sign matters.** `flip` loses 4.2 points and wins on 6 benches of 32, so
+this is not a moving cut beating a still one — that control was built in
+precisely because a wandering threshold flattering itself would look identical
+in the pooled row.
+
+**It is aimed correctly**, which a null usually is not:
+
+| group | `adapt` | `empty` |
+| --- | --- | --- |
+| 11 benches that lost 10 points or more | **+6.5** | +3.7 |
+| 21 benches that kept most of their ceiling | −0.9 | −3.2 |
+
+It helps the benches #19 is about and is nearly free on the rest — except that
+"nearly free" is an average hiding `m9_cue-20260817-085747.log`, which goes
+76.7% to 53.3%. **A correction that can cost a healthy bench 23 points is not
+shippable on +6.5 average against the sick ones.**
+
+**And part of the shift is in the bare desk.** The `empty` arm never sees a
+frame with an object in it and still recovers +3.7 on the collapsed group. That
+is the run-1 span table above, measured across the archive instead of read off
+one bench.
+
+**Both benches #19 was opened on recover.** 08-16 17:22 goes 58.3% to 91.7%,
+past its own 87.5% fixed-cut ceiling, and 08-17 13:35 goes 57.5% to 74.2%. So
+those collapses are a threshold sitting still under a scene that moved, and they
+are recoverable in replay. **That is a diagnosis, not a fix**, and the reason is
+worth stating because it is what a future attempt has to get past: the estimator
+that recovers them averages *all* frames, and an average over all frames is a
+common-mode estimate only while the schedule keeps the two classes balanced. An
+appliance pointed at one scene for an hour would drive `c_n` to that scene's own
+level and turn the rule into "is this frame above the recent average", which is
+not a classifier. The arm without that flaw is `empty`, and it needs a presence
+stage that works — 0 of 90 on every recent bench,
+[#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) and
+[#21](https://github.com/kazunori279/fpga-open-vocab/issues/21).
+
+`cue/analysis/20260825-adapt.txt` is the full table.
+
 ## A reference on the origin, and the unit that does not exist
 
 The third enrolment guard above — *a reference on the origin* — is the one

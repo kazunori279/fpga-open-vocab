@@ -1,0 +1,96 @@
+Would a threshold that follows the scene recover #19? 2026-08-25
+
+  uv run --script tools/probe_adapt.py bench/cue/*.log
+
+Full output. The tool's docstring has the reading; this is the table it
+came from, kept so the numbers quoted in bench/README.md have a source.
+
+  20260822-leaverunning-frames.log           skipped: bench/cue/20260822-leaverunning-frames.log: no .cues sidecar, so the boundaries are opinion
+  20260822-watch-smoke.log                   skipped: synthetic or a smoke test; a pooled mean must not have it
+  m9_cue-20260815-111130.log                 skipped: bench/cue/m9_cue-20260815-111130.log: no .cues sidecar, so the boundaries are opinion
+  m9_cue-20260815-111750.log                 skipped: bench/cue/m9_cue-20260815-111750.log: the sidecar is marked VOID
+  m9_cue-20260817-085204.log                 skipped: bench/cue/m9_cue-20260817-085204.log: no .cues sidecar, so the boundaries are opinion
+  m9_cue-20260817-103054.log                 skipped: bench/cue/m9_cue-20260817-103054.log: no .cues sidecar, so the boundaries are opinion
+  m9_cue-20260817-103550.log                 skipped: bench/cue/m9_cue-20260817-103550.log: the sidecar is marked VOID
+  m9_cue-20260817-103720.log                 skipped: bench/cue/m9_cue-20260817-103720.log: the sidecar is marked VOID
+  m9_cue-20260817-104419.log                 skipped: not a two-query bench with the cued labels as the queries
+  m9_cue-20260817-105019.log                 skipped: no held-out frames of both classes after the rule engaged
+  m9_cue-20260817-112155.log                 skipped: bench/cue/m9_cue-20260817-112155.log: the sidecar is marked VOID
+  m9_cue-20260820-131217.log                 skipped: not a two-query bench with the cued labels as the queries
+  m9_cue-20260820-142249.log                 skipped: not a two-query bench with the cued labels as the queries
+  m9_cue-20260823-0710.log                   skipped: bench/cue/m9_cue-20260823-0710.log: the sidecar is marked VOID
+  m9_cue-smoke-2e48d86.log                   skipped: synthetic or a smoke test; a pooled mean must not have it
+  m9_cue_fake_d.log                          skipped: synthetic or a smoke test; a pooled mean must not have it
+
+tau = 120 frames, one rotation of the standard schedule
+
+bench               n    rule   adapt    flip   empty  oracle   recov  pair
+20260817-133552   120   57.5%   74.2%   50.0%   57.5%   94.2%     45%  a closed book / an opened book
+20260816-172256   120   58.3%   91.7%   45.0%   82.5%   87.5%    114%  a closed book / an opened book
+20260817-104849    48   50.0%   50.0%   50.0%   50.0%   75.0%      0%  a closed book / an opened book
+20260817-085504   120   25.8%   25.0%   25.8%   25.8%   50.0%     -3%  BACKWARDS  a closed book / an opened book
+20260825-0558     120   77.5%   99.2%   54.2%   83.3%   98.3%    104%  a closed book / an opened book
+20260817-105251    48   33.3%   31.2%   35.4%   31.2%   50.0%    -12%  BACKWARDS  a closed book / an opened book
+20260824-0839     121   73.6%   85.1%   63.6%   72.7%   89.3%     74%  a closed book / an opened book
+20260817-152757   120   60.0%   57.5%   65.8%   61.7%   75.0%    -17%  a glass with tea / an empty glass
+20260817-093309   120   59.2%   52.5%   60.8%   59.2%   73.3%    -47%  a closed book / an opened book
+20260817-133952   120   74.2%   73.3%   74.2%   77.5%   86.7%     -7%  a closed book / an opened book
+20260817-153747   120   78.3%   80.0%   76.7%   86.7%   89.2%     15%  a person standing / a person, hands up
+20260817-095808   120   74.2%   77.5%   73.3%   75.8%   84.2%     33%  a closed book / an opened book
+20260816-173537   120   56.7%   63.3%   50.0%   60.0%   65.8%     73%  a closed book / an opened book
+20260825-0611     121   75.2%   76.0%   74.4%   71.9%   84.3%      9%  a closed book / an opened book
+20260820-062406   120   95.0%   95.0%   95.8%   98.3%  100.0%      0%  a closed book / an opened book
+20260820-063324   120   49.2%   43.3%   45.8%   38.3%   54.2%   -117%  BACKWARDS  a glass with tea / an empty glass
+20260820-062932   120   51.7%   49.2%   50.0%   55.0%   56.7%    -50%  a glass with tea / an empty glass
+20260824-0651     120   75.8%   77.5%   71.7%   70.8%   80.0%     40%  a closed book / an opened book
+20260817-073335   120   96.7%   97.5%   95.8%   83.3%  100.0%     25%  a closed book / an opened book
+20260817-095529   120   47.5%   42.5%   50.0%   40.0%   50.8%   -150%  BACKWARDS  a closed book / an opened book
+20260817-152044   120   95.8%   95.8%   92.5%   91.7%   99.2%      0%  a closed hand / an opened hand
+20260817-113304   120   68.3%   66.7%   70.0%   68.3%   70.8%    -67%  a closed book / an opened book
+20260817-112606   120   92.5%   87.5%   90.0%   92.5%   95.0%   -200%  a closed book / an opened book
+20260825-0602     120   89.2%   91.7%   86.7%   90.0%   91.7%    100%  a closed book / an opened book
+20260825-0622      90   91.1%   94.4%   91.1%   91.1%   93.3%    150%  a closed book / an opened book
+20260820-063704   120   97.5%   99.2%   97.5%   71.7%   99.2%    100%  a closed book / an opened book
+20260817-091826   120   91.7%   92.5%   90.0%   90.8%   92.5%    100%  a closed book / an opened book
+20260817-085747   120   76.7%   53.3%   67.5%   76.7%   77.5%  -2800%  a closed book / an opened book
+20260817-154206   120   90.8%   92.5%   90.0%   84.2%   91.7%    200%  a big bag / a small bag
+20260820-132448   120   96.7%   97.5%   95.0%   96.7%   97.5%    100%  a blue cube / a red cube
+20260811-072207   120  100.0%  100.0%   60.8%  100.0%  100.0%          a closed book / an opened book
+20260825-0618     121   93.4%   93.4%   89.3%   91.7%   93.4%          a closed book / an opened book
+
+  pooled over 32 benches and 3669 held-out frames:
+    rule    74.7%   the shipped fixed cut
+    adapt   76.4%   the correction
+    flip    70.5%   the correction, sign reversed
+    empty   73.8%   the correction, estimated from empty spans only
+    oracle  83.4%   the best fixed cut, known only afterwards
+
+  per bench, adapt - rule: mean +1.7, sd 9.3, best +33.3, worst -23.3, median +0.4
+  moves by more than 5 points on 9 of 32 benches, 4 of them downward.
+  mean +1.7 against a standard error of 1.6 is t = 1.00 on 31 df, which does not clear.
+  Sign test: 16 up, 11 down, 5 unmoved.
+    11 benches that threw 10 points or more away   adapt   +6.5  sd  12.6  worst   -6.7   empty   +3.7
+    21 benches that kept most of their ceiling     adapt   -0.9  sd   5.9  worst  -23.3   empty   -3.2
+
+  adapt beats the rule on 16 of 32 benches and loses on 11; flip on 6.
+  **IF THOSE TWO COUNTS ARE ALIKE THE CORRECTION IS NOT WHAT IS HELPING** - a threshold
+  that wanders would be beating one that sits still, which is a fact about the axis
+  and not a fix.
+
+  THE ARM THAT CANNOT CHEAT: `empty` wins on 10 of 32. Its average is built
+  only from spans with nothing in shot, so it has no way to know which class is
+  in front of the camera and cannot win by tracking one. It is A CONTROL AND NOT A
+  PROPOSAL: the appliance cannot currently tell an empty desk from an occupied one
+  (0 of 90 on every recent bench - issues #18 and #21), so nothing could compute it
+  online today.
+
+  sensitivity to tau. NOT a menu - the headline is the row at 120,
+  which comes from the schedule. Reading the best row off this sweep would be
+  fitting a constant to 32 benches, which is the move this repository keeps
+  refusing to make.
+       tau    adapt     flip    empty   won  lost
+        30    73.4%    67.5%    75.7%    15    16
+        60    76.3%    69.6%    74.6%    18    12
+       120    76.4%    70.5%    73.8%    16    11
+       240    76.1%    71.7%    74.3%    14     8
+       480    75.6%    72.9%    75.1%    13     7
