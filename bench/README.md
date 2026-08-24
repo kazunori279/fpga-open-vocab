@@ -619,7 +619,7 @@ lands. Pass a path from here to look at a past one.
 ## What is not in here
 
 Only the cue benches. The soak, thermal and USB-drop logs that issues #9 and #12
-rest on live in [`../soak/`](../soak/) — `20260820-usb-p2/` for the drop,
+rest on live in [`soak/`](soak/) — `20260820-usb-p2/` for the drop,
 `20260821-lastwords/` for what the board said last, and `20260822-settle/` for
 the camera. They were archived on 2026-08-21 and 08-22, and this paragraph went
 on saying they were in `/tmp` until 08-23.
