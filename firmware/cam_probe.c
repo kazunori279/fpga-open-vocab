@@ -362,6 +362,29 @@ int main(void)
     {
         const cam_recipe_t warm = { "reset+400", true,  false, 400 };
         const cam_recipe_t bare = { "no writes", false, false,   0 };
+
+        // ISSUE #29, ASKED BEFORE ANYTHING ELSE TOUCHES THE CACHE. cam_begin()
+        // writes CAM_REG_SENSOR_RESET, which puts the sensor back to its
+        // default VGA; if it does not also clear cam.c's last_fmt/last_mode
+        // then this capture - `rewrite = false`, the FIRST after the reset -
+        // skips the CAPTURE_RESOLUTION write on the grounds that the mode has
+        // not changed, when only the record of it survived. Nothing else in
+        // this file can see that, because every other recipe here is
+        // `rewrite = true` and the premise check below runs `warm` first,
+        // which puts the cache back before `bare` ever reads it.
+        //
+        // It is the FIFO LENGTH that answers, not the picture: the resolution
+        // register sets the length whether or not the sensor has written a
+        // frame yet, so this row means the same thing in a dark room as in a
+        // lit one. 614400 is 640 x 480 x 2 and is the bug.
+        cam_begin(id, false);
+        uint32_t l0 = cam_capture(&bare, m128, CAM_IMAGE_PIX_FMT_RGB565,
+                                  raw, RAW_MAX, NULL);
+        printf("  #29 cache : cam_begin() then a no-rewrite capture -> FIFO "
+               "%u B, want %u  %s\n", (unsigned)l0, 128u * 128u * 2u,
+               l0 == 128u * 128u * 2u ? "ok"
+                                      : "*** the format cache outlived the reset");
+
         cam_begin(id, false);
         uint32_t l1 = cam_capture(&warm, m128, CAM_IMAGE_PIX_FMT_RGB565,
                                   raw, RAW_MAX, NULL);

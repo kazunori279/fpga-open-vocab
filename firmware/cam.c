@@ -260,6 +260,10 @@ bool cam_wait_idle(const char *what)
     return false;
 }
 
+// What the last capture actually wrote, so `rewrite = false` can skip. -1 means
+// "unknown", which is the honest state after a reset or a cam_begin().
+static int last_fmt = -1, last_mode = -1;
+
 void cam_begin(uint8_t id, bool verbose)
 {
     cam_write_reg(CAM_REG_SENSOR_RESET, CAM_SENSOR_RESET_ENABLE);
@@ -279,6 +283,16 @@ void cam_begin(uint8_t id, bool verbose)
     // 0x78 is the 5MP/3MP device address in ArduCAM's CameraInfo tables.
     cam_write_reg(CAM_REG_DEBUG_DEVICE_ADDRESS, 0x78);
     cam_wait_idle("device address");
+
+    // The reset above put the sensor back to its default VGA, so the cache
+    // above now describes a machine that no longer exists. Saying so is the
+    // whole of issue #29: without it a `rewrite = false` capture skips the
+    // CAPTURE_RESOLUTION write because "the mode has not changed", when only
+    // the record of it survived, and the FIFO comes back 640x480x2 into a
+    // 128x128 buffer. This is NOT the repeat-write fault cam.h guards against
+    // - that one is a *second identical* write, and after a reset the write is
+    // the first one the sensor has seen.
+    last_fmt = last_mode = -1;
 }
 
 void cam_image_defaults(void)
@@ -294,10 +308,6 @@ void cam_image_defaults(void)
 }
 
 const cam_recipe_t CAM_RECIPE_VENDOR = { "vendor", false, false, 0 };
-
-// What the last capture actually wrote, so `rewrite = false` can skip. -1 means
-// "unknown", which is the honest state after a reset or a cam_begin().
-static int last_fmt = -1, last_mode = -1;
 
 // When the outstanding trigger was issued, so cam_collect() can still report
 // expose_us across the gap. Zero means nothing is in flight; collecting without

@@ -16,6 +16,7 @@ reproduced it on the first try.**
 | `cam_probe-20260822-1508-control.log` | still covered, an hour later | fault, same 5 rows | 0/3, 0/3 | 8 4 8 |
 | `m9-20260822-1458-covered-fixed.log` | still covered, **m9 with the fix** | — | escaped at 400 ms | 8 5 8 |
 | `m9-20260822-1525-dark-second.log` | dark room, m9 with the fix, unattended | — | escaped at 400 ms | 8 6 8 |
+| `m9-20260823-litcheck.log` | **lit room, m9 with the fix** | — | never entered | 75 83 72 |
 
 `1508` is the control for the fix below: it says the covered lens still
 reproduces the fault on the instrument, at the same time of day the fixed `m9`
@@ -194,6 +195,11 @@ patched, because clearing the cache makes every post-reset capture rewrite
 CAPTURE_RESOLUTION, which is the write `rewrite = false` exists to avoid, and
 only the board can say whether that costs anything.
 
+**The board said it on 2026-08-25 and it costs nothing** — with the cache
+cleared the matrix still matches 08-03 row for row, so the blanking stayed in
+rows 1 and 3 and did not spread. The fix and its control are in
+[`../20260825-fmtcache/`](../20260825-fmtcache/).
+
 ### It repeats
 
 `m9-20260822-1525-dark-second.log` is the same firmware twenty-seven minutes
@@ -214,12 +220,23 @@ raises #26's `scene:` flag, and every score in it is against a picture of an
 unlit room. **Getting a frame is not the same as getting a usable one**, and the
 firmware says which it got.
 
-### Not measured
+### The gate, in a lit room
 
-**A lit room, with this firmware.** The recovery is gated on a constant frame so
-a working camera should never enter it, but "should" is not a run — and both
-runs with the fix are dark ones, which exercise the path rather than the gate.
-That check needs somebody to turn a light on and has not been done.
+This section used to say the lit-room run had not been done. It had, the next
+morning, and the log has been sitting in this directory unremarked ever since.
+
+`m9-20260823-litcheck.log`, 2026-08-23, the same firmware with the light on:
+
+```
+camera : exposure ramp 66 68 69 71 73 74 76
+         mean RGB 75 83 72
+```
+
+No `+N` entries, so the recovery path was never entered — which is the gate
+doing its job, as against the two dark runs above, which exercise the path.
+A second lit run on 2026-08-25 reads the same way: see
+[`../20260825-fmtcache/`](../20260825-fmtcache/), where it was taken as part of
+verifying #29's fix on the board.
 
 The scene mean is now printed on the sweep's own table so no future run has to
 be reconstructed out of a different section.

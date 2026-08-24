@@ -32,6 +32,15 @@ one that is healthy, and one mixed set that a naive rule would have failed.
 doubt now reaches the `stopped :` summary, which is what runs 8–20 below needed
 and did not have.
 
+**Two camera sets, and the second answers the first.**
+[`20260822-settle/`](20260822-settle/) is #27 — five `cam_probe` runs chasing a
+matrix that had stopped matching its 08-03 record, and a hand over the lens that
+reproduced it on the first try. [`20260825-fmtcache/`](20260825-fmtcache/) is
+#29, the separate bug that work turned up: three runs with the fix, with the fix
+commented out, and with the fix again, plus the lit-room `m9` that was the last
+thing #27 was waiting on. The interesting one is the middle one — a control that
+reproduces the fault live is what makes the other two mean anything.
+
 **And a six-day bus trace:
 [`usb_watch-20260816-20260822.log.gz`](usb_watch-20260816-20260822.log.gz).**
 `host/usb_watch.py` polling every port `uhubctl` can see, once a second, from

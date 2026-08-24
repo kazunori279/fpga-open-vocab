@@ -11,6 +11,83 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-25, the absent rule has no room to work in, and a cache that outlived its sensor
+
+A replay morning that ended on the board. Two issues closed, one firmware bug
+fixed, and one rule shown to be the wrong shape rather than the wrong constant.
+
+**#18's `radius` is not a radius.** With two queries the centred space is
+one-dimensional — `c[] = [+D/2, −D/2]` for the margin `D` — so every reference
+has the same shape and `|| c[] − qref[k] ||` is exactly `| D − D_ref[k] | / √2`.
+`tools/probe_absent.py` checks that per frame and the largest residual over
+8 514 frame-reference pairs is **3.55e-15**. So the rule cuts a *band* on the
+margin axis, centred on the two class references, and "absent" means outside it.
+The two classes own the inside of that band by construction and "neither" has no
+orthogonal direction to sit in.
+
+That is why some benches invert and no threshold repairs them. Over 28 benches
+the mean presence AUC is 0.597 with **14 inverted**, and what decides a bench is
+where the empty desk lands:
+
+    empty desk        n   mean AUC   inverted
+    outside the pair  18     0.687      6
+    inside the band   10     0.434      8
+
+No enrolment-time quantity predicts it, and cannot: `references()` skips key
+`'0'`, so nothing enrolled has ever seen an empty desk.
+
+**Enrolling one fixes it.** `tools/probe_third.py` enrols the first held-out
+empty span as a third reference and takes the nearest of three — no threshold
+anywhere. Balanced accuracy, held out, mean over 28 benches: **three-nn 79.1
+against the shipped `2.0 sep`'s 54.6**, +24.5 points, sd 21.5, t = 6.04 on 27 df,
+winning on 24 of 28. It also beats the band's own per-bench fitted oracle (73.8)
+by 5.3 on 17 of 28 — a rule with nothing fitted beating the best constant that
+shape could ever have had. Two caveats are on `bench/README.md`: it spends a
+span, and on the five runs of the 08-25 repeat session it scored 83.7 / 100.0 /
+88.5 / 29.0 / 51.6, a 71-point range, so one bench's figure under this rule is
+not a measurement.
+
+**#21 closed on its own kill condition.** The question was whether the origin —
+how far the empty desk sits from the enrolment mean — predicts the inversion. It
+does not, r = +0.146, and the guard's stated stop condition fired:
+`20260817-113304` scores presence 0.904 and sits inside all three fitted
+thresholds. The archive is now 36 scoreable logs with 15 inverted and the best
+unit got *worse* as it grew, d/scat 0.805 → 0.749. Answer to the title: keep it
+warning only.
+
+**#29 fixed on the board, with a control.** `cam_begin()` writes
+`CAM_REG_SENSOR_RESET` and left `cam.c`'s `last_fmt` / `last_mode` describing a
+machine that no longer existed, so the first `rewrite = false` capture after a
+reset skipped the CAPTURE_RESOLUTION write and the FIFO came back 640 × 480 × 2
+into a 128 × 128 buffer. The fix is one line at `firmware/cam.c:295`. The reason
+it needed the board is that clearing the cache makes every post-reset capture
+rewrite the resolution register, which is the repeat write `cam.h` blames for the
+blanking — and **the matrix still matches its 2026-08-03 record row for row**, so
+it does not. `bench/soak/20260825-fmtcache/` has the before, the after, and the
+control with the fix commented out that reproduces the fault live:
+
+```
+#29 cache : cam_begin() then a no-rewrite capture -> FIFO 614400 B, want 32768  *** the format cache outlived the reset
+#29 cache : cam_begin() then a no-rewrite capture -> FIFO 32768 B, want 32768  ok
+```
+
+The first run of the day did not test the fix at all — the sweep's premise block
+captures with `rewrite = true` before it captures with `rewrite = false`, so the
+cache is restored by hand in between and a broken build prints the same thing as
+a fixed one. The regression row now runs before anything else touches the cache.
+It reads the FIFO length rather than the picture on purpose: the resolution
+register sets that length whether or not the sensor has written a frame, so
+unlike everything else in #27's neighbourhood the check is not exposure-bound.
+
+**#27 closed, and it had been finishable for two days.** Its last item was a
+lit-room run — the recovery path is gated on a constant frame, and both runs with
+the fix were dark ones that exercise the path rather than the gate.
+`m9-20260823-litcheck.log` was that run, taken on 08-23 and never written up;
+today's `m9-20260825-fixed.log` is a second, 42 frames, 42 good, ramp
+`86 88 90 92 95 96 98 98 99 100 100 100` with no `+N` recovery entries.
+
+---
+
 ### 2026-08-23, what `lost` is made of, and a trend that turned round while nobody re-ran it
 
 Two board-free days of replay, both of which corrected something this file had
