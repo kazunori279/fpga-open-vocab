@@ -663,6 +663,56 @@ presence rule inverted on **all five**: 0.196, 0.207, 0.263, 0.321, 0.426. Every
 count before this was one bench, once. `cue/analysis/20260825-absent.txt` is the
 run.
 
+### Give "neither" a reference of its own, and it works
+
+If the trouble is that the rule demands the empty desk be *far*, stop demanding
+it. Enrol the empty desk as a **third reference** and take the nearest of three:
+
+    absent  ⟺  argmin_k | D − D_ref[k] |  is the empty reference
+
+The axis is still one-dimensional and the empty desk is still a point on it, but
+now it only has to be *somewhere the other two are not*. `tools/probe_third.py`
+replays that over the archive. It enrols from the first empty span after the
+rule engages, using the same window length the board used for the classes, and
+scores on everything else — balanced accuracy, so a rotation with twice as many
+class frames as empty ones cannot be won by answering "present":
+
+| arm | balanced accuracy, 28 benches |
+| --- | --- |
+| `shipped` — `FGX_ABSENT_TRIP = 2.0 sep`, what the board does today | 54.6 |
+| `band-oracle` — the best radius for each bench, fitted on the frames it is scored on | 73.8 |
+| **`three-nn` — the rule above, no threshold anywhere** | **79.1** |
+
+**+24.5 points on the shipped rule, sd 21.5, t = 6.04 on 27 df, winning on 24 of
+28** — the first presence result in this directory that clears its own noise.
+`shipped` sitting at 54.6 is not a bug in the table: on eighteen benches it
+scores exactly 50.0, which is what "every held-out empty frame called present"
+looks like once it is balanced, and it is the `0 of 90` in the manifest.
+
+The row that settles the shape, though, is the middle one. **`three-nn` beats
+the band's own ceiling by 5.3 points, on 17 of 28 benches** — and that ceiling
+is fitted per bench, in-sample, on the very frames it is then scored on. A rule
+with nothing fitted but the third reference beats the best radius the band could
+ever have had. That is not a better constant for #18; it is the reason #18's
+shape was the wrong one.
+
+Two things keep this a proposal rather than a result. **It spends a span**:
+under #18's rule nothing enrolled ever sees an empty desk, and under this one
+something must, so the operator owes a visit and the run owes 40 frames.
+
+And **it does not survive the noise floor of one bench.** The 08-25 session ran
+the same bench five times in half an hour, and `three-nn` scored 83.7, 100.0,
+88.5, 29.0 and 51.6 — a **71-point range, sd 29.4**, on a session whose held-out
+accuracy spanned eighteen. The pooled +24.5 over 28 benches is real; a single
+bench's presence figure under this rule is not a measurement of anything. Which
+is the same warning as everywhere else on this page, and the reason the next
+step is prospective runs rather than a fifth pass over these logs.
+
+The two smoke tests in the pool (08-17 10:48 and 10:52) are carried rather than
+dropped, because dropping them moves the answer the *favourable* way: on the 26
+real benches it is 80.8 against 53.6, +27.2. `cue/analysis/20260825-third.txt`
+is the run.
+
 ## The `.cues` sidecars, and the three logs that have none
 
 Every log is `<name>.log` and its sidecar is `<name>.log.cues` — the suffix is
@@ -702,6 +752,7 @@ looks exactly like a real one.
     uv run --script tools/probe_reject.py bench/cue/m9_cue-20260817-112606.log
     uv run --script tools/probe_origin.py bench/cue/m9_cue-*.log
     uv run --script tools/probe_absent.py bench/cue/*.log
+    uv run --script tools/probe_third.py bench/cue/*.log
     uv run --script tools/probe_ceiling.py bench/cue/m9_cue-2026*.log
     uv run --script tools/probe_midpoint.py bench/cue/m9_cue-2026*.log
 
