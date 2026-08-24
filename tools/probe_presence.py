@@ -23,6 +23,12 @@ is not a constant waiting to be retuned - there is no radius to retune it to.
 What is left of #18 is why some scenes invert (six of the fourteen do), which
 is a geometry question and not a threshold one.
 
+THAT QUESTION IS ANSWERED IN `tools/probe_absent.py`, on 2026-08-25. With two
+queries `min_k || c[] - qref[k] ||` is exactly `min_k | D - D_ref[k] | / sqrt(2)`
+- a band on the margin axis, not a radius - and a bench inverts when the empty
+desk lands inside it, which it does on ten of 28. Read the two scripts together;
+this one says no radius works, that one says why none can.
+
 WHY THIS EXISTS. On 2026-08-17 three benches were read as showing the empty desk
 sitting FURTHER from the class references than the class frames do, and that was
 written up as "the ordering is inverted, so no radius fixes it" - which is

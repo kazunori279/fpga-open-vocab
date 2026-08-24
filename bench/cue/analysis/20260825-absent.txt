@@ -1,0 +1,59 @@
+$ uv run --script tools/probe_absent.py bench/cue/*.log
+
+  skip 20260822-leaverunning-frames: bench/cue/20260822-leaverunning-frames.log: no .cues sidecar, so the boundaries are opinion
+  skip 20260822-watch-smoke: synthetic or a smoke test; it would vote in the pooled mean
+  skip m9_cue-20260811-072207: fewer than 10 held-out frames in one of the three states
+  skip m9_cue-20260815-111130: bench/cue/m9_cue-20260815-111130.log: no .cues sidecar, so the boundaries are opinion
+  skip m9_cue-20260815-111750: bench/cue/m9_cue-20260815-111750.log: the sidecar is marked VOID
+  skip m9_cue-20260817-085204: bench/cue/m9_cue-20260817-085204.log: no .cues sidecar, so the boundaries are opinion
+  skip m9_cue-20260817-085747: fewer than 10 held-out frames in one of the three states
+  skip m9_cue-20260817-093309: fewer than 10 held-out frames in one of the three states
+  skip m9_cue-20260817-103054: bench/cue/m9_cue-20260817-103054.log: no .cues sidecar, so the boundaries are opinion
+  skip m9_cue-20260817-103550: bench/cue/m9_cue-20260817-103550.log: the sidecar is marked VOID
+  skip m9_cue-20260817-103720: bench/cue/m9_cue-20260817-103720.log: the sidecar is marked VOID
+  skip m9_cue-20260817-104419: the identity below is a two-query fact and this is not two queries
+  skip m9_cue-20260817-105019: fewer than 10 held-out frames in one of the three states
+  skip m9_cue-20260817-112155: bench/cue/m9_cue-20260817-112155.log: the sidecar is marked VOID
+  skip m9_cue-20260817-133552: fewer than 10 held-out frames in one of the three states
+  skip m9_cue-20260820-131217: the identity below is a two-query fact and this is not two queries
+  skip m9_cue-20260820-142249: the identity below is a two-query fact and this is not two queries
+  skip m9_cue-20260823-0710: bench/cue/m9_cue-20260823-0710.log: the sidecar is marked VOID
+  skip m9_cue-smoke-2e48d86: synthetic or a smoke test; it would vote in the pooled mean
+  skip m9_cue_fake_d: synthetic or a smoke test; it would vote in the pooled mean
+identity  max | ||c-qref|| - |D-Dref|/sqrt(2) |  =  3.55e-15   over 8514 pairs
+  so #18's radius is a band on the margin axis, and nothing else
+
+bench               presAUC  gap (SD)  empty is
+20260825-0618         0.196      1.52   outside
+20260825-0602         0.207      4.39   BETWEEN
+20260817-153747       0.247      0.21   outside
+20260825-0558         0.263      0.81   BETWEEN
+20260817-073335       0.265      1.30   BETWEEN
+20260817-095529       0.292      0.66   BETWEEN
+20260817-152044       0.301      1.38   BETWEEN
+20260817-095808       0.320      0.81   outside
+20260825-0622         0.321      0.90   outside
+20260825-0611         0.426      0.59   BETWEEN
+20260820-062406       0.434      1.05   BETWEEN
+20260817-154206       0.449      1.14   BETWEEN
+20260817-105251       0.458      0.43   outside
+20260820-063704       0.474      0.32   outside
+20260817-104849       0.585      0.48   outside
+20260817-085504       0.658      0.35   outside
+20260824-0839         0.708      0.38   BETWEEN
+20260824-0651         0.712      2.76   outside
+20260817-152757       0.738      2.44   outside
+20260817-112606       0.749      1.34   outside
+20260817-133952       0.939      3.00   outside
+20260817-091826       0.989      2.19   outside
+20260817-113304       0.991      5.18   outside
+20260820-063324       0.995      2.98   outside
+20260820-062932       0.998      2.05   outside
+20260816-173537       1.000      3.01   outside
+20260816-172256       1.000      9.96   outside
+20260820-132448       1.000     21.50   BETWEEN
+
+n = 28   mean presence AUC = 0.597   inverted (<0.5): 14
+gap (SD) against presence AUC : r = +0.471   median gap 1.32 SD
+empty outside the pair (n=18): mean AUC 0.687, 6 inverted
+empty between the refs (n=10): mean AUC 0.434, 8 inverted

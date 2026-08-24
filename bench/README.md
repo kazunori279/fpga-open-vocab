@@ -530,7 +530,10 @@ level and turn the rule into "is this frame above the recent average", which is
 not a classifier. The arm without that flaw is `empty`, and it needs a presence
 stage that works — 0 of 90 on every recent bench,
 [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) and
-[#21](https://github.com/kazunori279/fpga-open-vocab/issues/21).
+[#21](https://github.com/kazunori279/fpga-open-vocab/issues/21). **#18's rule as
+written cannot be that stage**, and the reason is two sections below: with two
+queries it is a band on this same margin axis, and the empty desk falls inside
+it on ten benches of 28.
 
 `cue/analysis/20260825-adapt.txt` is the full table.
 
@@ -572,6 +575,63 @@ in-sample to the benches in hand, which is the sequence that has already deleted
 `sep`, two ratios and `FGX_ENROL_SNR`. `cue/analysis/20260822-origin-units.txt`
 is the run, and the per-bench table is in it.
 
+## The empty desk has nowhere to stand
+
+[#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) proposes
+rejecting on distance in the space the state stage already decides in —
+`absent ⟺ min_k ||c[] − qref[k]|| > radius` — and
+`tools/probe_presence.py` closed on the finding that there is no radius to
+retune, leaving one question behind: **why do some scenes invert?** The origin
+section above is the obvious answer tested and failed. This is the answer.
+
+**With two queries that distance is not a radius. It is a band on the margin
+axis.** `c[] = z[] − mean(z)` is `[+D/2, −D/2]` for the margin `D = z[A] − z[B]`,
+every reference is the same shape, so
+
+    || c[] − qref[k] ||  ==  | D − D_ref[k] | / √2
+
+exactly. `tools/probe_absent.py` recomputes both sides per frame and the two
+agree to **3.55e-15 over 8 514 frame-reference pairs**, so this is arithmetic and
+not an approximation. `radius` is the half-width of an interval centred on the
+two references, and the two classes own the inside of it by construction —
+they are what the references were averaged from.
+
+A band has an inside and an outside and nothing else. There is no direction
+orthogonal to the margin for "neither" to occupy, so the empty desk lands
+somewhere on the same line, and **where it lands decides the bench**:
+
+| where the mean empty margin falls | benches | mean presence AUC | inverted |
+| --- | --- | --- | --- |
+| outside the two references | 18 | 0.687 | 6 |
+| **between** them, inside the band | 10 | 0.434 | **8** |
+
+Over all 28, mean presence AUC is 0.597 and **14 invert** — near chance
+archive-wide. What separation there is tracks the gap from the mean empty margin
+to the nearer class mean, in the classes' own frame scatter: r = +0.471, and the
+**median gap is 1.32 SD**, which is overlap. Eight of the ten that landed inside
+the band are inverted, and no half-width separates a point from the interval it
+is sitting in.
+
+**Enrolment cannot see this coming.** `references()` skips key `0`, so nothing
+under this rule ever measures an empty desk; where the empty desk falls is a
+property of the text encoder, the two query strings and the room. It joins the
+list of things no enrolment-time number predicts.
+
+**Three inversion counts are now on record and they are not the same
+measurement.** `probe_presence.py` says six of fourteen, #18's own comment says
+eight of 23, this says 14 of 28. The populations differ — fourteen is the clean
+subset, 23 is the archive before 2026-08-25, 28 adds that day's five — and so do
+the details, since `probe_absent.py` drops ten settle frames off every span and
+scores `min_k` rather than per-class. Take the five new benches out and it is
+nine against eight, so one bench's worth is definition and the rest is
+population. Quote whichever you mean **with the population attached**.
+
+Those five are the last word here. They are the same bench five times in half an
+hour with nothing changed — the session eighteen points wide above — and the
+presence rule inverted on **all five**: 0.196, 0.207, 0.263, 0.321, 0.426. Every
+count before this was one bench, once. `cue/analysis/20260825-absent.txt` is the
+run.
+
 ## The `.cues` sidecars, and the three logs that have none
 
 Every log is `<name>.log` and its sidecar is `<name>.log.cues` — the suffix is
@@ -610,6 +670,7 @@ looks exactly like a real one.
     uv run --script tools/probe_sepscale.py bench/cue/*.log
     uv run --script tools/probe_reject.py bench/cue/m9_cue-20260817-112606.log
     uv run --script tools/probe_origin.py bench/cue/m9_cue-*.log
+    uv run --script tools/probe_absent.py bench/cue/*.log
     uv run --script tools/probe_ceiling.py bench/cue/m9_cue-2026*.log
     uv run --script tools/probe_midpoint.py bench/cue/m9_cue-2026*.log
 
