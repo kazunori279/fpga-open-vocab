@@ -1,0 +1,52 @@
+Five identical runs, one session, 2026-08-25 05:58 to 06:25
+
+Same command, same book, same desk, same staging, one firmware, nothing
+changed between them:
+
+  uv run --script host/cue.py --enrol \
+    --scene "a closed book" --scene "an opened book" \
+    --repeat 4 --preview 20 --bg-tau 30 \
+    "a closed book" "an opened book"
+
+  run  start   HELD OUT        AUC    best    held   state   lost
+    1  05:58   93/120  77.5%  0.962   93.3%   98.3%  77.5%   20.8
+    2  06:02  107/120  89.2%  0.960   89.6%   91.7%  89.2%    2.5
+    3  06:11   91/121  75.2%  0.924   86.3%   84.3%  75.2%    9.1
+    4  06:18  113/121  93.4%  0.961   93.8%   93.4%  93.4%    0.0
+    5  06:22   82/90   91.1%  0.970   93.3%   93.3%  91.1%    2.2
+
+Run 5 carries an operator error, corrected in its sidecar: on the last cue the
+book was taken away instead of opened, so frames 461-500 are an empty desk.
+They are relabelled "empty", which is what the camera saw. The board called all
+30 of them "an opened book", so before the relabel they counted as correct and
+the run read 92.5% over 120 frames. It is 91.1% over 90 after. The references
+are untouched - enrolment is visits 1 and 2 only.
+
+  HELD OUT  mean 85.3%  SD 8.3 points  range 75.2 to 93.4  (18.2 points)
+  lost      mean  6.9   SD 8.5 points  range  0.0 to 20.8
+
+Two independent runs differ with SD 8.3*sqrt(2) = 11.7 points, so a gap of
+about 23 points is what 95% significance costs. With five runs the SD estimate
+itself is loose - four degrees of freedom - so read 23 as "roughly twenty" and
+not as a threshold.
+
+Applying it to the comparisons this repository has made:
+
+  08-11 07:22 100.0% vs 08-16 17:22 58.3%   41.7 points   real
+  08-17 13:35  57.5% vs 13:39      74.2%    16.7 points   not distinguishable
+  08-24 06:51  75.8% vs 08:39      73.6%     2.2 points   not distinguishable
+
+Run 1 lost 20.8, which is above probe_ceiling.py's LOST_19 of 15.0. The rule
+collapse issue #19 is about still happens on current firmware; it is not a bug
+that the 08-23 settle fix or anything else since 08-17 removed.
+
+Two things this session rules out:
+
+  Not the first run of a session. Over the whole archive, the first bench of a
+  day loses a mean of 12.50 and every later run 12.37, on 5 and 26 benches.
+
+  Not the staging, the exposure, or anything else measured. See
+  20260824-walk.txt and bench/soak/20260823-exposure/README.md; the full
+  predictor sweep over 21 benches with a lost figure tops out at |r| = 0.328
+  for the sep/noise ratio, against a 5% critical value near 0.43 for n = 21 and
+  thirteen predictors tried.

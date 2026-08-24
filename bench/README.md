@@ -126,6 +126,11 @@ timestamp in the filename — see 11:44 below.
 | `m9_cue-20260823-0710.log` | **VOID** | **VOID** | | **the enrolment keys were crossed** — the board had bound key 1 to `a closed book` and the key was pressed during the `an opened book` segment, so both references went in swapped. Its two columns are 15.0% and 85.0%, exact complements, and neither is about the book pair. See the subsection above; `tools/probe_reject.py` refuses this shape now |
 | `m9_cue-20260824-0651.log` | 75.8% | 80.0% | 08-24 06:51 | **issue #22's treatment run**: the book taken out of shot and re-staged from scratch before every visit. Ceiling 86.7%, `lost` 4.2, presence 0/90. Paired with 08:39 below, which is the same run staged the old way — read the two together or not at all |
 | `m9_cue-20260824-0839.log` | 73.6% | 78.4% | 08-24 08:39 | **issue #22's control**, 108 minutes after the treatment on one firmware and one schedule: staged the old way, the book never leaving the frame. Ceiling 86.3%, `lost` 15.7, presence 0/90. **2.2 points from the treatment**, so re-staging bought nothing, and it did not reproduce 13:35's walk either. This is the run that took the mechanism out of #19 |
+| `m9_cue-20260825-0558.log` | 77.5% | 76.1% | 08-25 05:58 | **first of five identical runs in twenty-five minutes**, and the one that collapsed: ceiling 98.3%, `lost` **20.8**, over the #19 line on current firmware. Its four siblings below are the reason this is a number about the rule and not about the morning |
+| `m9_cue-20260825-0602.log` | 89.2% | 89.4% | 08-25 06:02 | second of five, four minutes after the collapse and 11.7 points better. `lost` 2.5 |
+| `m9_cue-20260825-0611.log` | 75.2% | 79.0% | 08-25 06:11 | third of five, and **the lowest of the session at 75.2%** — but its ceiling is 84.3%, the weakest of the five, so only 9.1 of it is the rule. A low score and a collapse are not the same event |
+| `m9_cue-20260825-0618.log` | 93.4% | 92.8% | 08-25 06:18 | fourth of five, the best of the session, `lost` **0.0** — the rule collected every point its scene offered |
+| `m9_cue-20260825-0622.log` | 91.1% | 92.0% | 08-25 06:22 | fifth of five, and **the one with an operator error in it**: the book was removed instead of opened on the last cue, so frames 461–500 are an empty desk. The span is relabelled `empty` in the sidecar; the error had inflated the run to 92.5% over 120 frames and correcting it gives 91.1% over 90 |
 | `m9_cue-smoke-2e48d86.log` | 37.5% | 37.5% | | `/tmp/m9_cue.log` as it stood after flashing the one-sided guard — a smoke test, kept because it is the only log of that firmware running |
 | `m9_cue_fake_d.log` | 58.3% | 48.3% | | **synthetic.** A doctored copy of `m9_cue-20260816-172256.log`, made to exercise a probe against a class that was never in the room. Not a bench, and it will happily score like one if you forget that |
 
@@ -276,7 +281,11 @@ run designed for it rather than more replay of these.
 
 **That run has now happened, twice, and the next section is what it found.**
 Read the two together: this section says the loss is a step between visits, and
-the next one says the size of that step does not predict the loss.
+the next one says the size of that step does not predict the loss. Read the
+third one too, before comparing any two rows of the table above: **the same
+bench run five times spans 18 points**, so a gap under about twenty between two
+single runs is not a finding. The six rows above are chosen for a large `lost`,
+which is exactly the selection that noise satisfies most easily.
 
 `cue/analysis/20260823-midpoint.txt` is the run. Every row carries an `=state`
 column: scoring the held-out frames against that single threshold has to
@@ -352,6 +361,12 @@ which runs the rule is about to fail on. 13:35 remains a real 36.7-point
 collapse and remains unexplained — what has been removed is the explanation, not
 the observation.
 
+**The 13:35-against-13:39 comparison itself was retired the next week**, by the
+five-run session two sections below: 16.7 points is inside what the same bench
+does against itself in half an hour. The walk correlation over 27 benches is not
+affected — that is a correlation, not a pair of runs — but this bullet's second
+sentence is now a weaker argument than the table above it.
+
 An honest caveat about the control: the operator knew which condition was being
 run. "Correct it by eye against the last visit" is exactly the behaviour a
 person performs differently when they are watching themselves do it. That cannot
@@ -372,6 +387,71 @@ part: it is not a staging artefact. That belongs to
 control — both **below `probe_ceiling.py`'s own `NOTABLE` of 0.10, so the tool
 does not report either and neither should a table.** Noted only because the
 direction is now the same on a pair staged both ways.
+
+## The same bench, five times in half an hour, spans eighteen points
+
+Every comparison above is between single runs, and the two sections above spend
+their length asking why one bench beat another. On 2026-08-25 the obvious
+control was finally run: **the same command five times in twenty-five minutes**,
+same book, same desk, same staging, one firmware, nothing changed between them.
+
+| run | start | live `HELD OUT` | AUC | `best` | `held` | `state` | `lost` |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 05:58 | 93/120 **77.5%** | 0.962 | 93.3% | 98.3% | 77.5% | **20.8** |
+| 2 | 06:02 | 107/120 **89.2%** | 0.960 | 89.6% | 91.7% | 89.2% | 2.5 |
+| 3 | 06:11 | 91/121 **75.2%** | 0.924 | 86.3% | 84.3% | 75.2% | 9.1 |
+| 4 | 06:18 | 113/121 **93.4%** | 0.961 | 93.8% | 93.4% | 93.4% | 0.0 |
+| 5 | 06:22 | 82/90 **91.1%** | 0.970 | 93.3% | 93.3% | 91.1% | 2.2 |
+
+**75.2% to 93.4%, an 18.2-point spread with nothing changed.** The standard
+deviation is 8.3 points, so two independent runs differ with an SD of
+8.3 × √2 = 11.8, and **about 23 points is what 95% costs**. Five runs is four
+degrees of freedom and that SD is itself loose, so read 23 as *roughly twenty*
+and not as a threshold.
+
+Held against the comparisons this repository has actually made:
+
+| comparison | gap | verdict |
+| --- | --- | --- |
+| 08-11 07:22 100.0% vs 08-16 17:22 58.3% | 41.7 | **real** |
+| 08-17 13:35 57.5% vs 13:39 74.2% | 16.7 | not distinguishable |
+| 08-24 06:51 75.8% vs 08:39 73.6% | 2.2 | not distinguishable |
+
+The last row was already reported as nothing. The middle one was not: two
+sections above lean on 13:35 and 13:39 being four minutes apart and 17 points
+apart, and **that pair of runs cannot carry it.** What survives is the
+observation that opened #19 in the first place, which is also the only gap in
+the archive wider than this session's noise.
+
+**Run 1 lost 20.8 points, over `probe_ceiling.py`'s `LOST_19` of 15.0, and the
+tool names it: `lost 21 points the ceiling allowed, on a scene that showed it -
+#19`.** So the collapse still happens on the current firmware. Neither the 08-23
+settle fix nor anything else since 08-17 removed it, and it is now reproducible
+on demand at roughly one run in five rather than only in the archive.
+
+Two hypotheses die here. **Not the first run of a session** — over the whole
+archive the first bench of a day loses a mean of 12.50 and every later run
+12.37, on 5 benches and 26. And **not warm-up of any other shape**: the worst
+run is the first, the second worst is the third, and the best is the fourth.
+
+`cue/analysis/20260825-repeat.txt` has the arithmetic. The caveat that matters
+is scope: one pair, one morning, five runs. It says what a book bench's spread
+is, not what every pair's is, and the glass pair's failures are three times this
+wide.
+
+### The mis-staged visit in run 5, and why the score went down
+
+On run 5's last cue the book was taken away instead of opened, so frames 461–500
+are an empty desk cued as `an opened book`. The sidecar's span is relabelled
+`empty`, which is what the camera saw — a normal 10-frame settle and 30-frame
+hold, identical in form to a cued empty — and the comment on line 5 of the
+`.cues` says so.
+
+**The error inflated the run, so correcting it cost points.** The board called
+all 30 of those frames `an opened book`; scored as cued they counted as correct,
+and the run read 92.5% over 120 frames. It is 91.1% over 90 above. The
+references are untouched either way: enrolment is visits 1 and 2 only, and this
+was visit 12.
 
 ## A reference on the origin, and the unit that does not exist
 
@@ -420,6 +500,15 @@ snapshot frames, and one line per scene span. **The log alone is not scoreable.*
 `tools/score_cue.py` exits rather than guessing, and everything else in `tools/`
 goes through its `load()`, so a missing sidecar can never quietly become a
 number. A sidecar can also be marked `VOID`, which is refused unless forced.
+
+**A span may be corrected after the run, and exactly one has been.**
+`m9_cue-20260825-0622.log.cues` has its last span relabelled from `an opened
+book` to `empty`, because the book was removed instead of opened on that cue and
+`empty` is what the camera saw. The rule for doing this: relabel only to what
+the frames show, never to what improves a score — that correction cost 1.4
+points — leave the enrolment spans alone, and say so in a comment in the sidecar
+itself, where anyone rescoring the log will read it. A relabel that touches an
+enrolment span is not a relabel; it is a different run.
 
 `cue.py` writes it when the run ends, so a run that never ended has none. Three:
 
