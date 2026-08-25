@@ -11,6 +11,44 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-25 night, #30's off switch turns out to have been an on switch for a different fault
+
+The camera lock written earlier today did not lock the camera. `cam_image_auto(false)`
+clears bit 7 on all three selectors of `CAM_REG_AUTO_CONTROL`, and `cam.h` claimed
+that froze exposure, gain and the colour gains "AT WHATEVER THE LOOPS LAST CHOSE".
+It does not. On an empty desk the frame went from mean RGB 134 132 135 at the
+freeze to **98 157 123** twenty-nine frames later, and back to 133 132 135 the
+moment auto went on again. Reproduced on a separate run that ended 96 153 120.
+
+Taking the loops one at a time in a single run named the culprit: exposure alone
+and exposure-plus-gain both hold neutral across sixty frames (130 128 129, then
+130 127 129); adding the white balance is what goes green. Switching the AWB loop
+off drops the red and blue gains toward unity rather than latching them.
+
+So `'L'` now freezes exposure and gain only. The all-three state stays reachable
+on a second press **as a control**, on the same argument `20260825-fmtcache/`
+rests on.
+
+The measurement it was built for then ran without any staging at all — sixteen
+600-frame runs on an empty desk, arms alternating, `tools/probe_camlock.py` on
+plain `demo.py` logs. **It did not clear significance.** No locked run's
+common-mode walk exceeded 2.60; three of eight free runs read 5.49, 6.05 and
+7.46; U = 46 of 64, one-sided p ≈ 0.07. The lock removes a bad tail and does not
+lower the typical case, and at sixteen runs that is a reason to run more rather
+than a finding.
+
+Written down because it will be tempting later: the three big free walks all fall
+in the first half of the session and the locked arm shows no time trend at all,
+which reads as "a lock only helps a sensor still re-deciding". That split was
+chosen after seeing the numbers, so it is the next session's hypothesis and not a
+result. The decisive run is a cold one. Full archive and the confound in
+[`bench/soak/20260825-camlock/`](../bench/soak/20260825-camlock/README.md).
+
+Two things left standing. The AEC still lands on either ~135 or ~97 mean RGB with
+nothing between, on one desk within one session — `20260823-exposure/`'s open
+question, which a lock does not touch, because a lock is not a calibration. And
+#19 is still where the evening before left it.
+
 ### 2026-08-25 evening, the way out of #19 turns out to be closed
 
 `tools/probe_adapt.py` ended on a plan: its drift correction works, the arm that

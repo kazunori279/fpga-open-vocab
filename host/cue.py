@@ -804,9 +804,12 @@ def main() -> int:
                          "out")
     ap.add_argument("--lock-camera", action="store_true",
                     help="issue #30. On the last frame of the baseline - before "
-                         "any enrolment - freeze the camera's exposure, gain "
-                         "and white balance where the room has just settled "
-                         "them, and leave them frozen for the run. Off by "
+                         "any enrolment - freeze the camera's exposure and gain "
+                         "where the room has just settled them, and leave them "
+                         "frozen for the run. NOT the white balance: switching "
+                         "that loop off does not hold the colour gains, it "
+                         "drops them, and the frame goes green within thirty "
+                         "frames (bench/soak/20260825-camlock/). Off by "
                          "default, because the whole archive was taken with "
                          "them free-running and this is the A/B against it")
     ap.add_argument("--preview", type=int, default=0, metavar="N",
@@ -1149,9 +1152,11 @@ def main() -> int:
     print(f"            about {frames * 0.5 / 60:.1f} min of frames, plus a minute of startup")
     if lock_at is not None:
         print(f"camera    : 'L' at frame {lock_at}, the last baseline frame - "
-              f"exposure, gain and white balance frozen\n"
-              f"            where the empty desk left them, before anything is "
-              f"enrolled. Issue #30's locked arm")
+              f"exposure and gain frozen where the\n"
+              f"            empty desk left them, before anything is enrolled. "
+              f"White balance keeps tracking,\n"
+              f"            because switching it off drops the colour gains "
+              f"instead of holding them. Issue #30's locked arm")
     else:
         print("camera    : exposure, gain and white balance left free-running "
               "for the whole run, as every\n            bench in bench/cue/ was "

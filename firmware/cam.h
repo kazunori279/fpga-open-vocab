@@ -228,12 +228,25 @@ void cam_begin(uint8_t id, bool verbose);
 // as. Result: mean RGB (115, 107, 105) against (91, 82, 53) at the start.
 void cam_image_defaults(void);
 
-// THE THREE LOOPS, ON OR OFF, AND NOTHING ELSE. `false` clears bit 7 on all
-// three selectors of CAM_REG_AUTO_CONTROL, which freezes exposure, gain and the
-// colour gains AT WHATEVER THE LOOPS LAST CHOSE. There is no manual value to
-// write on this module - the register takes a switch, not a number - so what
-// gets frozen depends entirely on what the sensor was looking at when the call
-// lands. Warm up first, or a lock taken in the dark is a lock at the ceiling.
+// THE THREE LOOPS, ON OR OFF, AND NOTHING ELSE. Clearing bit 7 on a selector of
+// CAM_REG_AUTO_CONTROL switches that loop off. There is no manual value to write
+// on this module - the register takes a switch, not a number - so a lock can
+// only ever mean "stop deciding", never "use this number".
+//
+// AND "STOP DECIDING" IS NOT "HOLD WHAT YOU DECIDED", which cost the first
+// attempt at #30. Measured 2026-08-25 on an empty desk, one binary, three runs -
+// bench/soak/20260825-camlock/. Freezing all three at board frame 33 read mean
+// RGB (134, 132, 135); twenty-nine frames later, still frozen, the same empty
+// desk read (98, 157, 123); unfreezing brought it back to (133, 132, 135) in
+// under thirty more. It reproduced on a separate run that ended at (96, 153,
+// 120). Overall brightness barely moves - 133 to 126 - so it is the colour gains
+// and not the exposure: switching the AWB loop off drops the red and blue gains
+// towards unity rather than latching them, and this sensor needs both above
+// unity in room light.
+//
+// So the loops are not individually safe to switch off and the mask exists to
+// say which. Warm up first regardless, or a lock taken in the dark is a lock at
+// the ceiling.
 //
 // WHY THIS EXISTS (issue #30). cam_image_defaults() runs once, from
 // ft_acquire(), and every capture for the rest of the run is then taken by a
@@ -246,6 +259,19 @@ void cam_image_defaults(void);
 // is what makes it the one worth switching off first.
 //
 // WB_MODE_CONTROL is deliberately not touched. See cam.c.
+//
+// `tracking` is a mask of the loops left FREE, so CAM_AUTO_ALL is the boot state
+// and 0 is everything off. It is a target rather than a toggle: every call
+// writes all three selectors, so the same mask twice is the same camera and no
+// sequence of presses can accumulate a state nobody named.
+#define CAM_AUTO_EXPOSURE            0x1u
+#define CAM_AUTO_GAIN                0x2u
+#define CAM_AUTO_WB                  0x4u
+#define CAM_AUTO_ALL                 0x7u
+void cam_image_auto_mask(uint8_t tracking);
+
+// CAM_AUTO_ALL or nothing, which is what cam_image_defaults() wants and what the
+// 'L' hotkey meant before the mask existed.
 void cam_image_auto(bool on);
 
 // One capture into `dst`. Returns the FIFO length in bytes, or 0 on failure;

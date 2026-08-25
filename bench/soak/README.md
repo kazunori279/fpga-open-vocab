@@ -41,6 +41,14 @@ commented out, and with the fix again, plus the lit-room `m9` that was the last
 thing #27 was waiting on. The interesting one is the middle one — a control that
 reproduces the fault live is what makes the other two mean anything.
 
+**And a third, which is a whole issue's measurement rather than a bug hunt:
+[`20260825-camlock/`](20260825-camlock/)**, #30. Nineteen runs on an empty desk —
+no object, no cue schedule, no staging, which is the point: the thing #30
+intervenes on can be measured without spending a morning. It found that
+switching the white-balance loop off does not hold the white balance, and it is
+the first set here whose headline number **fails** to clear significance and says
+so.
+
 **And a six-day bus trace:
 [`usb_watch-20260816-20260822.log.gz`](usb_watch-20260816-20260822.log.gz).**
 `host/usb_watch.py` polling every port `uhubctl` can see, once a second, from

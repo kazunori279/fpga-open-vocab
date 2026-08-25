@@ -295,15 +295,26 @@ void cam_begin(uint8_t id, bool verbose)
     last_fmt = last_mode = -1;
 }
 
+// All three selectors on every call, so the mask is a target and not a toggle.
+// CAM_AUTO_ALL reproduces the write sequence cam_begin() has always issued,
+// register for register, which is what keeps the boot path unmeasured-but-
+// unchanged.
+void cam_image_auto_mask(uint8_t tracking)
+{
+    const uint8_t e = (tracking & CAM_AUTO_EXPOSURE) ? AUTO_ON : 0u;
+    const uint8_t g = (tracking & CAM_AUTO_GAIN)     ? AUTO_ON : 0u;
+    const uint8_t w = (tracking & CAM_AUTO_WB)       ? AUTO_ON : 0u;
+    cam_write_reg(CAM_REG_AUTO_CONTROL, e | AUTO_SEL_EXPOSURE);
+    cam_wait_idle(e ? "auto exposure on" : "auto exposure off");
+    cam_write_reg(CAM_REG_AUTO_CONTROL, g | AUTO_SEL_GAIN);
+    cam_wait_idle(g ? "auto gain on" : "auto gain off");
+    cam_write_reg(CAM_REG_AUTO_CONTROL, w | AUTO_SEL_WHITEBALANCE);
+    cam_wait_idle(w ? "auto white balance on" : "auto white balance off");
+}
+
 void cam_image_auto(bool on)
 {
-    const uint8_t bit = on ? AUTO_ON : 0u;
-    cam_write_reg(CAM_REG_AUTO_CONTROL, bit | AUTO_SEL_EXPOSURE);
-    cam_wait_idle(on ? "auto exposure on" : "auto exposure off");
-    cam_write_reg(CAM_REG_AUTO_CONTROL, bit | AUTO_SEL_GAIN);
-    cam_wait_idle(on ? "auto gain on" : "auto gain off");
-    cam_write_reg(CAM_REG_AUTO_CONTROL, bit | AUTO_SEL_WHITEBALANCE);
-    cam_wait_idle(on ? "auto white balance on" : "auto white balance off");
+    cam_image_auto_mask(on ? CAM_AUTO_ALL : 0u);
 }
 
 void cam_image_defaults(void)

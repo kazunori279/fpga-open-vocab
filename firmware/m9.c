@@ -653,7 +653,26 @@ static bool     bg_hold = FGX_BG_HOLD_DEFAULT;
 // The default is deliberately unchanged: this issue is a measurement before it
 // is a fix, and a build that silently locks the camera would make every bench
 // after it incomparable with every bench before it.
-static bool     cam_auto = true;
+//
+// A mask rather than a flag because switching all three off wrecks the frame,
+// and only one of the three is responsible. Attributed 2026-08-25 on an empty
+// desk, thirty frames per state in one run - bench/soak/20260825-camlock/:
+//
+//     all tracking            134 133 135
+//     exposure frozen         130 128 129
+//     + gain frozen           130 127 129
+//     + white balance frozen  100 158 122   <- and only here
+//     all tracking again      135 133 137
+//
+// So the first press is the lock worth benching and the second is the control
+// that reproduces the fault, which is the order a run wants them in. Wrapping
+// back to CAM_AUTO_ALL keeps every state reachable from any other.
+static const uint8_t CAM_LOCK_STEPS[] = {
+    CAM_AUTO_ALL,   // boot: nothing frozen
+    CAM_AUTO_WB,    // exposure + gain frozen, AWB left alone. #30's arm
+    0u,             // all three, which goes green. Kept as the live control
+};
+static uint8_t  cam_lock_step;
 static bool     bg_room_sd;   // both default off, so a build that is never sent
 static bool     bg_smooth;    // a query set behaves exactly as M12 did
 
@@ -2957,10 +2976,11 @@ int main(void)
            "capture between overlapped and serial;\n"
            "            'D' does the same and flips the trigger between late "
            "and at-the-collect, which is #14's A/B.\n"
-           "            'L' freezes the camera's own exposure, gain and white "
-           "balance where they stand, and unfreezes\n"
-           "            them again - issue #30's A/B, and the one hotkey whose "
-           "answer depends on when you press it.\n",
+           "            'L' freezes exposure and gain, then on a second press "
+           "the white balance too - which goes green,\n"
+           "            and is the control. A third restores all three. Issue "
+           "#30, and the one hotkey whose answer depends on when you press "
+           "it.\n",
            (unsigned)ft_nconv());
     printf("            scores are z against this room's background, ranked; "
            "'*' means over its threshold.\n");
@@ -3216,18 +3236,26 @@ int main(void)
         // boundary the way the '0' press does - a rule that changes mid-run and
         // does not say where is a run scored under two rules and named as one.
         //
-        // IT FREEZES, IT DOES NOT SET. There is no exposure value to write on
-        // this module (cam.h), so what gets locked is whatever the loops last
-        // chose - which makes WHEN the key is pressed part of the measurement.
-        // Pressing it before the room has settled locks in the settling.
+        // IT SWITCHES OFF, IT DOES NOT SET, AND IT DOES NOT EVEN HOLD. There is
+        // no exposure value to write on this module, and cam.h has the three
+        // runs showing that a loop switched off drifts rather than latching -
+        // so WHEN the key is pressed is part of the measurement, and WHICH loop
+        // is the rest of it.
         if (c == 'L') {
-            cam_auto = !cam_auto;
-            cam_image_auto(cam_auto);
+            cam_lock_step = (uint8_t)((cam_lock_step + 1u)
+                                      % count_of(CAM_LOCK_STEPS));
+            const uint8_t tracking = CAM_LOCK_STEPS[cam_lock_step];
+            cam_image_auto_mask(tracking);
             int mn[3];
             ft_cap_stats(mn, NULL, NULL);
-            printf("\ncamera    : exposure, gain and white balance now %s, at "
-                   "frame %u, mean RGB %d %d %d\n",
-                   cam_auto ? "TRACKING" : "FROZEN where they stood",
+            // Name the frozen loops rather than the step number: a log read six
+            // weeks later should not need this array to say what it recorded.
+            printf("\ncamera    : frozen now %s%s%s%s at frame %u, "
+                   "mean RGB %d %d %d\n",
+                   (tracking & CAM_AUTO_EXPOSURE) ? "" : "exposure ",
+                   (tracking & CAM_AUTO_GAIN)     ? "" : "gain ",
+                   (tracking & CAM_AUTO_WB)       ? "" : "white-balance ",
+                   tracking == CAM_AUTO_ALL ? "nothing - all three tracking" : "",
                    (unsigned)n, mn[0], mn[1], mn[2]);
             stdio_flush();
             continue;
