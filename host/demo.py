@@ -785,12 +785,14 @@ def main() -> int:
                          "shutter-to-LED line should move")
     ap.add_argument("--enrol", action="append", default=[], metavar="FRAME:KEY",
                     help="M21. At the board's frame FRAME, press KEY - '0' for "
-                         "the empty scene, '1'..'6' for the Nth class query. "
-                         "Repeatable. The frame is the BOARD's number off the "
-                         "frame line, not a count of lines here, because the "
-                         "caller computing these knows the schedule in board "
-                         "frames and an off-by-one would enrol the settling "
-                         "frame with a hand still in shot")
+                         "the empty scene, '1'..'6' for the Nth class query, "
+                         "'L' to freeze the camera's exposure, gain and white "
+                         "balance where they stand (issue #30). Repeatable. The "
+                         "frame is the BOARD's number off the frame line, not a "
+                         "count of lines here, because the caller computing "
+                         "these knows the schedule in board frames and an "
+                         "off-by-one would enrol the settling frame with a hand "
+                         "still in shot")
     ap.add_argument("--snap-at", action="append", default=[], type=int,
                     metavar="FRAME",
                     help="dump a frame at the BOARD's frame FRAME, the same "
@@ -818,12 +820,19 @@ def main() -> int:
     # otherwise surface two minutes into a run, after the teacher has loaded and
     # while somebody is holding a scene still - and the run would be the one
     # thing it cost. Same reason --bg-tau is range-checked above.
+    # 'L' IS NOT AN ENROLMENT AND RIDES HERE ANYWAY. This flag is already "press
+    # KEY at board frame FRAME", scheduled off the board's own numbering, with a
+    # `>=` that survives a dropped frame line - which is exactly what #30's lock
+    # needs and is not worth a second copy of. What it is NOT allowed to be is
+    # any hotkey at all: 'B' mid-run would drop the board into BOOTSEL and end
+    # the bench, so the set stays closed and small.
+    keys = [str(k) for k in range(MAX_Q + 1)] + ["L"]
     enrol: list[tuple[int, str]] = []
     for spec in args.enrol:
         frame, _, key = spec.partition(":")
-        if not frame.isdigit() or key not in [str(k) for k in range(MAX_Q + 1)]:
+        if not frame.isdigit() or key not in keys:
             raise SystemExit(f"--enrol {spec}: want FRAME:KEY with KEY in "
-                             f"0..{MAX_Q}, e.g. --enrol=125:1")
+                             f"0..{MAX_Q} or L, e.g. --enrol=125:1")
         enrol.append((int(frame), key))
     enrol.sort()
     if any(k < 1 for k in args.snap_at):
@@ -1206,7 +1215,8 @@ def main() -> int:
                         bf = int(tok[1]) if len(tok) > 1 and tok[1].isdigit() else -1
                         while enrol and bf >= enrol[0][0]:
                             key = enrol.pop(0)[1]
-                            print(f"enrol     : pressing '{key}' at board frame "
+                            what = "camera" if key == "L" else "enrol "
+                            print(f"{what}    : pressing '{key}' at board frame "
                                   f"{bf}")
                             sys.stdout.flush()
                             s.write(key.encode())

@@ -62,6 +62,7 @@
 #include "pico/stdlib.h"
 #include "tusb.h"        // tud_mounted / tud_suspended, for the #9 watch below
 
+#include "cam.h"         // #30's cam_image_auto(), for the 'L' hotkey
 #include "cam_dump.h"    // the BEGIN/END frame format, shared with host/cam.py
 #include "encoder.h"
 #include "encoder_fast.h"
@@ -647,6 +648,12 @@ static void enrol_forget(void)
 
 static uint32_t bg_tau  = FGX_BG_TAU_DEFAULT;
 static bool     bg_hold = FGX_BG_HOLD_DEFAULT;
+
+// #30. What ft_acquire() left the sensor in, which is all three loops running.
+// The default is deliberately unchanged: this issue is a measurement before it
+// is a fix, and a build that silently locks the camera would make every bench
+// after it incomparable with every bench before it.
+static bool     cam_auto = true;
 static bool     bg_room_sd;   // both default off, so a build that is never sent
 static bool     bg_smooth;    // a query set behaves exactly as M12 did
 
@@ -1954,6 +1961,12 @@ static int poll_host(uint32_t dim, uint32_t us)
         // diagnostic line rather than the run.
         if (c == 'C' || c == 'c') return 'C';
         if (c == 'N' || c == 'n') return 'N';
+        // #30's. 'L' for lock, and like 'O' and 'D' it is a hotkey rather than a
+        // build flag for exactly the reason those two are: the question is
+        // whether freezing the sensor's three loops changes the drift, and two
+        // builds cannot answer it because the two runs would then differ in the
+        // room and the hour as well as in the lock. One boot, both arms.
+        if (c == 'L' || c == 'l') return 'L';
         // #10's toggle. 'O' for overlap, and it misses all four of F, G, X and
         // Q. A hotkey rather than a build flag for M5b's reason - see frame.h -
         // and here that reason is not a nicety: the question 'O' answers is
@@ -2943,7 +2956,11 @@ int main(void)
            "            'O' closes the timing window, prints it and flips the "
            "capture between overlapped and serial;\n"
            "            'D' does the same and flips the trigger between late "
-           "and at-the-collect, which is #14's A/B.\n",
+           "and at-the-collect, which is #14's A/B.\n"
+           "            'L' freezes the camera's own exposure, gain and white "
+           "balance where they stand, and unfreezes\n"
+           "            them again - issue #30's A/B, and the one hotkey whose "
+           "answer depends on when you press it.\n",
            (unsigned)ft_nconv());
     printf("            scores are z against this room's background, ranked; "
            "'*' means over its threshold.\n");
@@ -3191,6 +3208,30 @@ int main(void)
         // rather than the state they were asked for, because 'H' pressed during
         // warm-up does nothing visible for a while and a log that says "frozen"
         // when bg_n is still climbing would be a lie the reader cannot check.
+        // #30. The sensor's exposure, gain and colour gains are switched on once
+        // by ft_acquire() and then left running for the whole run, so every
+        // frame after enrolment is taken by a camera still free to re-decide
+        // what the references were enrolled under. This freezes them where they
+        // are, and prints the frame it happened on so a bench log carries the
+        // boundary the way the '0' press does - a rule that changes mid-run and
+        // does not say where is a run scored under two rules and named as one.
+        //
+        // IT FREEZES, IT DOES NOT SET. There is no exposure value to write on
+        // this module (cam.h), so what gets locked is whatever the loops last
+        // chose - which makes WHEN the key is pressed part of the measurement.
+        // Pressing it before the room has settled locks in the settling.
+        if (c == 'L') {
+            cam_auto = !cam_auto;
+            cam_image_auto(cam_auto);
+            int mn[3];
+            ft_cap_stats(mn, NULL, NULL);
+            printf("\ncamera    : exposure, gain and white balance now %s, at "
+                   "frame %u, mean RGB %d %d %d\n",
+                   cam_auto ? "TRACKING" : "FROZEN where they stood",
+                   (unsigned)n, mn[0], mn[1], mn[2]);
+            stdio_flush();
+            continue;
+        }
         if (c == 'H') {
             bg_hold = !bg_hold;
             printf("\nbackground: now %s, after %u frames of %u\n",

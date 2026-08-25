@@ -228,6 +228,26 @@ void cam_begin(uint8_t id, bool verbose);
 // as. Result: mean RGB (115, 107, 105) against (91, 82, 53) at the start.
 void cam_image_defaults(void);
 
+// THE THREE LOOPS, ON OR OFF, AND NOTHING ELSE. `false` clears bit 7 on all
+// three selectors of CAM_REG_AUTO_CONTROL, which freezes exposure, gain and the
+// colour gains AT WHATEVER THE LOOPS LAST CHOSE. There is no manual value to
+// write on this module - the register takes a switch, not a number - so what
+// gets frozen depends entirely on what the sensor was looking at when the call
+// lands. Warm up first, or a lock taken in the dark is a lock at the ceiling.
+//
+// WHY THIS EXISTS (issue #30). cam_image_defaults() runs once, from
+// ft_acquire(), and every capture for the rest of the run is then taken by a
+// sensor still free to re-decide all three. The references are enrolled under
+// one set of decisions and the frames scored under another, and drift is what
+// predicts a bench: r = -0.429 against the presence stage's accuracy, steady
+// half 84.7 and wandering half 72.8. This does not assert the loops are the
+// cause - self-heating and the room genuinely changing produce the same
+// common-mode walk. It is the one of the three that can be switched off, which
+// is what makes it the one worth switching off first.
+//
+// WB_MODE_CONTROL is deliberately not touched. See cam.c.
+void cam_image_auto(bool on);
+
 // One capture into `dst`. Returns the FIFO length in bytes, or 0 on failure;
 // a length longer than `cap` is returned but not read, so the caller can report
 // the mismatch. `mode` is the already-legacy-resolved resolution code.

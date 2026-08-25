@@ -802,6 +802,13 @@ def main() -> int:
                          "how far a class moves between stagings and not only "
                          "how still it was held - and every later visit is held "
                          "out")
+    ap.add_argument("--lock-camera", action="store_true",
+                    help="issue #30. On the last frame of the baseline - before "
+                         "any enrolment - freeze the camera's exposure, gain "
+                         "and white balance where the room has just settled "
+                         "them, and leave them frozen for the run. Off by "
+                         "default, because the whole archive was taken with "
+                         "them free-running and this is the A/B against it")
     ap.add_argument("--preview", type=int, default=0, metavar="N",
                     help=f"ask the board for a picture every N frames and keep "
                          f"{PREVIEW_PNG} showing the newest one. Costs ~44 KB "
@@ -1008,6 +1015,31 @@ def main() -> int:
     # them.
     enrol: list[tuple[int, str]] = []
     digit = {lab: str(i + 1) for i, lab in enumerate(args.queries)}
+
+    # #30's arm, and WHERE it goes is the whole design. The sensor's exposure,
+    # gain and white balance run for the entire bench today, so the references
+    # are enrolled under one set of the sensor's decisions and the held-out
+    # frames scored under another. Freezing them has to happen BEFORE the first
+    # enrolment key or it fixes nothing - it would just move the mismatch.
+    #
+    # The last frame of the baseline is where that is. By then the board has had
+    # `--bg-tau` plus `--baseline` frames of the room to converge on, which
+    # matters because the register takes a switch and not a number: 'L' freezes
+    # whatever the loops last chose, so a lock taken cold is a lock on the
+    # settling. And the baseline is empty desk, which is the scene the operator
+    # can guarantee is the same in both arms of an A/B.
+    #
+    # It is off by default. Issue #30 is a measurement before it is a fix, and a
+    # default that silently locked the camera would make every bench after it
+    # incomparable with all 49 before it.
+    #
+    # AND IT IS KEPT OUT OF `enrol`. demo.py takes it as one more --enrol=F:KEY
+    # because that flag is already a scheduled press, but the SIDECAR's enrol
+    # list is a different thing: eight tools in tools/ read it as "frame F
+    # taught reference K", and every one of them splits on `k != "0"` or calls
+    # int(k). An 'L' in there would be counted as a class enrolment by all of
+    # them and would crash the two that do the int(). It gets its own field.
+    lock_at = args.bg_tau + args.baseline - 1 if args.lock_camera else None
     if args.enrol:
         loose = [lab for lab in base if lab not in digit]
         if loose:
@@ -1104,6 +1136,7 @@ def main() -> int:
            "--frames", str(frames), "--out", str(args.out),
            "--bg-tau", str(args.bg_tau),
            *[f"--enrol={f}:{k}" for f, k in enrol],
+           *([f"--enrol={lock_at}:L"] if lock_at is not None else []),
            *[f"--snap-at={f}" for f in snap_at],
            *([f"--snap-every={args.preview}"] if args.preview else []),
            *extra, *args.queries]
@@ -1114,6 +1147,15 @@ def main() -> int:
           f"{args.settle} settle + {args.hold} held per visit, "
           f"{len(scenes)} visits = {frames} frames")
     print(f"            about {frames * 0.5 / 60:.1f} min of frames, plus a minute of startup")
+    if lock_at is not None:
+        print(f"camera    : 'L' at frame {lock_at}, the last baseline frame - "
+              f"exposure, gain and white balance frozen\n"
+              f"            where the empty desk left them, before anything is "
+              f"enrolled. Issue #30's locked arm")
+    else:
+        print("camera    : exposure, gain and white balance left free-running "
+              "for the whole run, as every\n            bench in bench/cue/ was "
+              "taken. Issue #30's control arm - pass --lock-camera for the other")
     if enrol:
         # '0' is not an index into `queries` - it is the empty scene, which has
         # no query and never will. Reading it as one lands on queries[-1] and
@@ -1345,6 +1387,14 @@ def main() -> int:
         # the old rule's output wearing the new rule's name.
         + (f"# enrol-window {ENROL_FRAMES}\n" if enrol else "")
         + "".join(f"# enrol {f} {k}\n" for f, k in enrol)
+        # #30's arm, on its OWN key and not folded into `enrol` above. Every
+        # tool in tools/ reads an `enrol` line as "frame F taught reference K"
+        # and splits the list on `k != "0"`; an 'L' in there would be counted as
+        # a class. This line is written in both arms - "camera-lock none" is a
+        # fact about a run, and the 49 benches that predate the flag can say
+        # nothing at all, which is exactly the difference worth recording.
+        + (f"# camera-lock {lock_at}\n" if lock_at is not None
+           else "# camera-lock none\n")
         # Where the pictures are, for the same reason the flags above are: an
         # artifact that cannot say whether a dump was asked for cannot be told
         # apart from one where the board ignored the request.

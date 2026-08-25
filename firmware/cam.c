@@ -295,14 +295,24 @@ void cam_begin(uint8_t id, bool verbose)
     last_fmt = last_mode = -1;
 }
 
+void cam_image_auto(bool on)
+{
+    const uint8_t bit = on ? AUTO_ON : 0u;
+    cam_write_reg(CAM_REG_AUTO_CONTROL, bit | AUTO_SEL_EXPOSURE);
+    cam_wait_idle(on ? "auto exposure on" : "auto exposure off");
+    cam_write_reg(CAM_REG_AUTO_CONTROL, bit | AUTO_SEL_GAIN);
+    cam_wait_idle(on ? "auto gain on" : "auto gain off");
+    cam_write_reg(CAM_REG_AUTO_CONTROL, bit | AUTO_SEL_WHITEBALANCE);
+    cam_wait_idle(on ? "auto white balance on" : "auto white balance off");
+}
+
 void cam_image_defaults(void)
 {
-    cam_write_reg(CAM_REG_AUTO_CONTROL, AUTO_ON | AUTO_SEL_EXPOSURE);
-    cam_wait_idle("auto exposure");
-    cam_write_reg(CAM_REG_AUTO_CONTROL, AUTO_ON | AUTO_SEL_GAIN);
-    cam_wait_idle("auto gain");
-    cam_write_reg(CAM_REG_AUTO_CONTROL, AUTO_ON | AUTO_SEL_WHITEBALANCE);
-    cam_wait_idle("auto white balance");
+    cam_image_auto(true);
+    // NOT part of cam_image_auto(). This one is not a loop being switched on -
+    // cam.h:220 has the measurement: writing it AT ALL is what takes blue from
+    // 42 to 133, whatever value goes in. Undoing it has never been wanted and
+    // is not what locking the sensor means.
     cam_write_reg(CAM_REG_WB_MODE_CONTROL, 0);
     cam_wait_idle("white balance mode");
 }
