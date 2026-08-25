@@ -71,10 +71,15 @@ MATCH = re.compile(r"MATCH (.+?) \(cos")
 #       reference in the centred space, in units of sep. Absent above TRIP.
 #       Missing from any log written before #18, which is what tells the two
 #       generations of log apart.
-#     ... led 255/  0 h1.00 b0.87 lvl+0.34 d0.26   MATCH an opened book (cos ...
+#   de  the distance to the EMPTY reference, in the same units, present only
+#       when '0' was pressed. It marks the third generation of log: with it the
+#       verdict is `de > d` and no threshold is involved, and `d` alone is half
+#       of a comparison. Its absence means the band, which is what the two
+#       constants below still describe.
+#     ... led 255/  0 h1.00 b0.87 lvl+0.34 d0.26 de1.40   MATCH an opened book ...
 TAIL = re.compile(r"\sled\s+\d+/\s*\d+\s+h[-+]?[\d.]+"
                   r"(?:\s+b([-+]?[\d.]+))?\s+lvl([-+][\d.]+)"
-                  r"(?:\s+d([\d.]+))?")
+                  r"(?:\s+d([\d.]+))?(?:\s+de([\d.]+))?")
 
 # MUST MATCH FGX_PRESENT_ON / FGX_PRESENT_OFF in firmware/m9.c before #18, and
 # FGX_ABSENT_TRIP / FGX_ABSENT_STAY after it. Enter one way, leave the other:
@@ -201,7 +206,8 @@ def load(log):
             scores, hit.group(1).strip() if hit else None,
             float(t.group(1)) if t and t.group(1) else None,
             float(t.group(2)) if t else None,
-            float(t.group(3)) if t and t.group(3) else None)
+            float(t.group(3)) if t and t.group(3) else None,
+            float(t.group(4)) if t and t.group(4) else None)
     return cues, frames, roles, bg, enrol, window
 
 
@@ -244,8 +250,21 @@ def main():
     # did not finish with - live, but not the rule whose score is being
     # reported. On a one-visit-per-class log the two are the same frame and
     # this changes nothing, which is why it is safe to apply to old logs.
+    #
+    # AND THE '0' WINDOW COUNTS TOO, for exactly the same reason (2026-08-25).
+    # The empty reference does not move a class reference, but until it lands
+    # the presence stage is #18's band and not the nearest-of-three rule - a
+    # different rule, whose frames would otherwise be counted under this one's
+    # name. The 13:09 bench is the case that found it: '0' went in at frame 272
+    # so the rule was live from 294, while `engage` read 254 and swept in the
+    # whole 260-299 empty span. That span reported 23/30 called present, all of
+    # it the band's, and it dragged the third reference's own figure from
+    # 82.1% down to 62.2%. The '0' key still cannot make a rule EXIST - two
+    # classes do that - so it does not join the `len(cls) >= 2` test.
     cls = sorted(f for f, k in enrol if k != "0")
-    engage = cls[-1] + 2 + window if len(cls) >= 2 else None
+    emp = sorted(f for f, k in enrol if k == "0")
+    engage = (max(cls[-1], *emp) + 2 + window if len(cls) >= 2 and emp else
+              cls[-1] + 2 + window if len(cls) >= 2 else None)
     if not scenes:
         sys.exit("no scene segments in the sidecar")
     names = list(next(iter(frames.values()))[0]) if frames else []
@@ -284,6 +303,11 @@ def main():
     # do not mean the same thing and a run of each will be compared side by side
     # for a while yet.
     dist_rule = any(f[4] is not None for f in frames.values())
+    # Three generations of presence stage now print into this file and the
+    # counts below are the board's own verdicts either way - what changes is
+    # what they are a count OF, so the description has to follow the log rather
+    # than the constants at the top of this script.
+    three_rule = any(f[5] is not None for f in frames.values())
 
     print("per segment")
     head = ("  cue  scene           n  " + "".join(f"{n:>16}" for n in names)
@@ -477,7 +501,11 @@ def main():
               f"{'' if len(blank) == 1 else 's'}, held out")
         # Which rule's "nothing there" is being scored. All three print the
         # same absent frame, and only two of them have a presence stage.
-        if enrol and dist_rule:
+        if enrol and three_rule:
+            print("  stage: M21 with a third reference, 2026-08-25: absent when "
+                  "the empty scene is\n         the nearest of the three. No "
+                  "threshold, so neither constant above applies")
+        elif enrol and dist_rule:
             print(f"  stage: M21 after #18, distance to the nearest reference: "
                   f"absent above {ABSENT_TRIP:.1f} sep, back below "
                   f"{ABSENT_STAY:.1f}")
@@ -540,8 +568,11 @@ def main():
             cd = [frames[f][4] for a, b, _ in scenes for f in scored(a, b)
                   if frames[f][4] is not None]
             if ed and cd:
-                print(f"\n  distance to the nearest reference, absent above "
-                      f"{ABSENT_TRIP:.1f} / back below {ABSENT_STAY:.1f} sep")
+                print("\n  distance to the nearest reference, " + (
+                    "against the empty reference's own below"
+                    if three_rule else
+                    f"absent above {ABSENT_TRIP:.1f} / back below "
+                    f"{ABSENT_STAY:.1f} sep"))
                 print(f"    empty      mean {st.mean(ed):6.2f}   "
                       f"worst (lowest)  {min(ed):6.2f}")
                 print(f"    classes    mean {st.mean(cd):6.2f}   "
@@ -551,6 +582,67 @@ def main():
                       + ("" if gap > 0 else
                          "   <- they overlap: no single pair of edges separates "
                          "these two"))
+            # AND THE OTHER HALF OF THE COMPARISON, which only exists in a
+            # third-generation log. `d` overlapping does not condemn this rule
+            # the way it condemns the band: the cut is `de > d` per frame, so
+            # what matters is the SIGN of the difference and not whether either
+            # column separates on its own.
+            if three_rule:
+                de_e = [frames[f][5] for f in late if frames[f][5] is not None]
+                de_c = [frames[f][5] for a, b, _ in scenes for f in scored(a, b)
+                        if frames[f][5] is not None]
+                dd_e = [frames[f][5] - frames[f][4] for f in late
+                        if frames[f][5] is not None and frames[f][4] is not None]
+                dd_c = [frames[f][5] - frames[f][4]
+                        for a, b, _ in scenes for f in scored(a, b)
+                        if frames[f][5] is not None and frames[f][4] is not None]
+                if de_e and de_c:
+                    print("\n  distance to the EMPTY reference, and the margin "
+                          "the rule actually cuts on")
+                    print(f"    empty      mean {st.mean(de_e):6.2f}   "
+                          f"de - d  mean {st.mean(dd_e):+6.2f}   "
+                          f"absent on {sum(x < 0 for x in dd_e):>4}/{len(dd_e)}")
+                    print(f"    classes    mean {st.mean(de_c):6.2f}   "
+                          f"de - d  mean {st.mean(dd_c):+6.2f}   "
+                          f"absent on {sum(x < 0 for x in dd_c):>4}/{len(dd_c)}")
+                    print("    negative is absent. These two counts ARE the "
+                          "rule, so they must agree with\n    the verdicts "
+                          "above - and the line below checks that rather than "
+                          "asserting it")
+                    # SAYING "these must agree" and not looking was the first
+                    # version, and on the very first board run they did not:
+                    # 40/120 derived against 41 verdicts, 54/66 against 55.
+                    # Both are ties. `d` and `de` are printed to two decimals,
+                    # so a frame the board decided in full float on a
+                    # difference below 0.005 reaches this script as an exact
+                    # 0.00 and falls to the present side of `x < 0`. That is a
+                    # print-width artefact and NOT a drift, but the only way to
+                    # know which of the two it is, is to count the ties.
+                    dis = [f for f in
+                           list(late) + [f for a, b, _ in scenes
+                                         for f in scored(a, b)]
+                           if frames[f][5] is not None
+                           and frames[f][4] is not None
+                           and ((frames[f][5] - frames[f][4]) < 0)
+                           != (frames[f][1] is None)]
+                    ties = [f for f in dis
+                            if frames[f][5] == frames[f][4]]
+                    if not dis:
+                        print("    checked: every frame's sign matches the "
+                              "board's own verdict")
+                    elif len(ties) == len(dis):
+                        print(f"    checked: {len(dis)} frame"
+                              f"{'' if len(dis) == 1 else 's'} differ "
+                              f"({', '.join(str(f) for f in dis)}) and all of "
+                              f"them print d == de\n    to two decimals - the "
+                              f"board cut them in full float. Rounding, not "
+                              f"drift")
+                    else:
+                        print(f"    !! {len(dis) - len(ties)} frame(s) differ "
+                              f"and are NOT ties: "
+                              f"{', '.join(str(f) for f in dis if f not in ties)}"
+                              f"\n    This script and the board disagree about "
+                              f"the rule. Do not quote the counts above")
         else:
             elit = [frames[f][2] for f in late if frames[f][2] is not None]
             clit = [frames[f][2] for a, b, _ in scenes for f in scored(a, b)

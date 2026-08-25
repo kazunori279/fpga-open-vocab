@@ -974,13 +974,13 @@ def main() -> int:
     # failures. This costs a visit per class off the held-out count, which is why
     # --repeat has to be at least ENROL_VISITS + 1 for the run to test anything.
     #
-    # THERE USED TO BE A '0' HERE, enrolling the empty scene at the end of the
-    # baseline, and #18 removed the thing it fed. It was never an empty desk: the
-    # window sat right after the background froze, so it measured the freeze
-    # against itself and read ~0 whatever was in shot. Presence is a distance
-    # from the classes now, so there is nothing to teach it - which also means
-    # the baseline is no longer an enrolment window and --baseline only has to
-    # be long enough to freeze the background.
+    # THERE IS A '0' HERE AGAIN, AND IT IS NOT THE OLD ONE. The pre-#18 '0' sat
+    # at the end of the BASELINE, so its window measured the background freeze
+    # against itself and read about zero whatever was in shot; it fed a level and
+    # #18 deleted both. The one below sits in a real empty visit in the rotation
+    # and feeds a centred reference, which is a different quantity reached by a
+    # different key press at a different time. --baseline still only has to be
+    # long enough to freeze the background.
     # WHICH DIGIT ENROLS WHICH SCENE, AND WHY IT IS NOT k + 1. `--scene` sets
     # the rotation and the cue labels; the board's classes come from the
     # positional `queries` argument, which is a DIFFERENT list, and the board
@@ -1026,6 +1026,38 @@ def main() -> int:
                          + scene * (args.settle + args.hold))
                 enrol.append((start + args.settle + 2,
                               digit.get(label, str(k + 1))))
+        # AND '0' IS BACK, ON EXACTLY ONE EMPTY VISIT (2026-08-25). #18's band
+        # cannot reject a scene that lands between the two class references -
+        # with two queries the centred space is one-dimensional, so "further
+        # than r from both" is an interval and the empty desk sits inside it on
+        # ten of 28 archived benches. Enrolling it as a third reference and
+        # taking the nearest of three scores 79.1% against the band's 54.6%
+        # (tools/probe_third.py), and this is the press that makes that
+        # possible on the board.
+        #
+        # WHICH VISIT, and it is not the first. tools/probe_third.py enrolled
+        # from the first empty span AFTER the rule engaged, so this matches it
+        # exactly: cycle ENROL_VISITS - 1, the last of the teaching cycles, by
+        # which point both classes have all their visits and the board is
+        # already deciding. Earlier would enrol before the rule exists; later
+        # would spend a held-out visit that the replay kept.
+        #
+        # ONE VISIT, NOT ENROL_VISITS, for the same reason: one is what was
+        # measured. The firmware folds a repeat press in exactly like a class,
+        # so a second visit is a one-line change here when somebody wants to
+        # test whether it helps - `drift` says it might, r = -0.427 - but it is
+        # not what the 79.1% figure is a figure for.
+        if args.revisit_empty and len(base) >= 2:
+            cyc   = min(ENROL_VISITS, max(1, args.repeat)) - 1
+            scene = cyc * len(rotation) + len(base)
+            start = (args.bg_tau + args.baseline
+                     + scene * (args.settle + args.hold))
+            enrol.append((start + args.settle + 2, "0"))
+        elif args.enrol and not args.revisit_empty:
+            print("--enrol --no-revisit-empty: there is no empty visit to enrol "
+                  "from, so the board falls back to #18's band and scores what "
+                  "the band scores. That is a valid control and a bad bench.",
+                  file=sys.stderr)
         if len(base) < 2:
             print("--enrol with one scene: the board needs two enrolled classes "
                   "before the M21 rule engages, so it will stay on the old one.",
@@ -1062,6 +1094,10 @@ def main() -> int:
     # very different from the desk is a question a picture answers and a score
     # trace does not. Mid-window, so it is one of the frames that was averaged.
     # Two dumps a run, ~88 KB of log; the alternative costs a whole re-run.
+    # In frame order, because '0' is appended after the class loop and the
+    # sidecar, the pictures and demo.py's own schedule all read this list as a
+    # timeline. Nothing downstream sorts it.
+    enrol.sort()
     snap_at = [f + 2 + ENROL_FRAMES // 2 for f, _ in enrol]
 
     cmd = ["uv", "run", str(ROOT / "host/demo.py"),
@@ -1079,16 +1115,30 @@ def main() -> int:
           f"{len(scenes)} visits = {frames} frames")
     print(f"            about {frames * 0.5 / 60:.1f} min of frames, plus a minute of startup")
     if enrol:
+        # '0' is not an index into `queries` - it is the empty scene, which has
+        # no query and never will. Reading it as one lands on queries[-1] and
+        # prints the LAST class's name against the empty window, which is the
+        # 08-23 07:10 failure in a new place: a plausible line describing a run
+        # that is not the run.
+        def enrol_name(k: str) -> str:
+            if k == "0":
+                return EMPTY
+            return (args.queries[int(k) - 1]
+                    if int(k) <= len(args.queries) else "?")
         print("enrol     : " + ", ".join(
-            f"frames {f + 2}-{f + 1 + ENROL_FRAMES} = key {k} "
-            f"= {args.queries[int(k) - 1] if int(k) <= len(args.queries) else '?'}"
+            f"frames {f + 2}-{f + 1 + ENROL_FRAMES} = key {k} = {enrol_name(k)}"
             for f, k in enrol))
         held = args.repeat - visits
         print(f"            the first {visits} visit{'' if visits == 1 else 's'} "
               f"to each scene teach the board and fold into one reference; "
               f"{held or 'none'} {'is' if held == 1 else 'are'} "
               f"held out")
-        if args.revisit_empty:
+        if args.revisit_empty and any(k == "0" for _, k in enrol):
+            print(f"            ONE of the {args.repeat} '{EMPTY}' visits is "
+                  f"spent teaching now - that is what the third reference "
+                  f"costs -\n            and the other "
+                  f"{args.repeat - 1} are what measure the presence stage")
+        elif args.revisit_empty:
             print(f"            the {args.repeat} '{EMPTY}' visits are held out "
                   f"too - nothing is enrolled for them at all, and they are "
                   f"what measures the presence stage")

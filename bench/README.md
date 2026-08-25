@@ -131,6 +131,7 @@ timestamp in the filename — see 11:44 below.
 | `m9_cue-20260825-0611.log` | 75.2% | 79.0% | 08-25 06:11 | third of five, and **the lowest of the session at 75.2%** — but its ceiling is 84.3%, the weakest of the five, so only 9.1 of it is the rule. A low score and a collapse are not the same event |
 | `m9_cue-20260825-0618.log` | 93.4% | 92.8% | 08-25 06:18 | fourth of five, the best of the session, `lost` **0.0** — the rule collected every point its scene offered |
 | `m9_cue-20260825-0622.log` | 91.1% | 92.0% | 08-25 06:22 | fifth of five, and **the one with an operator error in it**: the book was removed instead of opened on the last cue, so frames 461–500 are an empty desk. The span is relabelled `empty` in the sidecar; the error had inflated the run to 92.5% over 120 frames and correcting it gives 91.1% over 90 |
+| `m9_cue-20260825-1309.log` | 63.3% | 87.2% | 08-25 13:09 | **the first bench of the third reference on the board** — `'0'` pressed on the empty visit of cycle 2, so the empty span at 260–299 runs #18's band for 33 frames and nearest-of-three for the last 7 and releases on the frame the reference lands. Presence 83.3% held on empty against the band's 50.0 *on this bench* (its largest `d/sep` is 0.50 against a 2.0 trip, so the band cannot fire here at all). The 24-point live/replay gap is the gate and not the classifier: 41 of the 44 held-out misses are absent-calls, 35 of them `an opened book`. Also has #19 in it — the closed book's span means walk +0.25, +7.48, +3.50, +6.20 |
 | `m9_cue-smoke-2e48d86.log` | 37.5% | 37.5% | | `/tmp/m9_cue.log` as it stood after flashing the one-sided guard — a smoke test, kept because it is the only log of that firmware running |
 | `m9_cue_fake_d.log` | 58.3% | 48.3% | | **synthetic.** A doctored copy of `m9_cue-20260816-172256.log`, made to exercise a probe against a class that was never in the room. Not a bench, and it will happily score like one if you forget that |
 
@@ -712,6 +713,47 @@ The two smoke tests in the pool (08-17 10:48 and 10:52) are carried rather than
 dropped, because dropping them moves the answer the *favourable* way: on the 26
 real benches it is 80.8 against 53.6, +27.2. `cue/analysis/20260825-third.txt`
 is the run.
+
+### And then the board ran it
+
+`m9_cue-20260825-1309.log`, the same afternoon. `'0'` is a key again — it enrols
+the empty scene as a third reference, and the firmware takes the nearest of
+three with no threshold and no hysteresis, which is exactly the arm above.
+
+**The best thing in the log is an accident of scheduling.** `'0'` goes in at
+frame 272, so the reference lands at 294 — inside the 260–299 empty span, which
+had been running #18's band up to then. The same span, same desk, two rules:
+
+```
+frame   292 : ... lvl+0.40 d0.48                MATCH an opened book
+frame   293 : ... lvl+0.49 d0.48 de0.01         - (nothing there)
+```
+
+Thirty-three frames of empty desk named as a class, released on the frame a
+third reference existed. **And the band could not have fired anywhere in this
+run**: the largest `d/sep` over all 414 frames is **0.50** against a 2.0 trip, so
+its balanced accuracy here is exactly 50.0 and no constant repairs that. The
+empty desk enrolled **3.23 from the nearest class on a pair 6.66 apart** — the
+midpoint, which is the shape the table above is about.
+
+Held out, over the frames the rule was live for: **55/66 empty frames held
+(83.3%)**, **79/120 class frames still present (65.8%)**, balanced **74.6**.
+Against 79.1 replayed and 50.0 for the band on this bench. That is one draw from
+a distribution this page has already measured at sd 29.4, so it is consistent
+with the replay and is not a confirmation of it.
+
+**What it costs is now a measured number and not a warning.** `HELD OUT` reads
+63.3% live against 87.2% replayed, and of the 44 misses **41 are absent-calls,
+35 of them `an opened book`**, against 3 wrong-class calls. The gate is the loss.
+The reason is drift and it is #19's: the closed book's span means walk +0.25,
++7.48, +3.50, +6.20, and with the empty reference 3.23 from the nearest class
+there is only about 1.6 units of room before a class crosses into its cell.
+
+So the honest summary of the first board run is **the empty side works and the
+class side pays for it**, and the next question is whether that trade holds on a
+bench that does not also drift. It is also, exactly, the pairing
+`probe_adapt.py` asked for: its `empty` arm needs a presence stage that works,
+and this is the first firmware that has one.
 
 ## The `.cues` sidecars, and the three logs that have none
 

@@ -77,6 +77,26 @@ to set beside 08-18 and 08-19, and it is the first one that is not a whole
 calendar day, so it is the first that can be read as *uptime* rather than as
 *absence*.
 
+**And a third slice,
+[`usb_watch-20260824-20260825.log.gz`](usb_watch-20260824-20260825.log.gz)** —
+same process, still the same one, snapshotted on 2026-08-25 at 13:19. 1 920
+lines, cut on the line after the last one in the file above, so the three still
+do not overlap. Board-port transitions by day are now **71 / 12 / 0 / 0 / 56 /
+66 / 65 / 72 / 9 / 52**, 403 in total.
+
+**And the paragraph above got 08-24 wrong in exactly the way it warned about
+08-22.** It reads "08-24 is zero", and 08-24 is nine: the snapshot was taken at
+06:19 and the board was flashed at 06:51 and 06:54, power-cycled at 08:39 and
+dropped to BOOTSEL at 08:42. The zero was the copy's edge, not the day's. The
+sentence is left standing because it is the second time one snapshot boundary
+has manufactured a quiet day in this file, and the lesson is cheaper stated
+twice than corrected silently: **a count that ends where the copy ends is not a
+count of anything.** The two genuinely untouched days, 08-18 and 08-19, are the
+only zeroes in the row that were not produced this way.
+
+08-25's 52 are the morning's five-run repeat session, the `cam_probe` work and
+the two `forgix_m9` flashes of the afternoon. Not audited event by event.
+
 What this does not say is that the board is healthy — `usb_watch.py` sees the
 bus and nothing above it, so a core wedged behind a live CDC looks exactly like
 a quiet day. Pair it with something that asks the board a question.

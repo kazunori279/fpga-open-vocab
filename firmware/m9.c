@@ -200,12 +200,51 @@ static bool     q_axis_weighted;   // the figure is the 1/qsd-weighted one
 // AUC 0.956 and 0.909 - and the three empty visits read 3.03 / 3.48 / 3.06 and
 // 2.31 / 2.87 / 2.54 sep, middle visit highest, so there is no trend to follow.
 //
-// The earlier objection to this shape was that enrolling "absent" as a third
-// centred class scores 42.3% and 73.1%, losing 56 and 33 real frames. That
-// finding stands and this is not that: there is no absent reference. Nothing is
-// enrolled for it, which is also why the empty scene stops being something the
-// operator has to keep valid - and for a product that matters more than the
-// accuracy does.
+// AND ON 2026-08-25 THAT RULE LOST ITS ARGUMENT, so the board now prefers a
+// third reference when it has one:
+//
+//   absent  <=>  the nearest of { class refs, the empty ref } is the empty ref
+//
+// The radius above turns out not to be a radius. With two queries the centred
+// space is exactly one-dimensional - c[] = [+D/2, -D/2] for the margin D - so
+// every reference has the same shape and || c[] - qref[k] || is identically
+// | D - D_ref[k] | / sqrt(2), checked per frame to 3.55e-15 over 8 514 pairs
+// (tools/probe_absent.py). The rule is therefore a BAND on the margin axis
+// centred on the two classes, the classes own the inside of it by construction,
+// and "neither" has no orthogonal direction to occupy. Ten of 28 archived
+// benches put the empty desk inside the band; eight of those ten invert, and no
+// half-width separates a point from the interval it is sitting in.
+//
+// tools/probe_third.py scores the replacement on held-out frames of all 28,
+// balanced accuracy so a rotation with more class frames than empty ones cannot
+// be won by answering "present":
+//
+//     band-oracle, the best radius FITTED PER BENCH   73.8   (unshippable)
+//     three references, nothing fitted                79.1
+//     FGX_ABSENT_TRIP = 2.0 sep, what shipped         54.6
+//
+// +24.5 over the shipped band, sd 21.5, t = 6.04 on 27 df, winning 24 of 28 -
+// and +5.3 over the ceiling the band's own shape could never exceed, on 17 of
+// 28. A rule with no constant in it beating the best constant the old shape
+// could have had is the whole argument for changing the shape.
+//
+// WHAT IT COSTS, said plainly. It costs a visit: the operator now has to show
+// the board an empty scene, which under the old rule was the one thing they did
+// not have to keep valid. And a single bench's figure under this rule is not a
+// measurement - the five runs of the 08-25 repeat session scored 83.7 / 100.0 /
+// 88.5 / 29.0 / 51.6, sd 29.4, and the term that predicts it is where the empty
+// desk wanders to between visits (drift r = -0.427; steady half 84.4, wandering
+// half 73.9). Expect a range, not a number.
+//
+// THE 2026-08-11 OBJECTION IS NOT THIS, and it still stands: enrolling absent as
+// a third CENTRED CLASS scored 42.3% and 73.1%, losing 56 and 33 real frames.
+// That reference competed in the state stage and could win the classifier. This
+// one cannot - eref[] is not in qref[], `best` is never set to it, and it is
+// read by one comparison in the presence test. The difference is not cosmetic;
+// it is the difference between the two findings.
+//
+// With no empty reference the band above is still what runs, unchanged, so a
+// run that never presses '0' behaves exactly as it did before.
 //
 // Neither axis carries a threshold. The operator SHOWS the board each class -
 // '1'..'6' for the class named by that query - and it keeps what it saw. That is
@@ -269,6 +308,26 @@ static bool  qref_on[FGX_MAX_Q];
 // for the same reason.
 static float qref_sqsum[FGX_MAX_Q];       // sum over frames of |cz|^2
 static uint8_t qref_vis[FGX_MAX_Q];       // visits folded in; frames = *N
+
+// THE EMPTY SCENE, AS A REFERENCE OF ITS OWN. Read the block above
+// FGX_ABSENT_TRIP first: with two queries the presence rule is a BAND on the
+// margin axis, the two classes own the inside of it by construction, and a
+// scene that lands between them cannot be rejected by any half-width. Giving
+// "neither" its own reference is the one change that does not require it to be
+// far - only to be somewhere the other two are not.
+//
+// It is the same arithmetic as a class and the same accumulator, so a repeat
+// press folds in a second visit exactly the way '1'..'6' do. What it is NOT is
+// a class: it never wins the classifier, only the presence test, so it lives
+// outside qref[] rather than taking a slot that 'best' could be set to. That
+// separation is deliberate - the 2026-08-11 objection to enrolling absent (42.3%
+// and 73.1%) was to a centred THIRD CLASS competing in the state stage, and this
+// is not that.
+static float eref[FGX_MAX_Q];             // centred, exactly like qref[]
+static float eref_sqsum;                  // sum over frames of |cz|^2
+static float eref_scat;                   // RMS spread, printed not judged
+static uint8_t eref_vis;
+static bool  eref_on;
 static int   enrol_want = -1;             // class being captured
 static float enrol_acc[FGX_MAX_Q];        // running sum of cz over the window
 static float enrol_sq_acc;                // and of |cz|^2, scalar - see above
@@ -277,17 +336,30 @@ static uint32_t enrol_left;               // frames still to fold in, 0 = idle
 static bool  m21_present;                 // the presence stage's sticky state
 
 #define FGX_ENROL_NONE   (-1)
+// '0'. Not a class index, so it cannot collide with one.
+#define FGX_ENROL_EMPTY  (-2)
 
-// The presence stage's two edges, as MULTIPLES OF `sep` - the closest that two
-// enrolled references sit to each other - rather than absolutes, so they carry
-// the room's calibration the way z already does and there is no constant here
-// to be wrong about in a different room.
+// THE FALLBACK, FOR A RUN THAT NEVER SHOWED THE BOARD AN EMPTY SCENE. When '0'
+// has been pressed the rule above is nearest-of-three and there is no threshold
+// anywhere; these two edges are what happens when it has not.
 //
-// TRIP is where a frame stops being present; STAY is where it starts again. The
-// grid is in tools/probe_reject.py and was swept on both 08-16 runs; 2.0 is the
-// single-edge optimum on both and the two-edge pairs 1.5/2.0 and 1.0/2.0 came
-// out within 0.4 points of each other averaged over the pair, so the band is
-// chosen narrow rather than fitted.
+// They are MULTIPLES OF `sep` - the closest that two enrolled references sit to
+// each other - rather than absolutes, so they carry the room's calibration the
+// way z already does and there is no constant here to be wrong about in a
+// different room. TRIP is where a frame stops being present; STAY is where it
+// starts again. The grid is in tools/probe_reject.py and was swept on both 08-16
+// runs; 2.0 is the single-edge optimum on both and the two-edge pairs 1.5/2.0
+// and 1.0/2.0 came out within 0.4 points of each other averaged over the pair,
+// so the band is chosen narrow rather than fitted.
+//
+// AND IT IS A BAD RULE, which is why it is the fallback and not the rule. On the
+// 28 archived benches it scores 54.6% balanced, four points off the 50% floor
+// that "call everything present" gets, and tools/probe_absent.py says why no
+// choice of these two numbers repairs it: with two queries every distance here
+// collapses to `| D - D_ref[k] | / sqrt(2)` on the one-dimensional margin axis,
+// so `radius` is the half-width of a band centred on the two classes. Ten of the
+// 28 benches put the empty desk INSIDE that band and eight of those ten invert.
+// A fifth constant was not the answer and a sixth is not either.
 #define FGX_ABSENT_TRIP  2.0f
 #define FGX_ABSENT_STAY  1.5f
 
@@ -419,6 +491,28 @@ static uint32_t enrol_count(void)
     return n;
 }
 
+// How far the empty reference sits from the nearest class, which is the one
+// number that says whether pressing '0' bought anything. Under the band it was
+// unmeasurable by construction - nothing was enrolled for absent - and it is the
+// quantity tools/probe_third.py's `drift` diagnostic is about. INFINITY when
+// there is no empty reference, which prints as `inf` and is the honest answer.
+static float eref_near(void)
+{
+    float best = INFINITY;
+    if (!eref_on) return best;
+    for (uint32_t i = 0; i < nq; i++) {
+        if (!qref_on[i]) continue;
+        float s = 0.0f;
+        for (uint32_t j = 0; j < nq; j++) {
+            const float e = eref[j] - qref[i][j];
+            s += e * e;
+        }
+        s = sqrtf(s);
+        if (s < best) best = s;
+    }
+    return best;
+}
+
 // Forgetting the background without forgetting the enrolment would leave
 // references measured against a mu that no longer exists - centred vectors are
 // immune to a shift shared by every query, which is the point, but not to a
@@ -430,6 +524,9 @@ static void enrol_forget(void)
         qref_vis[i]   = 0;
         qref_sqsum[i] = 0.0f;
     }
+    eref_on     = false;
+    eref_vis    = 0;
+    eref_sqsum  = 0.0f;
     enrol_want  = FGX_ENROL_NONE;
     enrol_left  = 0;
     m21_present = false;
@@ -1995,18 +2092,29 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
         // the key handler) leaves the class exactly as it was rather than
         // carrying a few frames of whatever was in shot when the operator
         // changed their mind.
-        const uint32_t c = (uint32_t)enrol_want;
-        const float nold = (float)(qref_vis[c] * FGX_ENROL_N);
+        // The empty scene folds through the same arithmetic as a class - same
+        // window, same weighted merge, same running |cz|^2 - because it IS the
+        // same quantity, just one that never enters the classifier. Pointing at
+        // it rather than branching keeps the two from drifting apart later.
+        const bool      c_empty = (enrol_want == FGX_ENROL_EMPTY);
+        const uint32_t  c       = c_empty ? 0u : (uint32_t)enrol_want;
+        float    *const ref     = c_empty ? eref         : qref[c];
+        float    *const rsqsum  = c_empty ? &eref_sqsum  : &qref_sqsum[c];
+        float    *const rscat   = c_empty ? &eref_scat   : &qref_scat[c];
+        uint8_t  *const rvis    = c_empty ? &eref_vis    : &qref_vis[c];
+        const char *const rname = c_empty ? "the empty scene" : qname[c];
+
+        const float nold = (float)(*rvis * FGX_ENROL_N);
         const float n    = nold + w;
         // The mean, moved rather than recomputed: nold is 0 on a first visit,
         // so this is the plain window average then and a weighted merge after.
         float mu2 = 0.0f;
         for (uint32_t j = 0; j < nq; j++) {
-            qref[c][j] = (qref[c][j] * nold + enrol_acc[j]) / n;
-            mu2 += qref[c][j] * qref[c][j];
+            ref[j] = (ref[j] * nold + enrol_acc[j]) / n;
+            mu2 += ref[j] * ref[j];
         }
-        qref_sqsum[c] += enrol_sq_acc;
-        qref_vis[c]   += 1u;
+        *rsqsum += enrol_sq_acc;
+        *rvis   += 1u;
 
         // E[|x|^2] - |mu|^2, clamped: the two terms are within a few ulp of
         // each other on a window that barely moved, and sqrtf of -1e-9 is a
@@ -2015,18 +2123,31 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
         // of every enrolled frame about the class centre, which is the
         // within-visit noise AND the between-visit staging variance added in
         // quadrature. That second term is the point.
-        const float var = qref_sqsum[c] / n - mu2;
-        qref_scat[c] = var > 0.0f ? sqrtf(var) : 0.0f;
-        qref_on[c] = true;
+        const float var = *rsqsum / n - mu2;
+        *rscat = var > 0.0f ? sqrtf(var) : 0.0f;
+        if (c_empty) eref_on = true; else qref_on[c] = true;
         // The level is printed and not kept. Nothing decides on it any more
         // (#18) - it is here because it is free, it is what the two runs that
         // killed the level-based stage were diagnosed from, and a log that
         // stops recording a quantity cannot be asked about it later.
-        printf("enrol     : %s, level %+.2f, scatter %.2f (%u frames, "
-               "visit %u of %u)\n",
-               qname[c], (double)alvl, (double)qref_scat[c],
-               (unsigned)(qref_vis[c] * FGX_ENROL_N), (unsigned)qref_vis[c],
-               (unsigned)FGX_ENROL_V);
+        // "of %u" ONLY FOR A CLASS. FGX_ENROL_V is the class enrolment guard,
+        // and the empty reference is deliberately taken from ONE visit - that
+        // is the shape the 79.1% was measured in. Printing "visit 1 of 2"
+        // against it reads as an instruction to press '0' again, which is the
+        // one thing this rule has never been measured doing. A repeat press
+        // still folds in, and the count still goes up; the board just stops
+        // asking for it.
+        if (c_empty)
+            printf("enrol     : %s, level %+.2f, scatter %.2f (%u frames, "
+                   "visit %u - one is what the rule was measured on)\n",
+                   rname, (double)alvl, (double)*rscat,
+                   (unsigned)(*rvis * FGX_ENROL_N), (unsigned)*rvis);
+        else
+            printf("enrol     : %s, level %+.2f, scatter %.2f (%u frames, "
+                   "visit %u of %u)\n",
+                   rname, (double)alvl, (double)*rscat,
+                   (unsigned)(*rvis * FGX_ENROL_N), (unsigned)*rvis,
+                   (unsigned)FGX_ENROL_V);
         enrol_want = FGX_ENROL_NONE;
 
         // A new reference moves the presence scale, so the sticky state below
@@ -2082,12 +2203,26 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
             const uint32_t vmin = qref_vis[near_a] < qref_vis[near_b]
                                 ? qref_vis[near_a] : qref_vis[near_b];
             printf("enrol     : %u classes, nearest pair %.2f apart, spread "
-                   "%.2f (%.1fx over %u visit%s), absent beyond %.2f "
-                   "(%.1f sep)\n",
+                   "%.2f (%.1fx over %u visit%s)\n",
                    (unsigned)no, (double)sep, (double)scat,
                    (double)(scat > 0.0f ? sep / scat : INFINITY),
-                   (unsigned)vmin, vmin == 1u ? "" : "s",
-                   (double)(FGX_ABSENT_TRIP * sep), (double)FGX_ABSENT_TRIP);
+                   (unsigned)vmin, vmin == 1u ? "" : "s");
+            // WHICH PRESENCE RULE IS LIVE, said at the moment it becomes one,
+            // because the two are not the same measurement and a log read six
+            // months later cannot tell them apart from the frame lines. #18.
+            if (eref_on)
+                printf("            absent when the empty scene is the nearest "
+                       "of the %u references -\n"
+                       "            no radius, nothing fitted. It sits %.2f "
+                       "from the nearest class (%.1f sep).\n",
+                       (unsigned)(no + 1u), (double)eref_near(),
+                       (double)(sep > 0.0f ? eref_near() / sep : INFINITY));
+            else
+                printf("            absent beyond %.2f (%.1f sep) - THE BAND, "
+                       "which is the fallback and\n"
+                       "            scores 54.6%% over 28 benches. Press '0' on "
+                       "an empty scene for the rule.\n",
+                       (double)(FGX_ABSENT_TRIP * sep), (double)FGX_ABSENT_TRIP);
             if (!(sep > 0.05f))
                 printf("            THE CLASSES ARE ON TOP OF EACH OTHER. "
                        "Whatever was in shot for the two\n"
@@ -2207,6 +2342,7 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
     bool  m21 = false, m21_here = true;
     float m21_d = 0.0f, m21_run = 0.0f, m21_sep = 0.0f, m21_margin = 0.0f;
     float m21_lit = 1.0f;
+    float m21_de = INFINITY;   // to the empty reference; INFINITY = no '0' yet
     if (enrol_count() >= 2u) {
         m21 = true;
 
@@ -2296,7 +2432,35 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
         // visit drifted across it, and a stage that excludes a class it exists
         // to admit is M20's failure in a new costume. Enter absent only on
         // strong evidence (TRIP), return on weaker (STAY).
-        if (m21_sep > 0.05f) {
+        // AND THE THIRD REFERENCE, WHICH IS THE RULE WHEN THERE IS ONE (#18).
+        // Nearest of three. `m21_d` is already the nearest class, so this is one
+        // more distance and one more comparison, and there is no threshold in
+        // it at all - which is the point, and why it beats the best radius the
+        // band could have been given. The long version is at the top of the
+        // file; the short version is that the band cannot reject a scene that
+        // lands between the two classes and this does not have to.
+        if (eref_on) {
+            float s = 0.0f;
+            for (uint32_t j = 0; j < nq; j++) {
+                const float e = cz[j] - eref[j];
+                s += e * e;
+            }
+            m21_de = sqrtf(s);
+            // NO HYSTERESIS HERE, deliberately. The two edges below exist
+            // because a single ABSOLUTE radius shut on a class that drifted
+            // across it; this cut is not absolute - it moves with all three
+            // references - and more to the point, a width would be a constant
+            // nobody has measured, which is the mistake this whole rule is a
+            // reply to. If the state chatters on a bench, that is the first
+            // thing to look at and the frame lines will show it.
+            m21_present = m21_de > m21_d;
+            m21_here    = m21_present;
+            // The LED reads the same decision rather than a second one: this
+            // ratio is 0.5 exactly at the cut, above it when a class is nearer,
+            // and it has no scale in it to be wrong about.
+            const float tot = m21_de + m21_d;
+            m21_lit = tot > 0.0f ? m21_de / tot : 1.0f;
+        } else if (m21_sep > 0.05f) {
             const float trip = FGX_ABSENT_TRIP * m21_sep;
             const float stay = FGX_ABSENT_STAY * m21_sep;
             m21_present = m21_present ? (m21_d <= trip) : (m21_d <= stay);
@@ -2369,6 +2533,13 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
         // of sep, so it is directly comparable across runs and rooms, and the
         // edges it is tested against are constants any scorer can read here.
         if (m21 && m21_sep > 0.0f) printf(" d%.2f", (double)(m21_d / m21_sep));
+        // AND THE THIRD DISTANCE, for the same reason `d` is here: under the
+        // three-reference rule the verdict is `de > d` and a log that records
+        // only `d` records half of a comparison. Printed in sep like `d`, and
+        // only when there is an empty reference - a run without one is the old
+        // rule exactly and its logs stay byte-comparable with the archive.
+        if (m21 && eref_on && m21_sep > 0.0f)
+            printf(" de%.2f", (double)(m21_de / m21_sep));
         if (le != GH_OK) printf(" !led");
     }
     wd_stage(FGX_ST_PRINT, frame);
@@ -2782,10 +2953,18 @@ int main(void)
            "enrolment guard mean\n"
            "            something. Two classes in and the board decides by "
            "nearest reference instead of\n"
-           "            by threshold, and calls a frame absent when it is "
-           "further than %.1f sep from every\n"
-           "            one of them - see M21. The empty scene is not enrolled "
-           "and '0' does nothing; see #18.\n",
+           "            by threshold - see M21.\n"
+           "            '0' ENROLS THE EMPTY SCENE the same way, and it is worth "
+           "a visit: with one, a frame\n"
+           "            is absent when the empty reference is the nearest of the "
+           "three and no radius is\n"
+           "            involved. Without one the board falls back to the band - "
+           "absent beyond %.1f sep\n"
+           "            from every class - which scores 54.6%% over 28 benches "
+           "against the third reference's\n"
+           "            79.1%%, because with two queries that band is an interval "
+           "the empty scene can sit\n"
+           "            inside. #18.\n",
            (unsigned)FGX_MAX_Q, (unsigned)FGX_ENROL_N, (unsigned)FGX_ENROL_V,
            (double)FGX_ABSENT_TRIP);
     if (bg_hold)
@@ -3111,15 +3290,24 @@ int main(void)
         if (c >= '0' && c <= '0' + (int)FGX_MAX_Q) {
             const uint32_t k = (uint32_t)(c - '0');
             if (k == 0u) {
-                // ACCEPTED AND IGNORED, deliberately. '0' used to enrol the
-                // empty scene and #18 removed the thing it fed. Rejecting it as
-                // an unknown key would be quieter and worse: host/cue.py logs
-                // are replayed months later and a session that silently skipped
-                // a step reads exactly like one that did not have the step.
-                printf("\nenrol     : '0' is gone. The empty scene is not "
-                       "enrolled any more - presence is a\n"
-                       "            distance from the classes now, so there is "
-                       "nothing to teach it. #18.\n");
+                // '0' IS BACK, and it does not mean what it did before M21.
+                // The original one stored a LEVEL, captured right after the
+                // background froze, so it measured the freeze against itself
+                // and read about zero whatever was in shot; #18 deleted it and
+                // the band replaced it. This one stores a centred reference in
+                // the same space as the classes, taken from a real empty scene
+                // wherever the operator puts it in the rotation, and the rule
+                // it feeds is nearest-of-three rather than a radius. Same key,
+                // different quantity - so a log that says `enrol : the empty
+                // scene` is a post-08-25 one and cannot be confused with a
+                // pre-M21 `absent_lvl` line.
+                enrol_want = FGX_ENROL_EMPTY;
+                enrol_left = 0;
+                printf("\nenrol     : the next %u frames are THE EMPTY SCENE%s. "
+                       "TAKE EVERYTHING OUT until it lands.\n",
+                       (unsigned)FGX_ENROL_N,
+                       eref_vis ? " AGAIN - they join the visit(s) it already "
+                                  "has" : "");
             } else {
                 const int i = enrol_slot(k);
                 if (i < 0) {

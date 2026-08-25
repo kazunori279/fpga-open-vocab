@@ -11,6 +11,86 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-25 afternoon, the third reference on the board, and the band that could not have fired
+
+The entry below is the morning's replay. This is the same day's board run, and
+it is what the replay was a proposal for. `bench/cue/m9_cue-20260825-1309.log`,
+the book pair, four visits each, `'0'` pressed on the empty visit of cycle 2.
+
+**The rule ran, and the frame it started on is visible.** `'0'` went in at frame
+272, so the empty reference landed at 294 — mid-way through the 260–299 empty
+span, which had been running #18's band until then. The span changes its mind on
+that exact frame:
+
+```
+frame   292 : ... lvl+0.40 d0.48                MATCH an opened book
+frame   293 : ... lvl+0.49 d0.48 de0.01         - (nothing there)
+```
+
+Thirty-three frames of an empty desk called `an opened book`, then released the
+instant a third reference existed. That is a within-run control nobody had to
+schedule.
+
+**And the band could not have fired anywhere in this run.** The largest `d/sep`
+over all 414 frames is **0.50**, against `FGX_ABSENT_TRIP = 2.0`. So on this
+bench the shipped rule's balanced accuracy is exactly **50.0** — every empty
+frame present, every class frame present — and it is not a close thing that a
+different constant would fix. The empty desk enrolled **3.23 from the nearest
+class on a pair 6.66 apart**, which is to say almost exactly at the midpoint of
+the two class references. That is the geometry the morning's replay described,
+now measured on one bench with a number.
+
+**What the third reference scored, held out and on the frames it was live for:**
+
+    empty frames held (correctly absent)     55/66   83.3%
+    class frames still called present        79/120  65.8%
+    balanced accuracy                                74.6%
+
+Against **79.1** replayed over 28 benches and **50.0** for the band on this
+bench. One draw, and the caveat from `bench/README.md` stands: the same bench
+five times on this morning gave `three-nn` 83.7 / 100.0 / 88.5 / 29.0 / 51.6,
+sd 29.4. **74.6 is consistent with the replay and is not a confirmation of it.**
+
+**The cost is real and it is concentrated in one class.** Of the 41 class frames
+called absent, **35 are `an opened book`** and 6 are the closed one — and with no
+gate at all the same frames rank 215/240 (89.6%). `HELD OUT` reads 63.3% live
+against 87.2% replayed, and the split is not close: of the 44 held-out frames
+the board got wrong, **41 are absent-calls and 3 are the wrong class**. The gate
+is the loss. `probe_ceiling.py` says the same from the other side: `state`
+88.3%, `lost` 5.0, and its docstring already warned that the live figure is
+lower because #18's gate is in it.
+
+**Why that class:** the closed book's span means walked **+0.25, +7.48, +3.50,
++6.20** across its four visits. The empty reference sits 3.23 from the nearest
+class, so there is about 1.6 units of room before a drifting class crosses into
+the empty reference's cell, and this bench drifts further than that. **This run
+has #18 and #19 in it at once**, which is not a confound to apologise for — it is
+`probe_adapt.py`'s conclusion arriving on schedule: the `empty` arm needs a
+presence stage that works, and now there is one to test it against.
+
+**Two things the bench found that the replay could not.**
+
+`tools/score_cue.py` computed `engage` from the class keys only, skipping `'0'`.
+So 54 frames the *band* decided were counted under the third reference's name
+and its figure read 62.2% instead of 83.3%. A rule's score has to start when the
+rule does; the fix is one line and the same argument as the `FGX_ENROL_V`
+comment three lines above it.
+
+And the script's `de - d` column asserted that its counts "must agree with the
+verdicts above" without checking. On this log they did not: 40/120 derived
+against 41 verdicts, 54/66 against 55. **Both are ties** — frames 412 and 471
+print `d == de` at two decimals and the board cut them in full float. Rounding,
+not drift, but the only way to know which is to count the ties, so the script
+counts them now and says which it found.
+
+The firmware also printed `visit 1 of 2` for the empty scene, borrowing
+`FGX_ENROL_V` from the classes. The empty reference is deliberately taken from
+one visit — that is the shape 79.1 was measured in — so the line read as an
+instruction to do the one thing the rule has never been measured doing. Print
+only; the bench log stands.
+
+---
+
 ### 2026-08-25, the absent rule has no room to work in, and a cache that outlived its sensor
 
 A replay morning that ended on the board. Two issues closed, one firmware bug
