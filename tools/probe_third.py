@@ -38,7 +38,27 @@ rotation with 30 empty frames and 60 class frames cannot be won by answering
                   never exceed, and the honest thing to beat.
     three-nn      the rule above. No threshold, nothing fitted but the third
                   reference itself.
+    midpoint      the same rule with the third reference NOT ENROLLED - pinned
+                  at `(D_ref[a] + D_ref[b]) / 2` instead. See below.
     shipped       `FGX_ABSENT_TRIP = 2.0 sep`, what the board does today.
+
+THE `midpoint` ARM, and why it is not a fourth idea. "If the two classes score
+close together, do not light the LED" is the obvious heuristic, and written out
+it is `|D - (D_ref[a] + D_ref[b]) / 2| < gap / 4`, an abstain region around the
+centre. That is EXACTLY `three-nn` with the empty reference placed at the
+midpoint by assumption rather than measured - the nearest-of-three cells put
+their walls at the quarter and three-quarter marks all by themselves, so the
+heuristic needs no width constant either. So the two arms differ in one thing
+only: whether the appliance spends an enrolment visit finding out where the
+empty desk really sits, or assumes it sits in the middle.
+
+That is worth a column because the assumption looked good on the first board
+bench - the empty desk landed 3.23 from the nearest class on a pair 6.66 apart -
+and because if it holds, `'0'` stops being necessary: no visit spent, and the
+rule is live from the first frame instead of a cycle later. `pos` is the
+diagnostic, the measured reference's position as a fraction of the way from one
+class reference to the other. 0.50 is the midpoint; a bench far from it is a
+bench the heuristic is guessing wrong about.
 
 AND ONE DIAGNOSTIC. The obvious way for this to fail is for the empty desk to
 not stay put: on 2026-08-25 run 1 the four empty spans of one bench sat at
@@ -120,11 +140,21 @@ def measure(log: Path):
                        < min(abs(d - dref[a_lab]), abs(d - dref[b_lab])))
     three = balanced(third, empty, present)
 
+    # midpoint: the same cells, with the third reference assumed rather than
+    # enrolled. Nothing is read from the empty spans at all.
+    d_mid = (dref[a_lab] + dref[b_lab]) / 2
+    mid = balanced(lambda d: (abs(d - d_mid)
+                              < min(abs(d - dref[a_lab]), abs(d - dref[b_lab]))),
+                   empty, present)
+    gap = dref[b_lab] - dref[a_lab]
+    pos = (d_empty_ref - dref[a_lab]) / gap if gap else float("nan")
+
     ship = balanced(lambda d: band(d) > SHIPPED * sep, empty, present)
 
     centres = [st.mean(m) for m in empties]
     drift = (max(centres) - min(centres)) / scat if scat else float("nan")
-    return log.stem.replace("m9_cue-", ""), oracle, three, ship, drift, len(empties)
+    return (log.stem.replace("m9_cue-", ""), oracle, three, ship, drift,
+            len(empties), mid, pos)
 
 
 def pearson(xs, ys):
@@ -148,21 +178,35 @@ def main(argv):
         raise SystemExit("nothing scoreable")
 
     rows.sort(key=lambda r: r[2] - r[3])
-    print(f"{'bench':<18} {'oracle':>7} {'three':>7} {'ship':>7} "
-          f"{'three-ship':>10} {'drift':>6} {'spans':>5}")
-    for name, orc, thr, shp, dft, ns in rows:
-        print(f"{name:<18} {orc:7.1f} {thr:7.1f} {shp:7.1f} {thr - shp:+10.1f} "
-              f"{dft:6.2f} {ns:5d}")
+    print(f"{'bench':<18} {'oracle':>7} {'three':>7} {'mid':>7} {'ship':>7} "
+          f"{'three-ship':>10} {'pos':>6} {'drift':>6} {'spans':>5}")
+    for name, orc, thr, shp, dft, ns, mid, pos in rows:
+        print(f"{name:<18} {orc:7.1f} {thr:7.1f} {mid:7.1f} {shp:7.1f} "
+              f"{thr - shp:+10.1f} {pos:6.2f} {dft:6.2f} {ns:5d}")
 
     n = len(rows)
     orc = [r[1] for r in rows]
     thr = [r[2] for r in rows]
     shp = [r[3] for r in rows]
     dft = [r[4] for r in rows]
+    mids = [r[6] for r in rows]
+    poss = [r[7] for r in rows]
     print(f"\nn = {n}   balanced accuracy, held out, mean over benches")
     print(f"  band-oracle (unshippable ceiling)   {st.mean(orc):5.1f}")
     print(f"  three-nn    (a third reference)     {st.mean(thr):5.1f}")
+    print(f"  midpoint    (assumed, no '0' press) {st.mean(mids):5.1f}")
     print(f"  shipped     (2.0 sep)               {st.mean(shp):5.1f}")
+    md = [m - t for m, t in zip(mids, thr, strict=True)]
+    sdm = st.stdev(md)
+    print(f"\nmidpoint against three-nn: {st.mean(md):+.1f} points, sd {sdm:.1f},"
+          f" t = {st.mean(md) / (sdm / n ** 0.5):.2f} on {n - 1} df,"
+          f" wins {sum(d > 0 for d in md)}/{n}")
+    print(f"where the enrolled empty reference actually sits: pos median "
+          f"{st.median(poss):.2f}, IQR {sorted(poss)[n // 4]:.2f}-"
+          f"{sorted(poss)[3 * n // 4]:.2f}, "
+          f"{sum(not 0.25 <= p <= 0.75 for p in poss)}/{n} outside the middle "
+          f"half\n  (0.50 is the midpoint the heuristic assumes; outside "
+          f"0.25-0.75 it is not even in its own cell)")
     diff = [t - s for t, s in zip(thr, shp, strict=True)]
     sd = st.stdev(diff)
     print(f"\nthree-nn against shipped: {st.mean(diff):+.1f} points, sd {sd:.1f},"
