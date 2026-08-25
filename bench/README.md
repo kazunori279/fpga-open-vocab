@@ -494,6 +494,10 @@ biggest winner would corrupt it):
 | `empty`, the correction from empty spans only | 73.8% |
 | `oracle`, the best fixed cut, known only afterwards | 83.4% |
 
+(The archive has grown since; the same command reads 33 benches and 75.1 / 76.9 /
+71.0 / 74.3 / 83.7 as of 2026-08-25. The gap of a bench or two is the point of
+re-running it rather than quoting this table.)
+
 **+1.7 points with a per-bench standard deviation of 9.3 is t = 1.00 on 31
 degrees of freedom. It does not clear, and it is not a fix.** Three things
 around that null are worth the file existing.
@@ -537,6 +541,10 @@ is now closed, having answered *warning* and not *refusal*. **#18's rule as
 written cannot be that stage either**, and the reason is two sections below: with two
 queries it is a band on this same margin axis, and the empty desk falls inside
 it on ten benches of 28.
+
+**A stage that works arrived on 2026-08-25 and the `empty` arm still failed** —
+see "And the pairing does not work" below. The short version: the label was fine,
+the anchor was wrong.
 
 `cue/analysis/20260825-adapt.txt` is the full table.
 
@@ -755,6 +763,57 @@ bench that does not also drift. It is also, exactly, the pairing
 `probe_adapt.py` asked for: its `empty` arm needs a presence stage that works,
 and this is the first firmware that has one.
 
+## And the pairing does not work
+
+`tools/probe_selfquiet.py` is that pairing, run. It takes `probe_adapt.py`'s
+drift correction and swaps the source of its quiet frames: `cued` reads the
+sidecar, the way `probe_adapt.py`'s `empty` arm did, and `self` reads the board's
+own nearest-of-three absent call. `cued` is kept as an oracle — the ceiling
+`self` is aiming at — because an appliance on a desk has no sidecar. Everything
+else is held fixed: same tau of 120, causal, no sweep. 29 benches:
+
+| arm | mean | lost 10+ (n=10) | kept most (n=19) |
+| --- | --- | --- | --- |
+| `rule`, the shipped fixed cut | 74.1 | — | — |
+| `adapt`, the average over all frames | 76.7 | **+7.2** | +0.2 |
+| `cued`, the oracle quiet average | 73.1 | +1.7 | −2.4 |
+| `self`, the buildable one | 74.4 | +2.1 | −0.6 |
+| `oracle`, the best fixed cut | 82.5 | | |
+
+**The label was never the obstacle.** `self` matches `cued` on both halves of the
+split and beats it on the pooled mean, despite median 56.3% of the frames in its
+average being class frames rather than empty ones. That leak is harmless for a
+reason worth writing down: `absent` selects on the margin value itself, so every
+frame it admits already sits near the empty reference. A mislabelled frame that
+close changes the average by almost nothing.
+
+**The same sentence is why the arm is dead.** A frame is only admitted while it
+is nearer the empty reference than either class, so the average is confined to a
+cell of half-width `room = min(|d_empty − d_a|, |d_empty − d_b|) / 2` and cannot
+leave it. Median `room` is 0.93 units and **11 benches of 29 are already pinned
+at 90% of it**. The drift this is meant to correct walks +3.50, +6.20, +7.48 on
+the 08-25 13:09 bench alone. This is arithmetic, not tuning: no constant, no tau
+and no better label moves that ceiling.
+
+**And the empty desk is not where the movement is.** Peak |shift| over a run is
+0.95 for `adapt` against 0.45 for `cued` — and `cued` is not censored by a cell,
+it can follow the empty scene anywhere it goes. So more than half of what
+`adapt` exploits is not present in the empty frames at all. The section above
+found part of the shift in the bare desk and that stands; what this adds is that
+the larger part is the class side moving, which no empty-frame reference can
+see. **Any correction anchored on an empty scene is anchored on the wrong half.**
+
+Two cautions on reading it. The `rule` columns here and in `probe_adapt.py` are
+not the same population — nothing can be scored until the third reference lands,
+which is a whole cycle later and about a third fewer held-out frames, and that
+alone drops the oracle arm from +3.7 to +1.7. And there is no feedback loop to
+worry about, by construction: the absent test compares three fixed reference
+positions and never reads the cut, so moving the cut cannot change which frames
+feed the average that moves it.
+
+What survives is `adapt`, still aimed at the right benches and still carrying the
+flaw that stopped it being shippable in the first place.
+
 ## The `.cues` sidecars, and the three logs that have none
 
 Every log is `<name>.log` and its sidecar is `<name>.log.cues` — the suffix is
@@ -795,6 +854,7 @@ looks exactly like a real one.
     uv run --script tools/probe_origin.py bench/cue/m9_cue-*.log
     uv run --script tools/probe_absent.py bench/cue/*.log
     uv run --script tools/probe_third.py bench/cue/*.log
+    uv run --script tools/probe_selfquiet.py bench/cue/*.log
     uv run --script tools/probe_ceiling.py bench/cue/m9_cue-2026*.log
     uv run --script tools/probe_midpoint.py bench/cue/m9_cue-2026*.log
 

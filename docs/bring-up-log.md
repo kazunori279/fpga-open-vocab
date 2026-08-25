@@ -11,6 +11,49 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-08-25 evening, the way out of #19 turns out to be closed
+
+`tools/probe_adapt.py` ended on a plan: its drift correction works, the arm that
+works can only be built if the appliance can label its own quiet frames, and
+nothing could do that. The entry below is the day that stopped being true. This
+is what happened when the two were put together — `tools/probe_selfquiet.py`,
+29 benches, the correction run once with the sidecar's `empty` spans (`cued`, an
+oracle) and once with the board's own absent call (`self`, buildable).
+
+**`self` matched `cued`.** +2.1 against +1.7 on the ten benches that threw their
+ceiling away, and +0.3 against −1.0 pooled. So the self-labelling works, which
+was the whole question, and it works with **56.3% of the frames in its average
+being class frames**. The leak is harmless because `absent` selects on the margin
+value itself: every frame it admits is already near the empty reference, so a
+wrong label there barely moves the mean.
+
+**And that is exactly why the arm is dead.** The same test confines the average
+to a cell of half-width `min(|d_empty − d_a|, |d_empty − d_b|) / 2` around the
+empty reference — median **0.93 units**, with 11 benches of 29 already pinned at
+90% of it. The 13:09 bench's drift walks +3.50, +6.20, +7.48. The correction
+cannot reach a quarter of what it is correcting, and no constant changes that.
+
+**The anchor is on the wrong half.** Peak |shift| is 0.95 for `adapt`, which
+averages everything, and 0.45 for `cued`, which is free to follow the empty scene
+anywhere. More than half the movement `adapt` exploits is therefore not in the
+empty frames. The 08-25 morning entry found part of the shift in the bare desk
+and that stands; the larger part is the class side, and no empty reference can
+see it.
+
+Worth being clear about what was ruled out and what was not. What is ruled out is
+**a drift correction anchored on an empty scene** — that is now measured, twice,
+by two different labellings. `adapt` still recovers +7.2 on the sick benches and
+still has the flaw that stopped it shipping: point it at one scene for an hour
+and it becomes "is this frame above the recent average". #19 needs a different
+idea, not a better label. Refs issue #19.
+
+One reading trap, recorded because the numbers invite it: the `rule` column here
+is not `probe_adapt.py`'s. Nothing can be scored before the third reference
+lands, a whole cycle later and about a third fewer held-out frames, and that
+population change alone is what takes the oracle arm from +3.7 to +1.7.
+
+---
+
 ### 2026-08-25 afternoon, the third reference on the board, and the band that could not have fired
 
 The entry below is the morning's replay. This is the same day's board run, and

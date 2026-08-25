@@ -124,6 +124,20 @@ scene for an hour would drive `c_n` to that scene's own level and turn the rule
 into "is this frame above the recent average", which is not a classifier. The
 arm that does not have that flaw is `empty`, and it needs a presence stage that
 works - 0 of 90 on every recent bench, issues #18 and #21.
+
+**AND THAT WAY OUT IS CLOSED. 2026-08-25.** The presence stage arrived - the
+third reference, commit 80f2c85 - and `tools/probe_selfquiet.py` ran this
+correction with `quiet` supplied by the board's own absent call instead of by
+the sidecar. The self-labelled arm matches the oracle one (+2.1 against +1.7 on
+the collapsed group), so the LABEL was never the obstacle. Two things underneath
+it are. An average over frames the rule calls absent can only contain frames
+inside the empty reference's cell, so it cannot move further than half that
+cell's width - median 0.93 units, with 11 benches of 29 already pinned against
+it, against drift that walks 3.5 to 7.5. And the empty scene does not carry the
+movement this file's `adapt` exploits: peak |shift| is 0.95 for `adapt` and 0.45
+for `empty`, so what #19 records is mostly the class side moving, not the axis.
+DO NOT READ THE TWO FILES' `rule` COLUMNS AGAINST EACH OTHER - that one scores
+only after the third reference lands, about a third fewer held-out frames.
 """
 import statistics as st
 import sys
@@ -351,6 +365,11 @@ def main(paths: list[str]) -> int:
           f"  PROPOSAL: the appliance cannot currently tell an empty desk from "
           f"an occupied one\n  (0 of 90 on every recent bench - issues #18 and "
           f"#21), so nothing could compute it\n  online today.")
+    print("\n  AND SINCE 2026-08-25 SOMETHING CAN, which is how we know this "
+          "arm is dead rather\n  than blocked. The third reference labels its "
+          "own quiet frames; run\n  tools/probe_selfquiet.py to see the "
+          "self-labelled arm land on top of this one\n  and both of them stop "
+          "well short of the drift. The docstring has the numbers.")
 
     print("\n  sensitivity to tau. NOT a menu - the headline is the row at "
           f"{TAU:.0f},\n  which comes from the schedule. Reading the best row "
