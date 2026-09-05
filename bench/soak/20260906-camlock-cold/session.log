@@ -1,0 +1,6 @@
+06:49:03  start  free-1
+06:52:39  end    free-1  frames=3  mean RGB 23 26 18
+  !! free-1 hit "EXPOSURE NEVER SETTLED" - mechanical, re-run at end
+  !! free-1 hit "camera bus" - mechanical, re-run at end
+  !! free-1 hit "USB" - mechanical, re-run at end
+06:52:39  start  lock-1

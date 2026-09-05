@@ -1835,6 +1835,28 @@ const void *ft_acquire(float in_scale)
            (unsigned)(cap_read_us / 1000u),
            converged ? "exposure settled" : "EXPOSURE NEVER SETTLED",
            nramp, nramp == 1 ? "" : "s");
+    // #33. THE SENSOR'S OWN REGISTERS AT THE END OF THE RAMP, on every acquire
+    // and not only the failing ones, because the question is a DIFF and a dump
+    // that only fires on the bad runs has nothing to be diffed against.
+    //
+    // 2026-09-06: four acquires in ten came up at the sensor floor - mean RGB
+    // 18..31, ramp moving eight counts over forty frames - on a lit wall, thirty
+    // seconds apart, interleaved with six that read 130. Nothing host-side
+    // distinguishes them, so the state that differs has to be read off the
+    // module. 0x30 is a write-selector and may not read back what was written;
+    // it is dumped anyway, because "does not read back" is itself an answer.
+    printf("            regs fmt %02x res %02x bri %02x ev %02x wb %02x "
+           "auto %02x state %02x id %02x fpga %02x\n",
+           cam_read_reg(CAM_REG_FORMAT),
+           cam_read_reg(CAM_REG_CAPTURE_RESOLUTION),
+           cam_read_reg(CAM_REG_BRIGHTNESS_CONTROL),
+           cam_read_reg(CAM_REG_EV_CONTROL),
+           cam_read_reg(CAM_REG_WB_MODE_CONTROL),
+           cam_read_reg(CAM_REG_AUTO_CONTROL),
+           cam_read_reg(CAM_REG_SENSOR_STATE),
+           cam_read_reg(CAM_REG_SENSOR_ID),
+           cam_read_reg(CAM_REG_FPGA_VERSION_NUMBER));
+
     // Exposure and white balance in three numbers: the mean of the three is
     // exposure, the spread is white balance. M8a's tuned camera sits near
     // (115, 107, 105); a frame far off that is a scene or a lens cap, and either

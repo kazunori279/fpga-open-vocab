@@ -43,12 +43,18 @@ run_one() {
   lines=$(grep -cE '^ *[0-9]+ ' "$log" 2>/dev/null || echo 0)
   printf '%s  end    %s-%s  frames=%s  %s\n' \
       "$(date +%H:%M:%S)" "$arm" "$n" "$lines" "$rgb" | tee -a "$SESSION"
-  for bad in 'EXPOSURE NEVER SETTLED' 'camera bus' 'link fault' 'USB'; do
-    if grep -qi "$bad" "$log"; then
-      printf '  !! %s-%s hit "%s" - mechanical, re-run at end\n' \
-          "$arm" "$n" "$bad" | tee -a "$SESSION"
-    fi
-  done
+  # MATCH THE FAILING FORM AND NOT THE TOPIC. The first version of this grepped
+  # for 'camera bus' and 'USB', which the banner prints unconditionally as
+  # "camera bus: worst gap 14 us against the 2000 us deadline" and "usb: 0
+  # outages" - so every run flagged three mechanical failures and the flag meant
+  # nothing. What is wanted is the non-zero case of each.
+  grep -q 'EXPOSURE NEVER SETTLED' "$log" &&
+    printf '  !! %s-%s EXPOSURE NEVER SETTLED (#33)\n' "$arm" "$n" | tee -a "$SESSION"
+  grep -qE 'usb: [1-9][0-9]* outages' "$log" &&
+    printf '  !! %s-%s USB outage (#9)\n' "$arm" "$n" | tee -a "$SESSION"
+  grep -qiE 'camera bus: .*(stall|fault|missed|deadline exceeded)' "$log" &&
+    printf '  !! %s-%s camera bus fault (#8, #12)\n' "$arm" "$n" | tee -a "$SESSION"
+  true
 }
 
 p=1

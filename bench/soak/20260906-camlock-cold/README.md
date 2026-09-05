@@ -119,7 +119,56 @@ desk. **Pooling is therefore downgraded from planned to conditional**, to be
 argued for on the evidence or dropped, and the primary test stands on this
 session's own sixteen runs.
 
-## Results
+## Results — ABORTED after one pair. There are no soak numbers in this directory
 
-*Nothing here yet. This section is written after the session and the sections
-above are not edited when it is.*
+**Do not read `free-1.log` or `lock-1.log` as an arm of anything.** The session
+was stopped 07:52 into it because the instrument was broken, and what is in here
+is the diagnosis, not the measurement. #30's cold run has still never been taken.
+
+`free-1` came up with its frame at the sensor's floor — `mean RGB 23 26 18`, ramp
+`12 11 10 9 10 11 12 13 14 15 ... 20` over forty frames, `EXPOSURE NEVER SETTLED`.
+`lock-1` immediately after it was fine, ramping to 133. Ten more acquires put the
+rate at four in ten, and an hour later at ten in twelve, on a lit wall thirty
+centimetres away with nothing moving.
+
+That is [#33](https://github.com/kazunori279/fpga-open-vocab/issues/33): the
+sensor's three auto loops come up disabled on some acquires and
+`cam_image_defaults()` does not notice. The dumped frame is the striped backdrop,
+in focus and correctly framed, underexposed and **green** — `21 26 17` — which is
+the signature `cam.h:243` records for the AWB loop being off. Cycling `'L'` back
+round to `CAM_AUTO_ALL` mid-run took the same run from `21 26 17` to
+`130 127 127` without anyone touching the board or the room, which is both the
+rescue and the proof.
+
+The pre-registered discard rule covers this — `EXPOSURE NEVER SETTLED` is a named
+mechanical failure — but the rule assumes failures are rare enough to re-run at
+the end of a session. At four in ten and rising it stops being a discard rule and
+starts being pressure to retry in place, which is the design change the
+pre-registration exists to prevent. Stopping was the cheaper mistake.
+
+**The pre-registration above stands and is not spent.** No soak run in this
+directory was scored, no test was applied, and no number here has been looked at
+against the hypothesis. When #33 is fixed, `run.sh` and the sections above can be
+re-used unchanged, and that session's results go in a new dated directory rather
+than in this one.
+
+### What is actually in here
+
+| file | what it is |
+| --- | --- |
+| `dark-1.log` | the first floor frame, right after `bootsel.py` fell back to a power cycle |
+| `free-1.log`, `lock-1.log` | the one aborted pair. `free-1` is a floor frame. **Not data** |
+| `altcheck/a{1..6}.log` | six back-to-back acquires: fine, fine, dead, fine, dead, fine |
+| `regdiff/r{1..12}.log` | twelve acquires with the new register dump — ten dead, and every register identical |
+| `regdiff/snap.log`, `dead-frame.png` | the floor frame — the backdrop in focus, underexposed and green |
+| `regdiff/relight.log`, `rescued-frame.png` | the `'L'` rescue, `21 26 17` to `130 127 127` in one run, same wall |
+| `regdiff/torch.log` | inconclusive and kept anyway: 60 frames while the room light was waved, but `demo.py` logs no per-frame luma, so it could not answer what the two PNGs did |
+| `session.log` | `run.sh`'s wall clock, ending where it was stopped |
+
+`run.sh`'s post-run failure check was wrong on its first outing and is fixed. It
+grepped for the topics `camera bus` and `USB`, which the banner prints
+unconditionally — "camera bus: worst gap 14 us against the 2000 us deadline",
+"usb: 0 outages" — so `free-1` was flagged for three mechanical failures when it
+had one. It now matches the failing form of each and not the word. `session.log`
+still carries the three bogus flags, because it is what the session actually
+printed.
