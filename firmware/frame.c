@@ -1495,6 +1495,10 @@ const void *ft_acquire(float in_scale)
     int hist[SETTLE_WIN];
     int nhist = 0;
     bool rose = false, converged = false;
+    // #33. How many times the ramp had to switch the sensor's auto loops back
+    // on underneath itself. Nonzero is not a failure - it is a rescue that
+    // worked - but it is never nothing, and the banner says so.
+    int relit = 0;
     acq_doubt = NULL;
 
     // #27, AND THE REASON THIS LOOP HAD A CONSTANT IN IT AT ALL. The quiet
@@ -1570,7 +1574,30 @@ const void *ft_acquire(float in_scale)
     // because the whole loop is ~150 ms a frame and happens once a boot: six
     // seconds of worst case against a run that is minutes long. It is a backstop
     // now rather than the bound - FT_RAMP_BUDGET_US is what actually stops this.
-    for (; warm < 40; warm++) {
+    //
+    // AND THEN #33'S RESCUE MADE THAT SENTENCE FALSE, WHICH IS WHY IT MOVED.
+    // At 40 the cap was the bound and not a backstop, and it was the bound in a
+    // way that broke the rescue on purpose. Sixteen acquires with the re-issue
+    // in and the cap at 40: nine hit the fault, seven recovered and settled at
+    // 24 to 36 frames, and the two that did not had both spent all six attempts.
+    // Six attempts one settle-window apart is 36 frames, so the sixth fires with
+    // four frames left and a successful rescue demonstrably needs fifteen to
+    // twenty to converge. The last attempt could not have paid off however well
+    // it worked - a structural fault in the rescue's own design, not a tolerance.
+    //
+    // So the cap goes back to being a backstop and the budget goes back to being
+    // the bound, exactly as the paragraph above always claimed. 25 s at ~200 ms
+    // a frame is about 125, and 200 is clear of that. Twenty acquires after the
+    // change: eight hit the fault and all eight recovered, three of them
+    // settling at 40, 40 and 42 frames - which is to say the change is
+    // load-bearing and not tidying.
+    //
+    // THE COST IS REAL AND IT IS THE RIGHT WAY ROUND. A camera the rescue cannot
+    // save now spends the full 25 s at boot instead of 6, once per run, and then
+    // reports EXPOSURE NEVER SETTLED exactly as before. A run that is minutes
+    // long can pay nineteen seconds for the chance not to be thrown away.
+    #define FT_RAMP_FRAMES 200
+    for (; warm < FT_RAMP_FRAMES; warm++) {
         // #27's recovery, and it only runs once a frame has come back constant.
         // A ramp that is producing pictures takes the vendor recipe untouched,
         // which is the path every lit-room boot has always taken and the reason
@@ -1590,8 +1617,10 @@ const void *ft_acquire(float in_scale)
         len = cam_capture(recover ? &ramp : &CAM_RECIPE_VENDOR, mode,
                           CAM_IMAGE_PIX_FMT_RGB565, arena, FT_ARENA_MAX, &t);
         if (len != want) break;
-        // 40 frames at ~150 ms is six seconds of worst case, against m9's eight
-        // second watchdog - too close to leave alone, and a sensor walking its
+        // The worst case used to be six seconds against m9's eight second
+        // watchdog, which was too close to leave alone; with FT_RAMP_FRAMES at
+        // 200 and the 25 s budget as the bound it is three watchdogs' worth, so
+        // this is now load-bearing rather than prudent. A sensor walking its
         // exposure towards the room is not a hang. Fed once a frame rather than
         // once for the ramp, so a wedge inside cam_capture itself still trips.
         watchdog_update();
@@ -1763,6 +1792,56 @@ const void *ft_acquire(float in_scale)
             break;
         }
 
+        // #33, AND IT IS THE 'L' RESCUE WITH NOBODY AT THE KEYBOARD. Some
+        // acquires come up with the sensor's three auto loops disabled. The
+        // frame is a real picture - the backdrop, in focus, correctly framed -
+        // sitting at the sensor floor and green, and the ramp reads
+        //
+        //     25 26 26 27 28 29 29 28 29 29 ... 31        forty frames
+        //
+        // against 22 64 77 87 95 106 116 ... 130 in the same room seconds
+        // later. cam_image_defaults() has already written CAM_AUTO_ALL by then
+        // and the write did not take. The poll count of the wait after the
+        // white-balance-mode write says which acquire this is BEFORE the ramp
+        // starts - 5 and the loops are on, 10 and they are off, 70 for 70 in
+        // bench/soak/20260906-camlock-cold/ - but it is not what triggers this,
+        // because a correlation with no mechanism behind it is not a predicate
+        // to hang a boot path on.
+        //
+        // On 2026-09-06, cycling CAM_AUTO_ALL back in at frame 20 BY HAND took
+        // one such run from mean RGB 21 26 17 to 130 127 127, with nobody
+        // touching the board or the room. This is that, automatically and at
+        // frame six instead of twenty.
+        //
+        // NO cam_begin() AND NO RESET, WHICH IS THE WHOLE DIFFERENCE FROM THE
+        // RECOVERY ABOVE. That one is #27's and reaches for both, because a
+        // constant fill means the sensor never started. This is the opposite
+        // state - the sensor is writing frames and only the loops are off - and
+        // a reset would throw away the thing that does the rescuing. Issuing
+        // the defaults twice back to back in the boot path was measured and
+        // does NOT fix it: same failure rate over twelve acquires, with the
+        // signature simply moving to the second call. So repetition is not what
+        // cures these. The captures in between are.
+        //
+        // THE TRIGGER IS NOT A NEW THRESHOLD. It fires when the loop's own
+        // convergence window is full of real frames and `rose` is still false -
+        // exactly the state the banner below has always described as "the
+        // exposure never moved from its first reading". The only change is that
+        // it used to report that after forty frames instead of acting on it
+        // after six. Clearing the window re-bases the rise on the moment of the
+        // re-issue and spaces the attempts one window apart, so the 40-frame cap
+        // allows about six of them and no count was picked.
+        //
+        // It costs a working boot nothing. A live ramp sets `rose` on frame two,
+        // four frames before this can fire.
+        if (!flat && nhist == SETTLE_WIN && !rose) {
+            cam_image_auto_mask(CAM_AUTO_ALL);
+            relit++;
+            printf("~");
+            nhist = 0;
+            first = -1;
+        }
+
         // #27's search. Double the settle while the sensor is writing nothing,
         // and stand the recovery down the moment it writes something - see the
         // block above the loop for why those are two different jobs. Printed as
@@ -1799,7 +1878,7 @@ const void *ft_acquire(float in_scale)
     // did. That difference is not cosmetic: every stuck run this has ever
     // printed said "settled after 41 frames" for a loop that ran 40 and settled
     // at nothing.
-    const int nramp = warm < 40 ? warm + 1 : 40;
+    const int nramp = warm < FT_RAMP_FRAMES ? warm + 1 : FT_RAMP_FRAMES;
     if (len != want) {
         printf("camera    : id 0x%02x answered, then the FIFO held %u bytes "
                "rather than %u - using the flash test vector\n",
@@ -1892,6 +1971,12 @@ const void *ft_acquire(float in_scale)
            cam_reset_saw_busy ? "yes" : "no",
            (unsigned)cam_auto_polls[0], (unsigned)cam_auto_polls[1],
            (unsigned)cam_auto_polls[2], (unsigned)cam_auto_polls[3]);
+    // Never silent. A rescued acquire is a good frame, but a bench that starts
+    // needing the rescue every time is a different board than one that never
+    // does, and that is not something to find out from the absence of a line.
+    if (relit)
+        printf("            #33: the auto loops were switched back on %d time%s "
+               "during the ramp\n", relit, relit == 1 ? "" : "s");
 
     // Exposure and white balance in three numbers: the mean of the three is
     // exposure, the spread is white balance. M8a's tuned camera sits near
@@ -1927,6 +2012,15 @@ const void *ft_acquire(float in_scale)
                "in %d frames, so the auto-exposure\n"
                "              either had nothing to correct or never started. "
                "The ramp above is the evidence.\n", nramp);
+        // Which of the two, said out loud. If the rescue ran and the exposure
+        // still did not move, this run either does not have #33's fault or has
+        // a part of it the rescue does not reach - and both are worth knowing
+        // before anybody re-runs the bench hoping for a better draw.
+        if (relit)
+            printf("              CAM_AUTO_ALL was re-issued %d time%s and did "
+                   "not move it, so this is not #33's fault or\n"
+                   "              not the part of it the rescue reaches.\n",
+                   relit, relit == 1 ? "" : "s");
     }
     // Neither of the two above, and still not settled: the exposure was moving
     // when the bound ended the loop. Nothing here is wrong with the picture, but

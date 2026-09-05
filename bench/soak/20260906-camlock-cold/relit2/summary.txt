@@ -1,0 +1,21 @@
+ 1  awb 0 wbmode 10      relit=1  mean RGB 125 119 124   exposure settled after 30 frames
+ 2  awb 10 wbmode 5      relit=0  mean RGB 127 126 126   exposure settled after 12 frames
+ 3  awb 10 wbmode 5      relit=0  mean RGB 134 133 133   exposure settled after 14 frames
+ 4  awb 0 wbmode 10      relit=1  mean RGB 131 128 129   exposure settled after 25 frames
+ 5  awb 10 wbmode 5      relit=0  mean RGB 127 125 124   exposure settled after 13 frames
+ 6  awb 10 wbmode 5      relit=0  mean RGB 135 132 133   exposure settled after 14 frames
+ 7  awb 10 wbmode 5      relit=0  mean RGB 128 127 127   exposure settled after 15 frames
+ 8  awb 10 wbmode 5      relit=0  mean RGB 125 124 125   exposure settled after 13 frames
+ 9  awb 0 wbmode 10      relit=1  mean RGB 132 131 131   exposure settled after 26 frames
+10  awb 10 wbmode 5      relit=0  mean RGB 136 134 135   exposure settled after 14 frames
+11  awb 0 wbmode 10      relit=3  mean RGB 133 130 130   exposure settled after 40 frames
+12  awb 0 wbmode 10      relit=2  mean RGB 133 131 131   exposure settled after 34 frames
+13  awb 10 wbmode 5      relit=0  mean RGB 134 132 131   exposure settled after 16 frames
+14  awb 0 wbmode 10      relit=3  mean RGB 131 126 128   exposure settled after 40 frames
+15  awb 10 wbmode 5      relit=0  mean RGB 135 131 133   exposure settled after 16 frames
+16  awb 10 wbmode 5      relit=0  mean RGB 135 132 132   exposure settled after 17 frames
+17  awb 10 wbmode 5      relit=0  mean RGB 135 132 132   exposure settled after 15 frames
+18  awb 10 wbmode 10     relit=1  mean RGB 133 130 131   exposure settled after 26 frames
+19  awb 10 wbmode 5      relit=0  mean RGB 134 132 131   exposure settled after 14 frames
+20  awb 10 wbmode 10     relit=4  mean RGB 134 131 131   exposure settled after 42 frames
+DONE

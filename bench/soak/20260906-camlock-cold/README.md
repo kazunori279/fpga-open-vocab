@@ -186,6 +186,10 @@ signal. That matches the picture: the dumped floor frame is *green*, and
 `cam.h:220` already records that `CAM_REG_WB_MODE_CONTROL` is the register that
 moves blue from 42 to 133.
 
+*Read the correction near the end of this file before quoting the pair. On a
+further 36 acquires `awb` stopped separating and `wbmode` did not; the surviving
+claim is about `wbmode` alone.*
+
 This is the first host-side predictor of the fault, and unlike everything before
 it, **it reads before a single frame is captured** rather than after forty.
 
@@ -216,6 +220,89 @@ has not earned.
 all**. Nothing was fixed between the fourth batch and the fifth. Any future "the
 fix works" has to survive that, and a single clean batch will not be evidence.
 
+## The rescue, and the frame cap that was built to defeat it
+
+#33 item 3 asks whether `ft_acquire()` should verify rather than write. It now
+does: when the ramp's own convergence window is full of real frames and the
+exposure still has not moved, the loop re-issues `CAM_AUTO_ALL` and re-bases the
+ramp on that moment.
+
+**The trigger is not a new threshold.** It is exactly the state the banner has
+always described as *"the exposure never moved from its first reading"* — the
+only change is that the loop used to report it after forty frames rather than
+act on it after six. And there is no reset: the recovery already in that loop is
+#27's and reaches for `cam_begin()`, because a constant fill means the sensor
+never started. This is the opposite state — the sensor is writing frames and only
+the loops are off — and a reset would throw away the captures that are the
+ingredient doing the work.
+
+**Sixteen acquires with the cap still at 40:**
+
+| | n | outcome |
+| --- | --- | --- |
+| `wbmode 5`, rescue never fired | 7 | all settled in 10–15 frames, 126–135. Untouched |
+| `wbmode 10`, rescue fired and worked | 7 | all settled, 24–36 frames, **129–136** |
+| `wbmode 10`, rescue fired six times and failed | 2 | 35 43 35 and 42 49 42 |
+
+Nine acquires hit the fault and **seven came back as ordinary frames**. Before
+this they would all have been floor frames.
+
+The signature also got sharper, and now with something causal behind it:
+**`wbmode 10` predicted "will need rescuing" 16 times out of 16**, before the
+ramp started. Every `wbmode 5` run had `relit=0`; every `wbmode 10` run had
+`relit≥1`.
+
+### The two failures were the rescue's own design, not bad luck
+
+Both spent all six attempts. Six attempts one settle-window apart is 36 frames,
+so the sixth fires with four frames left — and a successful rescue demonstrably
+needs fifteen to twenty to converge, since the seven that worked settled at 24 to
+36. **The last attempt could not have paid off however well it worked.**
+
+The comment above that loop had claimed for two milestones that 40 was a backstop
+and `FT_RAMP_BUDGET_US` was the bound. With the rescue in, that stopped being
+true: the cap was the bound, and it bound in a way that broke the rescue. So the
+cap is now `FT_RAMP_FRAMES 200` and the 25 s budget binds again, which is what
+the comment always said.
+
+The cost is real and it is the right way round. A camera the rescue cannot save
+now spends the full 25 s at boot instead of 6, once per run, and reports
+`EXPOSURE NEVER SETTLED` exactly as before. A run that is minutes long can pay
+nineteen seconds for the chance not to be thrown away.
+
+### Twenty more with the budget as the bound: eight hit the fault, eight recovered
+
+| | n | outcome |
+| --- | --- | --- |
+| `wbmode 5`, rescue never fired | 12 | settled in 12–17 frames, 125–136 |
+| `wbmode 10`, rescue fired | 8 | **all settled**, 25–42 frames, 125–134 |
+
+One to four attempts each. **Three of the eight settled at 40, 40 and 42 frames**,
+so under the old cap one would have been over it and two would have been exactly
+on it — the cap change is load-bearing and not tidying.
+
+Across both batches: 36 acquires, 17 in the fault state, 15 recovered. The two
+that did not are the two the old cap had already made impossible.
+
+### A correction, to something written earlier in this same directory
+
+The section above says the *white-balance pair* — `awb` and `wbmode` — separated
+the two outcomes 34 for 34. On 34 acquires that was true. On 70 it is not.
+
+**`awb` stops separating.** Eight of the seventeen runs that turned out to need
+rescuing read `awb 10`, which is the live value. It agreed on the first sample and
+then disagreed about half the time on the second, which is what a coincidence
+looks like when you give it more data.
+
+**`wbmode` holds on all seventy.** `5` and the loops are on; `10` and they are
+off. It has never once been wrong, it reads before the ramp starts, and it now has
+something causal underneath it rather than a correlation: every `wbmode 10`
+acquire went on to need the rescue and every `wbmode 5` acquire did not.
+
+That does not make the mechanism known. The reading is still that the wait after
+the white-balance-mode write is spending 10 polls where a healthy one spends 5,
+and why that tracks the state of three auto loops is not established here.
+
 ### What is actually in here
 
 | file | what it is |
@@ -231,6 +318,8 @@ fix works" has to survive that, and a single clean batch will not be evidence.
 | `gate/w{1..10}.log` | per-write poll counts, one `cam_image_defaults()` call. 3 floor frames, 10/10 |
 | `gate/d{1..12}.log` | the same with the call issued **twice**. 4 floor frames, the rate unchanged and the signature moved to the second call |
 | `gate/s{1..12}.log` | back to one call. 12 live, 0 floor — the batch that says the rate moves by itself |
+| `relit/r{1..16}.log` | the rescue in, frame cap still 40. 9 hit the fault, 7 recovered, 2 spent all six attempts |
+| `relit2/r{1..20}.log`, `summary.txt` | the rescue with the 25 s budget as the bound. 8 hit the fault, **8 recovered** |
 | `session.log` | `run.sh`'s wall clock, ending where it was stopped |
 
 `run.sh`'s post-run failure check was wrong on its first outing and is fixed. It
