@@ -33,8 +33,17 @@ unreadable. Two rounds is the floor — below that `probe_bisect.py` cannot
 measure its drift null, and it prints `n/a` rather than a zero.
 
 `shoot.sh` grep-checks every run for #25's `enrolment:` and #26's `scene:`
-flags, so a set shot through a bad exposure ramp says so at capture time instead
-of after the analysis.
+flags, and since 2026-08-27 it also **waits 24 frames for the exposure before
+taking the first picture** and refuses the round out loud if the sensor needed
+longer than that.
+
+That second half used to be a claim rather than a check. The script ran
+`WANT*2 + 2` frames and dumped from frame 4, and `20260825-empty-book/` was shot
+in a dim morning where every round printed `exposure settled after 12-14
+frames` — so about the first five stills of every round in it were mid-ramp. The
+line was printed and nothing read it. A flag nobody acts on is not a check, and
+the set it cost is [kept beside its
+replacement](20260825-empty-book/README.md).
 
 ## Reading a set
 
@@ -52,6 +61,16 @@ to the stills.
 0.2 sd means nothing until a pair the board is known to carry has gone through
 the identical path — that is what the book pair does in `20260821-bisect/`, and
 it is the reason that set's verdict is trustworthy.
+
+### A set with a third scene
+
+[`tools/probe_offplane.py`](../../tools/probe_offplane.py) takes a third
+directory — the same desk with the object taken away — and asks whether a third
+query puts "nothing there" *off* the line the two classes make. `queries.txt`
+still holds the pair; the third phrase is a `--third` flag, repeatable, because
+which wording survives distillation turned out to be the whole answer in
+[`20260827-empty-book/`](20260827-empty-book/). Shoot the empty scene as a class:
+same rounds, same alternation, `sh shoot.sh SET empty N`.
 
 ## Generated sets, and the one question they answer
 

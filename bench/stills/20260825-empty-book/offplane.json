@@ -1,0 +1,344 @@
+{
+  "pos": "an opened book",
+  "neg": "a closed book",
+  "thirds": [
+    "an empty desk",
+    "a bare table",
+    "nothing",
+    "a blank wall"
+  ],
+  "n": {
+    "A": 33,
+    "B": 33,
+    "empty": 33
+  },
+  "rows": [
+    {
+      "stage": "teacher 1152",
+      "queries": [
+        "an opened book",
+        "a closed book"
+      ],
+      "along": 0.29323332160754334,
+      "off": 5.7120688312403544e-08,
+      "gain": 91.91919191919192,
+      "g1": 96.96969696969695,
+      "recall": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 75.75757575757576
+      },
+      "recall_g1": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 90.9090909090909
+      }
+    },
+    {
+      "stage": "teacher 1152",
+      "queries": [
+        "an opened book",
+        "a closed book",
+        "an empty desk"
+      ],
+      "along": 0.4682691758073474,
+      "off": 1.2352418565684504,
+      "gain": 100.0,
+      "g1": 100.0,
+      "recall": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      },
+      "recall_g1": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      }
+    },
+    {
+      "stage": "teacher 1152",
+      "queries": [
+        "an opened book",
+        "a closed book",
+        "a bare table"
+      ],
+      "along": 0.6073254636129699,
+      "off": 1.196589797102814,
+      "gain": 100.0,
+      "g1": 100.0,
+      "recall": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      },
+      "recall_g1": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      }
+    },
+    {
+      "stage": "teacher 1152",
+      "queries": [
+        "an opened book",
+        "a closed book",
+        "nothing"
+      ],
+      "along": 0.08056236398983443,
+      "off": 1.0804481635351568,
+      "gain": 100.0,
+      "g1": 100.0,
+      "recall": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      },
+      "recall_g1": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      }
+    },
+    {
+      "stage": "teacher 1152",
+      "queries": [
+        "an opened book",
+        "a closed book",
+        "a blank wall"
+      ],
+      "along": 0.7532412740982722,
+      "off": 1.1200818462247846,
+      "gain": 100.0,
+      "g1": 98.48484848484848,
+      "recall": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      },
+      "recall_g1": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 95.45454545454545
+      }
+    },
+    {
+      "stage": "pca 512",
+      "queries": [
+        "an opened book",
+        "a closed book"
+      ],
+      "along": 0.6918766287080493,
+      "off": 4.9992478864747525e-08,
+      "gain": 96.96969696969698,
+      "g1": 100.0,
+      "recall": {
+        "A": 100.0,
+        "B": 90.90909090909092,
+        "empty": 100.0
+      },
+      "recall_g1": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      }
+    },
+    {
+      "stage": "pca 512",
+      "queries": [
+        "an opened book",
+        "a closed book",
+        "an empty desk"
+      ],
+      "along": 1.300607384936039,
+      "off": 1.1653329682026075,
+      "gain": 100.0,
+      "g1": 100.0,
+      "recall": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      },
+      "recall_g1": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      }
+    },
+    {
+      "stage": "pca 512",
+      "queries": [
+        "an opened book",
+        "a closed book",
+        "a bare table"
+      ],
+      "along": 1.311916427953538,
+      "off": 0.9221709736726369,
+      "gain": 100.0,
+      "g1": 100.0,
+      "recall": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      },
+      "recall_g1": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      }
+    },
+    {
+      "stage": "pca 512",
+      "queries": [
+        "an opened book",
+        "a closed book",
+        "nothing"
+      ],
+      "along": 1.243233421825278,
+      "off": 1.3674377139610834,
+      "gain": 100.0,
+      "g1": 100.0,
+      "recall": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      },
+      "recall_g1": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      }
+    },
+    {
+      "stage": "pca 512",
+      "queries": [
+        "an opened book",
+        "a closed book",
+        "a blank wall"
+      ],
+      "along": 1.2849518745858488,
+      "off": 1.3095212073386113,
+      "gain": 100.0,
+      "g1": 100.0,
+      "recall": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      },
+      "recall_g1": {
+        "A": 100.0,
+        "B": 100.0,
+        "empty": 100.0
+      }
+    },
+    {
+      "stage": "full-a05",
+      "queries": [
+        "an opened book",
+        "a closed book"
+      ],
+      "along": -0.27349784192414556,
+      "off": 3.537625289495802e-08,
+      "gain": 58.585858585858595,
+      "g1": 50.0,
+      "recall": {
+        "A": 39.3939393939394,
+        "B": 100.0,
+        "empty": 36.36363636363637
+      },
+      "recall_g1": {
+        "A": 50.0,
+        "B": 100.0,
+        "empty": 0.0
+      }
+    },
+    {
+      "stage": "full-a05",
+      "queries": [
+        "an opened book",
+        "a closed book",
+        "an empty desk"
+      ],
+      "along": -0.39154010315527704,
+      "off": 0.1403998253046351,
+      "gain": 76.76767676767678,
+      "g1": 66.66666666666667,
+      "recall": {
+        "A": 63.63636363636363,
+        "B": 100.0,
+        "empty": 66.66666666666667
+      },
+      "recall_g1": {
+        "A": 0.0,
+        "B": 100.0,
+        "empty": 100.0
+      }
+    },
+    {
+      "stage": "full-a05",
+      "queries": [
+        "an opened book",
+        "a closed book",
+        "a bare table"
+      ],
+      "along": -0.44692491139559504,
+      "off": 0.2103861448837982,
+      "gain": 67.67676767676768,
+      "g1": 66.66666666666667,
+      "recall": {
+        "A": 36.36363636363637,
+        "B": 100.0,
+        "empty": 66.66666666666667
+      },
+      "recall_g1": {
+        "A": 0.0,
+        "B": 100.0,
+        "empty": 100.0
+      }
+    },
+    {
+      "stage": "full-a05",
+      "queries": [
+        "an opened book",
+        "a closed book",
+        "nothing"
+      ],
+      "along": -0.6065695018114101,
+      "off": 0.5721491638631137,
+      "gain": 73.73737373737374,
+      "g1": 66.66666666666667,
+      "recall": {
+        "A": 54.54545454545454,
+        "B": 100.0,
+        "empty": 66.66666666666667
+      },
+      "recall_g1": {
+        "A": 0.0,
+        "B": 100.0,
+        "empty": 100.0
+      }
+    },
+    {
+      "stage": "full-a05",
+      "queries": [
+        "an opened book",
+        "a closed book",
+        "a blank wall"
+      ],
+      "along": -0.31435112283582256,
+      "off": 1.4144450792218164,
+      "gain": 54.54545454545454,
+      "g1": 66.66666666666667,
+      "recall": {
+        "A": 0.0,
+        "B": 96.96969696969695,
+        "empty": 66.66666666666667
+      },
+      "recall_g1": {
+        "A": 0.0,
+        "B": 100.0,
+        "empty": 100.0
+      }
+    }
+  ]
+}

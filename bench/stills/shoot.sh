@@ -71,11 +71,29 @@ LOG=$DIR/logs/r${ROUND}-${CLASS}.log
 # holding a scene still and is not worth it: consecutive frames of a stationary
 # scene are near-duplicates, and thirty of those are one sample, not thirty.
 EVERY=2
+# WAIT FOR THE EXPOSURE BEFORE TAKING A SINGLE PICTURE.  Until 2026-08-27 this
+# script ran WANT*2+2 frames and dumped from frame 4, and ft_acquire()'s ramp
+# takes as long as it takes: the 20260825-empty-book set was shot in a dim
+# morning where every round reported "exposure settled after 12-14 frames", so
+# about the first five stills of every round in it are mid-ramp.  They are not
+# the same scene as the ones after them, they are the sensor still deciding.
+# The camera line below has always SAID this and nothing acted on it.
+#
+# WARM is well past the worst ramp measured on this board (14) rather than a
+# fitted margin, and the check after the run refuses the round if the sensor
+# needed longer, because a floor that is silently wrong is worse than no floor.
+WARM=24
 # The board dumps the frame AFTER the one the request went out on and the run
 # has to outlive the last request, so ask for two frames of slack rather than
 # discovering at render time that the last still is missing.  That slack buys
 # one extra still more often than not, and an extra is kept: WANT is a floor.
-FRAMES=$(( WANT * EVERY + 2 ))
+FRAMES=$(( WARM + WANT * EVERY + 2 ))
+SNAPS=""
+i=0
+while [ "$i" -lt "$WANT" ]; do
+  SNAPS="$SNAPS --snap-at $(( WARM + i * EVERY ))"
+  i=$(( i + 1 ))
+done
 
 if ! uhubctl 2>/dev/null | grep -q "2e8a:0009"; then
   echo "  (not running - taking it out of BOOTSEL)"
@@ -83,14 +101,22 @@ if ! uhubctl 2>/dev/null | grep -q "2e8a:0009"; then
   sleep 3
 fi
 
-echo "### $SET round $ROUND, '$CLASS': $WANT stills, $FRAMES frames"
+echo "### $SET round $ROUND, '$CLASS': $WANT stills from frame $WARM, $FRAMES frames"
+# shellcheck disable=SC2086  # SNAPS is a deliberate list of --snap-at flags
 $UV run host/demo.py "$POS" "$NEG" \
-    --frames "$FRAMES" --snap-every "$EVERY" --out "$LOG" >/dev/null 2>&1
+    --frames "$FRAMES" $SNAPS --out "$LOG" >/dev/null 2>&1
 
 # Anything the acquire or the enrolment doubted, before the pictures are
-# trusted.  A still taken mid-ramp is still a still, but it is not the same
-# scene as the ones around it and #26 is the only thing that will say so.
+# trusted: #25's `enrolment:` and #26's `scene:`.
 grep -E "^camera    : live|^ {12}(scene|enrolment): " "$LOG" | sed 's/^/  /'
+
+SETTLED=$(sed -n 's/.*exposure settled after \([0-9]*\) frames.*/\1/p' "$LOG" \
+          | head -1)
+if [ -n "$SETTLED" ] && [ "$SETTLED" -ge "$WARM" ]; then
+  echo "  !! exposure settled after $SETTLED frames, at or past WARM=$WARM -" >&2
+  echo "     every still in this round is mid-ramp.  Re-shoot with more light" >&2
+  echo "     or raise WARM; do not keep these." >&2
+fi
 
 # --rot 0 because FT_MOUNT_ROT is CAM_ROT_0: the -hi PNG is then byte for byte
 # what the board handed the encoder, which is the only version worth measuring
