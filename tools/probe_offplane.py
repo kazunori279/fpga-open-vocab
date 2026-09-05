@@ -52,12 +52,36 @@ unlucky round 1 was as much as it measures the geometry. When the two agree the
 distinction does not matter; when they disagree, read `gain` for the geometry
 and treat the gap as the cost of enrolling once.
 
+`--runs a,b,c` PUTS SEVERAL CHECKPOINTS ON THE SAME PIXELS, AND ON ONE CONTRAST
+IT IS A SCREEN AND NOT A RANKING. tools/probe_bisect.py has the retraction that
+makes this a rule rather than a caution: a +0.10 that held across two draws and
+two model families was one contrast, and scored on ten it was -0.022 +-0.023.
+A second draw does not protect you - it resamples frames, and the spread ACROSS
+CONTRASTS is the larger term. There is one contrast with an empty scene shot
+beside it, so an ordering printed here is worth nothing on its own.
+
+What one contrast CAN do is exclude. If no checkpoint in the sweep puts the
+empty scene off the class line for a phrase, that is a statement about the
+family and does not need a second contrast to be true. If several do, the tie
+is broken by shooting a second pair against the same desk in the same session,
+not by reading further down this table.
+
+The runs must share a teacher and a projection, or their student rows are not
+scored against the same query vectors and the table means nothing. THE
+PROJECTION IS COMPARED BY FILE CONTENT, NOT BY NAME. `-a0.5` and `-a0.5_s30000`
+are two names cached for one file, sha256 e665cbab, because that suffix marks a
+subsample of the distillation pairs rather than a refit of the PCA. Comparing
+names refused that pair, and the pair is the largest student difference this set
+has found. The two non-`a0.5` bases really are different bytes and are still
+refused, even though their `pca 512` rows happen to sit close.
+
 THIS IS NOT A BENCH and cannot produce one. No enrolment guard, no hysteresis, no
 LED, no int4, and a directory of stills holds the staging still on purpose. A
 number here that reads well still has to be benched. What it CAN do is say that a
 direction does not exist, which no bench can see.
 """
 import argparse
+import hashlib
 import itertools
 import json
 import re
@@ -70,6 +94,7 @@ from PIL import Image
 from torchvision import transforms
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(ROOT / "model"))
 
 import distill
@@ -77,6 +102,7 @@ import open_clip
 import probe_teacher as pt
 import student as student_mod
 import teacher as teacher_mod
+from probe_bisect import shortnames
 from spaces import resolve
 
 
@@ -126,16 +152,25 @@ def centred(cos_by_scene):
 
 
 def geometry(cA, cB, cE):
-    """(along, off) for the empty reference, in units of the class separation."""
+    """(along, off, sep) for the empty reference, in class-separation units.
+
+    `sep` is the denominator, printed because the other two are ratios and a
+    ratio with a collapsing denominator is not a small number, it is a large
+    one. A checkpoint whose two class references sit almost on top of each other
+    in the centred space will report an enormous `off` and it means the opposite
+    of what it reads: there is barely a class axis to be off. `so400m-s30k-nce10`
+    is that case - sep 0.005, k=2 self-test 0.01 instead of 0.00, `along` -354 -
+    and it is the reason this column exists.
+    """
     ab = cB - cA
     n = float(np.linalg.norm(ab))
     if n == 0:
-        return float("nan"), float("nan")
+        return float("nan"), float("nan"), n
     u = ab / n
     d = cE - cA
     along = float(d @ u) / n
     off = float(np.linalg.norm(d - (d @ u) * u)) / n
-    return along, off
+    return along, off, n
 
 
 def balanced(frames, labels, refs):
@@ -172,15 +207,45 @@ def main() -> int:
                          "on its own against the same pixels and the same two "
                          "class phrases, so the rows are comparable")
     ap.add_argument("--run", default="so400m-full-a05")
+    ap.add_argument("--runs", default=None,
+                    help="comma-separated runs, one student block each, on the "
+                         "SAME pixels and the same query vectors. A SCREEN AND "
+                         "NOT A RANKING on one contrast - see the docstring")
     ap.add_argument("--no-student", action="store_true",
                     help="teacher stages only; skips loading the checkpoint")
     ap.add_argument("--json", type=Path, default=None, metavar="PATH")
     args = ap.parse_args()
 
-    ck = ROOT / "model/runs" / args.run / "student.pt"
-    if not ck.exists():
-        raise SystemExit(f"no {ck}")
-    ckpt = torch.load(ck, map_location="cpu", weights_only=False)
+    runs = [r.strip() for r in args.runs.split(",")] if args.runs else [args.run]
+    ckpts = {}
+    for r in runs:
+        p = ROOT / "model/runs" / r / "student.pt"
+        if not p.exists():
+            raise SystemExit(f"no {p}")
+        ckpts[r] = torch.load(p, map_location="cpu", weights_only=False)
+    # One teacher AND one projection, or the query vectors the student rows are
+    # scored against are not the same vectors and the rows are not comparable.
+    #
+    # THE BASIS IS COMPARED BY CONTENT AND NOT BY PATH.  `...-pca512-a0.5` and
+    # `...-pca512-a0.5_s30000` are two names for one file - byte for byte
+    # identical, sha256 e665cbab - because the `_s30000` suffix marks a
+    # subsample of the distillation PAIRS and not a refit of the projection.
+    # Comparing filenames refused that pair, and the pair turned out to hold the
+    # largest student difference on this set.  Hashing costs 2 MB of read.
+    def basis_key(b):
+        if not b:
+            return "(none)"
+        return hashlib.sha256(Path(b).read_bytes()).hexdigest()[:12]
+
+    res = {r: resolve(c.get("teacher", "")) for r, c in ckpts.items()}
+    keys = {r: (s, basis_key(b)) for r, (s, b) in res.items()}
+    if len(set(keys.values())) > 1:
+        raise SystemExit(
+            "runs do not share a teacher and a projection, so their student "
+            "rows would be scored against different query vectors:\n  " +
+            "\n  ".join(f"{r}: {s} / {Path(res[r][1]).name if res[r][1] else '(no basis)'}"
+                        f"  [{k}]" for r, (s, k) in keys.items()))
+    ckpt = ckpts[runs[0]]
     spec, basis_path = resolve(ckpt.get("teacher", ""))
     name, pre = spec.split(":")
     device = pt.pick_device()
@@ -234,20 +299,28 @@ def main() -> int:
         tf = transforms.Compose(
             [transforms.ToTensor(),
              transforms.Normalize(distill.PIXEL_MEAN, distill.PIXEL_STD)])
-        net = student_mod.Student()
-        net.load_state_dict(ckpt["state_dict"])
-        net = net.to(device).eval()
 
-        def student_embed(ps):
+        def student_embed(net, ps):
             with torch.no_grad():
                 e = net(torch.stack([tf(p) for p in ps]).to(device))
             e = e / e.norm(dim=-1, keepdim=True)
             return e.cpu().numpy().astype(np.float32)
 
-        # The student emits into the teacher's PROJECTED space by construction,
-        # so it is scored against the projected query vectors and not its own.
-        stages.append((args.run.replace("so400m-", ""),
-                       {k: student_embed(pils[k]) for k in scenes}, basis))
+        # One run keeps its own name, because a table with a single student row
+        # in it is quoted by that name in a set README. A sweep drops the shared
+        # stem instead, so the rows read as the thing that differs.
+        run_labels = (shortnames(runs) if len(runs) > 1
+                      else [runs[0].replace("so400m-", "")])
+        for r, label in zip(runs, run_labels, strict=True):
+            net = student_mod.Student()
+            net.load_state_dict(ckpts[r]["state_dict"])
+            net = net.to(device).eval()
+            # The student emits into the teacher's PROJECTED space by
+            # construction, so it is scored against the projected query vectors
+            # and not its own.
+            stages.append((label,
+                           {k: student_embed(net, pils[k]) for k in scenes},
+                           basis))
 
     querysets = [("k=2  (self-test)", [args.pos, args.neg])]
     querysets += [(f"k=3  + '{t}'", [args.pos, args.neg, t]) for t in args.third]
@@ -257,8 +330,9 @@ def main() -> int:
 
     print(f"{'='*78}\nWHERE THE EMPTY REFERENCE SITS, in units of the class "
           f"separation\n")
-    print(f"{'stage':<14} {'queries':<34} {'along':>6} {'off':>6} {'gain':>6}"
-          f" {'g1':>6}   {'A':>5} {'B':>5} {'empty':>5}")
+    w = max(14, *(len(s[0]) for s in stages))
+    print(f"{'stage':<{w}} {'queries':<34} {'sep':>6} {'along':>6} {'off':>6}"
+          f" {'gain':>6} {'g1':>6}   {'A':>5} {'B':>5} {'empty':>5}")
     for sname, emb, bs in stages:
         for qname, phrases in querysets:
             tv = teacher_mod.encode_queries_spec(model, tok, phrases, device, bs)
@@ -273,8 +347,8 @@ def main() -> int:
             # and pooling is what stops one unlucky round from setting it. The
             # k=2 self-test is unaffected: a line is a line however it is fitted.
             refs_all = {k: per[k].mean(axis=0) for k in scenes}
-            along, off = geometry(refs_all["A"], refs_all["B"],
-                                  refs_all["empty"])
+            along, off, sep = geometry(refs_all["A"], refs_all["B"],
+                                       refs_all["empty"])
 
             # Accuracy, leaving one ROUND out at a time. `gain` is the mean over
             # the folds and `g1` is the appliance's own split - enrol once at the
@@ -306,13 +380,14 @@ def main() -> int:
             gain = sum(f[0] for f in folds) / len(folds)
             recall = {k: sum(f[1].get(k, float("nan")) for f in folds)
                       / len(folds) for k in scenes}
-            print(f"{sname:<14} {qname:<34} {along:>6.2f} {off:>6.2f} "
-                  f"{gain:>5.1f}% {g1:>5.1f}%   "
+            print(f"{sname:<{w}} {qname:<34} {sep:>6.3f} {along:>6.2f} "
+                  f"{off:>6.2f} {gain:>5.1f}% {g1:>5.1f}%   "
                   + " ".join(f"{recall.get(k, float('nan')):>4.0f}%"
                              for k in ("A", "B", "empty")))
             out["rows"].append({"stage": sname, "queries": phrases,
-                                "along": along, "off": off, "gain": gain,
-                                "g1": g1, "recall": recall, "recall_g1": r1})
+                                "sep": sep, "along": along, "off": off,
+                                "gain": gain, "g1": g1, "recall": recall,
+                                "recall_g1": r1})
         print()
 
     print("`off` 0.00 on every k=2 row is the arithmetic self-test, not a "
@@ -320,6 +395,11 @@ def main() -> int:
           "references are on it by construction.\nA k=3 row that is also near "
           "zero says the model does not put the empty scene off the\nclass "
           "axis for that phrase, and no rule can recover what is not there.")
+    print("\nREAD `sep` BEFORE `off`. Both `off` and `along` are divided by it, "
+          "so a checkpoint\nwhose class references have collapsed prints a huge "
+          "`off` that means the opposite of\nwhat it reads. A k=2 self-test "
+          "that is not 0.00 is that collapse showing through, and\nevery row "
+          "for that stage should be thrown away rather than ranked.")
 
     if args.json:
         args.json.write_text(json.dumps(out, indent=2))

@@ -51,6 +51,15 @@ scene to 100%. **The frozen PCA to 512 does not lose it**, which matters because
 that projection is the one place a 1152-d direction could quietly disappear
 before the student ever sees it.
 
+That last sentence is about *this* projection. `model/cache/` holds three SO400M
+basis files under two distinct contents — `-a0.5` and `-a0.5_s30000` are byte for
+byte the same file. The `pca 512` rows above are that shipped `-a0.5` content.
+Run the same four phrases through `-pca512_s30000` instead and they read
+0.92 / 0.59 / **0.47** / 1.05, with `sep` at the `k=2` self-test dropping from
+1.75 to 1.17. `nothing` loses well over half its off-plane distance before any
+student is involved. The frozen projection is a place the direction can go, and
+on one of the two contents some of it does.
+
 ## The student is where it goes, and only for the phrases you would write
 
 | stage | third query | along | off | gain | A | B | empty |
@@ -77,6 +86,112 @@ the distillation, and it fails worst on exactly the phrases the feature is for.
 `a blank wall` is the one that comes through, and `a blank wall` is a description
 of *this bench's backdrop*, not of nothing being there. It is not a phrase that
 generalises off this desk and it should not be shipped as one.
+
+*This section is about `so400m-full-a05`, the shipped checkpoint. It is not about
+the student in general — the section below finds another distillation of the same
+teacher, through the same projection, that keeps `an empty desk` at 0.64.*
+
+## Which distillations keep it — a screen over twelve checkpoints
+
+*Added 2026-09-06. Same ninety stills, same query vectors, no new capture.*
+
+If the plane is in the teacher and dies in the student, the next question is
+cheap to ask: **is it the 1.4 M parameters, or is it this particular
+distillation?** `--runs` puts several checkpoints' student blocks on the same
+pixels in one table.
+
+**`sep` is the column to read first.** `off` and `along` are both divided by the
+class separation, so a checkpoint whose two class references have collapsed
+prints a *large* `off` that means the opposite of what it looks like. The tell is
+the `k=2` self-test: it must read `0.00`, and when it does not, the whole stage
+is division noise.
+
+### The shipped checkpoint against its own subsample
+
+These two share a teacher *and* a projection — `emb_train2017_SO400M-pca512-a0.5`
+and `..._s30000` are two names for one file, byte for byte identical. Same
+architecture, same input size, same holdout indices. What differs is the number
+of distillation pairs and the epochs it took.
+
+| run | third query | sep | off | gain | g1 | A | B | empty |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `full-a05` *(shipped)* | *(k = 2)* | 1.09 | **0.00** | 63.3% | 65.0% | 23% | 100% | 67% |
+| `full-a05` | `an empty desk` | 1.39 | **0.07** | 55.6% | 56.7% | 0% | 100% | 67% |
+| `full-a05` | `a bare table` | 1.30 | **0.12** | 55.6% | 43.3% | 0% | 100% | 67% |
+| `full-a05` | `nothing` | 1.09 | 1.22 | 61.1% | 51.7% | 27% | 90% | 67% |
+| `full-a05` | `a blank wall` | 1.40 | 1.30 | 77.8% | 66.7% | 60% | 97% | 77% |
+| `s30k-a05` | *(k = 2)* | 1.33 | **0.00** | 76.7% | 31.7% | 67% | 100% | 63% |
+| `s30k-a05` | `an empty desk` | 1.56 | 0.64 | **94.4%** | 78.3% | 87% | 100% | 97% |
+| `s30k-a05` | `a bare table` | 1.59 | 0.39 | 65.6% | 43.3% | 33% | 100% | 63% |
+| `s30k-a05` | `nothing` | 1.62 | 0.21 | 65.6% | 46.7% | 33% | 100% | 63% |
+| `s30k-a05` | `a blank wall` | 2.03 | 0.64 | **98.9%** | 91.7% | 100% | 100% | 97% |
+
+`an empty desk` — the phrase this feature is for, and the one the shipped
+checkpoint flattens to 0.07 — comes out of the 30 k-pair student at 0.64, with
+every `sep` healthy and the self-test clean. That is not the whole 1.14 the
+teacher has, but it is most of the way back from nothing.
+
+**And the 30 k student is the worse checkpoint by every number that was
+available when it was trained:**
+
+| | `full-a05` | `s30k-a05` |
+| --- | ---: | ---: |
+| `holdout_top1` | 0.635 | **0.365** |
+| `holdout_cosine` | 0.672 | 0.619 |
+| `holdout_centered` | 0.535 | 0.421 |
+| epochs | 37 | 20 |
+
+Nearly half the top-1, and it is the one that keeps the direction. This
+repository already holds the general form of that — no enrolment-time number has
+ever predicted a run — but every earlier instance was a number failing to
+predict. This is one pointing the wrong way, on the axis the selection was
+actually made on.
+
+Two things it does **not** say. `s30k-a05`'s `k=2` `g1` is 31.7%, which for three
+scenes is chance: enrol on round 1 and this checkpoint is no better than the
+shipped one, because the between-round drift below swallows it. And `a bare
+table` and `nothing` sit at 0.39 and 0.21 — the direction is partly back, not
+back.
+
+### The wider net, on one phrase
+
+Ten more checkpoints share the other SO400M projection
+(`emb_train2017_SO400M-pca512_s30000`). They cannot be put in the table above:
+that basis file is a different file with different bytes, so the query vectors
+the students are scored against are not the same vectors. `off` on `an empty
+desk`, against a teacher reading of 1.14:
+
+| run | sep | off | gain, k = 2 → k = 3 |
+| --- | ---: | ---: | --- |
+| `s30k` | 1.10 | 0.10 | 42.2% → 50.0% |
+| `s30k-e40` | 0.49 | 1.25 | 65.6% → 61.1% |
+| `rkd10` | 1.44 | 0.08 | 44.4% → 74.4% |
+| `rkd100` | 1.04 | 0.36 | 55.6% → 77.8% |
+| `s30k-nce00` | 0.34 | 0.15 | 78.9% → 43.3% |
+| `s30k-nce10` | **0.14** | *3.86* | **discard** |
+| `text_text-0.1` | 1.43 | 0.50 | 63.3% → 93.3% |
+| `text_text-0.3` | 1.71 | 0.25 | 74.4% → 72.2% |
+| `text_text-1.0` | 1.08 | 0.01 | 64.4% → 65.6% |
+| `text_text-0.3+rkd-10` | 0.58 | 0.36 | 41.1% → 54.4% |
+
+`s30k-nce10` is the reason the `sep` column exists. Its `k=2` references are
+0.001 apart, its self-test prints `0.01` instead of `0.00`, and its `along` reads
+−354. The `off` of 3.86 is not a large distance, it is a small number over a
+smaller one, and every row of that stage is unreadable.
+
+`text_text-0.1` is the one candidate here: `off` 0.50 / 0.51 / 0.63 / 0.41 across
+the four phrases with gain 93.3 / 100 / 100 / 85.6 — the only checkpoint in the
+group whose four phrases look like a scaled-down teacher rather than four
+unrelated numbers.
+
+### What a screen is not
+
+**One contrast. This ranks nothing.** Two students that both keep the direction
+on an opened-versus-closed book have not been told apart; they have both passed.
+The tie is broken by shooting a second pair — a different object, its own empty
+scene, the same desk in the same session — not by reading further down these
+tables. `probe_bisect.py` had a run ordering retracted for exactly this, and the
+retraction is in that tool's docstring.
 
 ## What this set cannot say, and why one number in it is unreadable
 
@@ -120,14 +235,32 @@ Also true, and none of it improved by more rounds of the same set:
 | `queries.txt` | the pair, beside the pixels |
 | `open/`, `closed/`, `empty/` | 30 stills each, `rN-` prefixed by round |
 | `logs/rN-CLASS.log` | the board's own reading while it captured them, kept as provenance |
-| `offplane.json` | the table above, per stage and per phrase |
+| `offplane.json` | the shipped student, per stage and per phrase |
+| `offplane-a05.json` | `full-a05` against `s30k-a05`, one projection |
+| `offplane-sweep.json` | the ten `_s30000`-basis checkpoints |
+
+```sh
+S=bench/stills/20260827-empty-book
+
+uv run --script tools/probe_offplane.py \
+    --a $S/open --b $S/closed --empty $S/empty \
+    --pos "an opened book" --neg "a closed book" \
+    --third "an empty desk" --third "a bare table" \
+    --third "nothing" --third "a blank wall" \
+    --json $S/offplane.json
+```
+
+Add `--runs a,b,c` for the comparison tables. The tool refuses runs that do not
+share a teacher and a projection, and it compares the projection **by content**:
+`-a0.5` and `-a0.5_s30000` name one file and are allowed together, while the two
+non-`a0.5` bases really are different files and are not.
 
 ```sh
 uv run --script tools/probe_offplane.py \
-    --a bench/stills/20260827-empty-book/open \
-    --b bench/stills/20260827-empty-book/closed \
-    --empty bench/stills/20260827-empty-book/empty \
+    --a $S/open --b $S/closed --empty $S/empty \
     --pos "an opened book" --neg "a closed book" \
     --third "an empty desk" --third "a bare table" \
-    --third "nothing" --third "a blank wall"
+    --third "nothing" --third "a blank wall" \
+    --runs so400m-full-a05,so400m-s30k-a05 \
+    --json $S/offplane-a05.json
 ```
