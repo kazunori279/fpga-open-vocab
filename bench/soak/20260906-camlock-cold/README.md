@@ -85,6 +85,40 @@ and sixteen cold boots on an unmoved desk is exactly the sample it wants. No tes
 is pre-registered for it — it is an observation this session gets for free, not a
 question it was designed to answer.
 
+## Two amendments, both made before the first soak run
+
+Recorded as amendments rather than edited into the sections above, because the
+point of those sections is that they did not move.
+
+**1. The first acquire after the power cycle had a dead AEC.** `bootsel.py`
+fell back to power-cycling hub port 1 to get the board out of BOOTSEL, and the
+very next run read `mean RGB 18 18 10` with the ramp going
+`13 13 13 13 13 13 14 14 14 14 15 15 ... 15` — two counts over forty frames, and
+`EXPOSURE NEVER SETTLED`. The room was lit and the lens was clear. Re-running
+immediately gave `17 88 97 106 115 123 127 128 130 131 133 134 135 132 128`,
+settled after 15, `mean RGB 130 128 128`. So the sensor comes up with its AEC
+stopped on the first acquire after a cold power cycle and is fine on the second.
+
+The failed run is kept as `dark-1.log`. This changes nothing about the protocol —
+`EXPOSURE NEVER SETTLED` was already on the discard list as a mechanical failure,
+and `run.sh` greps for it after every run — but it is the reason the sixteen runs
+below are not the board's first acquire, and a cold-boot session is exactly where
+that distinction could have gone unnoticed.
+
+**2. The scene is a wall at 30 cm, not an empty desk.** 08-25's sixteen runs were
+an empty desk; the rig currently faces a blank wall about 30 cm away, and it was
+left there rather than re-aimed, because re-aiming means an operator at the rig at
+the start of a session whose whole premise is that nothing moves.
+
+This costs something specific and it is not the primary test. Locked and free see
+the same wall, so the within-session comparison is untouched. What weakens is the
+pooling with 08-25, which the table above called legitimate for the primary on the
+grounds that the protocol is identical — it is not identical, the scene differs,
+and a flat low-texture surface at 30 cm may carry less z-score structure than a
+desk. **Pooling is therefore downgraded from planned to conditional**, to be
+argued for on the evidence or dropped, and the primary test stands on this
+session's own sixteen runs.
+
 ## Results
 
 *Nothing here yet. This section is written after the session and the sections
