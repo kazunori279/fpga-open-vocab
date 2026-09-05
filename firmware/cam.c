@@ -246,9 +246,17 @@ uint8_t cam_read_reg(uint8_t addr)
     return rx[2];
 }
 
+// #33. How long the last wait actually waited, so a caller can ask whether its
+// own writes were gated at all. The reset gate in cam_begin() measures 425 polls
+// on every boot, dead or live, which is a real wait and rules the reset out;
+// the question that leaves is whether the SAME predicate gates a plain register
+// write, or whether the sensor only reports busy for the big commands.
+uint16_t cam_last_idle_polls;
+
 bool cam_wait_idle(const char *what)
 {
     for (int i = 0; i < 20000; i++) {
+        cam_last_idle_polls = (uint16_t)i;
         if ((cam_read_reg(CAM_REG_SENSOR_STATE) & 0x03) == CAM_REG_SENSOR_STATE_IDLE)
             return true;
         // A stalled bus cannot answer this question, and asking it 20,000 more
@@ -264,10 +272,43 @@ bool cam_wait_idle(const char *what)
 // "unknown", which is the honest state after a reset or a cam_begin().
 static int last_fmt = -1, last_mode = -1;
 
+// #33, and this build only MEASURES it - the wait below is bit for bit the
+// bound cam_wait_idle() uses, so nothing about the boot path changes.
+//
+// The suspicion is that `cam_wait_idle("reset")` is not a gate at all. It reads
+// CAM_REG_SENSOR_STATE on the SPI transaction immediately after the reset write,
+// and if the ArduChip has not yet begun executing the reset that read returns
+// the state from BEFORE it - IDLE - so the wait returns having never seen the
+// sensor go busy. Everything after it, including cam_image_defaults()'s three
+// CAM_REG_AUTO_CONTROL writes, would then land in the middle of a reset.
+//
+// That would explain all of #33 at once: intermittent because it is a race,
+// invisible in the register dump because 0x30 is a write-selector, and cured by
+// re-issuing CAM_AUTO_ALL later because by then the reset is long over.
+//
+// It is also only a story until someone reads the poll count. If the loop
+// exits on iteration 0 with a state that was already IDLE, the gate is doing
+// nothing and the story stands. If it observes busy and waits, the fault is
+// somewhere else and this comment is wrong.
+uint16_t cam_reset_polls;
+uint8_t  cam_reset_first_state;
+bool     cam_reset_saw_busy;
+
 void cam_begin(uint8_t id, bool verbose)
 {
     cam_write_reg(CAM_REG_SENSOR_RESET, CAM_SENSOR_RESET_ENABLE);
-    cam_wait_idle("reset");
+    cam_reset_polls = 0;
+    cam_reset_saw_busy = false;
+    cam_reset_first_state = 0xff;
+    for (int i = 0; i < 20000; i++) {
+        uint8_t st = cam_read_reg(CAM_REG_SENSOR_STATE);
+        if (i == 0) cam_reset_first_state = st;
+        if ((st & 0x03) == CAM_REG_SENSOR_STATE_IDLE) break;
+        cam_reset_saw_busy = true;
+        if (bus_fault) break;
+        cam_reset_polls++;
+        sleep_us(100);
+    }
 
     uint8_t y = cam_read_reg(CAM_REG_YEAR_ID)  & 0x3f; cam_wait_idle("year");
     uint8_t m = cam_read_reg(CAM_REG_MONTH_ID) & 0x0f; cam_wait_idle("month");
@@ -299,6 +340,8 @@ void cam_begin(uint8_t id, bool verbose)
 // CAM_AUTO_ALL reproduces the write sequence cam_begin() has always issued,
 // register for register, which is what keeps the boot path unmeasured-but-
 // unchanged.
+uint16_t cam_auto_polls[4];
+
 void cam_image_auto_mask(uint8_t tracking)
 {
     const uint8_t e = (tracking & CAM_AUTO_EXPOSURE) ? AUTO_ON : 0u;
@@ -306,10 +349,13 @@ void cam_image_auto_mask(uint8_t tracking)
     const uint8_t w = (tracking & CAM_AUTO_WB)       ? AUTO_ON : 0u;
     cam_write_reg(CAM_REG_AUTO_CONTROL, e | AUTO_SEL_EXPOSURE);
     cam_wait_idle(e ? "auto exposure on" : "auto exposure off");
+    cam_auto_polls[0] = cam_last_idle_polls;
     cam_write_reg(CAM_REG_AUTO_CONTROL, g | AUTO_SEL_GAIN);
     cam_wait_idle(g ? "auto gain on" : "auto gain off");
+    cam_auto_polls[1] = cam_last_idle_polls;
     cam_write_reg(CAM_REG_AUTO_CONTROL, w | AUTO_SEL_WHITEBALANCE);
     cam_wait_idle(w ? "auto white balance on" : "auto white balance off");
+    cam_auto_polls[2] = cam_last_idle_polls;
 }
 
 void cam_image_auto(bool on)
@@ -326,6 +372,7 @@ void cam_image_defaults(void)
     // is not what locking the sensor means.
     cam_write_reg(CAM_REG_WB_MODE_CONTROL, 0);
     cam_wait_idle("white balance mode");
+    cam_auto_polls[3] = cam_last_idle_polls;
 }
 
 const cam_recipe_t CAM_RECIPE_VENDOR = { "vendor", false, false, 0 };

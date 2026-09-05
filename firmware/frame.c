@@ -1429,6 +1429,29 @@ const void *ft_acquire(float in_scale)
     }
     cam_begin(id, false);
     cam_image_defaults();
+    // #33, AND THIS IS STILL A MEASUREMENT AND NOT THE FIX. Ten acquires with
+    // the per-write poll counts instrumented separated dead from live 10/10 on
+    // two of the four numbers: every live run read `awb 10, wbmode 5` and every
+    // dead one read `awb 0, wbmode 10`. Poll 0 means the first SENSOR_STATE read
+    // after the write already said IDLE - the ArduChip had not begun executing
+    // it - so the wait after the auto-white-balance selector is not gating that
+    // write on the runs that come up green.
+    //
+    // ae also reads 0 sometimes and it is harmless. What predicts the frame is
+    // `ag 10, awb 0, wbmode 10` against `awb 10, wbmode 5`.
+    //
+    // A SECOND cam_image_defaults() HERE DOES NOT FIX IT, and that was measured
+    // rather than assumed: twelve acquires with the call issued twice failed
+    // four times, the same rate, and the signature simply MOVED to the second
+    // call - every first call then read `awb 10, wbmode 5` including on the runs
+    // that came up green. So the frame follows the last write sequence and the
+    // write is not merely being dropped on the floor. The second call is gone
+    // again; what is left here is the measurement.
+    //
+    // That also says what the 'L' rescue had that a repeat does not. Cycling
+    // CAM_AUTO_ALL back in at frame 20 took a run from `21 26 17` to
+    // `130 127 127`, and the difference between it and a second call in this
+    // line is not repetition - it is the twenty captures in between.
 
     cam_mode = cam_mode_128(id);
     const uint8_t  mode = cam_mode;
@@ -1856,6 +1879,19 @@ const void *ft_acquire(float in_scale)
            cam_read_reg(CAM_REG_SENSOR_STATE),
            cam_read_reg(CAM_REG_SENSOR_ID),
            cam_read_reg(CAM_REG_FPGA_VERSION_NUMBER));
+    // #33's second reading, and the one the register dump above cannot give.
+    // Those nine bytes came out byte for byte identical on ten dead acquires and
+    // two live ones, which rules the *steady* state out and leaves the transient
+    // one: what the post-reset gate in cam_begin() saw while it was open. If
+    // `busy no` and `polls 0`, the first SENSOR_STATE read after the reset write
+    // already said IDLE, the gate never gated, and cam_image_defaults() wrote
+    // its three auto-control selectors into a sensor that was still resetting.
+    printf("            reset gate: polls %u, first state %02x, busy %s"
+           "   defaults polls: ae %u ag %u awb %u wbmode %u\n",
+           (unsigned)cam_reset_polls, cam_reset_first_state,
+           cam_reset_saw_busy ? "yes" : "no",
+           (unsigned)cam_auto_polls[0], (unsigned)cam_auto_polls[1],
+           (unsigned)cam_auto_polls[2], (unsigned)cam_auto_polls[3]);
 
     // Exposure and white balance in three numbers: the mean of the three is
     // exposure, the spread is white balance. M8a's tuned camera sits near

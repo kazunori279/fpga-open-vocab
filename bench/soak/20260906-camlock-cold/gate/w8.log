@@ -1,0 +1,90 @@
+
+=== M9: fpga-open-vocab - describe it, the board spots it ===
+
+clock     : 280 MHz requested; BOOTSEL is reachable for 1.5 s
+clock     : 280 MHz system, core 1.25 V
+reset     : chip_reset 00010000
+            nothing new since the last banner - whatever reset the core left powman alone.
+waiting for a bitstream on USB CDC (host/demo.py)
+bitstream : 173124 bytes announced, crc32 0a2e9953
+bitstream : received intact
+configure : configured, CDONE high   CDONE=1 nSTATUS=0
+crc       : DMA sniffer, calc=1 out_rev=1 out_inv=1
+model     : 9 layers, 512-d embedding, 131072 B/buffer
+weights   : 780720 B, crc32=0xF368CC6E  (144 ms to hash)
+
+reference : encoder_fast on the flash test vector  (1810 ms)
+
+link      : probing the wire by running the whole test vector over it
+probe     : 3 forward data lines -> 512/512 floats exact, 311 ms
+link      : configuration C, 3 forward data lines, 140.0 MHz
+
+camera    : exposure ramp 27 28 29 29 30 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 32 31
+camera    : live 128x128 RGB565, id 0x82, 16.0 MHz, expose 59 ms, read 16 ms, EXPOSURE NEVER SETTLED after 40 frames
+            regs fmt 02 res 00 bri 00 ev 00 wb 00 auto 00 state 26 id 82 fpga 20
+            reset gate: polls 425, first state 21, busy yes   defaults polls: ae 10 ag 10 awb 0 wbmode 10
+            mean RGB 28 38 29  (tuned camera on a neutral scene: about 115 107 105)
+            ^ the exposure never moved from its first reading in 40 frames, so the auto-exposure
+              either had nothing to correct or never started. The ramp above is the evidence.
+
+queries   : waiting for a query set on USB CDC (host/demo.py)
+queries   : 2 accepted, 512-d, crc ok
+            level axis carries 0.95 of one query's swing; most opposed pair +0.810
+            scored as z = (cos - background) / std, where the background is this room's
+            own mean over its first 30 frames and is then FROZEN - so a thing left in
+            shot keeps its score instead of decaying into the furniture. 'N' re-learns
+            it, 'H' switches to tracking. The COCO figures below are only the seed for
+            frame 0 and the fixed std.
+            std is THIS ROOM's, measured over the same 30 frames ('S' switches to COCO's).
+            The thresholds below still mean the 90th percentile of a background; the
+            background they now mean it against is this room empty, not 5000 COCO photos.
+            a closed book        match above z 1.23   (COCO background -0.159 +- 0.035, so cos -0.116)
+            an opened book       match above z 1.23   (COCO background -0.151 +- 0.030, so cos -0.114)
+
+loop      : capture, 8 convs on the T8, pool and head, then one cosine per query. 'B' for BOOTSEL, 'R' to restart,
+            'P' to dump the next frame for host/cam.py, 'V' to dump its 512 floats for host/caption.py,
+            'E' to provoke a fault so D1 shows its fault display, 'H' to freeze/unfreeze the background,
+            'S' to switch the spread between this room's and COCO's, 'W' to hang on purpose and see
+            the watchdog name the stage, 'C' to stall the camera bus on purpose and see it cost one frame,
+            'U' to drop off USB on purpose and watch it come back, 'I' to drop off and refuse to,
+            'N' to forget it and learn it again from now. 'P' and 'V' together describe the same frame.
+            'O' closes the timing window, prints it and flips the capture between overlapped and serial;
+            'D' does the same and flips the trigger between late and at-the-collect, which is #14's A/B.
+            'L' freezes exposure and gain, then on a second press the white balance too - which goes green,
+            and is the control. A third restores all three. Issue #30, and the one hotkey whose answer depends on when you press it.
+            scores are z against this room's background, ranked; '*' means over its threshold.
+            '1'..'6' enrol the next 20 frames as that class, and press again on a LATER visit
+            to fold a second one in - 2 visits is what makes the enrolment guard mean
+            something. Two classes in and the board decides by nearest reference instead of
+            by threshold - see M21.
+            '0' ENROLS THE EMPTY SCENE the same way, and it is worth a visit: with one, a frame
+            is absent when the empty reference is the nearest of the three and no radius is
+            involved. Without one the board falls back to the band - absent beyond 2.0 sep
+            from every class - which scores 54.6% over 28 benches against the third reference's
+            79.1%, because with two queries that band is an interval the empty scene can sit
+            inside. #18.
+            The first 30 frames set the baseline and it is then frozen, so anything left in
+            shot KEEPS its score. Point the camera at the empty scene for those frames.
+            Send a new set at any time to re-query - that resets the baseline too.
+
+frame     0 :  a closed book +1.51*  an opened book +0.97   led 255/  0 h1.00 lvl+1.24   MATCH a closed book (cos -0.106)
+frame     1 :  a closed book +0.13  an opened book +0.11   led   2/198 h0.11 lvl+0.12   -
+frame     2 :  an opened book -0.08  a closed book -0.09   led   0/255 h0.00 lvl-0.08   -
+frame     3 :  an opened book +0.11  a closed book +0.04   led   1/206 h0.09 lvl+0.08   -
+frame     4 :  a closed book +0.09  an opened book +0.03   led   1/217 h0.07 lvl+0.06   -
+frame     5 :  an opened book -0.16  a closed book -0.20   led   0/255 h0.00 lvl-0.18   -
+frame     6 :  an opened book +0.00  a closed book -0.03   led   0/255 h0.00 lvl-0.01   -
+frame     7 :  a closed book -0.06  an opened book -0.10   led   0/255 h0.00 lvl-0.08   -
+background: after 8 frames (warming up, room spread), this room reads  a closed book -0.106 +-0.0032 (COCO -0.159 +-0.0351)  an opened book -0.121 +-0.0026 (COCO -0.151 +-0.0303)
+
+stopped   : 8 frames, 8 good, capture overlapped with the compute, configuration C
+            8 frames timed, 334 ms/frame mean (capture included)
+            309 ms encode + 8 ms waiting for the sensor + 16 ms burst; 337 ms/frame by the clock
+            477 ms shutter to LED, arming with 162 ms of compute left
+            last frame mean RGB 29 39 29
+            camera bus: worst gap 9 us against the 2000 us deadline (#12)
+            usb: 0 outages, 0 ms off the bus, 0 re-attaches (#9)
+            scene: THE ACQUIRE WAS NOT CONFIDENT IN THE FRAME THIS RUN STARTED FROM -
+            the exposure never moved from its first reading. Every score above is
+            against that picture; read the exposure ramp in the banner before
+            keeping any of them (#26)

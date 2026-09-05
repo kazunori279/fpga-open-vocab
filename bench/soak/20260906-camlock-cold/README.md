@@ -152,6 +152,70 @@ against the hypothesis. When #33 is fixed, `run.sh` and the sections above can b
 re-used unchanged, and that session's results go in a new dated directory rather
 than in this one.
 
+## The afternoon: two dead register waits, and a signature that reads before the ramp
+
+Same day, same wall, same rig. #33 item 2 asks why `cam_image_defaults()`'s write
+does not take, and the register dump above could not answer it because all nine
+bytes are identical on dead and live acquires. So the thing to instrument was not
+the state but the *waits* — how many 100 µs polls each `cam_wait_idle()` actually
+spent. A wait that exits on its first read never gated anything.
+
+**The reset gate is not the fault, and that is a real negative.** The first
+suspicion was `cam_wait_idle("reset")` in `cam_begin()`: it reads
+`CAM_REG_SENSOR_STATE` on the SPI transaction right after the reset write, and if
+the ArduChip has not begun executing the reset yet, that read returns the
+pre-reset IDLE and the wait returns having waited for nothing. Eight acquires say
+otherwise. Every one of them read `first state 21` — `& 3 == 1`, not IDLE — and
+`polls 425`, about 42.5 ms, **identical on the two that came up dead and the six
+that did not**. The gate gates, it is deterministic, and it does not discriminate.
+
+One level down it does. The four writes in `cam_image_defaults()` — auto exposure,
+auto gain, auto white balance, white balance mode — each have their own
+`cam_wait_idle()`, and those poll counts separate the two outcomes completely:
+
+| | ae | ag | **awb** | **wbmode** | mean RGB |
+| --- | --- | --- | --- | --- | --- |
+| live, 27 acquires | 0 or 10 | 0 or 10 | **10** | **5** | 126–137 |
+| floor, 7 acquires | 0 or 10 | 10 | **0** | **10** | 23–38 |
+
+**34 acquires, 7 of them at the floor, and the white-balance pair agrees with the
+frame every single time.** `ae` and `ag` are noise — `ag 10` appears in four live
+runs and `ae 0` in one — so it is specifically the wait after the auto white
+balance selector, and the wait after the write that follows it, that carry the
+signal. That matches the picture: the dumped floor frame is *green*, and
+`cam.h:220` already records that `CAM_REG_WB_MODE_CONTROL` is the register that
+moves blue from 42 to 133.
+
+This is the first host-side predictor of the fault, and unlike everything before
+it, **it reads before a single frame is captured** rather than after forty.
+
+### What it rules out, and what it does not say
+
+Issuing `cam_image_defaults()` **twice does not fix it**, which was measured and
+not assumed. Twelve acquires with the call doubled failed four times — the same
+rate — and the signature simply *moved*: every first call then read
+`awb 10, wbmode 5`, including on runs that came out green, and the second call
+carried `awb 0, wbmode 10` on exactly the four that did. So the frame follows the
+last write sequence, and the write is not being dropped on the floor for a repeat
+to pick up. The doubled call was removed again.
+
+That also isolates what the `'L'` rescue had. Cycling `CAM_AUTO_ALL` back in at
+frame 20 took a run from `21 26 17` to `130 127 127`; a second call in the boot
+path does nothing. The difference is not repetition — it is **the twenty captures
+in between**, which is #27's territory rather than a write-ordering bug.
+
+**What the poll counts mean is still open.** "Exits at poll 0, so the write was
+not latched" is the obvious reading and it is not the only one: good runs spend
+10 + 5 across the last two waits and bad runs spend 0 + 10, which looks as much
+like the busy period landing in a different slot as like a write going missing.
+The correlation is 34 for 34; the mechanism behind it is a claim this directory
+has not earned.
+
+**And the rate moves on its own.** Across today: 4 in 10 at 06:55, 10 in 12 at
+07:15, then 2 in 8, 3 in 10, 4 in 12, and a last batch of 12 with **no failures at
+all**. Nothing was fixed between the fourth batch and the fifth. Any future "the
+fix works" has to survive that, and a single clean batch will not be evidence.
+
 ### What is actually in here
 
 | file | what it is |
@@ -163,6 +227,10 @@ than in this one.
 | `regdiff/snap.log`, `dead-frame.png` | the floor frame — the backdrop in focus, underexposed and green |
 | `regdiff/relight.log`, `rescued-frame.png` | the `'L'` rescue, `21 26 17` to `130 127 127` in one run, same wall |
 | `regdiff/torch.log` | inconclusive and kept anyway: 60 frames while the room light was waved, but `demo.py` logs no per-frame luma, so it could not answer what the two PNGs did |
+| `gate/g{1..8}.log` | the reset gate measured: `polls 425, first state 21, busy yes` on all eight |
+| `gate/w{1..10}.log` | per-write poll counts, one `cam_image_defaults()` call. 3 floor frames, 10/10 |
+| `gate/d{1..12}.log` | the same with the call issued **twice**. 4 floor frames, the rate unchanged and the signature moved to the second call |
+| `gate/s{1..12}.log` | back to one call. 12 live, 0 floor — the batch that says the rate moves by itself |
 | `session.log` | `run.sh`'s wall clock, ending where it was stopped |
 
 `run.sh`'s post-run failure check was wrong on its first outing and is fixed. It

@@ -217,6 +217,20 @@ typedef struct {
 // `verbose` prints the module's firmware date and fpga revision.
 void cam_begin(uint8_t id, bool verbose);
 
+// #33's measurement, set by every cam_begin(). `polls` is how many 100 us waits
+// the post-reset gate actually spent; 0 with `saw_busy` false means the first
+// read after the reset write already said IDLE and the gate did not gate.
+extern uint16_t cam_reset_polls;
+extern uint8_t  cam_reset_first_state;
+extern bool     cam_reset_saw_busy;
+
+// The same measurement one level down: polls spent in the wait after each of
+// cam_image_defaults()'s four writes - auto exposure, auto gain, auto white
+// balance, white balance mode. `cam_last_idle_polls` is the raw last-call value
+// these are sampled from.
+extern uint16_t cam_last_idle_polls;
+extern uint16_t cam_auto_polls[4];
+
 // THE WHITE-BALANCE MODE REGISTER IS THE ONE THAT MATTERS, and it is not the one
 // with "white balance" in the obvious place. cam_begin() leaves the camera with
 // blue crushed - mean RGB (91, 82, 53) - and turning auto white balance *on*
