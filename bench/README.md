@@ -497,6 +497,19 @@ separate from the other thirty-nine on a field printed in the same banner:
 No overlap, in either column. The three are `20260815-111750` (never scored —
 the port vanished mid-run), `20260816-172256`, and `20260825-0558`.
 
+All 376 `.log` files in the repository were swept, not just this directory, and
+the rest of the hits are accounted for. `soak/20260906-camlock-cold/` is thick
+with them because it *is* the #33 investigation. `soak/20260821-q26/`,
+`soak/20260822-settle/` and `soak/20260823-exposure/` trip it on runs with the
+lens deliberately covered or the room dark, which is what those runs are for —
+**the flag is a symptom of a camera that did not wake, and a camera pointed at
+nothing looks the same from the host**, so it cannot tell the two apart and is
+not being asked to. `soak/20260821-lastwords/` has three, and they carry no
+camera claim: that session is #9's flash record surviving a power cycle, and its
+one camera finding comes from `cam_probe-20260821-0557.log`, which is clean.
+`soak/20260825-camlock/` — sixteen runs — has **none**, which is what makes the
+cold-versus-warm argument in that directory's successor.
+
 ### What it cost
 
 The two that were scored are the two largest recoveries in the whole archive

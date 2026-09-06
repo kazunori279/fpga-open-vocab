@@ -167,6 +167,22 @@ def cue(text: str, *, speak: bool) -> None:
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+# ft_acquire() decides whether the auto-exposure loop engaged during the boot
+# ramp and says so in the banner. THE BOARD HAS BEEN SAYING SO SINCE #26 AND THE
+# OPERATOR NEVER HEARD IT. The line does scroll past - everything that is not a
+# frame line is forwarded - but it goes by among forty others while whoever is
+# running the bench is looking at the desk and not the screen, which is the whole
+# premise of this tool. m9_cue-20260816-172256.log was taken that way and its
+# camera was not noticed for three weeks, by which time it had carried a result.
+#
+# Two forms, and the quiet one is the one that got missed: EXPOSURE NEVER SETTLED
+# is printed when the ramp also failed to reach the floor, and `the exposure never
+# moved from its first reading` when it climbed enough to satisfy the settle test
+# but never actually moved.
+DOUBT = re.compile(r"EXPOSURE NEVER SETTLED|the exposure never moved from its "
+                   r"first reading")
+
+
 def parse_scores(body: str) -> dict[str, float]:
     return {m.group(1).strip(): float(m.group(2)) for m in SCORE.finditer(body)}
 
@@ -1219,6 +1235,7 @@ def main() -> int:
     thr: dict[str, float] = {}
     drawing = not args.raw and sys.stdout.isatty()
     scene_now = "empty (leave it that way until the cue)"
+    doubted = False             # ft_acquire()'s warning, announced once
 
     assert proc.stdout is not None
     for line in proc.stdout:
@@ -1232,6 +1249,20 @@ def main() -> int:
                 if bars is not None:
                     bars.release()
                 print(msg, flush=True)
+        # Before the first cue and while there is still time to stop. Not fatal:
+        # the operator decides, because a deliberately dark or covered scene
+        # trips this too and those runs are the point of some sessions.
+        if DOUBT.search(line) and not doubted:
+            doubted = True
+            if bars is not None:
+                bars.release()
+            cue("Stop. The camera never woke up. This run is not worth taking.",
+                speak=not args.quiet)
+            print(f"  {line.strip()}\n"
+                  f"  Ctrl-C, then run it again - the fault clears on a retry\n"
+                  f"  more often than not. If the scene is meant to be dark,\n"
+                  f"  this is expected and you can ignore it.\n", flush=True)
+
         q = QUERY.match(line)
         if q:
             roles[q.group(1)] = q.group(2)
