@@ -530,6 +530,24 @@ pico_enable_stdio_usb(forgix_psram_probe 1)
 pico_enable_stdio_uart(forgix_psram_probe 0)
 pico_add_extra_outputs(forgix_psram_probe)
 
+# #30: is there a frame source that is not the sensor? Outside the FGX_EXPORT
+# guard that wraps forgix_cam_probe, and with no encoder.c or blob, because this
+# one never quantizes anything - it reduces frames to a crc32 and counts the
+# distinct ones. Nothing downstream may depend on the register it writes until
+# this has printed a verdict; see the header of cam_simsrc.c.
+add_executable(forgix_cam_simsrc
+    cam_simsrc.c
+    cam.c
+    qspi_park.c)
+
+target_include_directories(forgix_cam_simsrc PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+pico_generate_pio_header(forgix_cam_simsrc ${CMAKE_CURRENT_LIST_DIR}/cam_spi.pio)
+target_link_libraries(forgix_cam_simsrc
+    pico_stdlib hardware_pio hardware_clocks)
+pico_enable_stdio_usb(forgix_cam_simsrc 1)
+pico_enable_stdio_uart(forgix_cam_simsrc 0)
+pico_add_extra_outputs(forgix_cam_simsrc)
+
 add_executable(forgix_diag
     diag.c
     fpga_config.c

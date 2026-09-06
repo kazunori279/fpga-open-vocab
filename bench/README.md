@@ -1,9 +1,16 @@
 # The cue benches
 
-Three directories. **`cue/`** is accuracy — this file is its manifest.
+Four directories. **`cue/`** is accuracy — this file is its manifest.
 **`soak/`** is reliability: eight 200-frame runs from 2026-08-15 at two clocks,
 three of which died, and the earliest recorded instance of the USB outage behind
 #9. It has [its own README](soak/README.md).
+
+**`probe/`** is neither, and is not a bench. It holds single boots of a
+standalone binary that answer one hardware question each — no cue schedule, no
+enrolment, no held-out set, nothing scoreable.
+[`probe/20260907-simsrc/`](probe/20260907-simsrc/) is where the ArduChip was
+found to have a frame source that is not the sensor, which is the control every
+drift measurement in `soak/` has been missing.
 
 **`stills/`** is neither, and is not a bench. It holds PNGs off the appliance's
 camera, shot so that the stages of the encoder chain can be asked about the same

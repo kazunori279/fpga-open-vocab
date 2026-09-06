@@ -1,0 +1,33 @@
+
+=== Is there a frame source that is not the sensor? (#30) ===
+
+clock     : 150 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- baseline: the live sensor --
+  live               6/6 good   6 distinct   0 flat   mean RGB 106 123 90
+                     8d22ca79 26129fc9 25c94c35 4ee9041c 60eed291 2bfe0ec7
+
+-- data source (0x05 bit[7]) --
+  was 0x00, wrote 0x80, reads back 0x80
+  simulated          0/6 good   0 distinct   0 flat   mean RGB 0 0 0
+                    
+  restored to 0x00
+
+-- counter pattern (0x06 bit[7]) --
+  was 0x01, wrote 0x81, reads back 0x81
+  simulated          6/6 good   1 distinct   0 flat   mean RGB 6 63 63
+                     1608eb14 1608eb14 1608eb14 1608eb14 1608eb14 1608eb14
+  restored to 0x01
+
+-- after restoring both registers --
+  live again         6/6 good   6 distinct   0 flat   mean RGB 137 135 137
+                     403d01e9 2e35acc8 594c318f 8cb3cc8a e24ecdc2 e6604f1e
+
+RESULT : 0x05 -> outcome 4, the capture path broke. Power-cycle the board - USB out for ten seconds - before running anything else.
+         0x06 -> outcome 1, the source exists and is FIXED - this is what #30 needs. Wire it into m9.
+         The camera came back: 6/6 good, 6 distinct.

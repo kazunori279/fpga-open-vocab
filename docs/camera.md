@@ -12,9 +12,11 @@ engaged, and the reason turned out not to be an oversight in the firmware.
 
 **Source for every register below:** the
 [Mega SPI Camera Series Application Note](https://blog.arducam.com/downloads/datasheet/Arducam_MEGA_SPI_Camera_Application_Note.pdf),
-September 2023, section 4 "Register Table". **Nothing on this page has been run
-on the board.** It is a reading of the datasheet against the source, and the
-column that says so is marked.
+September 2023, section 4 "Register Table". **This page is a reading of the
+datasheet against the source, and one row of it has since been run on the
+board** — `0x05` and `0x06`, on 2026-09-07, where the datasheet turned out to be
+half wrong. That row says so and links its log. Everything else here is still
+unrun, and the "used today" columns mark what the driver touches.
 
 [← back to the README](../README.md) · [architecture](architecture.md) ·
 [building](building.md) · [monitor](monitor.md) ·
@@ -71,22 +73,32 @@ was asking for. Which sensor registers to read then depends on the die, which
 
 ## Registers the driver does not use, in the order they are worth something
 
-### `0x05` bit[7] — the sensor can be taken out of the loop
+### `0x06` bit[7] — the sensor can be taken out of the loop, and this has now been run
 
-| value | data source |
-|---|---|
-| `0` | camera data |
-| `1` | **simulated data** |
-
-`0x06` bit[7] does the same with a 32-bit counter pattern. The ArduChip will
-feed the pipeline frames the sensor never saw.
-
-This is the control the drift work has never had. Every drift measurement so far
-asks whether scores move while the scene is still, and cannot separate a camera
-that is re-deciding from anything else in the chain that might be. **Run the
-whole scoring path on frames that cannot drift; if `common` still moves, the
-drift is not the camera.** That is [#30](https://github.com/kazunori279/fpga-open-vocab/issues/30)'s
+The ArduChip will feed the pipeline frames the sensor never saw. This is the
+control the drift work has never had. Every drift measurement so far asks
+whether scores move while the scene is still, and cannot separate a camera that
+is re-deciding from anything else in the chain that might be. **Run the whole
+scoring path on frames that cannot drift; if `common` still moves, the drift is
+not the camera.** That is [#30](https://github.com/kazunori279/fpga-open-vocab/issues/30)'s
 question answered without the camera in the experiment.
+
+**This is the one row on this page that is no longer a reading of the
+datasheet.** `firmware/cam_simsrc.c` ran it on 2026-09-07 —
+[`bench/probe/20260907-simsrc/`](../bench/probe/20260907-simsrc/) — and the app
+note is half right:
+
+| register | app note | what the board did |
+|---|---|---|
+| `0x05` bit[7] | `0` camera data, `1` **simulated data** | took the write, read back `0x80`, and returned **zero good captures** |
+| `0x06` bit[7] | a 32-bit counter pattern | **six captures, one distinct crc32**, not a constant frame |
+
+So the usable register is `0x06`, not the one named for the job. Six
+bit-identical frames is the property #30 needs; the live baseline in the same
+boot gave six distinct ones, and the camera came back afterwards. Still
+unverified: whether the pattern holds across boots, whether it survives
+`ft_pipeline()`'s split trigger/collect, and whether it survives 320 MHz — that
+boot ran at 150.
 
 ### `0x31`–`0x35` — exposure and gain can be *set*, not just released
 
@@ -169,14 +181,21 @@ short forms:
 
 ## What to do about it
 
-In the order the value falls, and none of it before
-[#30](https://github.com/kazunori279/fpga-open-vocab/issues/30)'s current
-session finishes, because that session's firmware is pinned by md5:
+In the order the value falls. The hold this list used to carry — nothing before
+[#30](https://github.com/kazunori279/fpga-open-vocab/issues/30)'s session
+finished, because its firmware was pinned by md5 — came off on 2026-09-07 when
+that session completed and was read out:
 
-1. **Finish the I²C passthrough** (`0x0B`, `0x0C`, `0x07` bit[0]). It is the only
+1. ~~**Add a simulated-data mode**~~ — **done as a probe on 2026-09-07, and it
+   is `0x06` bit[7].** What is left is wiring it into `m9.c` and running the
+   scoring chain on it, which separates camera drift from every other drift in
+   one bench. Check the three unverified things listed above first.
+2. **Finish the I²C passthrough** (`0x0B`, `0x0C`, `0x07` bit[0]). It is the only
    readback of the exposure loop that exists, and #33 has been waiting on it.
-2. **Add a simulated-data mode** (`0x05` bit[7]) and run the scoring chain on it.
-   It separates camera drift from every other drift in one bench.
+   [`20260907-camlock-cold/`](../bench/soak/20260907-camlock-cold/) gave it a
+   sharper question than it had: locking exposure and gain did not reduce the
+   walk, and three of eight locked runs moved their level by 14 to 18 after the
+   freeze, which the AWB drift in `cam.h:245` does not account for.
 3. **Write explicit exposure and gain** (`0x31`–`0x35`) so `'L'` locks rather
    than hopes.
 4. **Try the sensor-only power cycle** (`0x02`) against #32's cold-boot count.
