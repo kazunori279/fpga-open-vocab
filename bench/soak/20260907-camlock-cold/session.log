@@ -1,0 +1,33 @@
+06:42:26  start  free-1
+06:46:04  end    free-1  frames=602 frames, 602 good  mean RGB 133 129 131  relit=1
+06:46:04  start  lock-1
+06:49:39  end    lock-1  frames=602 frames, 602 good  mean RGB 131 126 134  relit=0
+06:49:39  start  lock-2
+06:53:14  end    lock-2  frames=601 frames, 601 good  mean RGB 132 125 130  relit=0
+06:53:14  start  free-2
+06:56:51  end    free-2  frames=602 frames, 602 good  mean RGB 135 132 135  relit=2
+06:56:51  start  free-3
+07:00:25  end    free-3  frames=601 frames, 601 good  mean RGB 131 123 124  relit=0
+07:00:25  start  lock-3
+07:03:59  end    lock-3  frames=602 frames, 602 good  mean RGB 155 149 158  relit=0
+07:03:59  start  lock-4
+07:07:32  end    lock-4  frames=602 frames, 602 good  mean RGB 133 130 132  relit=1
+07:07:32  start  free-4
+07:11:08  end    free-4  frames=602 frames, 602 good  mean RGB 130 125 130  relit=1
+07:11:08  start  free-5
+07:14:42  end    free-5  frames=602 frames, 602 good  mean RGB 127 124 124  relit=1
+07:14:42  start  lock-5
+07:18:16  end    lock-5  frames=602 frames, 602 good  mean RGB 117 113 114  relit=1
+07:18:16  start  lock-6
+07:21:51  end    lock-6  frames=602 frames, 602 good  mean RGB 133 129 135  relit=1
+07:21:51  start  free-6
+07:25:25  end    free-6  frames=602 frames, 602 good  mean RGB 131 129 132  relit=0
+07:25:25  start  free-7
+07:28:58  end    free-7  frames=602 frames, 602 good  mean RGB 56 62 56  relit=0
+07:28:58  start  lock-7
+07:32:33  end    lock-7  frames=601 frames, 601 good  mean RGB 116 111 113  relit=1
+07:32:33  start  lock-8
+07:36:08  end    lock-8  frames=602 frames, 602 good  mean RGB 133 128 131  relit=1
+07:36:08  start  free-8
+07:39:43  end    free-8  frames=602 frames, 602 good  mean RGB 130 126 128  relit=1
+07:39:43  session complete

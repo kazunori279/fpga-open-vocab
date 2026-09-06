@@ -248,3 +248,77 @@ would have read `frames=3` — which is also what it printed for 20260906's
 complete 602-frame run, and for a run that died at frame 40. A truncated run and
 a clean one would have been indistinguishable in the session log of the session
 that got truncated.
+
+---
+
+# Results — written after the session, 2026-09-07
+
+**Everything above the first rule predates the numbers. This section does not.**
+The session ran 06:42:26 to 07:39:43, sixteen runs, no interruption.
+
+## The session is valid and it is the cleanest one yet
+
+Sixteen of sixteen runs completed. Every run returned **601 or 602 good frames
+of 602**, `!!` appears zero times in any log, and none of `run.sh`'s discard
+greps matched: no `EXPOSURE NEVER SETTLED`, no `the exposure never moved from its
+first reading`, no `usb: N outages`. Every run booted `expose 37 ms` — the
+healthy side of #33 in all sixteen. The void condition did not come close to
+firing.
+
+## The primary test does not reject, and the point estimate runs the other way
+
+One-sided Mann–Whitney U on `common`, locked against free, eight against eight,
+as pre-registered:
+
+| | lock | free |
+|---|---|---|
+| `common` walk, median | 2.36 | 2.52 |
+| `common` walk, mean | **3.24** | **2.41** |
+| `common` walk, range | 1.25 – 5.73 | 1.38 – 2.94 |
+| U (lock < free) | **32.0** | |
+| **p, one-sided** | **0.52** | |
+
+`uv run --script bench/soak/20260907-camlock-cold/score.py` regenerates every
+number in this section from the sixteen logs beside it.
+
+**Not significant, and the mean is higher with the lock on, not lower.** #30
+predicts locking the auto loops reduces the common-mode walk. On the cold run
+the issue asked for, it does not.
+
+The secondary — `margin` should not move — is also flat: lock 2.43 against free
+1.88, one-sided p = 0.75, two-sided p = 0.57. There is no separation to
+attribute to anything, so the docstring's "if locking moves `margin` more, the
+mechanism is not the one in the issue" is not triggered either. Nothing moved.
+
+## Two things the pre-registration did not cover, recorded and not resolved
+
+Both are observations. Neither has a test behind it and neither should be given
+one after the fact.
+
+**1. The lock arm is bimodal and the free arm is not.** Three lock runs sit at
+5.23, 5.49 and 5.73 `common` walk with per-frame sd 2.0–2.3; the other five sit
+at 1.25–2.60 with sd 0.75–1.18. Every free run is inside 1.38–2.94. The three
+wide ones are the three whose level moved between the freeze and the last frame
+— lock-3 137 → 155, lock-5 131 → 117, lock-7 131 → 116, against ≤6 levels of
+movement on the other five. What that means is not established here.
+
+**2. The photometer is neither monotone nor flat, so the dawn diagnostic does
+not resolve as written.** The eight `lock` last-frame readings in session order
+are 130, 129, **154**, 132, **115**, 132, **113**, 131. The rule above says
+monotone → tertiary confounded, flat → tertiary stands. This is a third shape
+the rule did not anticipate, and picking either branch for it now would be
+choosing afterwards, which is what the section exists to prevent. **The tertiary
+is therefore reported as neither, pending an operator who was in the room.**
+
+One thing to check before reading those readings as the room: `#33: the auto
+loops were switched back on 1 time during the ramp` appears in **lock-4 through
+lock-8 and not in lock-1, lock-2 or lock-3.** Whether the rescue can fire after
+the frame-40 freeze, and so whether the freeze held for the whole of those five
+runs, is not answerable from these logs.
+
+## What this does not say
+
+It does not say the camera's auto loops are harmless, and it does not close #30.
+It says the intervention #30 proposed, run cold, on a motionless scene, with the
+instrument fixed and every mechanical check clean, **did not reduce the walk it
+was proposed to reduce.**
