@@ -95,10 +95,17 @@ note is half right:
 
 So the usable register is `0x06`, not the one named for the job. Six
 bit-identical frames is the property #30 needs; the live baseline in the same
-boot gave six distinct ones, and the camera came back afterwards. Still
-unverified: whether the pattern holds across boots, whether it survives
-`ft_pipeline()`'s split trigger/collect, and whether it survives 320 MHz — that
-boot ran at 150.
+boot gave six distinct ones, and the camera came back afterwards.
+
+**The pattern is `1608eb14` at 150 MHz and at 320, under `cam_capture()` and
+under `ft_pipeline()`'s split trigger/collect 265 ms apart, and after a hub
+power cycle** — a reflash leaves the ArduChip powered, so the power cycle is the
+only one of those three that tests the across-boots claim. Nothing about it is
+unverified any more. What is left is wiring it into `m9.c`.
+
+Its mean RGB is 6 63 63, dark and green. Whether the scoring chain produces
+anything worth comparing on a frame that is nothing like a photograph is a
+different question from whether the frame is fixed, and no probe has asked it.
 
 ### `0x31`–`0x35` — exposure and gain can be *set*, not just released
 
@@ -186,10 +193,10 @@ In the order the value falls. The hold this list used to carry — nothing befor
 finished, because its firmware was pinned by md5 — came off on 2026-09-07 when
 that session completed and was read out:
 
-1. ~~**Add a simulated-data mode**~~ — **done as a probe on 2026-09-07, and it
-   is `0x06` bit[7].** What is left is wiring it into `m9.c` and running the
-   scoring chain on it, which separates camera drift from every other drift in
-   one bench. Check the three unverified things listed above first.
+1. ~~**Add a simulated-data mode**~~ — **probed and verified on 2026-09-07, and
+   it is `0x06` bit[7], not `0x05`.** What is left is wiring it into `m9.c` and
+   running the scoring chain on it, which separates camera drift from every
+   other drift in one bench.
 2. **Finish the I²C passthrough** (`0x0B`, `0x0C`, `0x07` bit[0]). It is the only
    readback of the exposure loop that exists, and #33 has been waiting on it.
    [`20260907-camlock-cold/`](../bench/soak/20260907-camlock-cold/) gave it a

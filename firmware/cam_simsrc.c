@@ -71,6 +71,7 @@
 #include "pico/stdlib.h"
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
+#include "hardware/vreg.h"
 
 #include "cam.h"
 #include "cam_dump.h"    // cam_crc32
@@ -97,15 +98,36 @@ typedef struct {
     int      mean[3];          // of the last good frame
 } shot_t;
 
-// `mode` is the already-legacy-resolved resolution code.
-static shot_t capture_set(uint8_t mode)
+// `mode` is the already-legacy-resolved resolution code. `split` selects the
+// two-call form - see below for why it is not a detail.
+//
+// THE PROBE MUST CAPTURE THE WAY THE APPLIANCE DOES, OR IT IS TESTING A PATH
+// NOBODY RUNS. cam_capture() triggers and then blocks on CAP_DONE; m9 does not
+// use it. frame.c's ft_pipeline() splits the two so the sensor exposes
+// underneath encode(), which means the frame sits in the ArduChip's FIFO across
+// a whole inference instead of being read immediately. A synthetic source that
+// is regenerated per trigger and one that is latched in the FIFO are
+// indistinguishable in the serial form and are not in the split one.
+static shot_t capture_set(uint8_t mode, bool split)
 {
     shot_t s = { 0 };
     for (int i = 0; i < NFRAME; i++) {
         cam_time_t t;
-        uint32_t len = cam_capture(&CAM_RECIPE_VENDOR, mode,
-                                   CAM_IMAGE_PIX_FMT_RGB565,
-                                   raw, sizeof raw, &t);
+        uint32_t len;
+        if (split) {
+            if (!cam_trigger(&CAM_RECIPE_VENDOR, mode,
+                             CAM_IMAGE_PIX_FMT_RGB565, &t))
+                continue;
+            // Stand in for the ~265 ms of encode and inference m9 does here.
+            // The point of the split is that the frame waits; a collect issued
+            // immediately would measure the serial path wearing two names.
+            sleep_ms(265);
+            len = cam_collect(raw, sizeof raw, &t);
+        } else {
+            len = cam_capture(&CAM_RECIPE_VENDOR, mode,
+                              CAM_IMAGE_PIX_FMT_RGB565,
+                              raw, sizeof raw, &t);
+        }
         if (len != sizeof raw)
             continue;
         if (cam_frame_is_constant(raw, len))
@@ -146,8 +168,9 @@ static bool overlaps(const shot_t *a, const shot_t *b)
 // One register, the whole sequence: read, write bit 7, read back, capture,
 // restore. Returns the outcome number from the header comment.
 static int try_source(const char *name, uint8_t reg, uint8_t mode,
-                      const shot_t *live)
+                      const shot_t *live, shot_t *out)
 {
+    *out = (shot_t){ 0 };
     printf("\n-- %s (0x%02x bit[7]) --\n", name, reg);
 
     uint8_t was = cam_read_reg(reg);
@@ -169,8 +192,9 @@ static int try_source(const char *name, uint8_t reg, uint8_t mode,
                cam_read_reg(CAM_REG_FPGA_VERSION_NUMBER));
         outcome = 2;
     } else {
-        shot_t sim = capture_set(mode);
+        shot_t sim = capture_set(mode, false);
         report("simulated", &sim);
+        *out = sim;
 
         if (sim.n == 0)
             outcome = 4;
@@ -217,6 +241,24 @@ int main(void)
     // #9, and the same first statement for the same reason as cam_probe.c.
     fgx_qspi_park();
 
+    // THE FIRST RUN OF THIS PROBE ANSWERED THE QUESTION AT 150 MHz AND THE
+    // APPLIANCE SHIPS AT 320, so it answered it about a board nobody runs. The
+    // rate comes from the same FGX_SYS_KHZ cache variable m9 is built with -
+    // CMakeLists.txt's add_compile_definitions is global, so this file already
+    // saw the define and simply never acted on it. Same rail rule as m9's
+    // sys_clock_bring_up(): 1.25 V above 220 MHz, and 150 is the fallback that
+    // always has an exact solution. Before stdio_init_all(), because the USB
+    // clock is derived from what this sets.
+    if (FGX_SYS_KHZ > 220000)
+        vreg_set_voltage(VREG_VOLTAGE_1_25);
+    else if (FGX_SYS_KHZ > 150000)
+        vreg_set_voltage(VREG_VOLTAGE_1_20);
+    sleep_ms(10);
+    bool at_rate = set_sys_clock_khz(FGX_SYS_KHZ, false);
+    if (!at_rate)
+        set_sys_clock_khz(150000, true);
+    sleep_ms(50);
+
     stdio_init_all();
     while (!stdio_usb_connected())
         sleep_ms(50);
@@ -225,8 +267,9 @@ int main(void)
     cam_bus_init(pio0);
 
     printf("\n=== Is there a frame source that is not the sensor? (#30) ===\n\n");
-    printf("clock     : %u MHz sys\n",
-           (unsigned)(clock_get_hz(clk_sys) / 1000000));
+    printf("clock     : %u MHz sys%s\n",
+           (unsigned)(clock_get_hz(clk_sys) / 1000000),
+           at_rate ? "" : "   <- ASKED FOR ANOTHER RATE AND DID NOT GET IT");
 
     cam_bus_bitbang();
     uint8_t id = cam_read_reg(CAM_REG_SENSOR_ID);
@@ -250,7 +293,7 @@ int main(void)
     // it was already true. A still scene on a working sensor does not do this,
     // but a lens cap does, and so does the blanking fault.
     printf("\n-- baseline: the live sensor --\n");
-    shot_t live = capture_set(m128);
+    shot_t live = capture_set(m128, false);
     report("live", &live);
     if (live.n == 0) {
         printf("\nRESULT : FAIL - the camera captures nothing before this probe "
@@ -265,13 +308,37 @@ int main(void)
         while (true) tight_loop_contents();
     }
 
-    int o5 = try_source("data source", ARDUCHIP_DATA_SOURCE, m128, &live);
-    int o6 = try_source("counter pattern", ARDUCHIP_COUNTER_SRC, m128, &live);
+    shot_t s5, s6;
+    int o5 = try_source("data source", ARDUCHIP_DATA_SOURCE, m128, &live, &s5);
+    int o6 = try_source("counter pattern", ARDUCHIP_COUNTER_SRC, m128, &live,
+                        &s6);
+
+    // THE WAY THE APPLIANCE ACTUALLY CAPTURES. Only worth the two minutes if
+    // the serial form found a fixed source in the first place.
+    bool split_ok = false;
+    uint32_t split_crc = 0;
+    if (o6 == 1) {
+        printf("\n-- 0x06 again, captured the way m9 does (split "
+               "trigger/collect, 265 ms apart) --\n");
+        uint8_t was = cam_read_reg(ARDUCHIP_COUNTER_SRC);
+        cam_wait_idle("split");
+        cam_write_reg(ARDUCHIP_COUNTER_SRC, (uint8_t)(was | SOURCE_SIM_MASK));
+        cam_wait_idle("split");
+        shot_t sp = capture_set(m128, true);
+        report("simulated, split", &sp);
+        cam_wait_idle("split");
+        cam_write_reg(ARDUCHIP_COUNTER_SRC, was);
+        cam_wait_idle("split");
+        split_ok = sp.n == NFRAME && sp.uniq == 1;
+        split_crc = sp.n ? sp.crc[0] : 0;
+        printf("  same crc32 as the serial form: %s\n",
+               (sp.n && s6.n && sp.crc[0] == s6.crc[0]) ? "yes" : "NO");
+    }
 
     // Did the camera come back? A probe that leaves the board in a state the
     // next run inherits without saying so is the thing run.sh's flags exist for.
     printf("\n-- after restoring both registers --\n");
-    shot_t back = capture_set(m128);
+    shot_t back = capture_set(m128, false);
     report("live again", &back);
 
     printf("\nRESULT : 0x05 -> outcome %d, %s\n", o5, verdict_text(o5));
@@ -283,6 +350,29 @@ int main(void)
     else
         printf("         The camera came back: %d/%d good, %d distinct.\n",
                back.n, NFRAME, back.uniq);
+
+    if (o6 == 1)
+        printf("         Split trigger/collect: %s\n",
+               split_ok ? "still one distinct crc32, so the FIFO holds it "
+                          "across a frame's compute"
+                        : "DID NOT hold. m9 cannot use this as it stands.");
+
+    // THE ONE QUESTION A SINGLE BOOT CANNOT ANSWER, printed rather than
+    // decided. If the pattern is regenerated from a counter that resets with
+    // the FPGA, this is the same every boot and a reference enrolled on one
+    // boot is valid on the next; if it is seeded by anything else, it is not,
+    // and a drift bench that spans a power cycle would be comparing two
+    // different scenes without knowing it.
+    if (o6 == 1)
+        printf("\nACROSS BOOTS : this boot's pattern is crc32 %08x"
+               "  (split %08x)\n"
+               "               Power-cycle and run again. Same crc means a "
+               "fixed source across boots;\n"
+               "               different means fixed only within one, which is "
+               "still enough for #30\n"
+               "               but not for anything that enrols on one boot "
+               "and scores on another.\n",
+               (unsigned)(s6.n ? s6.crc[0] : 0), (unsigned)split_crc);
 
     while (true) tight_loop_contents();
 }

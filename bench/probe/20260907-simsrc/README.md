@@ -1,8 +1,14 @@
 # The ArduChip will feed the pipeline frames the sensor never saw
 
-**2026-09-07, one boot of `forgix_cam_simsrc`.** Not a bench: no cue schedule,
-no enrolment, no held-out set, no accuracy. It answers one hardware question and
-[`simsrc.log`](simsrc.log) is the whole of it.
+**2026-09-07, three boots of `forgix_cam_simsrc`.** Not a bench: no cue
+schedule, no enrolment, no held-out set, no accuracy. It answers one hardware
+question and the three logs here are the whole of it.
+
+| log | what it was for |
+|---|---|
+| [`discover-150.log`](discover-150.log) | the first run, which found the register. **150 MHz** — the probe took no clock then, and the appliance ships at 320, so it answered about a board nobody runs |
+| [`verify-320-boot1.log`](verify-320-boot1.log) | 320 MHz, and the split trigger/collect m9 actually uses |
+| [`verify-320-boot2-after-power-cycle.log`](verify-320-boot2-after-power-cycle.log) | the same again after a **hub power cycle**, which is the only thing that takes the ArduChip's own power down |
 
 The question is [#30](https://github.com/kazunori279/fpga-open-vocab/issues/30)'s,
 asked from underneath. Every drift measurement in this repo asks whether scores
@@ -45,18 +51,31 @@ source and `0x06` as a counter pattern, and on this module — fpga rev 32,
 firmware 2023-03-03, sensor id `0x82` — the counter is the one that produces
 frames and the data source is the one that stops them.
 
+## The three things that were unverified are now verified
+
+The first run left three ways this could still have been useless. All three were
+closed the same afternoon, and **the pattern is `1608eb14` in every one of
+them**:
+
+| question | why it mattered | answer |
+|---|---|---|
+| Does it survive **320 MHz**? | the discovery boot ran at 150 and the appliance ships at 320 | **yes** — `1608eb14` |
+| Does it survive **`ft_pipeline()`'s split** `cam_trigger()` / `cam_collect()`? | m9 never calls `cam_capture()`; it triggers, spends ~265 ms encoding, then collects. A source regenerated per trigger and one latched in the FIFO look identical in the serial form and do not in the split one | **yes** — `1608eb14`, six for six, with a real 265 ms between the two calls |
+| Is it the same **across boots**? | if the counter is seeded by anything but the FPGA's own reset, a reference enrolled on one boot is not valid on the next | **yes** — `1608eb14` after a hub power cycle, which is what takes the ArduChip's power down; a reflash does not |
+
+The probe now sets the clock from the same `FGX_SYS_KHZ` cache variable m9 is
+built with, so this cannot silently regress to 150 again.
+
 ## What this does not say
 
 It does not say the drift is or is not the camera. **It says the experiment that
-would tell you is now possible**, which it was not this morning.
+would tell you is now possible**, which it was not this morning. The remaining
+work is wiring `0x06` into `m9.c` and running the scoring chain on it.
 
-Three things are unverified and matter before the scoring path uses this:
-
-- whether the pattern is the same across boots, or only within one;
-- whether it survives `ft_pipeline()`'s split `cam_trigger()` / `cam_collect()`,
-  which is how m9 captures and is not how this probe captures;
-- whether it survives at 320 MHz. **This boot ran at 150** — the probe target
-  takes no `FGX_SYS_KHZ`, and the banner says so.
+One thing to carry into that: the pattern's mean RGB is **6 63 63**, which is
+dark and green. Whether a scoring chain fed a frame nothing like a photograph
+produces embeddings worth comparing is a separate question from whether the
+frame is fixed, and this probe does not touch it.
 
 ## Reproducing it
 
@@ -65,5 +84,10 @@ cmake --build firmware/build --target forgix_cam_simsrc
 uv run --script host/bootsel.py --flash firmware/build/forgix_cam_simsrc.uf2
 ```
 
-Then read the CDC port. The probe restores both registers itself and reports
-whether the camera came back; if it says it did not, USB out for ten seconds.
+Then read the CDC port; it takes about 40 s. For the across-boots line, run
+`host/bootsel.py --power-cycle` and flash again — a reflash on its own is not a
+power cycle and does not test what that line claims.
+
+The probe restores both registers itself and reports whether the camera came
+back; if it says it did not, USB out for ten seconds. **Flash m9 back
+afterwards** — `host/bootsel.py --flash firmware/build/forgix_m9.uf2`.

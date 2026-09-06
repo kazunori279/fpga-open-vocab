@@ -1,0 +1,44 @@
+
+=== Is there a frame source that is not the sensor? (#30) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- baseline: the live sensor --
+  live               6/6 good   6 distinct   0 flat   mean RGB 88 107 81
+                     a40e0267 f02bef2a a8440ad7 29b7050f b6c86c20 5e1b8390
+
+-- data source (0x05 bit[7]) --
+  was 0x00, wrote 0x80, reads back 0x80
+  simulated          0/6 good   0 distinct   0 flat   mean RGB 0 0 0
+                    
+  restored to 0x00
+
+-- counter pattern (0x06 bit[7]) --
+  was 0x01, wrote 0x81, reads back 0x81
+  simulated          6/6 good   1 distinct   0 flat   mean RGB 6 63 63
+                     1608eb14 1608eb14 1608eb14 1608eb14 1608eb14 1608eb14
+  restored to 0x01
+
+-- 0x06 again, captured the way m9 does (split trigger/collect, 265 ms apart) --
+  simulated, split   6/6 good   1 distinct   0 flat   mean RGB 6 63 63
+                     1608eb14 1608eb14 1608eb14 1608eb14 1608eb14 1608eb14
+  same crc32 as the serial form: yes
+
+-- after restoring both registers --
+  live again         6/6 good   6 distinct   0 flat   mean RGB 134 132 134
+                     e952a2e2 90d5f233 b954c6a9 f4547c01 d331d627 81a9ecb8
+
+RESULT : 0x05 -> outcome 4, the capture path broke. Power-cycle the board - USB out for ten seconds - before running anything else.
+         0x06 -> outcome 1, the source exists and is FIXED - this is what #30 needs. Wire it into m9.
+         The camera came back: 6/6 good, 6 distinct.
+         Split trigger/collect: still one distinct crc32, so the FIFO holds it across a frame's compute
+
+ACROSS BOOTS : this boot's pattern is crc32 1608eb14  (split 1608eb14)
+               Power-cycle and run again. Same crc means a fixed source across boots;
+               different means fixed only within one, which is still enough for #30
+               but not for anything that enrols on one boot and scores on another.

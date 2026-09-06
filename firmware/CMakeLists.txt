@@ -543,7 +543,7 @@ add_executable(forgix_cam_simsrc
 target_include_directories(forgix_cam_simsrc PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 pico_generate_pio_header(forgix_cam_simsrc ${CMAKE_CURRENT_LIST_DIR}/cam_spi.pio)
 target_link_libraries(forgix_cam_simsrc
-    pico_stdlib hardware_pio hardware_clocks)
+    pico_stdlib hardware_pio hardware_clocks hardware_vreg)
 pico_enable_stdio_usb(forgix_cam_simsrc 1)
 pico_enable_stdio_uart(forgix_cam_simsrc 0)
 pico_add_extra_outputs(forgix_cam_simsrc)
