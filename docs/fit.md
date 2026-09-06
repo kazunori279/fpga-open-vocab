@@ -8,7 +8,7 @@ is to run it.** This page is the shortest honest path from "I have an idea" to
 "I know". It is three screens, cheapest first, and the first two are free.
 
 [← back to the README](../README.md) · [architecture](architecture.md) ·
-[building](building.md) · [bring-up log](bring-up-log.md)
+[building](building.md) · [camera](camera.md) · [bring-up log](bring-up-log.md)
 
 ---
 

@@ -18,7 +18,8 @@ along the way — the wire, the block, the fabric, the state machines, the two
 cores, and where each of them lives in the tree.
 
 [← back to the README](../README.md) · [building](building.md) ·
-[history](history.md) · [dev plan](milestones.md) · [bring-up log](bring-up-log.md)
+[history](history.md) · [camera](camera.md) ·
+[dev plan](milestones.md) · [bring-up log](bring-up-log.md)
 
 ---
 

@@ -13,7 +13,7 @@ PyTorch → a quantized weight blob compiled into the firmware), **the fabric**
 runtime), and **the firmware** (Pico SDK → a `.uf2`).
 
 [← back to the README](../README.md) · [architecture](architecture.md) ·
-[monitor](monitor.md) · [will it work for you](fit.md) ·
+[monitor](monitor.md) · [will it work for you](fit.md) · [camera](camera.md) ·
 [history](history.md) · [dev plan](milestones.md) · [bring-up log](bring-up-log.md)
 
 ---

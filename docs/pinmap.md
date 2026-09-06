@@ -23,7 +23,7 @@ the link measured is [`architecture.md`](architecture.md) and
 column at the bottom — the caveats there say which is which.
 
 [← back to the README](../README.md) · [architecture](architecture.md) ·
-[building](building.md) · [history](history.md) ·
+[building](building.md) · [camera](camera.md) · [history](history.md) ·
 [bring-up log](bring-up-log.md)
 
 The extractor recovers connectivity geometrically (wire endpoints unioned,

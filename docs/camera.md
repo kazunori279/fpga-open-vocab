@@ -16,6 +16,12 @@ September 2023, section 4 "Register Table". **Nothing on this page has been run
 on the board.** It is a reading of the datasheet against the source, and the
 column that says so is marked.
 
+[← back to the README](../README.md) · [architecture](architecture.md) ·
+[building](building.md) · [monitor](monitor.md) ·
+[will it work for you](fit.md) · [bring-up log](bring-up-log.md)
+
+---
+
 ## The one fact that explains #33
 
 **Almost the entire control surface is write-only.**

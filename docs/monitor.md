@@ -31,7 +31,7 @@ One line per confirmed change and nothing in between, so a quiet day is a short
 file.
 
 [← back to the README](../README.md) · [will it work for you](fit.md) ·
-[architecture](architecture.md) · [building](building.md)
+[architecture](architecture.md) · [building](building.md) · [camera](camera.md)
 
 ---
 
