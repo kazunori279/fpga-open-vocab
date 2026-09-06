@@ -385,7 +385,7 @@ uv run model/teacher.py embed --split train2017   # or tools/teacher_swap.py
 uv run model/distill.py --split train2017 --epochs 40
 uv run model/quantize.py --run train2017
 uv run model/evaluate.py --split val2017 --emit-thresholds --emit-embeddings
-uv run model/export.py --run train2017            # -> the int8 blob + export.json
+uv run model/export.py --run train2017            # -> the int4 blob + export.json
 ```
 
 **`export.json` is not optional.** Two 512-d embedding spaces ship, and a query
