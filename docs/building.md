@@ -8,11 +8,12 @@ piece onto the board and talking. Nothing here explains *why*; that is
 [`history.md`](history.md) for the reasoning.
 
 Three pieces build independently and only meet on the board: **the model** (host
-PyTorch → an int8 blob compiled into the firmware), **the fabric** (Verilog →
-an Efinity `.hex` bitstream, streamed to the FPGA over USB at runtime), and
-**the firmware** (Pico SDK → a `.uf2`).
+PyTorch → a quantized weight blob compiled into the firmware), **the fabric**
+(Verilog → an Efinity `.hex` bitstream, streamed to the FPGA over USB at
+runtime), and **the firmware** (Pico SDK → a `.uf2`).
 
 [← back to the README](../README.md) · [architecture](architecture.md) ·
+[monitor](monitor.md) · [will it work for you](fit.md) ·
 [history](history.md) · [dev plan](milestones.md) · [bring-up log](bring-up-log.md)
 
 ---
@@ -22,7 +23,7 @@ an Efinity `.hex` bitstream, streamed to the FPGA over USB at runtime), and
 | Step | Where | Tool |
 |---|---|---|
 | Model training / distillation | host | [PyTorch](https://pytorch.org/), [`uv`](https://docs.astral.sh/uv/) |
-| Quantization + weight export | host | PyTorch → flat int8 blob |
+| Quantization + weight export | host | PyTorch → a flat blob, **int4 by default**, two weights per byte and low nibble first ([M14](history.md); `model/export.py` `pack_weights()`). A layer can be pinned to int8 |
 | FPGA synthesis | **Linux/amd64 Docker** | Efinix **Efinity** (T8 is supported in the free tier) |
 | RTL simulation | host | [Icarus Verilog](https://steveicarus.github.io/iverilog/) — `make -C rtl sim`, no vendor tools needed |
 | MCU firmware | host | [Pico SDK](https://github.com/raspberrypi/pico-sdk) + [`arm-none-eabi-gcc`](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads) — see the note below |
@@ -225,9 +226,16 @@ support. Four things about this are load-bearing:
 `uv run host/bootsel.py` automates all of that:
 
 ```sh
-uv run host/bootsel.py --flash firmware/build-280/forgix_m9.uf2   # nudge, write, verify, run
-uv run host/bootsel.py --power-cycle --hub 2-1:2                  # the hammer
+uv run host/bootsel.py --flash firmware/build/forgix_m9.uf2   # nudge, write, verify, run
+uv run host/bootsel.py --power-cycle --hub 2-1:N              # the hammer; N from uhubctl, see below
 ```
+
+**`firmware/build/` is the one to flash.** The `build-150` / `build-280` /
+`build-300` / `build-320` / `build-332` directories beside it are the
+2026-08-15 clock sweep's leftovers, each built with a different `FGX_SYS_KHZ`,
+and they are not kept in step with anything. An earlier version of this page
+used `build-280` in the line above, which is how a reader ends up benching the
+appliance 40 MHz below the rate it ships at.
 
 `--flash` does the write the way the four rules above say to: `load -f` then
 `verify`, and on a mismatch it says the board is still running the old image,
@@ -277,32 +285,58 @@ uv run host/demo.py "an opened book / a closed book / a book"
 # one A/B scene experiment, cued and scored
 ./ab.sh "an opened book" "a closed book" --enrol
 uv run --script tools/score_cue.py /tmp/m9_cue.log
+
+# leave it watching, one line per confirmed change  ->  monitor.md
+uv run --script host/watch.py --enrol "a red cube" "a blue cube"
 ```
+
+`host/watch.py` is the one to reach for if what you want is a *monitor* rather
+than a bench run: it restarts the driver across a USB hiccup, passes
+`--leave-running` so the board is not left in BOOTSEL, and writes JSONL.
+[`monitor.md`](monitor.md) is that whole story, and
+[`fit.md`](fit.md) is the three screens to read before spending a morning on a
+contrast that cannot work.
 
 `demo.py` holds the teacher resident, so `--ask` re-queries a **running** board
 without re-encoding anything. It refuses to send a query set unless the crc32
 the board prints over its own weights matches `export.json` — a board running
 last week's student is the failure that catches.
 
-At the board's console: `'0'`..`'6'` enrol the empty scene and each class,
-`'N'` forgets the room and the enrolment and learns them again, `'H'` toggles
-background hold, `'E'` forces a deferred LED failure to land somewhere visible.
-`'O'` closes the timing window and flips the capture between overlapped and
-serial; `'D'` does the same and flips the trigger between late on the schedule
-and back at the collect, which is issue #14's A/B. `demo.py` presses both on a
-given frame with `--overlap N` and `--eager N`.
+### The board's console keys
 
-Three more make faults happen on purpose, because all three are things that
-show up twice in five runs and never when watched. `'U'` drops the USB pull-up
-behind TinyUSB's back — the board notices, re-attaches itself in about 2.8 s
-and prints which frames it lost. `'I'` does the same and refuses to re-attach,
-so the watcher has to escalate to its deliberate reboot at 30 s and the next
-banner names the reason as `usb :` rather than as a hang. `demo.py` presses
-them with `--usb-drop N` and `--usb-drop-hard N`, and follows the board across
-the reboot either way. `--cam-fault N` stalls the camera bus for issue #8's
-deadline. Every hotkey that costs a run — `B R W U I` — is now ignored unless
-it arrives alone, 100 ms clear of any other byte, so a `0x42` inside a
-bitstream cannot send the board to BOOTSEL mid-download.
+Every one of these is a single keystroke at `m9`'s prompt. **`demo.py` can press
+any of them on a chosen frame** — `--enrol FRAME:KEY`, where `KEY` is `0`..`6`
+or `L` — which is how a bench run gets an intervention at a reproducible point
+instead of at the operator's reaction time. `--overlap`, `--eager`,
+`--usb-drop`, `--usb-drop-hard` and `--cam-fault` are the named wrappers for the
+five below that have one.
+
+| key | what it does |
+|---|---|
+| `0`..`6` | enrol: `0` the empty scene, `1`..`6` each class |
+| `N` | forget the room *and* the enrolment, and learn both again |
+| `H` | background hold — FROZEN against TRACKING |
+| `S` | the z scale: this room's spread against COCO's. Prints the ratio, which is M19's point |
+| `L` | **step the camera's auto loops through `CAM_LOCK_STEPS`**, printing which of exposure / gain / white-balance are now frozen. This is [#30](https://github.com/kazunori279/fpga-open-vocab/issues/30)'s intervention; *when* it is pressed is part of the measurement, which is why `--enrol=40:L` exists |
+| `P` / `V` | dump the next frame's pixels / its 512 embedding floats, in the same BEGIN/END envelope. `host/cam.py` and `host/caption.py` read them |
+| `O` | close the timing window and flip capture between overlapped and serial |
+| `D` | ditto, flipping the trigger between late-on-the-schedule and back-at-the-collect — [#14](https://github.com/kazunori279/fpga-open-vocab/issues/14)'s A/B |
+| `E` | force a deferred LED failure to land somewhere visible |
+| `B` / `R` | BOOTSEL / reboot |
+
+Four keys **make a fault happen on purpose**, because all four are things that
+show up twice in five runs and never when watched:
+
+| key | fault | what should follow |
+|---|---|---|
+| `W` | spin forever | the watchdog reboots in `FGX_WD_MS` and the next banner names the stage and the frame |
+| `C` | stall the camera bus | `camera bus stalled`, one lost frame, then the next frame as if nothing happened — [#8](https://github.com/kazunori279/fpga-open-vocab/issues/8)'s bounded loop, and the opposite outcome to `W` on purpose |
+| `U` | drop the USB pull-up behind TinyUSB's back | ~2 s of silence, D1 blinking red, a re-attach in about 2.8 s and a `back after` line naming the frames lost |
+| `I` | the same, refusing to come back | ~30 s of silence, then a deliberate reboot whose banner says `usb :` and **not** `hang :` — [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9) |
+
+Every hotkey that costs a run — `B R W U I` — is ignored unless it arrives
+alone, 100 ms clear of any other byte, so a `0x42` inside a bitstream cannot
+send the board to BOOTSEL mid-download.
 
 The other harnesses, each with its own host script:
 
