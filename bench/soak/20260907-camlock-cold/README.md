@@ -316,6 +316,36 @@ lock-8 and not in lock-1, lock-2 or lock-3.** Whether the rescue can fire after
 the frame-40 freeze, and so whether the freeze held for the whole of those five
 runs, is not answerable from these logs.
 
+### Settled from the source, later the same day
+
+It is answerable from `firmware/`, and the answer is no. **The rescue cannot
+fire after the freeze, in any run, structurally.** `ft_acquire()` is called
+exactly once, at `firmware/m9.c:2940`, as boot check 3 — one call site in the
+whole binary, ahead of check 4, which is the wait for a query set on USB CDC.
+`relit` is a local of `ft_acquire()` and can only be incremented inside its
+ramp loop, which is bounded by forty frames and `FT_RAMP_BUDGET_US`. The `'L'`
+press arrives over that same CDC, in the frame loop, which cannot begin until a
+query set has arrived — so the ramp is over before frame 0 of the run exists.
+
+**Those five lines are boot-time events and say nothing about the lock arm's
+validity.** They do not divide the arm, and the three wide runs are not the
+three that show them.
+
+What does not follow is that the freeze held. `firmware/cam.h:245` is explicit
+that it cannot be assumed — "the register takes a switch, not a number — so a
+lock can only ever mean *stop deciding*, never *use this number*", and
+"**STOP DECIDING IS NOT HOLD WHAT YOU DECIDED**". But the drift measured there
+on 2026-08-25 was attributed to the **AWB** loop dropping the colour gains
+towards unity, and `CAM_LOCK_STEPS[1]` is `CAM_AUTO_WB` — this arm leaves AWB
+free on purpose, precisely to miss that failure. That measurement also has
+overall brightness "barely moving, 133 to 126", where the three wide runs here
+moved luminance by 14 to 18.
+
+So the known switch-off drift does not account for what these logs show, and
+nothing else in the source does either. **Recorded as an open question, not
+resolved, and not to be given a mechanism from eight runs.** It is the question
+`docs/camera.md`'s first two items were already the way to answer.
+
 ## What this does not say
 
 It does not say the camera's auto loops are harmless, and it does not close #30.
