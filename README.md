@@ -311,7 +311,10 @@ the frictions, the rejected designs and what they taught are in
 | [`docs/bring-up-log.md`](docs/bring-up-log.md) | dated bench entries, newest first, including several that exist only to record a claim that later turned out to be false |
 | [`docs/pinmap.md`](docs/pinmap.md) | M0's output: the confirmed pin and bank map, extracted from the vendor's KiCad source |
 | [`bench/README.md`](bench/README.md) | the manifest for every accuracy number in this repo — which run is which, and which of the two held-out figures each table quotes |
-| [`rtl/README.md`](rtl/README.md) | the Efinity flow, and the four things it does not tell you |
+| [`bench/stills/README.md`](bench/stills/README.md) | the still-image sets and the standing answers they settled — scene invariance, which loss terms move nothing, and what did |
+| [`bench/soak/README.md`](bench/soak/README.md) | the soak archive: every long run and continuous bus trace, what each one measures, and the three times a quiet day in the trace turned out to be wrong |
+| [`rtl/README.md`](rtl/README.md) | the RTL — the GEMM tile that ships, the M2 link, the probes, every simulation target, and the four things the Efinity flow does not tell you |
+| [`rtl/bitstreams/README.md`](rtl/bitstreams/README.md) | which image is current, what each measured on hardware, and why they are checked in rather than rebuilt |
 | [`slides/index.html`](slides/index.html) | a 50-minute conference deck on all of the above, [published here](https://kazunori279.github.io/fpga-open-vocab/slides/) — or open the file in a browser, no build step ([notes](slides/README.md)) |
 | [`slides/index.ja.html`](slides/index.ja.html) | the same deck [in Japanese](https://kazunori279.github.io/fpga-open-vocab/slides/index.ja.html) — a translation, not a fork; a link in the corner of each deck switches to the other |
 
@@ -356,9 +359,9 @@ fpga-open-vocab/
 │   ├── teacher.py     #   the teacher's towers; spaces.py resolves WHICH teacher
 │   ├── student.py     #   the 1.40 M-param CNN, and its budget table
 │   ├── distill.py     #   the training loop
-│   ├── quantize.py    #   int8 calibration
+│   ├── quantize.py    #   post-training quantization, int8 by default
 │   ├── evaluate.py    #   retention, thresholds, eval embeddings
-│   ├── export.py      #   -> the flat int8 blob + export.json naming the space
+│   ├── export.py      #   -> the flat int4 blob + export.json naming the space
 │   ├── data.py        #   COCO fetch / resize / query lists
 │   ├── captions.py    #   caption embeddings, for host/caption.py
 │   └── runs/…/export/ #   the shipped blob — weights.bin, testvec.bin,
