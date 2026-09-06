@@ -25,6 +25,30 @@ re-run from anything on disk.
 Until 2026-08-17 they lived in `/tmp`, which macOS empties. That is the only
 reason this directory exists.
 
+## What the archive has settled, and where each answer lives
+
+The sections below are in the order they were written, and several of them
+overturn earlier ones in place. This table is the standing answer to each
+question, so that nothing further down is read as current when it is not.
+
+| question | where it stands | section |
+| --- | --- | --- |
+| Does one bench's accuracy figure mean anything? | **Not on its own.** The same bench five times in half an hour spans 18.2 points, so a gap under roughly twenty between two single runs is not a finding | [five times in half an hour](#the-same-bench-five-times-in-half-an-hour-spans-eighteen-points) |
+| Is any of it trustworthy at all? | Three benches were taken through a camera whose auto loops never engaged, the board said so in the log, and **no scoring tool read that line until 2026-09-06** | [a camera nobody checked](#a-camera-nobody-checked) |
+| Why did the book pair collapse ([#19](https://github.com/kazunori279/fpga-open-vocab/issues/19))? | **Open.** The loss is a step between visits rather than a slide through the run, and the pose walk once named as its mechanism does not predict which runs fail | [once `lost` is taken apart](#what-19-actually-is-once-lost-is-taken-apart) |
+| Does re-staging the scene every visit fix it? | **No** — 2.2 points, which is nothing | [re-stage the book](#re-stage-the-book-every-visit-and-nothing-happens) |
+| Does a threshold that follows the scene fix it? | **No**, and the +1.7 that looked promising on 2026-08-25 was two of those broken cameras | [a threshold that follows the scene](#a-threshold-that-follows-the-scene-and-why-it-is-still-not-a-fix) |
+| Why does the presence stage invert ([#18](https://github.com/kazunori279/fpga-open-vocab/issues/18))? | With two queries the radius is not a radius but a **band on the margin axis**, and the empty desk falls inside it on ten benches of 28. There is no constant to retune | [nowhere to stand](#the-empty-desk-has-nowhere-to-stand) |
+| Then what does work for presence? | Enrol the empty scene as a **third reference** and take the nearest of three, with no threshold anywhere: +24.5 points replayed, and it has now run on the board | [a reference of its own](#give-neither-a-reference-of-its-own-and-it-works) |
+| Can that third reference also anchor the drift correction? | **No.** Its average is confined to its own cell, and the larger half of the drift is on the class side where no empty reference can see it | [the pairing does not work](#and-the-pairing-does-not-work) |
+| Should the origin-distance warning become a refusal ([#21](https://github.com/kazunori279/fpga-open-vocab/issues/21))? | **No, closed.** In all three units it refuses a working bench before a broken one | [a reference on the origin](#a-reference-on-the-origin-and-the-unit-that-does-not-exist) |
+| Does rephrasing a pair as a contrast repair it? | **No** — on the only pair with room to move it landed inside the spread of the bare runs | [bare queries](#bare-queries-and-the-one-run-that-is-not) |
+
+Two things to know before reading any number below: which of the [two held-out
+columns](#two-different-held-out-numbers-and-the-tables-use-the-first-one) it
+came from, and that the [sidecar](#the-cues-sidecars-and-the-three-logs-that-have-none),
+not the log, is what makes a run scoreable.
+
 ## Two different held-out numbers, and the tables use the first one
 
 `tools/score_cue.py` prints both, and they are not the same measurement:

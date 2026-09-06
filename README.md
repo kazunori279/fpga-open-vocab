@@ -65,6 +65,12 @@ uv run host/demo.py --bitstream rtl/bitstreams/m16/gemm_top_wide.hex \
                     "cup" "person" "book" "laptop"
 ```
 
+`firmware/build` is the shipped operating point, 320 MHz. The sibling
+`firmware/build-150`, `-280`, `-300`, `-320` and `-332` directories are the
+2026-08-15 clock sweep and differ in `FGX_SYS_KHZ` alone; building in one of
+those by accident produces a working board at a rate nothing else was measured
+at, and only the banner says so.
+
 The model itself is in the tree: `model/runs/so400m-full-a05/export/` holds a
 780,720-byte blob — 768 KB of int4 weights and their headers — the test vector
 the firmware checks itself against, and the
@@ -97,42 +103,120 @@ harness, and rebuilding the model — are in [`docs/building.md`](docs/building.
 | **retention** | 91% of the queries the teacher itself gets right, at int4 |
 | **fabric** | **6,265 of 7,384 LE (85%)**, 8/8 multipliers, **21 of 24 memory blocks** — it started at 33% with memory the only thing running out; three milestones of arithmetic later both are nearly full |
 | **link** | 26.4 MB/s forward measured, 8.9 MB/s back, and it cannot be widened either way |
-| **decision rule** | **95.8% and 90.8% held out on the board** on 2026-08-17, on hands and on bags — the first runs since 08-11's 120/120 to reproduce 90%+, and the first on pairs that are not the book. Four pairs run back to back that afternoon scored 95.8 / 90.8 / 50.0 / 34.2%, and that spread is the honest headline: **what the appliance does depends on what you ask it to tell apart.** Neither of the two that failed is the decision rule, and neither is what it was first written up as. `tools/probe_ceiling.py` measures the ceiling — with two queries the centred space is one-dimensional, so the margin's own separability is a hard bound on any rule the board can run — and against it the glass **collected 60.0% of a 67.5% ceiling** and the person **78.3% of an 80.4%** one. The glass pair reads margin AUC 0.301, which is inverted rather than absent (0.199 from chance, named backwards) and folds to 0.699; that is low, but the book pair has read 0.599 on a morning when the encoder was demonstrably fine, so **one run cannot tell a model limit from a bad morning** and the glass has one run. The person's scatter (−0.77/+0.77/+0.91/+1.22) is real and cost 2.1 points; what took it from 78.3% to the 50.0% quoted above is #18's presence gate calling 34 held-out class frames absent, and `enrolled from 0/6` is the same gated artefact. The book's own collapse — 58.3% and 57.5% on 2026-08-16, then 57.5% again on 08-17 — is [#19](https://github.com/kazunori279/fpga-open-vocab/issues/19) and still open, but that last figure came from a control run with the empty rotation taken back out, which is #19's own outcome (2): the re-staging is real, the bench schedule is not what causes it. The visit centres say what is: the opened book's four visits walked +1.96, +3.25, +4.64, +4.39 toward the closed book sitting flat at +5.8, **without ever leaving the frame**, so 9 of 60 held-out opened frames were called right against 66 of 66 closed ones. Not the encoder — the margin still separates those scenes at 93.8%, AUC 0.970, and the weights and bitstream crc32s are byte-identical across all three dates. Replaying the ceiling over all twenty-six archived pair benches narrows #19 to **six** of them: 08:55, 10:52, 13:35, 17:22, 10:48 and 15:27 lost 72, 48, 37, 29, 25 and 15 points the margin was offering, and every other low score collected what was on offer and was low because the ceiling was low that morning. One of #19's own two founding runs, 08-16 17:35, had a ceiling of 0.599 and lost 9.2 points, so it never tested the rule at all. `tools/probe_midpoint.py` then splits that `lost` into the only two things it can be — the rule's cut sitting in the wrong place, and the pair enrolled the wrong way round — and on the two largest it is mostly the second: **four of the twenty-five two-query benches enrolled backwards**, and on 08:55 and 10:52 that mislabelling is 47.5 of the 72 and 31.2 of the 48. No radius recovers those. The same replay shows the book pair's ceiling spanning **1.000 to 0.579 across nineteen runs of the same desk** — 42 points decided before the decision rule is reached. The rule's other half, presence, is settled in shape and not in constant: the level-based one failed at 17.8% and 24.4%, and [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) replaced it with open-set rejection, which scores **90.0% and 87.8%** replayed on the very frames that killed it. **Replayed across all twenty-three archived benches** by `tools/probe_presence.py`, eight are inverted — the empty desk nearer the references than the objects, which no threshold repairs — and of the fifteen that are not, ten sit at AUC 0.904–0.983. Fit the radius on twenty-two benches and score it on the twenty-third and the best unit now gains **10.2 points** over the shipped `2.0 sep` while paying 8.8 for not having seen that bench. **That is a reversal**: through 08-17 the gain shrank on every bench added (6.0, 3.9, 2.3, 2.5) and the 08-20 runs turned it round, because the unit that gains is `scat`, the enrolment spread, and it picks r = 1.25 on all twenty-three folds where absolute distance wanders 1.65 to 2.75. The constant is still not changed — every sub-50% fold is one of the eight inversions, so what the number is really measuring is that the fifteen upright benches agree with each other, which is #18's geometry question and not a radius |
-| **the flaky two** | both now measured rather than guessed at. The camera bus's **worst gap is 16 µs against a 2,000 µs deadline** over 152 frames at 280/140, and 15 µs over 101 at 320/160 — the same at both rates, 125× clear, so [#12](https://github.com/kazunori279/fpga-open-vocab/issues/12) is not the fast side running out of time. A USB outage is now caught **by the board** off `sof_rd` rather than inferred by the host from a log that stopped: it re-attaches itself in ~2.8 s, says which frames it lost, and reboots deliberately at 30 s. `'U'` and `'I'` make both halves happen on demand, which is how they were checked. [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9) is still open, and it now has a third shape in it: a reset from underneath the firmware, which the banner separates from a watchdog reboot by diffing `POWMAN_CHIP_RESET` |
+| **decision rule** | the open part, and the rest of this page. Best and worst held-out pair on one afternoon differ by **60 points** |
+| **the flaky two** | [#12](https://github.com/kazunori279/fpga-open-vocab/issues/12) and [#9](https://github.com/kazunori279/fpga-open-vocab/issues/9), both now measured rather than guessed at — [below](#the-flaky-two) |
 
 Two GO/NO-GO gates were passed on the way: **M2** (is the on-board link fast and
 clean enough to be worth using) and **M4** (can a model small enough to fit still
-tell the queries apart). What is left is not speed — it is the decision rule, and
-the one honest gap that was left in it has now been measured and it came back
-badly. The presence stage's *benefit* had never been tested, because it had never
-fired on a bench — the only empty scene in the schedule was the one the rule was
-taught from, so the 0/30 that stood in for it was training accuracy. The bench
-now returns to an empty desk after every class is enrolled and scores it, and on
-two runs the stage held **17.8% and 24.4%** of those frames. The cause is
-structural rather than a threshold: the presence axis is the common mode, which
-is exactly the part the state axis subtracts because it is where the sensor's
-drift lives. [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18)
-replaces it with open-set rejection in the centred space — absent when the frame
-is further than 2.0 `sep` from every reference the board was shown — and because
-that quantity is recoverable from the logs, the replacement was scored on the two
-failing runs **before** the board was touched: **90.0% and 87.8%** held, keeping
-98.3% and 85.0% of the class frames. That is now the firmware, and twenty-three
-benches have since run it: the shape holds where the scene lets it, and eight of
-the twenty-three invert, which no radius reaches. A leave-one-out sweep does now
-beat the shipped constant by ten points, but only by agreeing with the fifteen
-upright benches and failing every inverted one, so what is left of #18 is still a
-geometry question. The same runs put the state stage's 120/120 in doubt as well
-([#19](https://github.com/kazunori279/fpga-open-vocab/issues/19)), which eight
-benches later is still open with the schedule ruled out, though two of those
-eight came back at 95.8% and 90.8% on pairs that are not the book.
+tell the queries apart). What is left is not speed.
 
-Several benches have since tried to confirm it and none of them measured the
-rule — each was spent on a bad enrolment instead, in a way nothing was checking
-for. So the board now checks: it compares the gap between the two references
-against the **spread of the frames each was averaged from**, and prints both at
-the console before the first held-out frame. It first called a run on hardware
-on 2026-08-17 at 0.7×, ninety seconds in, on one that went on to score 47.5% —
-right, and nine minutes earlier than the scoring pass.
+## The decision rule, which is what is left
+
+The rule has two halves — **which** scene this is, by nearest enrolled
+reference, and **whether** it is any of them, by how far the nearest one is.
+Neither is finished, and the four sections below are the four things that had to
+be separated before either could be worked on: what the pair itself allows, what
+the rule then collects, and the two open issues that are left when those are
+accounted for.
+
+### What it scores depends on what you ask it to tell apart
+
+Four pairs run back to back on 2026-08-17 scored **95.8 / 90.8 / 50.0 / 34.2%**,
+and that spread is the honest headline. The two that worked were hands and bags —
+the first runs since 08-11's 120/120 to reproduce 90%+, and the first on pairs
+that are not the book. Neither of the two that failed is the decision rule
+failing, and neither is what it was first written up as. This is what
+[`docs/fit.md`](docs/fit.md) exists to screen for.
+
+### The ceiling: how much was on offer before the rule ran
+
+`tools/probe_ceiling.py` measures what the pair allows. With two queries the
+centred space is one-dimensional, so the margin's own separability is a hard
+bound on any rule the board can run. Against it the glass **collected 60.0% of a
+67.5% ceiling** and the person **78.3% of an 80.4%** one.
+
+The book pair's ceiling spans **1.000 to 0.579 across nineteen runs of the same
+desk** — 42 points decided before the decision rule is reached. The glass pair
+reads margin AUC 0.301, which is inverted rather than absent (0.199 from chance,
+named backwards) and folds to 0.699; that is low, but the book pair has read
+0.599 on a morning when the encoder was demonstrably fine, so **one run cannot
+tell a model limit from a bad morning** and the glass has one run.
+
+Replaying the ceiling over all twenty-six archived pair benches narrows #19 to
+**six** of them: 08:55, 10:52, 13:35, 17:22, 10:48 and 15:27 lost 72, 48, 37, 29,
+25 and 15 points the margin was offering. Every other low score collected what
+was on offer and was low because the ceiling was low that morning. One of #19's
+own two founding runs, 08-16 17:35, had a ceiling of 0.599 and lost 9.2 points,
+so it never tested the rule at all.
+
+`tools/probe_midpoint.py` splits that `lost` into the only two things it can be —
+the rule's cut sitting in the wrong place, and the pair enrolled the wrong way
+round — and on the two largest it is mostly the second: **four of the twenty-five
+two-query benches enrolled backwards**, and on 08:55 and 10:52 that mislabelling
+is 47.5 of the 72 and 31.2 of the 48. No radius recovers those.
+
+### [#19](https://github.com/kazunori279/fpga-open-vocab/issues/19) — the book pair walks while nothing moves
+
+The book's collapse — 58.3% and 57.5% on 2026-08-16, then 57.5% again on 08-17 —
+is open, with the bench schedule ruled out: that last figure came from a control
+run with the empty rotation taken back out, which is #19's own outcome (2).
+
+The visit centres say what is happening. The opened book's four visits walked
+**+1.96, +3.25, +4.64, +4.39** toward the closed book sitting flat at +5.8,
+**without ever leaving the frame**, so 9 of 60 held-out opened frames were called
+right against 66 of 66 closed ones. Not the encoder: the margin still separates
+those scenes at 93.8%, AUC 0.970, and the weights and bitstream crc32s are
+byte-identical across all three dates.
+
+Eight benches later it is still open, though two of those eight came back at
+95.8% and 90.8% on pairs that are not the book.
+
+### [#18](https://github.com/kazunori279/fpga-open-vocab/issues/18) — presence, settled in shape and not in constant
+
+The presence stage's *benefit* had never been tested, because it had never fired
+on a bench: the only empty scene in the schedule was the one the rule was taught
+from, so the 0/30 that stood in for it was training accuracy. The bench now
+returns to an empty desk after every class is enrolled and scores it, and the
+level-based rule held **17.8% and 24.4%** of those frames.
+
+The cause is structural rather than a threshold. The presence axis is the common
+mode, which is exactly the part the state axis subtracts because it is where the
+sensor's drift lives. #18 replaces it with **open-set rejection** in the centred
+space — absent when the frame is further than 2.0 `sep` from every reference the
+board was shown — and because that quantity is recoverable from the logs, the
+replacement was scored on the two failing runs **before the board was touched**:
+**90.0% and 87.8%**, keeping 98.3% and 85.0% of the class frames. That is now the
+firmware.
+
+Twenty-three benches have since run it, replayed by `tools/probe_presence.py`.
+**Eight are inverted** — the empty desk nearer the references than the objects,
+which no threshold repairs — and of the fifteen that are not, ten sit at AUC
+0.904–0.983. Fit the radius on twenty-two benches and score it on the
+twenty-third and the best unit gains **10.2 points** over the shipped `2.0 sep`
+while paying 8.8 for not having seen that bench.
+
+**That is a reversal**: through 08-17 the gain shrank on every bench added (6.0,
+3.9, 2.3, 2.5) and the 08-20 runs turned it round, because the unit that gains is
+`scat`, the enrolment spread, and it picks r = 1.25 on all twenty-three folds
+where absolute distance wanders 1.65 to 2.75. **The constant is still not
+changed** — every sub-50% fold is one of the eight inversions, so what the number
+really measures is that the fifteen upright benches agree with each other. That
+is a geometry question, not a radius.
+
+It is also what took the person pair from 78.3% to the 50.0% quoted above: the
+presence gate called 34 held-out class frames absent, and `enrolled from 0/6` is
+the same gated artefact. The person's own scatter (−0.77/+0.77/+0.91/+1.22) is
+real and cost 2.1 points.
+
+### Nothing measurable at enrolment predicts a run
+
+Several benches tried to confirm the rule and none of them measured it — each was
+spent on a bad enrolment instead, in a way nothing was checking for. So the board
+now checks: it compares the gap between the two references against the **spread
+of the frames each was averaged from**, and prints both at the console before the
+first held-out frame. It first called a run on hardware on 2026-08-17 at 0.7×,
+ninety seconds in, on one that went on to score 47.5% — right, and nine minutes
+earlier than the scoring pass.
 
 **The first version measured that spread inside one enrolment window, and that
 was the wrong quantity** — two runs at 2.85× and 2.75× scored 91.7% and 59.2%.
@@ -142,12 +226,7 @@ taken has never been observed. So enrolment takes **two visits** now: press the
 class's digit again later and both windows fold into one reference.
 
 **Then it was tested prospectively eight times and came out backwards at both
-ends.** Measured over two visits the ratio put nine benches on the correct side
-of 2.0 with nothing between 1.24 and 2.64 — and the tenth read 1.8× on the
-board, was told to throw itself away, and scored 92.5%, the best in the project.
-That left the bar as good news only, until the run that finally cleared it did
-so at **3.7×, the highest this arithmetic has ever produced on any bench**, and
-scored **57.5%**. Every prospective test it has had, in order:
+ends.**
 
 | board ratio | held out | the bar's call |
 | --- | --- | --- |
@@ -160,28 +239,54 @@ scored **57.5%**. Every prospective test it has had, in order:
 | 0.5× | 50.0% | reject — right |
 | 0.4× | 34.2% | reject — right |
 
-Four of those eight are calls that mattered — the two best runs and the two
-worst — and the bar gets **one of the four** right. The extremes line up, which
-is exactly what the previous three mistakes looked like at the moment they were
+Four of those eight are calls that mattered — the two best runs and the two worst
+— and the bar gets **one of the four** right. The extremes line up, which is
+exactly what the previous three mistakes looked like at the moment they were
 made, and 15:42 is the counterexample to remember: two tenths under the bar, and
-90.8%. **So `FGX_ENROL_SNR` is deleted rather than re-fitted.** Four quantities
+90.8%.
+
+**So `FGX_ENROL_SNR` is deleted rather than re-fitted.** Four quantities
 measurable at enrolment have now failed the same way — `sep`, the one-window
-ratio, the two-visit ratio, and the two-visit ratio read one-sided — because
-what decides a run is where the object lands on visits that have not happened
-yet. The board still computes the ratio and prints it, and no longer says
-anything about what it means. `sep` in particular carries no signal at all: its
-largest value belongs to a 76.7% run, and since #18's absent radius is quoted in
-`sep`, that radius is still not being touched.
+ratio, the two-visit ratio, and the two-visit ratio read one-sided — because what
+decides a run is where the object lands on visits that have not happened yet. The
+board still computes the ratio and prints it, and no longer says anything about
+what it means. `sep` in particular carries no signal at all: its largest value
+belongs to a 76.7% run, and since #18's absent radius is quoted in `sep`, that
+radius is still not being touched.
 
 What the board prints *before* the ratio has done better than the ratio: the
-visit centres, and the distance each reference enrolled from the origin. The
-two runs no ratio explains are both plain there — the book's centres walking in
-one direction (drift), the person's scattering around a mean that is empty
-(variance) — and every bench where the empty desk was absorbed by a class has a
-reference sitting almost on the origin, which the board names at enrolment. It
-is right five times out of the eight that could have carried the warning, wrong
-twice and silent once. Better than any ratio, still not a rule, and that
-geometry — not the radius — is what is left of #18.
+visit centres, and the distance each reference enrolled from the origin. The two
+runs no ratio explains are both plain there — the book's centres walking in one
+direction (drift), the person's scattering around a mean that is empty (variance)
+— and every bench where the empty desk was absorbed by a class has a reference
+sitting almost on the origin, which the board names at enrolment. It is right
+five times out of the eight that could have carried the warning, wrong twice and
+silent once. Better than any ratio, still not a rule, and that geometry — not the
+radius — is what is left of #18.
+
+## The flaky two
+
+Both are now measured rather than guessed at, and both are still open.
+
+**[#12](https://github.com/kazunori279/fpga-open-vocab/issues/12), a byte lost on
+the camera bus.** The worst gap is **16 µs against a 2,000 µs deadline** over 152
+frames at 280/140, and 15 µs over 101 at 320/160 — the same at both rates, 125×
+clear. So it is not the fast side running out of time. It has only ever been seen
+at 280/140, which is one reason nothing else is benched there.
+
+**[#9](https://github.com/kazunori279/fpga-open-vocab/issues/9), the board drops
+off USB.** An outage is now caught **by the board** off `sof_rd` rather than
+inferred by the host from a log that stopped: it re-attaches itself in ~2.8 s,
+says which frames it lost, and reboots deliberately at 30 s. `'U'` and `'I'` make
+both halves happen on demand, which is how they were checked. There is now a
+third shape in it: a reset from underneath the firmware, which the banner
+separates from a watchdog reboot by diffing `POWMAN_CHIP_RESET`.
+
+A third, newer one has its own page. The camera cannot be asked what its
+auto-exposure loop is doing, because the ArduChip's control registers are
+write-only — [`docs/camera.md`](docs/camera.md) is the register map against the
+driver, and [#33](https://github.com/kazunori279/fpga-open-vocab/issues/33) is
+what it cost.
 
 **Open work is in [issues](https://github.com/kazunori279/fpga-open-vocab/issues)**,
 labelled `P0`/`P1`/`P2`. The docs here record what was measured; what is still owed
@@ -205,6 +310,7 @@ the frictions, the rejected designs and what they taught are in
 | [`docs/milestones.md`](docs/milestones.md) | the dev plan, M0 through M21: what each milestone was scoped to do, what it actually measured, and where the two differed |
 | [`docs/bring-up-log.md`](docs/bring-up-log.md) | dated bench entries, newest first, including several that exist only to record a claim that later turned out to be false |
 | [`docs/pinmap.md`](docs/pinmap.md) | M0's output: the confirmed pin and bank map, extracted from the vendor's KiCad source |
+| [`bench/README.md`](bench/README.md) | the manifest for every accuracy number in this repo — which run is which, and which of the two held-out figures each table quotes |
 | [`rtl/README.md`](rtl/README.md) | the Efinity flow, and the four things it does not tell you |
 | [`slides/index.html`](slides/index.html) | a 50-minute conference deck on all of the above, [published here](https://kazunori279.github.io/fpga-open-vocab/slides/) — or open the file in a browser, no build step ([notes](slides/README.md)) |
 | [`slides/index.ja.html`](slides/index.ja.html) | the same deck [in Japanese](https://kazunori279.github.io/fpga-open-vocab/slides/index.ja.html) — a translation, not a fork; a link in the corner of each deck switches to the other |
@@ -239,10 +345,10 @@ fpga-open-vocab/
 │                      #   Bitbucket link below (Forgix rev 2026-02-24)
 ├── bench/             # the cue benches themselves — every accuracy number in
 │   ├── README.md      #   this repo came out of one of these logs, and they
-│   └── cue/           #   lived in /tmp until 2026-08-17. The README is the
-│                      #   manifest: which run is which, and which of the two
-│                      #   held-out figures each table quotes
-├── docs/              # architecture, building, history, milestones, bring-up
+│   ├── cue/           #   lived in /tmp until 2026-08-17. The README is the
+│   ├── stills/        #   manifest: which run is which, and which of the two
+│   └── soak/          #   held-out figures each table quotes
+├── docs/              # architecture, building, camera, history, milestones
 │   ├── diagrams/      #   wire.json — WaveDrom source
 │   ├── img/           #   wire.svg — generated from it, committed
 │   └── Makefile       #   `make -C docs` regenerates it
@@ -262,15 +368,17 @@ fpga-open-vocab/
 │   ├── encoder_fast.c #   the same maths with an SMLAD inner loop, 7.4×
 │   ├── gemm_*.c       #   block layout, link protocol, framing, blocking plan
 │   ├── frame.{c,h}    #   one frame through the tile, shared by every demo
-│   ├── cam.{c,h}      #   ArduCam Mega over PIO SPI
+│   ├── cam.{c,h}      #   ArduCam Mega over PIO SPI — see docs/camera.md
 │   ├── worker.{c,h}   #   the two job rings core 1 runs
 │   ├── m5..m9.c       #   the on-device harnesses; m9.c is the appliance
 │   ├── test_*.c       #   laptop-side tests: encoder, wire, plan, pixels
 │   ├── link.pio       #   4 PIO programs: {narrow,wide} × {2,4} cycles per bit
+│   ├── build/         #   the shipped 320 MHz build; build-1NN are the sweep
 │   └── boards/        #   the PICO_BOARD header
 ├── host/              # everything that talks to the board over USB CDC
 │   ├── demo.py        #   phrase -> text tower -> 512 floats -> USB (the demo)
 │   ├── cue.py         #   the same, run as a cued A/B scene experiment
+│   ├── watch.py       #   the appliance: enrol, then a line when it changes
 │   ├── m6/m7/m8.py    #   the per-milestone harness drivers
 │   ├── cam.py         #   render a dumped frame to PNG, or a live preview
 │   ├── caption.py     #   the reverse direction: 512 floats read back in English
@@ -279,11 +387,13 @@ fpga-open-vocab/
 │   ├── board.py       #   which serial port is the board — one answer for all
 │   ├── bootsel.py     #   get the board back, from any state
 │   ├── mon.py         #   read a report off the port and tee it to a file
+│   ├── usb_watch.py   #   poll every hub port once a second, forever
 │   └── probe.py       #   report loader state
 ├── tools/
 │   ├── check_links.py #   every markdown link and heading anchor, GitHub's rules
 │   ├── kicad_netlist.py # pin -> net extractor for the vendor .kicad_sch files
 │   ├── hex2c.py       #   Efinity .hex/.bin -> C array for embedding
+│   ├── fit_check.py   #   will this pair work — one command, no hardware
 │   ├── score_cue.py   #   score a cue.py run against the boundaries it recorded
 │   ├── score_drift.py #   measure what moves when nothing moves
 │   ├── teacher_swap.py # re-encode a split with SigLIP 2 through a frozen PCA
