@@ -405,3 +405,44 @@ amendment rather than a rounding error.
 **Pooling with 08-25 is now doubly conditional** — different scene *and*
 different firmware — which does not change the primary test, since that stands on
 this session's own sixteen runs either way.
+
+## Amendment 4, made on 2026-09-07 against the bus trace, and it corrects the header
+
+The first two lines of this file say *"Board idle since 2026-08-25 and found in
+BOOTSEL with no `/dev/cu.usbmodem`, so this is a genuine cold start."* The
+observation is right and the inference is wrong, and the file that disproves it
+had been running the whole time.
+
+`host/usb_watch.py` has been polling every hub port once a second since 08-16.
+Its record of the stretch in question is now
+[`../usb_watch-20260825-20260907.log.gz`](../usb_watch-20260825-20260907.log.gz),
+and it says the board's port did not change state once between **2026-08-27
+19:57** and **2026-09-06 06:04**. Not because nothing was there. Because this was
+there, on every heartbeat of all nine days:
+
+```
+2-1:1 0103 power enable connect [2e8a:000f Raspberry Pi RP2350 Boot 118E1FFA149C9E95]
+```
+
+`0103` is `power enable connect`. The board was **powered, enumerated and
+drawing current for nine days** — parked in the bootloader, which is why there
+was no `/dev/cu.usbmodem` to find, and the missing device node was read as a
+missing supply. It was a warm board in BOOTSEL, not a cold board on the shelf.
+
+What survives: the FPGA was unconfigured and `cam_begin()` had not run, so the
+**sensor** had been unclocked for nine days even though the board had not been
+unpowered for a minute. Whatever #33 is a property of, if it is a property of
+the sensor's own power-on state then 09-06 still supplied one. If it is a
+property of a cold *board* — regulators, die, the RP2354A's own reset — then
+09-06 did not, and the one pair it produced was not the condition it claimed.
+
+The session was aborted after that pair for unrelated reasons, so nothing was
+scored on the strength of the wrong claim. It is corrected here because the
+sentence is quotable and the next session's header inherits it.
+
+**Two things this changes downstream.** `bench/soak/20260907-camlock-cold/` was
+about to describe itself as the weaker cold start of the two — "twelve days off
+against roughly forty minutes off" — and on VBUS that comparison runs the other
+way. And a board found in BOOTSEL is not evidence of anything about power; the
+check is `uhubctl`, which was available on both mornings and was consulted on
+neither.

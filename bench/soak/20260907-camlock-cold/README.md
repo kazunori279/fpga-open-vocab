@@ -50,13 +50,30 @@ frames — powered for about twenty-one hours, which is the opposite of the
 condition the hypothesis needs. VBUS was dropped at **05:24** and the board left
 unpowered.
 
-This is a weaker cold start than 09-06's, which found the board idle since
-08-25, and the difference is recorded rather than glossed: **twelve days off
-against roughly forty minutes off.** What the hypothesis needs is a sensor that
-is still re-deciding, which a genuine power-down supplies; what it also wants is
-a cold room at dawn, which 06:00 JST in September supplies about as well as
-06:41 did. If the session shows nothing, "not cold enough" is available as an
-excuse and is therefore written down *now*, before it can be reached for later.
+This looked like the weaker cold start of the two, and at 05:35 — still before
+the first frame — the bus trace said otherwise. 09-06's header claims the board
+had been idle since 08-25; `host/usb_watch.py`, which has been polling every hub
+port once a second since 08-16, records the board's port holding
+`0103 power enable connect [2e8a:000f Raspberry Pi RP2350 Boot ...]` on every
+heartbeat from **2026-08-27 19:57 to 2026-09-06 06:04**. That is nine days
+**powered and enumerated in the bootloader**, not twelve days on a shelf. The
+missing `/dev/cu.usbmodem` was read as a missing supply. See Amendment 4 in that
+file and [`../usb_watch-20260825-20260907.log.gz`](../usb_watch-20260825-20260907.log.gz).
+
+So on VBUS this session is the **colder** of the two, not the warmer: forty
+minutes of genuine power-down against nine days of never having been powered
+down at all. On the sensor the two are closer, because BOOTSEL leaves the FPGA
+unconfigured and `cam_begin()` unrun, so 09-06's sensor had been unclocked for
+nine days even while the board had not been off for a minute. Which of those two
+#33 is a property of is exactly what is not known, and it is the reason both
+numbers are written here instead of one summary word.
+
+What the hypothesis needs is a sensor that is still re-deciding, which a genuine
+power-down supplies; what it also wants is a cold room at dawn, which 06:00 JST
+in September supplies about as well as 06:41 did. If the session shows nothing,
+"not cold enough" is available as an excuse and is therefore written down *now*,
+before it can be reached for later — and it is now a weaker excuse than it was
+an hour ago.
 
 **2. The firmware is pinned.** `firmware/build-280/forgix_m9.uf2`, rebuilt at
 05:24 today from `firmware/` at commit `1d51090`, md5

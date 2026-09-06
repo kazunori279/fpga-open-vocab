@@ -120,6 +120,35 @@ The board found in BOOTSEL twenty minutes later had been written up as having
 line of code — the argument for this file being on all the time and the reason
 the copy in `/tmp` was a bad place for it.
 
+**And a fourth slice,
+[`usb_watch-20260825-20260907.log.gz`](usb_watch-20260825-20260907.log.gz)** —
+still the same process, thirteen days old by now, cut on the line after the last
+one in the third file and closed at the `uhubctl -p 1 -a off` that opens
+[`20260907-camlock-cold/`](20260907-camlock-cold/). 18 652 lines. Board-port
+transitions by day are **56 / 9 / 72 / 0 × 9 / 243 / 4**, and the two ends of
+that row are the whole reason to keep the file.
+
+**The nine zeroes are not an untouched stretch. They are nine days of BOOTSEL.**
+Every heartbeat from 2026-08-27 19:57 to 2026-09-06 06:04 reads
+`2-1:1 0103 power enable connect [2e8a:000f Raspberry Pi RP2350 Boot ...]` —
+`0103` being `power enable connect`, so the board was powered, enumerated and
+drawing current for the entire stretch, parked in the bootloader. It had been
+written up as idle since 08-25 and treated as a genuine cold start, on the
+evidence that there was no `/dev/cu.usbmodem` to open. There was no device node
+because the bootloader does not present one. `uhubctl` would have said so in one
+line on either morning and was consulted on neither. The correction is Amendment
+4 in [`20260906-camlock-cold/README.md`](20260906-camlock-cold/README.md).
+
+That is the third time a claim about a quiet day in this file has been wrong,
+and the first time it was wrong about *state* rather than about a snapshot
+boundary. **A port with no transitions is not a port with nothing on it.**
+
+09-06's 243 are that morning's aborted session and the four `cam_probe` sweeps
+that replaced it; 09-07's 4 are two power-downs and the boot between them. The
+board also sits on `2-1:1` now and sat on `2-1:2` for the earlier files — the
+C-Media sound device that held `2-1:1` through 08-24 is gone. Neither port
+number is a fact about the rig.
+
 ## Manifest
 
 `frames` counts `frame NNN :` lines actually printed, so it is where the run
