@@ -99,11 +99,19 @@ pin once it starts accessing flash. The direct short wins the sampling window
 here; the resistor is the documented practice.
 
 Two softer paths come first, and between them they mean the strap is rare.
-`'B'` at the console reaches BOOTSEL in 1.2 s, and a **1200-baud touch** on the
-CDC port does it from the loader firmware. Both are automated by
-`uv run host/bootsel.py`; see [`building.md`](building.md#flashing-the-mcu).
-They cover everything except a hang before USB enumerates, which is exactly the
-case the strap exists for.
+`'B'` at the console reaches BOOTSEL in 1.2 s. `picotool reboot -f -u`, over the
+USB vendor reset interface, reaches it from a running application and needs no
+hands. Both are automated by `uv run host/bootsel.py`; see
+[`building.md`](building.md#flashing-the-mcu). They cover everything except a
+hang before USB enumerates, which is exactly the case the strap exists for.
+
+`bootsel.py` also fires a **1200-baud CDC touch** as part of the same loop, but
+do not count it as a third path: [question 9](history.md#verify-before-building)
+records the line-coding path as deaf on this board, the recovery table in
+[`milestones.md`](milestones.md#recovering-a-wedged-board) says which of the two
+nudges actually lands **has never been isolated**, and the loop was written to
+stop caring. The code comments in `host/bootsel.py` and `host/m7.py` argue the
+touch is the *stronger* of the two; that is a belief the bench has not tested.
 
 ## Trion T8F49 — configuration
 

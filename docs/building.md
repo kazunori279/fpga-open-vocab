@@ -261,8 +261,11 @@ on the long row, which go to FPGA balls B3/B7 — then SWD via the J2 pogo pads
 at the console reaches BOOTSEL from the bitstream prompt in 1.2 s now that
 [#3](https://github.com/kazunori279/fpga-open-vocab/issues/3) is fixed, and
 that is the nudge `bootsel.py` sends first. The 1200-baud CDC touch goes out
-right behind it and has never been isolated as the thing that fired; it stays
-because it is the path that works on a board flashed before the fix.
+right behind it and has never been isolated as the thing that fired. It stays
+on the theory that it is the path that reaches a board flashed before the fix —
+a theory, not a measurement, and one that
+[question 9](history.md#verify-before-building) contradicts. Sending each nudge
+alone would settle it; nobody has.
 Adiuvo's `forge_fpga_loader.uf2`, from the
 [developer repo](https://bitbucket.org/adiuvo-engineering/forgix_public),
 restores the vendor loader the same way. It is not in this tree — fetch it
