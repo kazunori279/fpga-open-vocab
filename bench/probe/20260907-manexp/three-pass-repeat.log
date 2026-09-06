@@ -1,0 +1,45 @@
+
+=== Can the module be told an exposure? (cam.h:246 vs the app note) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- warm-up, auto loops running --
+  settled at luma 133
+  auto exposure and gain off, AWB left running: luma 133
+
+-- manual exposure 0x33/0x34/0x35 --
+  null           -:133      -:133      -:133      -:133      -:133      -:133      -:133      -:133   range 0
+  up         00010:11   00040:59   00100:159  00400:233  01000:233  04000:233  10000:5    40000:5     range 228
+  down       40000:5    10000:5    04000:233  01000:233  00400:233  00100:159  00040:59   00010:11    range 228
+  mix        00010:11   00100:159  01000:233  10000:5    00040:59   00400:233  04000:233  40000:5     range 228
+  (a) up range 228 > null range 0 : yes
+  (b) worst retrace gap 0 <= null range 0 : yes   (down range 228)
+  -> rule (a)(b): RESPONDS - the pixels follow the number
+  (c) spread across values 228 > worst spread within a value 0 : yes
+  -> rule (c): RESPONDS - revisiting a number lands closer than changing it
+
+-- back to auto between sections --
+  settled at luma 11
+
+-- manual gain 0x31/0x32 --
+  null           -:10       -:10       -:10       -:10       -:11       -:11    range 1
+  up         00001:5    00004:5    00010:5    00040:5    00100:5    003ff:59    range 54
+  down       003ff:60   00100:5    00040:5    00010:5    00004:5    00001:5     range 55
+  mix        00001:5    00010:5    00100:5    00004:5    00040:5    003ff:55    range 50
+  (a) up range 54 > null range 1 : yes
+  (b) worst retrace gap 1 <= null range 1 : yes   (down range 55)
+  -> rule (a)(b): RESPONDS - the pixels follow the number
+  (c) spread across values 53 > worst spread within a value 5 : yes
+  -> rule (c): RESPONDS - revisiting a number lands closer than changing it
+
+-- restoring --
+  auto loops back on: luma 88
+
+RESULT : exposure RESPONDS, gain RESPONDS
+         cam.h:246 is wrong for this module: a lock CAN mean "use this number".
+         #30's arm can be rebuilt as a real lock instead of a loop switched off.

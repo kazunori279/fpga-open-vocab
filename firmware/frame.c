@@ -1945,8 +1945,13 @@ const void *ft_acquire(float in_scale)
     // 18..31, ramp moving eight counts over forty frames - on a lit wall, thirty
     // seconds apart, interleaved with six that read 130. Nothing host-side
     // distinguishes them, so the state that differs has to be read off the
-    // module. 0x30 is a write-selector and may not read back what was written;
-    // it is dumped anyway, because "does not read back" is itself an answer.
+    // module. 0x30 is a write-selector and DOES NOT read back what was written
+    // - the application note types the whole 0x20-0x35 control surface WO, so
+    // there is nothing there to read and the 00 is not a bus fault
+    // (docs/camera.md). Every register on this line down to 0x30 is dumped
+    // anyway, because a documented 00 is still a witness that the read path is
+    // alive, and the two below it - state, id, fpga - are RO and do carry
+    // values.
     printf("            regs fmt %02x res %02x bri %02x ev %02x wb %02x "
            "auto %02x state %02x id %02x fpga %02x\n",
            cam_read_reg(CAM_REG_FORMAT),

@@ -6,6 +6,14 @@
 // capture sequence, whose one non-obvious line is load-bearing and would be
 // quietly dropped by anyone re-deriving it from the datasheet.
 //
+// THE REGISTER MAP BELOW IS THE VENDOR DRIVER'S, NOT THE APPLICATION NOTE'S,
+// and the two disagree. docs/camera.md reads the note against this file and is
+// the place to look before adding a register here: it says which of them the
+// driver actually touches, which ones have since been run on the board, and
+// which of the note's descriptions turned out to be wrong. Registers probed but
+// not adopted deliberately stay out of this file - see cam_simsrc.c (0x05,
+// 0x06) and cam_manexp.c (0x31-0x35) - so that this map keeps one provenance.
+//
 // THE ONE NON-OBVIOUS LINE. Writing CAM_REG_CAPTURE_RESOLUTION with the value it
 // already holds blanks the *next* capture: CAP_DONE asserts, the FIFO length is
 // exactly right, CAM_REG_SENSOR_STATE says IDLE throughout, and the frame is a
@@ -82,6 +90,13 @@
 #define CAM_REG_FPGA_VERSION_NUMBER  0x49
 
 #define CAM_REG_SENSOR_STATE_IDLE (1 << 1)
+
+// ArduCAM's name, kept so this file matches the driver it was transcribed from.
+// The application note calls bit 6 of 0x07 "reset FPGA", not "reset sensor" -
+// 0x07 is bit 7 reset cache, bit 6 reset FPGA, bit 1 reset I2C, bit 0 initiate
+// an I2C direct read. The reset does what cam_begin() needs either way (#29,
+// the sensor comes back at its default VGA), so this is a name to know about
+// when reading the note beside the source and not a defect. docs/camera.md.
 #define CAM_SENSOR_RESET_ENABLE   (1 << 6)
 #define CAM_SET_CAPTURE_MODE      (0 << 7)
 
@@ -242,10 +257,24 @@ extern uint16_t cam_auto_polls[4];
 // as. Result: mean RGB (115, 107, 105) against (91, 82, 53) at the start.
 void cam_image_defaults(void);
 
-// THE THREE LOOPS, ON OR OFF, AND NOTHING ELSE. Clearing bit 7 on a selector of
-// CAM_REG_AUTO_CONTROL switches that loop off. There is no manual value to write
-// on this module - the register takes a switch, not a number - so a lock can
-// only ever mean "stop deciding", never "use this number".
+// THIS REGISTER IS ON OR OFF AND NOTHING ELSE. Clearing bit 7 on a selector of
+// CAM_REG_AUTO_CONTROL switches that loop off. CAM_REG_AUTO_CONTROL takes a
+// switch, not a number, so through THIS register a lock can only ever mean
+// "stop deciding", never "use this number".
+//
+// UNTIL 2026-09-07 THIS SAID THERE WAS NO MANUAL VALUE TO WRITE ANYWHERE ON THE
+// MODULE, AND THAT WAS WRONG. The application note lists five more registers
+// that are not this one - 0x31/0x32 manual gain, 0x33/0x34/0x35 manual exposure
+// - and bench/probe/20260907-manexp/ ran them. Both groups respond. In the
+// decisive run the same eight exposure values read the same eight luma values
+// in three different visiting orders, retrace gap 0 against a spread of 228.
+// They are deliberately not declared in this file: the register block here is
+// transcribed from ArduCAM's driver, which touches none of them, and that is
+// the provenance line this file keeps. Three measured caveats live with them -
+// exposure saturates by 0x400, setting the 0x33 nibble goes dark rather than
+// bright, and gain is not monotone - so read that page before writing one.
+//
+// The rest of this comment is about CAM_REG_AUTO_CONTROL and stands unchanged.
 //
 // AND "STOP DECIDING" IS NOT "HOLD WHAT YOU DECIDED", which cost the first
 // attempt at #30. Measured 2026-08-25 on an empty desk, one binary, three runs -
@@ -261,6 +290,14 @@ void cam_image_defaults(void);
 // So the loops are not individually safe to switch off and the mask exists to
 // say which. Warm up first regardless, or a lock taken in the dark is a lock at
 // the ceiling.
+//
+// AND SWITCHING A LOOP BACK ON IS NOT "FORGET WHAT YOU WERE TOLD" EITHER, if
+// something wrote 0x33/0x34/0x35 while it was off. Measured 2026-09-07,
+// bench/probe/20260907-manexp/: a manual exposure of 0x010 left the frame at
+// luma 11, and switching all three loops on and taking twenty captures left it
+// at 11. It had been 133 before. It reached 88 by the end of the run and never
+// got back. So restoring the mask is not restoring the camera - anything that
+// writes a manual value owns the way back as well.
 //
 // WHY THIS EXISTS (issue #30). cam_image_defaults() runs once, from
 // ft_acquire(), and every capture for the rest of the run is then taken by a

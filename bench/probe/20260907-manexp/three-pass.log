@@ -1,0 +1,45 @@
+
+=== Can the module be told an exposure? (cam.h:246 vs the app note) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- warm-up, auto loops running --
+  settled at luma 130
+  auto exposure and gain off, AWB left running: luma 130
+
+-- manual exposure 0x33/0x34/0x35 --
+  null           -:130      -:130      -:130      -:130      -:130      -:130      -:130      -:130   range 0
+  up         00010:130  00040:130  00100:130  00400:130  01000:130  04000:130  10000:130  40000:130   range 0
+  down       40000:130  10000:130  04000:130  01000:130  00400:130  00100:130  00040:130  00010:130   range 0
+  mix        00010:130  00100:130  01000:130  10000:130  00040:130  00400:130  04000:130  40000:130   range 0
+  (a) up range 0 > null range 0 : NO
+  (b) worst retrace gap 0 <= null range 0 : yes   (down range 0)
+  -> rule (a)(b): does not respond
+  (c) spread across values 0 > worst spread within a value 0 : NO
+  -> rule (c): does not respond
+
+-- back to auto between sections --
+  settled at luma 130
+
+-- manual gain 0x31/0x32 --
+  null           -:131      -:131      -:131      -:131      -:131      -:131   range 0
+  up         00001:122  00004:135  00010:173  00040:162  00100:117  003ff:252   range 135
+  down       003ff:252  00100:116  00040:156  00010:152  00004:129  00001:121   range 136
+  mix        00001:122  00010:174  00100:118  00004:136  00040:158  003ff:252   range 134
+  (a) up range 135 > null range 0 : yes
+  (b) worst retrace gap 21 <= null range 0 : NO   (down range 136)
+  -> rule (a)(b): does not respond
+  (c) spread across values 135 > worst spread within a value 22 : yes
+  -> rule (c): RESPONDS - revisiting a number lands closer than changing it
+
+-- restoring --
+  auto loops back on: luma 128
+
+RESULT : exposure does not respond, gain RESPONDS
+         cam.h:246 is wrong for this module: a lock CAN mean "use this number".
+         #30's arm can be rebuilt as a real lock instead of a loop switched off.

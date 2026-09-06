@@ -1,0 +1,36 @@
+
+=== Can the module be told an exposure? (cam.h:246 vs the app note) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- warm-up, auto loops running --
+  settled at luma 134
+  auto exposure and gain off, AWB left running: luma 134
+
+-- manual exposure 0x33/0x34/0x35 --
+  null           -:134      -:134      -:134      -:133      -:133      -:133      -:133      -:133   range 1
+  up         00010:134  00040:10   00100:108  00400:218  01000:233  04000:204  10000:205  40000:5     range 228
+  down       40000:5    10000:5    04000:7    01000:252  00400:246  00100:233  00040:113  00010:33    range 247
+  (a) up range 228 > null range 1 : yes
+  (b) worst retrace gap 200 <= null range 1 : NO   (down range 247)
+  -> does not respond by the rule fixed before the run
+
+-- manual gain 0x31/0x32 --
+  null           -:17       -:41       -:69       -:69       -:68       -:68    range 52
+  up         00001:69   00004:69   00010:69   00040:68   00100:68   003ff:68    range 1
+  down       003ff:69   00100:68   00040:69   00010:69   00004:68   00001:69    range 1
+  (a) up range 1 > null range 52 : NO
+  (b) worst retrace gap 1 <= null range 52 : yes   (down range 1)
+  -> does not respond by the rule fixed before the run
+
+-- restoring --
+  auto loops back on: luma 69
+
+RESULT : exposure does not respond, gain does not respond
+         cam.h:246 stands against the app note, for this write order at least.
+         'L' cannot become a real lock this way; the I2C passthrough is the route left.

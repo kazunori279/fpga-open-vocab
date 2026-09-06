@@ -13,10 +13,11 @@ engaged, and the reason turned out not to be an oversight in the firmware.
 **Source for every register below:** the
 [Mega SPI Camera Series Application Note](https://blog.arducam.com/downloads/datasheet/Arducam_MEGA_SPI_Camera_Application_Note.pdf),
 September 2023, section 4 "Register Table". **This page is a reading of the
-datasheet against the source, and one row of it has since been run on the
-board** — `0x05` and `0x06`, on 2026-09-07, where the datasheet turned out to be
-half wrong. That row says so and links its log. Everything else here is still
-unrun, and the "used today" columns mark what the driver touches.
+datasheet against the source, and two rows of it have since been run on the
+board** — `0x05`/`0x06` and `0x31`–`0x35`, both on 2026-09-07, and in each case
+the datasheet turned out to be partly wrong. Those rows say so and link their
+logs. Everything else here is still unrun, and the "used today" columns mark
+what the driver touches.
 
 [← back to the README](../README.md) · [architecture](architecture.md) ·
 [building](building.md) · [monitor](monitor.md) ·
@@ -37,7 +38,10 @@ unrun, and the "used today" columns mark what the driver touches.
 | `0x00`–`0x0C` | test, frame count, power, memory control, data source, resets, I²C passthrough | RW |
 
 So the board can tell the camera what to do and cannot ask it what it is doing.
-Every adjustment is fire-and-forget. `cam.h` already suspected this —
+Every adjustment is fire-and-forget. **Write-only is about the readback and not
+about the effect** — `0x31`–`0x35` read back as nothing and
+[demonstrably work](#0x310x35--exposure-and-gain-can-be-set-and-this-has-now-been-run),
+which is why the only way to check any of this row is the pixels. `cam.h` already suspected this —
 
 > One register, three switches, selected by the low bits… and there is no way to
 > read back which of the three you last touched — hence `cam_probe.c`'s sweep
@@ -107,7 +111,7 @@ Its mean RGB is 6 63 63, dark and green. Whether the scoring chain produces
 anything worth comparing on a frame that is nothing like a photograph is a
 different question from whether the frame is fixed, and no probe has asked it.
 
-### `0x31`–`0x35` — exposure and gain can be *set*, not just released
+### `0x31`–`0x35` — exposure and gain can be *set*, and this has now been run
 
 | reg | field |
 |---|---|
@@ -120,6 +124,32 @@ that it does not hold the white balance. Writing an explicit value turns that
 hope into a lock, and makes exposure reproducible **across** runs rather than
 merely constant within one — which is the quantity `bench/` has never been able
 to hold still.
+
+**`firmware/cam_manexp.c` ran it on 2026-09-07 —
+[`bench/probe/20260907-manexp/`](../bench/probe/20260907-manexp/) — and both
+groups respond.** `firmware/cam.h:246` used to deny it outright and has been
+corrected. In the decisive run the same eight exposure values produced the same
+eight luma readings under three different visiting orders: retrace gap 0, spread
+across values 228.
+
+Three measured caveats travel with that, and none of them is in the app note:
+
+| what | measured |
+|---|---|
+| **exposure saturates early** | `0x400`, `0x1000` and `0x4000` all read 233. The useful ladder is below `0x400` at room light |
+| **the `0x33` nibble goes dark, not bright** | `0x10000` and `0x40000` both read 5. Either that byte is not `[19:16]` or the field is narrower than documented. Working range measured: `0x00000`–`0x0FFFF` |
+| **gain is not monotone** | it peaks at `0x010`, dips through `0x100`, then saturates at `0x3ff` — the same curve on two runs at two light levels. A wanted gain has to be measured off the curve, not assumed |
+
+And one behaviour that constrains any caller: **switching the auto loops back on
+does not undo a manual write.** After a manual exposure of `0x010` the frame sat
+at luma 11, and twenty captures with all three loops running left it at 11; it
+had been 133. That is `cam.h:245`'s note in reverse, and it means anything that
+writes these registers owns the route back as well as the route out.
+
+One run of four saw no exposure response at all — 32 captures flat — on an
+unchanged code path, after a reflash rather than a power cycle. Unexplained,
+with a cheap test nobody has run. So: these registers respond, and there is one
+observed way for them to appear not to.
 
 ### `0x02` — the sensor die can be power-cycled on its own
 
@@ -203,6 +233,8 @@ that session completed and was read out:
    sharper question than it had: locking exposure and gain did not reduce the
    walk, and three of eight locked runs moved their level by 14 to 18 after the
    freeze, which the AWB drift in `cam.h:245` does not account for.
-3. **Write explicit exposure and gain** (`0x31`–`0x35`) so `'L'` locks rather
-   than hopes.
+3. ~~**Write explicit exposure and gain**~~ — **probed on 2026-09-07 and both
+   groups respond**, so `'L'` can lock rather than hope. What is left is doing
+   it, and the two open items above the section are part of the job: the loops
+   do not hand exposure back, and one run in four saw no response.
 4. **Try the sensor-only power cycle** (`0x02`) against #32's cold-boot count.
