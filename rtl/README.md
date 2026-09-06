@@ -1,50 +1,112 @@
-# M2 link RTL
+# RTL
 
-Two loopback designs for the MCU↔FPGA link, sharing one core. Both simulate
-anywhere and both now synthesize to a real T8F49 bitstream.
+Everything that runs on the T8F49, in one directory: the M2 loopback link that
+proved the four wires, the M6→M16 GEMM tile that the appliance ships on, and the
+config-failure probes that were built to answer one question each.
+
+This page is the *source* side — what each file is, how to simulate it, how to
+synthesize it. For which bitstream is current and what it measured on hardware,
+see [`bitstreams/README.md`](bitstreams/README.md). For why the tile looks the
+way it does, see the M6–M16 rows of [`../docs/history.md`](../docs/history.md).
 
 ## What is here
 
+**The GEMM design — this is what ships.** Configuration C, `gemm_top_wide`, from
+[`bitstreams/m16/`](bitstreams/m16/README.txt).
+
 | File | Role |
 |---|---|
-| `link_core.v` | The whole design. XOR-reduce `WIDTH` data lines to one bit, delay 8 link clocks, invert, drive the return line. Plus a heartbeat and three LED status bits off the 32 MHz oscillator. |
-| `link_narrow.v` | Configuration **A** top, `WIDTH=1`. No board modification. |
-| `link_wide.v` | Configuration **C** top, `WIDTH=3`. Needs the PIN2↔PIN17 jumper. |
-| `link_narrow_io.isf`, `link_wide_io.isf` | Efinity pin assignments. |
-| `link.sdc` | Timing constraints, shared by both. |
-| `tb_link.v` | iverilog testbench, both widths plus a shorted-line negative control. |
-| `mk_peri.py` | Turns an `.isf` into the `.peri.xml` the flow needs. Runs inside the container. |
-| `docker/Dockerfile` | Efinity 2026.1 under Linux/amd64. |
-| `build.sh` | Drives the whole synthesis from macOS. |
+| `gemm_tile.v` | The int8 MAC array. P output positions × Q output channels over K = Cb·9 im2col taps, terminating at the int32 accumulator. Bias, requantize and clamp stay on the MCU because that is where `fgx_conv_acc()` in `../firmware/encoder.c` stops — **that function is the contract this matches bit for bit.** |
+| `im2col_feed.v` | im2col address generation in the fabric. The reason M6 was worth building: a 3×3 conv makes every input byte appear in up to 9 columns, and expanding on the MCU spends that 9× on the link instead of on free BRAM reads. |
+| `gemm_link.v` | Byte framing. `WIDTH` bits out, one bit back, both LSB-first, both on `link_clk` — the same wire discipline `../firmware/link.pio` implements. |
+| `gemm_top.v` | Configuration **A** top, `WIDTH=1`. No board modification. |
+| `gemm_top_wide.v` | Configuration **C** top, `WIDTH=3`. Needs the PIN2↔PIN17 jumper. |
+| `gemm_top.sdc`, `gemm_top_wide.sdc`, `*_io.isf` | Constraints and pin assignments, one pair per top. |
+| `tb_gemm.v`, `tb_gemm_link.v` | The tile alone, and the tile reached only through `link_mosi`/`link_miso`. |
+
+**The M2 link design.** Two loopback tops sharing one core. Superseded as a
+payload, kept because the link ladder is still measured against it.
+
+| File | Role |
+|---|---|
+| `link_core.v` | XOR-reduce `WIDTH` data lines to one bit, delay 8 link clocks, invert, drive the return line. Plus a heartbeat and three LED status bits off the 32 MHz oscillator. |
+| `link_narrow.v` | Configuration **A** top, `WIDTH=1`. |
+| `link_wide.v` | Configuration **C** top, `WIDTH=3`. |
+| `link.sdc`, `link_*_io.isf` | Timing constraints (shared) and pin assignments. |
+| `tb_link.v` | Both widths plus a shorted-line negative control. |
+
+**The probes.** Each is a rung on a ladder, built to isolate one failure. None
+is part of the appliance.
+
+| File | The question it answers |
+|---|---|
+| `probe_a.v` | Control — LEDs off the oscillator, touching no x1-passive config pin. If A fails, the containerised Efinity is producing bitstreams this part will not accept. |
+| `probe_b.v` | A plus one output on A4 (NSTATUS). If B fails where A passed, the config engine objects to a user output on NSTATUS. |
+| `probe_c.v` | B plus the two config *inputs*, F3 (CCK) and F2 (CDI0). If C fails where B passed, the link cannot clock off the configuration clock pin and the M2 pin plan needs rethinking. |
+| `tile_probe.v` | M10 Stage 0 — what `gemm_tile` closes at when it is *not* sharing a clock domain with `gemm_link`. Computes nothing, never loaded on the board; it exists to put one number in a timing report. |
+
+**The flow.** `build.sh` drives synthesis from macOS; `mk_peri.py` turns an
+`.isf` into the `.peri.xml` the flow needs and runs inside the container;
+`docker/Dockerfile` is Efinity 2026.1 under Linux/amd64; `Makefile` is
+simulation only.
 
 ## Simulate
 
-```sh
-make sim
-```
+No vendor tools required — iverilog and a C compiler.
 
-No vendor tools required. The testbench sweeps 12.5/25/50/75 MHz for each width,
-reports the correlator's recovered offset and error count, then runs the negative
-control. It ends `PASS` or `FAIL`.
+| Target | What it covers |
+|---|---|
+| `make sim` | **M2 link only.** Sweeps 12.5/25/50/75 MHz for each width, reports the correlator's recovered offset and error count, then the negative control. |
+| `make tb_gemm` | The tile against goldens generated by the real `encoder.c` over the real `weights.bin`. |
+| `make tb_gemm_link` | The same vectors, but reaching `gemm_top` one bit at a time through the link — framing and CRCs included. Slower by design. |
+| `make tb_gemm_link_wide` | **The shipped path.** Configuration C, three forward lanes into `gemm_top_wide`. |
+| `make test_wire`, `make test_plan` | Host-side: the wire packing (`gemm_wire.c`) and the per-layer blocking table. Not RTL, but they settle on the laptop what would otherwise cost a strap. |
 
-**What the testbench does not tell you.** It cannot predict the maximum link
-frequency. A correlator makes overclocking look like a shifted offset rather than
-corruption, and the point where that stops being true depends on the real
-clock-to-out delay of a placed-and-routed T8 plus the board's signal integrity.
-That is M2's measurement, not simulation's.
+`make sim` alone does **not** exercise anything the appliance runs. The pair
+that has to stay green together is `tb_gemm_link` and `tb_gemm_link_wide` — the
+point of the shared source is that the wide path cannot drift away from the
+measured one.
+
+Two knobs, both in the `Makefile`:
+
+- **`KPACK=1`** pairs two kernel taps per lane (M16). Both values have to stay
+  bit-exact against the *same* goldens, so it is a knob and not a new target: 0
+  is the regression the parameter folds away, 1 is the claim. The PASS line
+  prints the busy-cycle total, which is where the 1.5× is visible — a run that
+  paired nothing would still be bit-exact.
+- **`MODEL`** must track `FGX_EXPORT` in `../firmware/CMakeLists.txt`. The two
+  pointing at different runs is not a mismatch that errors; it is a testbench
+  that passes against a model the board is not running.
+
+**What the link testbench does not tell you.** It cannot predict the maximum
+link frequency. A correlator makes overclocking look like a shifted offset
+rather than corruption, and the point where that stops being true depends on the
+real clock-to-out delay of a placed-and-routed T8 plus the board's signal
+integrity. That is a hardware measurement — see the clock ladder in
+[`../docs/history.md`](../docs/history.md).
 
 ## Synthesize
 
 ```sh
 export EFINITY_TARBALL=~/Downloads/efinity-2026.1.132-linux-x64.tar.bz2
 export EFINITY_VERSION=2026.1
-./build.sh narrow      # or: ./build.sh wide
+./build.sh gemm_top_wide     # the shipped design
+./build.sh gemm_top          # configuration A
+./build.sh narrow            # or wide — the M2 link tops
+./build.sh probe_a           # any other <top>.v + <top>_io.isf pair
 ```
 
 The first run builds a ~6 GB image; after that a full compile is under a minute.
 Output lands in `rtl/build/` — the bitstream plus the timing, pinout and resource
 reports — and is gitignored. Re-run cmake in `firmware/` afterwards so
 `tools/hex2c.py` embeds the new `.hex`.
+
+**`rtl/build/` is overwritten in place, so a rebuild destroys the previous
+image.** That matters more than it sounds: a place-and-route seed is not
+portable across netlists, so re-running at the recorded settings is not
+guaranteed to hand back the same quality of result. This is why
+[`bitstreams/`](bitstreams/README.md) is checked in. Seeds are set per top —
+`build.sh` carries the reasoning and the recorded values.
 
 Efinity is Linux/Windows only, so this runs in a Linux/amd64 container under
 Rosetta. The build happens in `/tmp`, not here: Docker Desktop cannot bind-mount
@@ -76,9 +138,9 @@ headless periphery API imports PyQt6 on the way in), plus `PYTHONPATH` including
 `$EFXPT_HOME/bin` and a writable `EFINITY_USER_DIR_INI`. All handled in the
 Dockerfile.
 
-## Results
+## Results: the M2 link
 
-Both configurations place, route and generate a bitstream on **T8F49C2**.
+Both link configurations place, route and generate a bitstream on **T8F49C2**.
 
 | | `link_narrow` | `link_wide` |
 |---|---|---|
@@ -91,21 +153,24 @@ Both configurations place, route and generate a bitstream on **T8F49C2**.
 | Bitstream | 173,124 bytes | 173,124 bytes |
 
 Out of 7,384 LEs, so the link costs roughly half a percent of the device. The
-bitstream is a fixed size regardless of design — it is a full frame image.
+bitstream is a fixed size regardless of design — it is a full frame image. The
+GEMM tile's resource and fmax numbers are a different story and live in
+[`bitstreams/`](bitstreams/README.md), per milestone.
 
 **Do not read those Fmax numbers as link rates.** The SDC constrains internal
 paths only; there is no `set_input_delay` or `set_output_delay`, because those
 would need the RP2354A's PIO clock-to-out, which is not something the FPGA
 toolchain knows. What 365 MHz says is that the *fabric* is nowhere near the
-limit — the link ceiling will be set by the PIO's instruction count and by
-pad-to-pad timing on the real board, and only M2's sweep can measure it.
+limit — the link ceiling is set by the PIO's instruction count and by pad-to-pad
+timing on the real board. What that turned out to be, and the two dead bands in
+it, is in [`../docs/history.md`](../docs/history.md).
 
 Two details worth carrying forward:
 
 - **`link_wide` is slower in the fabric than `link_narrow`** (228 vs 365 MHz)
   because XOR-reducing three lines adds a LUT level ahead of the shift register.
-  Both are far above anything the PIO can generate, so it does not matter here,
-  but the pattern will matter in M6.
+  Both are far above anything the PIO can generate, so it did not matter there,
+  but the pattern mattered in M6.
 - **The jumper buys less clock quality than hoped.** On B3, a real GCLK ball,
   pad-to-global-buffer routing is 2.64 ns; on F3, which is not clock-capable, it
   is 3.99 ns. Both then pay the same 3.32 ns through the buffer itself. So B3 is
@@ -113,6 +178,10 @@ Two details worth carrying forward:
   third data bit, not the clock ball.
 
 ## Design notes
+
+These are about the link core. The GEMM tile's design decisions are recorded per
+milestone in [`../docs/history.md`](../docs/history.md) and in the header comment
+of each `gemm_*.v`.
 
 **Why XOR-reduce instead of echoing each line?** The return path is one wire —
 GPIO6 has no contiguous neighbour, so it cannot be widened — and a 3-bit forward
