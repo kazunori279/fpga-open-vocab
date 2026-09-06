@@ -9,6 +9,25 @@ no held-out percentage. A bench measures the whole appliance — camera, staging
 enrolment, decision rule — and costs a morning. A set in here measures one thing
 about the model and costs about four minutes.
 
+## The standing answers, and where each one lives
+
+The sections below are in the order they were written and several overturn
+earlier ones. This is the current answer to each question the fleet has closed.
+
+| question | where it stands | section |
+| --- | --- | --- |
+| how scene-invariant is the shipped student? | teacher **.811**, student **.645**, pooled over ten contrasts. Quadrupling the data closed 0.04 of the 0.215 gap | [what the ten said](#what-the-ten-said) |
+| does any distillation loss term close it? | **no — not one of the six helps.** `--rkd 10`'s +0.10 was retracted; `--text` never separated from baseline at any weight | [what the ten said](#what-the-ten-said) |
+| what *did* move it? | more data (+0.04 to +0.07) and `--infonce`, worth **+0.080** and already at its best value before anybody measured it | [and then one thing did move it](#and-then-one-thing-did-move-it-and-it-was-not-a-loss-term) |
+| is the student a blurred copy of the teacher's axis? | **no.** Axis cosine means .343 and tops out at .553 — it is a different difference, on every contrast | [a different one](#the-student-is-not-losing-the-difference-it-is-learning-a-different-one) |
+| is the low student number a set-quality artefact? | **no.** Regenerating the worst set moved the teacher +0.107 and the student −0.013 | [regenerating the worst set](#regenerating-the-worst-set-changed-the-number-by-0001) |
+| can the encoder do left against right? | **no, and not at the teacher either** — .499 ± .004 over 278 mirror pairs, and a fitted axis finds nothing | [the axis that is not there](#left-and-right-and-the-axis-that-is-not-there) |
+| does the training-time metric track any of this? | **no, and once it points the wrong way.** Holdout top-1 rose monotonically across the InfoNCE sweep while the contrasts peaked in the middle | [and then one thing did move it](#and-then-one-thing-did-move-it-and-it-was-not-a-loss-term) |
+
+None of these is an appliance number. What a set cannot answer is at the
+[bottom of the page](#what-a-set-can-and-cannot-answer), and it is the shorter
+list.
+
 ## Shooting a set
 
 ```sh
@@ -113,9 +132,13 @@ well still has to be benched before an accuracy figure is quoted.
 **What it does measure is scene-invariance, which is what the product needs.**
 "Is the book open" has to hold when the room, the lamp and the exposure all
 changed, and thirty different rooms is the only cheap way to ask that. The
-answer as of 2026-08-22 is that the teacher does it at AUC 0.91–0.95 and the
-student at 0.60–0.70, on both pairs and on two disjoint draws. That gap is the
-finding, and it is larger than anything the distillation sweeps move.
+standing answer is **teacher 0.811, shipped student 0.645, pooled over ten
+contrasts** — that gap is the finding, and it is larger than anything the
+distillation sweeps move. Read it off
+[the ten-contrast fleet](#ten-contrasts-because-two-was-measuring-the-wrong-noise)
+and not off the book and glass pairs alone: two contrasts gave 0.91–0.95 against
+0.60–0.70, which is the same story with a standard error too wide to resolve
+anything, and resolving things is what the other eight were shot for.
 
 **On a generated set, read `sep` and not the paired column.** `--paired`
 subtracts the two states of one scene, so the scene cancels — right on stills of
@@ -471,8 +494,8 @@ It can say **which stage of the encoder chain drops a distinction**, which is
 what [#24](https://github.com/kazunori279/fpga-open-vocab/issues/24) needed and
 what no bench can see.
 
-It cannot say **what the appliance will score**. Sixteen runs of the same book
-pair on the same desk span a margin of 1.000 to 0.579; the staging is a real
+It cannot say **what the appliance will score**. Nineteen runs of the same book
+pair on the same desk span a ceiling of 1.000 to 0.579; the staging is a real
 variable and a set of stills holds it still on purpose. A pair that reads well
 here still has to be benched before any accuracy number is quoted.
 
