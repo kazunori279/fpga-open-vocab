@@ -6,6 +6,12 @@ nothing shown to the camera at any point.*
 
 **Everything above the results heading was committed before any run was
 launched.** That is the entire point of this directory.
+
+> **The session was aborted after one pair and there are no soak numbers here.**
+> The design below is unspent and carries forward. Read "Amendment 3" at the
+> bottom before running it — it fixes the firmware the session runs on, and it
+> was written after this heading rather than before, which is why it is down
+> there and not up here.
 [`../20260825-camlock/`](../20260825-camlock/) reached a coherent reading — the
 lock helps while the room is still settling and its benefit closes in the second
 half — and could not quote it, because the half-and-half split was chosen after
@@ -329,3 +335,73 @@ unconditionally — "camera bus: worst gap 14 us against the 2000 us deadline",
 had one. It now matches the failing form of each and not the word. `session.log`
 still carries the three bogus flags, because it is what the session actually
 printed.
+
+It was wrong a second way and that one is newer. It grepped for `EXPOSURE NEVER
+SETTLED` alone, and `ft_acquire()` has **two** doubts: the loud one, where the
+ramp also failed to reach the floor, and a quiet one — *the exposure never moved
+from its first reading* — printed when the ramp climbed enough to satisfy the
+settle test but never actually moved. Two of the three flagged benches in
+`bench/cue/` carry only the quiet form, which is how `m9_cue-20260816-172256.log`
+was scored for three weeks. `run.sh` matches both now.
+
+## Amendment 3, made after the abort and carried to the session that finally runs
+
+*Written 2026-09-06 evening. This directory's runs are still aborted and still
+not data; the amendment governs the new dated directory the pre-registration
+above will be copied into.*
+
+**The session runs on firmware with #33's ramp rescue in it, not on the shipped
+`build-280`.** Stated here rather than decided on the morning, because "which
+firmware" is exactly the kind of choice that gets made in favour of whatever the
+board happens to have flashed.
+
+The reason is that the alternative is the worse one, and the archive says so.
+All sixteen runs of [`../20260825-camlock/`](../20260825-camlock/) read `expose
+37 ms` and settled in 10–15 frames — **not one #33 boot in the whole session** —
+and all sixteen were warm. #33 is a cold-boot fault. Twenty acquires on this same
+rig this morning put it at eight in twenty with the rescue in, and the batches
+before the rescue ran at four in ten and ten in twelve. A cold sixteen-boot
+session without the rescue should therefore expect several #33 runs, allocated
+between the arms by nothing but luck.
+
+That is not a tolerable discard. What #33 injects is a **chromatic** drift — the
+scored bench `m9_cue-20260825-0558.log` moved its three channels +22 / −2 / +37
+percent across a run, a 39-point spread, against 8–11 on each of its four healthy
+siblings — and the quantity this session measures is the common-mode walk of `z`.
+A #33 run landing in the `free` arm inflates exactly the number the hypothesis
+predicts will be large there. `tools/probe_adapt.py` was destroyed by precisely
+that contamination today; there is no reason to walk into it a second time with
+the fault already named.
+
+**The rescue is upstream of the arm, so it cannot be a confound.** It fires
+inside `ft_acquire()`'s ramp, before `demo.py` has pressed anything; the arm is
+decided by the `L` at frame 40. Both arms get it, identically, by construction
+rather than by randomisation. Nothing else in that firmware touches the measured
+quantity: the added instrumentation is `printf` only, and `FT_RAMP_FRAMES 200`
+lengthens the boot ramp and nothing after it.
+
+Three things follow, and all three are pre-registered here:
+
+- **The discard rule is unchanged.** The rescue is not perfect — eight of twenty
+  acquires still hit the fault with it in — so `run.sh`'s flag still matters, and
+  a flagged run is still re-run at the end of the session and never in place.
+- **A flagged run is dropped on the flag and not on its colour.** Do not
+  introduce a channel-spread threshold for this session. The 39-point figure
+  above is a description of one bench, and turning it into a cutoff would be
+  fitting a constant to the thing being measured.
+- **`last mean RGB` and the count of rescued acquires are both recorded for
+  #32.** Sixteen cold boots with the rescue in is the first sample of what the
+  rescue is worth on a cold board rather than on a board that has been running
+  all day, and it is an observation this session gets for free — no test is
+  pre-registered for it.
+
+**The cost, stated in advance:** a camera the rescue cannot repair now spends the
+full 25 s budget in the ramp instead of giving up at frame 40, so a bad boot adds
+about twenty seconds. Sixteen runs at four to five minutes each already put the
+session near eighty minutes, and the cold window is only pairs 1–4. If several
+boots go the long way the window narrows, and that is a real cost of this
+amendment rather than a rounding error.
+
+**Pooling with 08-25 is now doubly conditional** — different scene *and*
+different firmware — which does not change the primary test, since that stands on
+this session's own sixteen runs either way.
