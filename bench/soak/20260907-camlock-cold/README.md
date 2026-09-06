@@ -137,3 +137,114 @@ here at all and the discard rule cannot dig it out — that is 09-06's abort
 happening again, and the response is to stop and say so rather than to score
 what is left. Stated in advance because the temptation at run twelve is to keep
 going.
+
+---
+
+# Amendment made AFTER the session started, and the reason everything above still stands
+
+**Everything above this line was committed before any run was launched. This
+section was not.** It is below the rule because the session it describes was
+aborted at 06:03 after one and a bit runs, and the honest place for that is
+after the boundary rather than folded into a file whose whole claim is that it
+predates the numbers. The design did not change. The firmware did.
+
+## The pinned firmware was not the appliance's operating point
+
+The precondition above pins `firmware/build-280/forgix_m9.uf2`, md5
+`41296ef69f431ec063ba3f0118c3cd38`, and says it will be confirmed from the first
+banner rather than assumed. It was confirmed, and the banner said something the
+md5 could not:
+
+```
+clock     : 280 MHz system, core 1.25 V
+link      : configuration C, 3 forward data lines, 140.0 MHz
+```
+
+`firmware/build-280/` is a leftover from the 2026-08-15 clock sweep, one of six
+build directories that differ in `FGX_SYS_KHZ` alone. It was picked yesterday
+because it was the directory that happened to be to hand, and pinning its md5
+recorded the mistake precisely without catching it. `firmware/CMakeLists.txt:67`
+is `set(FGX_SYS_KHZ "320000")`, and the table above it ends `320/160 ... <- ships`.
+**Both sessions this one is meant to sit beside ran 320**: `20260825-camlock/`
+and the one pair of `20260906-camlock-cold/`.
+
+The clock alone would be an argument for a footnote. What made it an abort is
+eleven lines further up the same comment:
+
+> #9 (the board drops off USB) and **#12 (a byte lost on the camera bus at
+> 280/140 and never at 150/75)** are both open and both are unexplained
+> flakiness on the fast side
+
+280/140 is the one operating point with an open, unexplained camera-bus fault
+against its name, and this is a session about the camera. Running #30's drift
+measurement on #12's reproduction condition would have put two unresolved camera
+issues in the same sixteen runs with no way to tell them apart afterwards. It
+would also have ended pooling with 08-25, which the design calls legitimate for
+the primary.
+
+**What was done.** `firmware/build/` — the ordinary build directory, already at
+`FGX_SYS_KHZ=320000`, and differing from `build-280` in that variable and
+nothing else that `CMakeCache.txt` records — was rebuilt from `firmware/` at the
+same commit `1d51090`. `cam.c`, `frame.c` and `m9.c` recompiled. The board was
+flashed with `host/bootsel.py --flash` and verified, and VBUS was dropped again
+at **06:05:28** to restart the cooldown.
+
+**The firmware pin is therefore replaced, and this is the only thing in this
+file that changed after a frame was taken:**
+
+| | before | after |
+|---|---|---|
+| build dir | `firmware/build-280/` | `firmware/build/` |
+| `FGX_SYS_KHZ` | 280000 — a clock-sweep leftover | 320000 — `<- ships` |
+| md5 | `41296ef69f431ec063ba3f0118c3cd38` | `878d646213995e05c43c67f9b8b639d6` |
+| source commit | `1d51090` | `1d51090`, unchanged |
+
+Nothing about the hypothesis, the arms, the order, the frame count, the discard
+rule, the three tests or the mean-RGB diagnostic moved. The one number the
+session is now warmer by is the cooldown: 05:24:14–06:00:00 became
+06:05:28–restart.
+
+## What the aborted run is worth keeping for
+
+[`aborted-280/`](aborted-280/) holds the whole of it: `free-1.log`, truncated at
+frame 326 by the interrupt, and a two-line `session.log`. **Not scoreable and
+not to be scored** — wrong clock, no `stopped :` summary, and its partner never
+ran.
+
+It is kept because its banner is the first cold-boot evidence that #33's ramp
+rescue does what it was built to do:
+
+```
+camera : exposure ramp 12 12 13 13 12 12~ 12 13 13 12 13 12~ 12 12 12 12 12 12~ 14 17 21 23 27 ... 132 133 133 133 132
+camera : live 128x128 RGB565, id 0x82, 16.0 MHz, expose 37 ms, read 16 ms, exposure settled after 45 frames
+         reset gate: polls 425, first state 21, busy yes   defaults polls: ae 0 ag 10 awb 0 wbmode 10
+         #33: the auto loops were switched back on 3 times during the ramp
+         mean RGB 133 133 133
+```
+
+Eighteen frames flat at 12–13 is the #33 plateau exactly as the faulted benches
+in `bench/cue/` show it. The rescue fired three times, the ramp then climbed to
+133, and the run came out at **`expose 37 ms`** — the healthy signature — instead
+of the 58–59 ms the plateau was heading for. One boot is one boot and this is an
+observation with no test behind it, as the #32 section above says. But it is the
+first one taken on a board that had been unpowered for thirty-six minutes rather
+than running all day.
+
+The `reset gate:` line is also the confirmation the precondition asked for: the
+instrumented build was on the board, established from the banner and not
+assumed. It was the line immediately below it that turned out to matter.
+
+## And the `frames=` fix earned itself inside three minutes
+
+`session.log` reads:
+
+```
+06:02:54  end    free-1  frames=326 frames, NO stopped LINE  mean RGB 133 133 133  relit=3
+```
+
+The field was corrected at 05:30 this morning, before the first frame, for
+reasons that were entirely about tidiness. Under the old expression this line
+would have read `frames=3` — which is also what it printed for 20260906's
+complete 602-frame run, and for a run that died at frame 40. A truncated run and
+a clean one would have been indistinguishable in the session log of the session
+that got truncated.
