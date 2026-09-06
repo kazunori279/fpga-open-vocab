@@ -16,6 +16,16 @@ Sources, in order of authority:
 Status: **M0 resolved.** The header ↔ RP GPIO map is settled and the answer is
 worse than hoped — see [RP ↔ FPGA bandwidth](#rp--fpga-bandwidth).
 
+This page is the *wiring*, and it is stable: it describes a board that has not
+changed since one jumper was soldered on. Anything about rates, timing or what
+the link measured is [`architecture.md`](architecture.md) and
+[`history.md`](history.md), and where the two touch — the 75 MHz design-time
+column at the bottom — the caveats there say which is which.
+
+[← back to the README](../README.md) · [architecture](architecture.md) ·
+[building](building.md) · [history](history.md) ·
+[bring-up log](bring-up-log.md)
+
 The extractor recovers connectivity geometrically (wire endpoints unioned,
 labels naming the point they sit on). It reproduces all eleven RP GPIO
 assignments already known from the PDF, which is the check that makes the rest
@@ -71,19 +81,29 @@ bridged the pads silkscreened `17` and `18` on the long row — which are
 pulled-up FPGA GPIO together does nothing, so the board booted normally each
 time. See [Pad number ≠ silkscreen number](#-pad-number--silkscreen-number).
 
-The strap is still **untested.** The correct bridge is `PRG` to the `GND`
-immediately beside it, on the five-pad group on the short bottom edge.
+**The strap works, and it is the recovery of last resort that has never
+failed.** The correct bridge is `PRG` to the `GND` immediately beside it, on the
+five-pad group on the short bottom edge — a direct short, held while USB is
+plugged in. It has been spent repeatedly since, most recently on 2026-08-20 when
+a preinit-array experiment took a UsageFault before `stdio_init_all()` and the
+board did not enumerate at all: `power` with no `connect`, through two VBUS
+cycles and a twelve-second power-off, and the strap was the only thing that
+brought it back. [`bring-up-log.md`](bring-up-log.md) has the pattern that
+matters more than the wiring — *the strap is spent once per milestone, and
+batching everything that needs one is the whole discipline*, because
+reconfiguring the FPGA costs none.
 
 Raspberry Pi's own reference wiring for a BOOTSEL button is a button **plus a
 1 kΩ series resistor** to `QSPI_SS`, because the boot ROM actively drives that
-pin once it starts accessing flash. A direct short should still win the
-sampling window, but the resistor is the documented practice.
+pin once it starts accessing flash. The direct short wins the sampling window
+here; the resistor is the documented practice.
 
-Worth the effort because it is the difference between "a bad firmware flash
-bricks the board" and "a bad firmware flash costs a reflash." Note that the
-fallback already works: a **1200-baud touch** on the CDC port drops the loader
-firmware into BOOTSEL and mounts `RP2350`, verified on this Mac. That covers
-every case except a hang before USB enumerates.
+Two softer paths come first, and between them they mean the strap is rare.
+`'B'` at the console reaches BOOTSEL in 1.2 s, and a **1200-baud touch** on the
+CDC port does it from the loader firmware. Both are automated by
+`uv run host/bootsel.py`; see [`building.md`](building.md#flashing-the-mcu).
+They cover everything except a hang before USB enumerates, which is exactly the
+case the strap exists for.
 
 ## Trion T8F49 — configuration
 
@@ -420,7 +440,7 @@ That gives two configurations, and the difference between them is one wire:
 | Data in | GPIO1 ← G3 (1 bit) | GPIO6 ← A4 (1 bit) |
 | Spare | GPIO6 ← A4, used as a heartbeat | — |
 | Bits per link clock | 1 out, 1 in | **3 out**, 1 in |
-| Ceiling at `sys_clk`/2 = 75 MHz | 8.9 MB/s each way | **26.8 MB/s out**, 8.9 MB/s back |
+| Ceiling at `sys_clk`/2 = 75 MHz *(the 150 MHz design-time rate; see the caveats)* | 8.9 MB/s each way | **26.8 MB/s out**, 8.9 MB/s back |
 
 Configuration C is worth the jumper twice over: it triples the forward path
 *and* moves the clock off general routing onto the only global-clock ball the RP
@@ -433,9 +453,15 @@ weights and activations and asked for a much smaller result.
 
 Caveats, so these numbers are not mistaken for measurements:
 
-- 75 MHz is the **PIO ceiling** (2 instructions per bit at a 150 MHz `sys_clk`),
-  not a rate anything has run at. Whether the T8 fabric closes timing there, and
-  whether the board's signal integrity holds, is exactly what M2 measures.
+- **75 MHz was the PIO ceiling at a 150 MHz `sys_clk`, and `sys_clk` moved.**
+  `link_clk = sys_clk/2` is hard-tied, so the whole row scales: the appliance
+  ships at **320 MHz sys / 160 MHz link**, `m7` is bit-exact to 332/166 and `m6`
+  to **344/172** — the Trion at 2.65× its signed-off Fmax — with 348 hanging the
+  MCU rather than the fabric. The two dead bands are at link 39–41 and 122–130
+  MHz and are a sampling-phase effect, not a margin. Everything downstream of
+  this row in the table above should be read at 160 MHz, not 75.
+  [`history.md`](history.md) has the sweeps; the design-time question of whether
+  the T8 closes timing at all was what M2 answered, and it does.
 - Configuration C's clock crosses a jumper while its data does not, so clock and
   data see different flight times. A few cm of wire is ~0.25 ns against a 13 ns
   period, so this should be immaterial — but it is an assumption, not a fact.
