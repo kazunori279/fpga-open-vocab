@@ -11,6 +11,57 @@ exist only to record a claim that later turned out to be false.
 
 ---
 
+### 2026-09-06, the board had been flagging a broken camera for weeks and no scorer read the line
+
+`ft_acquire()` prints `EXPOSURE NEVER SETTLED` — or, more quietly, `the exposure
+never moved from its first reading` — when the auto-exposure loop does not engage
+during the boot ramp. That check went in with #26. **Nothing that turns a log
+into a number ever read it.** `host/watch.py` did; it is a live viewer and
+records nothing. Every tool in `tools/` scored straight past it.
+
+Three of the forty-two scoreable benches in `bench/cue/` carry the flag, and they
+separate cleanly from the other thirty-nine on `expose` in the same banner: 58–59
+ms and 40–41 frames to settle against 36–37 ms and 6–25 frames, with no overlap
+in either column. One was never scored. The other two are
+`m9_cue-20260816-172256.log` and `m9_cue-20260825-0558.log`.
+
+**Those two were the whole of `tools/probe_adapt.py`'s result.** They are the
+archive's largest and second-largest recoveries under the scene-following
+threshold, +33.4 and +21.7 points, against a pooled mean of +1.7 over
+thirty-three benches. Refuse them and the pooled table goes 75.1 → 75.6 for
+`rule` and 76.9 → **75.6** for `adapt`: mean +0.0, t = 0.01. `probe_selfquiet.py`'s
+buildable `self` arm goes from +0.3 to **−0.4** with it.
+
+The mechanism runs the opposite way from the one that file assumed. A sensor with
+its white-balance loop off walks in *colour*, not just level: 08-25 05:58's three
+channels moved +22 / −2 / +37 percent across the run, a 39-point spread, against
+8–11 on each of its four healthy siblings from the same twenty-five minutes. A
+drifting colour cast translates every class along the margin axis together and
+leaves the separation alone — which is exactly the shape `probe_adapt.py` was
+built to cancel. **The drift it corrected was the instrument.**
+
+Do not reach for overall brightness excursion as the tell. 06:18 swings 35.2%
+peak-to-peak about its mean against 05:58's 38.8% and is the best bench of the
+session at `lost` 0.0. Channel *spread* separates; brightness does not.
+
+**#19 survives.** It was opened on two runs and only 17:22 is flagged; the
+healthy sibling twelve minutes later, `20260816-173537`, reads `expose 37 ms` and
+scores 56.7% against 58.3%. The collapse reproduces on a camera that worked.
+The 08-25 five-run spread survives too — 05:58 is interior to it at 77.5%, and
+dropping it moves the session SD from 8.3 to 8.2.
+
+The fix is in `tools/probe_reject.py` as `acquire_doubt()`, which the eleven
+tools sharing that loader can reach. Pooled tools (`probe_adapt.py`,
+`probe_selfquiet.py`) refuse a flagged log; per-bench readers (`score_cue.py`,
+`score_drift.py`, `probe_camlock.py`) print the board's own sentence on stderr
+and score it anyway, because one bench's reading is still that bench's reading.
+Full output in `bench/cue/analysis/20260906-adapt-doubt.txt`; the long version is
+"A camera nobody checked" in `bench/README.md`.
+
+Worth stating plainly, because it is the second time: this is #26's failure one
+layer up. #26 was the board reporting a number it had no confidence in. This was
+the board saying so and the layer above not looking.
+
 ### 2026-08-25 night, #30's off switch turns out to have been an on switch for a different fault
 
 The camera lock written earlier today did not lock the camera. `cam_image_auto(false)`

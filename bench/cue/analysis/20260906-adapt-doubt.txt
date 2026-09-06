@@ -1,0 +1,176 @@
+$ uv run --script tools/probe_adapt.py bench/cue/*.log
+  (2026-09-06, with the acquire-doubt refusal in read(); three benches
+   the board flagged are now skipped and named in the list below)
+
+  20260822-leaverunning-frames.log           skipped: bench/cue/20260822-leaverunning-frames.log: no .cues sidecar, so the boundaries are opinion
+  20260822-watch-smoke.log                   skipped: synthetic or a smoke test; a pooled mean must not have it
+  m9_cue-20260815-111130.log                 skipped: the board distrusted its own camera - ^ the exposure never moved from its first reading in 41 frames, so the auto-exposure
+  m9_cue-20260815-111750.log                 skipped: the board distrusted its own camera - ^ the exposure never moved from its first reading in 41 frames, so the auto-exposure
+  m9_cue-20260816-172256.log                 skipped: the board distrusted its own camera - ^ the exposure never moved from its first reading in 41 frames, so the auto-exposure
+  m9_cue-20260817-085204.log                 skipped: bench/cue/m9_cue-20260817-085204.log: no .cues sidecar, so the boundaries are opinion
+  m9_cue-20260817-103054.log                 skipped: bench/cue/m9_cue-20260817-103054.log: no .cues sidecar, so the boundaries are opinion
+  m9_cue-20260817-103550.log                 skipped: bench/cue/m9_cue-20260817-103550.log: the sidecar is marked VOID
+  m9_cue-20260817-103720.log                 skipped: bench/cue/m9_cue-20260817-103720.log: the sidecar is marked VOID
+  m9_cue-20260817-104419.log                 skipped: not a two-query bench with the cued labels as the queries
+  m9_cue-20260817-105019.log                 skipped: no held-out frames of both classes after the rule engaged
+  m9_cue-20260817-112155.log                 skipped: bench/cue/m9_cue-20260817-112155.log: the sidecar is marked VOID
+  m9_cue-20260820-131217.log                 skipped: not a two-query bench with the cued labels as the queries
+  m9_cue-20260820-142249.log                 skipped: not a two-query bench with the cued labels as the queries
+  m9_cue-20260823-0710.log                   skipped: bench/cue/m9_cue-20260823-0710.log: the sidecar is marked VOID
+  m9_cue-20260825-0558.log                   skipped: the board distrusted its own camera - camera    : live 128x128 RGB565, id 0x82, 16.0 MHz, expose 59 ms, read 16 ms, EXPOSURE NEVER SETTLED after 40 frames
+  m9_cue-smoke-2e48d86.log                   skipped: synthetic or a smoke test; a pooled mean must not have it
+  m9_cue_fake_d.log                          skipped: synthetic or a smoke test; a pooled mean must not have it
+
+tau = 120 frames, one rotation of the standard schedule
+
+bench               n    rule   adapt    flip   empty  oracle   recov  pair
+20260817-133552   120   57.5%   74.2%   50.0%   57.5%   94.2%     45%  a closed book / an opened book
+20260817-104849    48   50.0%   50.0%   50.0%   50.0%   75.0%      0%  a closed book / an opened book
+20260817-085504   120   25.8%   25.0%   25.8%   25.8%   50.0%     -3%  BACKWARDS  a closed book / an opened book
+20260817-105251    48   33.3%   31.2%   35.4%   31.2%   50.0%    -12%  BACKWARDS  a closed book / an opened book
+20260824-0839     121   73.6%   85.1%   63.6%   72.7%   89.3%     74%  a closed book / an opened book
+20260817-152757   120   60.0%   57.5%   65.8%   61.7%   75.0%    -17%  a glass with tea / an empty glass
+20260817-093309   120   59.2%   52.5%   60.8%   59.2%   73.3%    -47%  a closed book / an opened book
+20260817-133952   120   74.2%   73.3%   74.2%   77.5%   86.7%     -7%  a closed book / an opened book
+20260817-153747   120   78.3%   80.0%   76.7%   86.7%   89.2%     15%  a person standing / a person, hands up
+20260817-095808   120   74.2%   77.5%   73.3%   75.8%   84.2%     33%  a closed book / an opened book
+20260816-173537   120   56.7%   63.3%   50.0%   60.0%   65.8%     73%  a closed book / an opened book
+20260825-0611     121   75.2%   76.0%   74.4%   71.9%   84.3%      9%  a closed book / an opened book
+20260820-062406   120   95.0%   95.0%   95.8%   98.3%  100.0%      0%  a closed book / an opened book
+20260825-1309     120   88.3%   90.8%   85.0%   88.3%   93.3%     50%  a closed book / an opened book
+20260820-063324   120   49.2%   43.3%   45.8%   38.3%   54.2%   -117%  BACKWARDS  a glass with tea / an empty glass
+20260820-062932   120   51.7%   49.2%   50.0%   55.0%   56.7%    -50%  a glass with tea / an empty glass
+20260824-0651     120   75.8%   77.5%   71.7%   70.8%   80.0%     40%  a closed book / an opened book
+20260817-073335   120   96.7%   97.5%   95.8%   83.3%  100.0%     25%  a closed book / an opened book
+20260817-095529   120   47.5%   42.5%   50.0%   40.0%   50.8%   -150%  BACKWARDS  a closed book / an opened book
+20260817-152044   120   95.8%   95.8%   92.5%   91.7%   99.2%      0%  a closed hand / an opened hand
+20260817-113304   120   68.3%   66.7%   70.0%   68.3%   70.8%    -67%  a closed book / an opened book
+20260817-112606   120   92.5%   87.5%   90.0%   92.5%   95.0%   -200%  a closed book / an opened book
+20260825-0602     120   89.2%   91.7%   86.7%   90.0%   91.7%    100%  a closed book / an opened book
+20260825-0622      90   91.1%   94.4%   91.1%   91.1%   93.3%    150%  a closed book / an opened book
+20260820-063704   120   97.5%   99.2%   97.5%   71.7%   99.2%    100%  a closed book / an opened book
+20260817-091826   120   91.7%   92.5%   90.0%   90.8%   92.5%    100%  a closed book / an opened book
+20260817-085747   120   76.7%   53.3%   67.5%   76.7%   77.5%  -2800%  a closed book / an opened book
+20260817-154206   120   90.8%   92.5%   90.0%   84.2%   91.7%    200%  a big bag / a small bag
+20260820-132448   120   96.7%   97.5%   95.0%   96.7%   97.5%    100%  a blue cube / a red cube
+20260811-072207   120  100.0%  100.0%   60.8%  100.0%  100.0%          a closed book / an opened book
+20260825-0618     121   93.4%   93.4%   89.3%   91.7%   93.4%          a closed book / an opened book
+
+  pooled over 31 benches and 3549 held-out frames:
+    rule    75.6%   the shipped fixed cut
+    adapt   75.6%   the correction
+    flip    72.4%   the correction, sign reversed
+    empty   73.7%   the correction, estimated from empty spans only
+    oracle  83.1%   the best fixed cut, known only afterwards
+
+  per bench, adapt - rule: mean +0.0, sd 6.3, best +16.7, worst -23.3, median +0.0
+  moves by more than 5 points on 7 of 31 benches, 4 of them downward.
+  mean +0.0 against a standard error of 1.1 is t = 0.01 on 30 df, which does not clear.
+  Sign test: 15 up, 11 down, 5 unmoved.
+     9 benches that threw 10 points or more away   adapt   +1.9  sd   7.4  worst   -6.7   empty   +1.2
+    22 benches that kept most of their ceiling     adapt   -0.8  sd   5.8  worst  -23.3   empty   -3.0
+
+  adapt beats the rule on 15 of 31 benches and loses on 11; flip on 6.
+  **IF THOSE TWO COUNTS ARE ALIKE THE CORRECTION IS NOT WHAT IS HELPING** - a threshold
+  that wanders would be beating one that sits still, which is a fact about the axis
+  and not a fix.
+
+  THE ARM THAT CANNOT CHEAT: `empty` wins on 8 of 31. Its average is built
+  only from spans with nothing in shot, so it has no way to know which class is
+  in front of the camera and cannot win by tracking one. It is A CONTROL AND NOT A
+  PROPOSAL: the appliance cannot currently tell an empty desk from an occupied one
+  (0 of 90 on every recent bench - issues #18 and #21), so nothing could compute it
+  online today.
+
+  AND SINCE 2026-08-25 SOMETHING CAN, which is how we know this arm is dead rather
+  than blocked. The third reference labels its own quiet frames; run
+  tools/probe_selfquiet.py to see the self-labelled arm land on top of this one
+  and both of them stop well short of the drift. The docstring has the numbers.
+
+  sensitivity to tau. NOT a menu - the headline is the row at 120,
+  which comes from the schedule. Reading the best row off this sweep would be
+  fitting a constant to 31 benches, which is the move this repository keeps
+  refusing to make.
+       tau    adapt     flip    empty   won  lost
+        30    73.0%    69.3%    75.3%    14    16
+        60    75.8%    71.5%    74.3%    17    12
+       120    75.6%    72.4%    73.7%    15    11
+       240    75.4%    73.7%    74.3%    13     8
+       480    75.3%    74.7%    75.3%    12     7
+
+================================================================
+$ uv run --script tools/probe_selfquiet.py bench/cue/*.log
+
+  20260822-leaverunning-frames.log           skipped: bench/cue/20260822-leaverunning-frames.log: no .cues sidecar, so the boundaries are opinion
+  20260822-watch-smoke.log                   skipped: synthetic or a smoke test; a pooled mean must not have it
+  m9_cue-20260811-072207.log                 skipped: no empty span after the class rule engaged; nothing to enrol
+  m9_cue-20260815-111130.log                 skipped: the board distrusted its own camera - ^ the exposure never moved from its first reading in 41 frames, so the auto-exposure
+  m9_cue-20260815-111750.log                 skipped: the board distrusted its own camera - ^ the exposure never moved from its first reading in 41 frames, so the auto-exposure
+  m9_cue-20260816-172256.log                 skipped: the board distrusted its own camera - ^ the exposure never moved from its first reading in 41 frames, so the auto-exposure
+  m9_cue-20260817-085204.log                 skipped: bench/cue/m9_cue-20260817-085204.log: no .cues sidecar, so the boundaries are opinion
+  m9_cue-20260817-085747.log                 skipped: no empty span after the class rule engaged; nothing to enrol
+  m9_cue-20260817-093309.log                 skipped: no empty span after the class rule engaged; nothing to enrol
+  m9_cue-20260817-103054.log                 skipped: bench/cue/m9_cue-20260817-103054.log: no .cues sidecar, so the boundaries are opinion
+  m9_cue-20260817-103550.log                 skipped: bench/cue/m9_cue-20260817-103550.log: the sidecar is marked VOID
+  m9_cue-20260817-103720.log                 skipped: bench/cue/m9_cue-20260817-103720.log: the sidecar is marked VOID
+  m9_cue-20260817-104419.log                 skipped: not a two-query bench with the cued labels as the queries
+  m9_cue-20260817-105019.log                 skipped: no empty span after the class rule engaged; nothing to enrol
+  m9_cue-20260817-112155.log                 skipped: bench/cue/m9_cue-20260817-112155.log: the sidecar is marked VOID
+  m9_cue-20260817-133552.log                 skipped: no empty span after the class rule engaged; nothing to enrol
+  m9_cue-20260820-131217.log                 skipped: not a two-query bench with the cued labels as the queries
+  m9_cue-20260820-142249.log                 skipped: not a two-query bench with the cued labels as the queries
+  m9_cue-20260823-0710.log                   skipped: bench/cue/m9_cue-20260823-0710.log: the sidecar is marked VOID
+  m9_cue-20260825-0558.log                   skipped: the board distrusted its own camera - camera    : live 128x128 RGB565, id 0x82, 16.0 MHz, expose 59 ms, read 16 ms, EXPOSURE NEVER SETTLED after 40 frames
+  m9_cue-smoke-2e48d86.log                   skipped: synthetic or a smoke test; a pooled mean must not have it
+  m9_cue_fake_d.log                          skipped: synthetic or a smoke test; a pooled mean must not have it
+
+tau = 120 frames; `cued` is an oracle, `self` is the buildable one
+
+bench                 n   rule  adapt   cued   self  oracle   leak   miss
+20260817-104849      48   50.0   50.0   50.0   50.0    75.0    nan  100.0
+20260817-085504     120   25.8   25.8   25.8   25.8    49.2   64.1    0.0
+20260824-0839       121   73.6   87.6   74.4   73.6    89.3   59.3   38.3
+20260817-152757     120   60.0   61.7   65.8   60.0    75.0   50.6   36.7
+20260817-105251      48   33.3   33.3   33.3   33.3    47.9   75.5    4.2
+20260817-133952     120   74.2   73.3   73.3   71.7    86.7   43.8   10.0
+20260817-153747     120   78.3   70.8   87.5   80.0    89.2   79.0   50.0
+20260817-095808     120   74.2   83.3   75.0   74.2    84.2   47.6   28.3
+20260816-173537     120   56.7   66.7   56.7   57.5    65.8   55.1    5.0
+20260825-0611       121   75.2   76.9   76.0   75.2    84.3   56.6    6.7
+20260820-062406     120   95.0   95.0   95.0   95.8   100.0   53.7    5.0
+20260820-062932     120   51.7   49.2   55.0   49.2    56.7   63.4    1.7
+20260820-063324     120   49.2   39.2   38.3   48.3    54.2   44.9    1.7
+20260825-1309       120   88.3   93.3   88.3   88.3    93.3   62.2   20.0
+20260824-0651       120   75.8   81.7   74.2   80.0    80.0   43.4   50.0
+20260817-152044     120   95.8   97.5   91.7   88.3    99.2   50.5   16.7
+20260817-073335     120   96.7   99.2   95.8   92.5   100.0   55.4    3.3
+20260817-095529     120   47.5   40.0   42.5   46.7    50.8   68.5   61.7
+20260817-113304     120   68.3   67.5   68.3   68.3    70.8   36.6   13.3
+20260817-112606     120   92.5   90.0   92.5   93.3    95.0   56.2   23.3
+20260825-0602       120   89.2   90.8   89.2   89.2    91.7   42.2   13.3
+20260825-0622        90   91.1   94.4   91.1   91.1    93.3   64.2   73.3
+20260820-063704     120   97.5   99.2   82.5   97.5    99.2   65.1   11.7
+20260817-091826     120   91.7   92.5   91.7   91.7    92.5   56.5    5.0
+20260817-154206     120   90.8   80.8   78.3   89.2    91.7   65.8   13.3
+20260820-132448     120   96.7   97.5   96.7   96.7    97.5   36.8    0.0
+20260825-0618       121   93.4   95.0   93.4   93.4    93.4   81.9   68.3
+
+n = 27   mean over benches, held out
+  rule     74.5      adapt    75.3
+  cued     73.4      self     74.1      oracle   81.7
+
+cued   against rule: -1.1 points, sd 5.0, t = -1.16 on 26 df, wins 6/27
+
+self   against rule: -0.4 points, sd 2.0, t = -1.10 on 26 df, wins 5/27
+
+adapt  against rule: +0.7 points, sd 5.5, t = 0.69 on 26 df, wins 15/27
+
+split by whether the bench threw its ceiling away
+  lost 10+ points (n= 8)   adapt  +2.1   cued  +2.0   self  -0.1
+  kept most of it (n=19)   adapt  +0.2   cued  -2.4   self  -0.6
+
+the label itself: leak median 56.3% (class frames inside the quiet average), worst 81.9%
+                  miss median 13.3% (quiet frames the rule declined), worst 100.0%
+
+how far the cut ever moved: adapt 0.92   cued 0.31   self 0.61   (median peak |shift|)
+  `self` cannot exceed `room` = 0.93 median, 6.36 worst; 10/27 benches pinned at 90% of it

@@ -89,9 +89,9 @@ timestamp in the filename — see 11:44 below.
 | --- | --- | --- | --- | --- |
 | `m9_cue-20260811-072207.log` | 100.0% | 100.0% | 08-11 07:22 | the run that set the expectation everything since has been measured against |
 | `m9_cue-20260815-111130.log` | — | — | | the port vanished mid-run: a watchdog reboot seen from the host |
-| `m9_cue-20260815-111750.log` | — | — | | same, and the log ends in the `uhubctl` recovery advice |
-| `m9_cue-20260816-172256.log` | 58.3% | 48.3% | 08-16 17:22 | first of the two runs that opened issue #19 |
-| `m9_cue-20260816-173537.log` | 57.5% | 45.0% | 08-16 17:35 | second of them, same rule, same room |
+| `m9_cue-20260815-111750.log` | — | — | | same, and the log ends in the `uhubctl` recovery advice. Also **acquire flagged** (`expose 58 ms`), which cost nothing here because it was never scored |
+| `m9_cue-20260816-172256.log` | 58.3% | 48.3% | 08-16 17:22 | first of the two runs that opened issue #19 — and **acquire flagged**: `expose 59 ms`, 41 frames to settle, the board said the exposure never moved. Pooled tools refuse it now. It is the archive's largest `adapt` recovery, +33.4, and that is a fact about the camera. See "A camera nobody checked" |
+| `m9_cue-20260816-173537.log` | 57.5% | 45.0% | 08-16 17:35 | second of them, same rule, same room — and **the control that saves #19**: `expose 37 ms`, settled in 14, 1.6 points from its flagged sibling. The collapse reproduces on a working camera |
 | `m9_cue-20260817-073335.log` | 96.7% | 99.2% | 08-17 07:33 | |
 | `m9_cue-20260817-085204.log` | — | — | | 179 bytes: the board went before the run did |
 | `m9_cue-20260817-085504.log` | 0.0% | 83.3% | | the widest live-against-replay gap there is, and the reason this file explains the two columns |
@@ -126,7 +126,7 @@ timestamp in the filename — see 11:44 below.
 | `m9_cue-20260823-0710.log` | **VOID** | **VOID** | | **the enrolment keys were crossed** — the board had bound key 1 to `a closed book` and the key was pressed during the `an opened book` segment, so both references went in swapped. Its two columns are 15.0% and 85.0%, exact complements, and neither is about the book pair. See the subsection above; `tools/probe_reject.py` refuses this shape now |
 | `m9_cue-20260824-0651.log` | 75.8% | 80.0% | 08-24 06:51 | **issue #22's treatment run**: the book taken out of shot and re-staged from scratch before every visit. Ceiling 86.7%, `lost` 4.2, presence 0/90. Paired with 08:39 below, which is the same run staged the old way — read the two together or not at all |
 | `m9_cue-20260824-0839.log` | 73.6% | 78.4% | 08-24 08:39 | **issue #22's control**, 108 minutes after the treatment on one firmware and one schedule: staged the old way, the book never leaving the frame. Ceiling 86.3%, `lost` 15.7, presence 0/90. **2.2 points from the treatment**, so re-staging bought nothing, and it did not reproduce 13:35's walk either. This is the run that took the mechanism out of #19 |
-| `m9_cue-20260825-0558.log` | 77.5% | 76.1% | 08-25 05:58 | **first of five identical runs in twenty-five minutes**, and the one that collapsed: ceiling 98.3%, `lost` **20.8**, over the #19 line on current firmware. Its four siblings below are the reason this is a number about the rule and not about the morning |
+| `m9_cue-20260825-0558.log` | 77.5% | 76.1% | 08-25 05:58 | **first of five identical runs in twenty-five minutes**, and the one that collapsed: ceiling 98.3%, `lost` **20.8**, over the #19 line on current firmware. Its four siblings below are the reason this is a number about the rule and not about the morning — but **acquire flagged**, and it is the only one of the five: `expose 59 ms` against their 37, `EXPOSURE NEVER SETTLED`, and its three colour channels drift 39 points apart across the run against their 8–11. The collapse is real; what moved the scene was the sensor. See "A camera nobody checked" |
 | `m9_cue-20260825-0602.log` | 89.2% | 89.4% | 08-25 06:02 | second of five, four minutes after the collapse and 11.7 points better. `lost` 2.5 |
 | `m9_cue-20260825-0611.log` | 75.2% | 79.0% | 08-25 06:11 | third of five, and **the lowest of the session at 75.2%** — but its ceiling is 84.3%, the weakest of the five, so only 9.1 of it is the rule. A low score and a collapse are not the same event |
 | `m9_cue-20260825-0618.log` | 93.4% | 92.8% | 08-25 06:18 | fourth of five, the best of the session, `lost` **0.0** — the rule collected every point its scene offered |
@@ -242,9 +242,15 @@ between two cuts, and it splits exactly:
 | 08-17 08:55 | 71.7 | **47.5** | 24.2 | −1.20 | 3.50 | book, **backwards** |
 | 08-17 10:52 | 47.9 | **31.2** | 16.7 | 1.22 | 1.86 | book, **backwards** |
 | 08-17 13:35 | 36.7 | 0.0 | 36.7 | −2.01 | 0.46 | book |
-| 08-16 17:22 | 29.2 | 0.0 | 29.2 | 0.94 | 0.38 | book |
+| 08-16 17:22 | 29.2 | 0.0 | 29.2 | 0.94 | 0.38 | book, **acquire flagged** |
 | 08-17 10:48 | 25.0 | 0.0 | 25.0 | −4.76 | 0.22 | book |
 | 08-17 15:27 | 15.0 | 0.0 | 15.0 | 0.24 | 0.58 | glass |
+
+08-16 17:22 is one of the three benches the board flagged and no tool read — "A
+camera nobody checked" below. Its row is kept because the point being made here
+is about `SWAP` and holds on a broken camera as well as a working one, and
+because the run twelve minutes after it on a working camera lands in the same
+place. Do not lift the row into any pooled figure.
 
 **`SWAP` is the enrolment choosing the direction the held-out frames
 contradict**, and it is a different bug from a misplaced cut: no threshold
@@ -411,6 +417,14 @@ deviation is 8.3 points, so two independent runs differ with an SD of
 degrees of freedom and that SD is itself loose, so read 23 as *roughly twenty*
 and not as a threshold.
 
+*Something did change between them, and this section is the one place it does
+not matter.* Run 1's camera never engaged its auto loops — "A camera nobody
+checked" below. But run 1 is **interior** to the spread at 77.5%: the 18.2
+points are runs 3 and 4, both clean. Drop run 1 entirely and the SD of the
+remaining four is 8.2 against 8.3, so the 23-point figure this section exists
+for is unmoved. What run 1 does contaminate is `lost` **20.8** and the
+correction built on it two sections down.
+
 Held against the comparisons this repository has actually made:
 
 | comparison | gap | verdict |
@@ -455,7 +469,92 @@ and the run read 92.5% over 120 frames. It is 91.1% over 90 above. The
 references are untouched either way: enrolment is visits 1 and 2 only, and this
 was visit 12.
 
+## A camera nobody checked
+
+Since #26, `ft_acquire()` decides whether the auto-exposure loop ever engaged
+during the boot ramp and, when it did not, prints so into the log it is about:
+
+```
+camera    : live 128x128 RGB565, id 0x82, 16.0 MHz, expose 59 ms, read 16 ms,
+            EXPOSURE NEVER SETTLED after 40 frames
+            ^ the exposure never moved from its first reading in 40 frames
+```
+
+**Until 2026-09-06 not one tool that turns a log into a number read either
+line.** `host/watch.py` did, and it is a live viewer that writes nothing down.
+Every scorer in `tools/` scored straight through the flag. That is #26's own
+failure repeated one layer up: the board raised its hand and the layer above was
+not looking.
+
+Three of the forty-two scoreable benches in this directory carry it, and they
+separate from the other thirty-nine on a field printed in the same banner:
+
+| | benches | `expose` | frames to settle |
+| --- | --- | --- | --- |
+| clean | 39 | 36–37 ms | 6–25 |
+| flagged | 3 | 58–59 ms | 40–41 |
+
+No overlap, in either column. The three are `20260815-111750` (never scored —
+the port vanished mid-run), `20260816-172256`, and `20260825-0558`.
+
+### What it cost
+
+The two that were scored are the two largest recoveries in the whole archive
+under the correction proposed in the next section:
+
+| bench | `rule` | `adapt` | difference |
+| --- | --- | --- | --- |
+| `m9_cue-20260816-172256.log` | 58.3% | 91.7% | **+33.4** |
+| `m9_cue-20260825-0558.log` | 77.5% | 99.2% | **+21.7** |
+| every other bench, mean | | | +0.0 |
+
+`tools/probe_adapt.py` and `tools/probe_selfquiet.py` refuse a flagged log now;
+`tools/score_cue.py`, `tools/score_drift.py` and `tools/probe_camlock.py` print
+the board's own sentence on stderr above the number and score it anyway, because
+a single bench's reading is still that bench's reading and one of these three is
+half of what opened #19. What a pooled mean must not do is average one in.
+
+### The mechanism, and why it points the opposite way from what was assumed
+
+A sensor with its white-balance loop off does not merely sit at the wrong
+brightness. It walks in **colour**. First snapshot against last, over the five
+runs of the 08-25 session:
+
+| run | first | last | R | G | B | spread |
+| --- | --- | --- | --- | --- | --- | --- |
+| **05:58** | 37 50 35 | 45 49 48 | **+22%** | **−2%** | **+37%** | **39 pts** |
+| 06:02 | 128 123 124 | 135 127 139 | +5% | +3% | +12% | 9 pts |
+| 06:11 | 132 127 127 | 128 123 135 | −3% | −3% | +6% | 9 pts |
+| 06:18 | 73 75 72 | 67 66 69 | −8% | −12% | −4% | 8 pts |
+| 06:22 | 64 68 64 | 62 64 67 | −3% | −6% | +5% | 11 pts |
+
+**Overall brightness excursion is not the discriminator and must not be quoted
+as one.** 06:18 swings 35.2% peak-to-peak about its mean against 05:58's 38.8%,
+and 06:18 is the best bench of the session with `lost` **0.0**. What separates
+05:58 is that its three channels move *apart* — a 39-point spread against 8 to
+11 — which is a colour cast drifting, not a light level changing.
+
+A drifting colour cast applies to everything in the room at once. It translates
+every class along the margin axis together and leaves the distance between them
+alone. That is precisely the shape the next section reads off this bench and
+attributes to the room.
+
+### What survives
+
+**#19 does.** It was opened on two runs and only one of them is flagged. The
+healthy sibling twelve minutes later, `m9_cue-20260816-173537.log`, reads
+`expose 37 ms`, settles in 14 frames, and scores 56.7% against 17:22's 58.3% —
+the same collapse, on a camera that worked. The one that does not survive is the
+correction below.
+
+`cue/analysis/20260906-adapt-doubt.txt` is both tools' output with the refusal in.
+
 ## A threshold that follows the scene, and why it is still not a fix
+
+**Read the section above first. This one was written on 2026-08-25 and the two
+benches carrying its result were taken through a camera with its auto loops off;
+the arithmetic here is correct and the conclusion is withdrawn.** What is left
+after the flagged benches are refused is at the end.
 
 The five-run session left one bench, `m9_cue-20260825-0558.log`, that collapsed
 on the current firmware with its ceiling intact — margin AUC 0.962 and `best`
@@ -547,6 +646,41 @@ see "And the pairing does not work" below. The short version: the label was fine
 the anchor was wrong.
 
 `cue/analysis/20260825-adapt.txt` is the full table.
+
+### And on 2026-09-06 the correction turned out to be two broken cameras
+
+Everything above stands as arithmetic on the frames it was given. Two of the
+thirty-three benches it pooled were flagged by the board itself and read anyway
+— see "A camera nobody checked" — and they are the +33.4 and the +21.7. With
+them refused:
+
+| arm | 2026-08-25, 33 benches | 2026-09-06, 31 benches |
+| --- | --- | --- |
+| `rule` | 75.1% | 75.6% |
+| `adapt` | **76.9%** | 75.6% |
+| `flip` | 71.0% | 72.4% |
+| `empty` | 74.3% | 73.7% |
+| `oracle` | 83.7% | 83.1% |
+
+| group | `adapt` was | `adapt` is | `empty` was | `empty` is |
+| --- | --- | --- | --- | --- |
+| benches that lost 10 points or more | **+6.5** | +1.9 | +3.7 | +1.2 |
+| benches that kept most of their ceiling | −0.9 | −0.8 | −3.2 | −3.0 |
+
+Per bench `adapt − rule` goes from mean +1.7, sd 9.2, t = 1.05 to **mean +0.0,
+sd 6.3, t = 0.01**. The buildable successor moves with it: `probe_selfquiet.py`'s
+`self` arm goes from +0.3 to **−0.4** and its `adapt` column from +2.6 to +0.7.
+
+Three of the four supports listed above go with it. **"It is aimed correctly"**
+was +6.5 on the collapsed group and is +1.9. **"Part of the shift is in the bare
+desk"** was +3.7 and is +1.2. **"Both benches #19 was opened on recover"** was
+half a flagged camera; the healthy one of the pair recovers +6.6, not +33.4.
+Only **"the sign matters"** survives, and a correct sign on a null is not a
+result.
+
+**The null was always the headline and it has not changed** — the file said "not
+a fix and should not be built" on 2026-08-25 and says it now. What changed is the
+reason. It was not a real effect too small to ship. It was the instrument.
 
 ## A reference on the origin, and the unit that does not exist
 

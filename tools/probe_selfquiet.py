@@ -79,7 +79,7 @@ from math import exp
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from probe_reject import BASELINE, EMPTY, Skip, load, references
+from probe_reject import BASELINE, EMPTY, Skip, acquire_doubt, load, references
 
 TAU = 120.0             # frames, one rotation of host/cue.py's schedule
 SETTLE = 10             # dropped off the enrolment span, as probe_third.py does
@@ -98,6 +98,8 @@ def best_t(pos, neg):
 def read(log: Path) -> dict:
     if "fake" in log.stem or "smoke" in log.stem:
         raise Skip("synthetic or a smoke test; a pooled mean must not have it")
+    if doubt := acquire_doubt(log):
+        raise Skip(f"the board distrusted its own camera - {doubt}")
     spans, frames, enrol, window = load(log)
     names = sorted(next(iter(frames.values()))[0])
     labels = sorted({lab for _a, _b, lab in spans if lab not in (EMPTY, BASELINE)})

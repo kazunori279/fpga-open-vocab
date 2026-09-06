@@ -16,12 +16,25 @@ import statistics as st
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from probe_reject import acquire_doubt
+
 FRAME = re.compile(r"^frame\s+(\d+) :\s+(.*?)\s+led")
 SCORE = re.compile(r"(\S.*?)\s([-+]\d+\.\d+)\*?(?=\s|$)")
 FROZEN = re.compile(r"^background: after (\d+) frames \(frozen")
 
 
 def main(path: Path) -> None:
+    # Drift is the whole subject of this tool, and a camera whose auto loops
+    # never engaged supplies its own - 08-25 05:58's blue channel rose 37% over
+    # a run while its four healthy siblings moved 4-12%. Read as a fact about
+    # the room, that is the room's drift plus the sensor's, with no way to tell
+    # them apart afterwards.
+    if doubt := acquire_doubt(path):
+        print(f"!! {path.name}: THE BOARD DISTRUSTED ITS OWN CAMERA.\n"
+              f"!! {doubt}\n"
+              f"!! Some of the drift below is the sensor's and not the room's.",
+              file=sys.stderr)
     lines = path.read_text(errors="replace").splitlines()
     frozen_at = None
     rows = []

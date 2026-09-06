@@ -29,6 +29,12 @@ references were taken, and the gap between the classes barely moved (4.08 early,
 the pose or the staging. The separation survived intact and the threshold did
 not follow it.
 
+READ THE 2026-09-06 SECTION AT THE BOTTOM BEFORE TAKING THAT PARAGRAPH ANY
+FURTHER. Everything in it is still true of the frames. What was not known when
+it was written is WHAT MOVED THE SCENE: that bench was taken through a camera
+whose auto-exposure and auto-white-balance loops never engaged, the board said
+so in the same log, and no tool was reading the line.
+
 WHAT THIS SCRIPT ASKS. If that is what happens, then subtracting a running
 estimate of where the scene sits should put the cut back under it:
 
@@ -138,6 +144,53 @@ movement this file's `adapt` exploits: peak |shift| is 0.95 for `adapt` and 0.45
 for `empty`, so what #19 records is mostly the class side moving, not the axis.
 DO NOT READ THE TWO FILES' `rule` COLUMNS AGAINST EACH OTHER - that one scores
 only after the third reference lands, about a third fewer held-out frames.
+
+WHAT IT SAYS NOW, AND WHY EVERY NUMBER ABOVE THIS LINE IS SUPERSEDED. 2026-09-06
+-------------------------------------------------------------------------------
+
+**THE CORRECTION WAS TWO BENCHES, AND BOTH OF THEM WERE A BROKEN CAMERA.**
+
+    rule    75.6%      adapt   75.6%      flip  72.4%
+    empty   73.7%      oracle  83.1%
+
+    per bench, adapt - rule: mean +0.0, sd 6.3, t = 0.01 on 30 df
+    15 up, 11 down, 5 unmoved; best +16.7, worst -23.3
+
+    9 benches that lost 10 points or more    adapt  +1.9   empty  +1.2
+    22 benches that kept most of theirs      adapt  -0.8   empty  -3.0
+
+`ft_acquire()` in firmware/frame.c prints a line when the auto-exposure loop
+never engaged during the ramp, and until today no tool that turns a log into a
+number read it. Three of the forty-two scoreable benches in bench/ carry it.
+`read()` above refuses them now, and taking two of them out of the pool is the
+entire difference between the 2026-08-25 table and this one:
+
+    08-16 17:22   58.3% -> 91.7%   adapt - rule  +33.4   the archive's largest
+    08-25 05:58   77.5% -> 99.2%   adapt - rule  +21.7   the second largest
+
+Two benches out of thirty-three carried a mean of +1.7 over thirty-three. Take
+them out and the arm this file proposes is worth nothing at all - not "does not
+clear", which is what the section above already said honestly enough, but +0.0.
+The `empty` control moves the same way (+3.7 to +1.2 on the collapsed group), and
+so does the buildable arm next door: `probe_selfquiet.py`'s `self` goes from
++0.3 to -0.4 and its `adapt` from +2.6 to +0.7.
+
+**AND THE MECHANISM IS THE OTHER WAY ROUND FROM THE ONE THIS FILE ASSUMED.** A
+sensor with its white-balance loop off does not just sit at the wrong level, it
+walks in COLOUR: 08-25 05:58's blue channel rose 37% from its first snapshot to
+its last while red rose 22% and green fell 2%, a spread of 39 points across the
+three channels, against 8 to 11 points on each of its four healthy siblings from
+the same twenty-five minutes. A colour cast that drifts applies to every object
+in the room at once. That is a common-mode translation of every class along the
+margin axis with the separation intact - which is exactly the shape described at
+the top of this file, and exactly the shape a threshold that follows the scene
+cancels. The correction worked because the drift was the instrument.
+
+**WHAT SURVIVES.** #19 does. It was opened on two runs and only one of them is
+faulted: the healthy sibling twelve minutes later, `20260816-173537`, scores
+56.7% against 17:22's 58.3% and recovers +6.6 against +33.4. The collapse is
+real and it reproduces on a working camera. What does not survive is this file's
+proposal, and the reason it looked alive for twelve days.
 """
 import statistics as st
 import sys
@@ -146,7 +199,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from probe_midpoint import best_t, cut_acc
-from probe_reject import BASELINE, EMPTY, Skip, load, references
+from probe_reject import BASELINE, EMPTY, Skip, acquire_doubt, load, references
 
 # One full rotation of the standard cue schedule: three spans of forty frames.
 # From host/cue.py's schedule, not from these logs. See the docstring.
@@ -165,6 +218,16 @@ def read(log: Path, taus: tuple[float, ...]) -> dict:
     # the best result into a paired test of whether the result exists.
     if "fake" in log.stem or "smoke" in log.stem:
         raise Skip("synthetic or a smoke test; a pooled mean must not have it")
+    # AND THIS ONE IS THE REASON THE HEADLINE ABOVE WAS REWRITTEN. A bench whose
+    # auto-exposure and auto-white-balance loops never engaged drifts in COLOUR
+    # as well as level - 08-25 05:58's blue channel rose 37% across the run
+    # against 4-12% on its four healthy siblings - and a chromatic drift moves
+    # every class the same way along the axis, which is precisely the shape a
+    # threshold that follows the scene is built to cancel. Scoring two of them
+    # handed this tool the two largest recoveries in the archive, +33.4 and
+    # +21.7, and they were the whole result. See the docstring.
+    if doubt := acquire_doubt(log):
+        raise Skip(f"the board distrusted its own camera - {doubt}")
     spans, frames, enrol, window = load(log)
     names = sorted(next(iter(frames.values()))[0])
     labels = sorted({lab for _a, _b, lab in spans if lab not in (EMPTY, BASELINE)})

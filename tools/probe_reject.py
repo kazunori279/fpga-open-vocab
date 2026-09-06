@@ -53,6 +53,30 @@ BOUND = re.compile(r"enrol\s*: the next \d+ frames are '([^']+)'")
 EMPTY = "empty"                     # MUST MATCH host/cue.py
 BASELINE = "baseline"
 
+# THE FIRMWARE ALREADY SAID SO AND NOBODY DOWNSTREAM WAS LISTENING. ft_acquire()
+# in firmware/frame.c decides whether the auto-exposure loop ever engaged, and
+# when it did not it prints one of these two lines into the log it is about.
+# Until 2026-09-06 not one scoring tool read either of them - only host/watch.py,
+# which is a live viewer and writes nothing down. That is #26's failure with the
+# fix one layer short: the board raised the flag, and every tool that turns the
+# log into a number scored straight through it.
+#
+# Three of the forty-two scoreable benches in bench/ carry it, and they separate
+# perfectly on a field that is right there in the banner: the thirty-nine clean
+# ones read `expose 36..37 ms` and settle in 6-25 frames, the three read
+# `expose 58..59 ms` and take 40-41. See "A camera nobody checked" in
+# bench/README.md for what scoring them cost.
+DOUBT = re.compile(r"EXPOSURE NEVER SETTLED|the exposure never moved from its "
+                   r"first reading")
+
+
+def acquire_doubt(log: Path) -> str | None:
+    """The board's own words if it distrusted the camera it scored through."""
+    for line in log.read_text(errors="replace").splitlines():
+        if DOUBT.search(line):
+            return line.strip()
+    return None
+
 
 def load(log: Path):
     """(spans, frames, enrol, window) - spans are (a, b, label) after settle."""

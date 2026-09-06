@@ -47,6 +47,9 @@ import statistics as st
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from probe_reject import acquire_doubt
+
 WINDOW = 31      # centred, odd, about 9 s at 290 ms/frame
 SKIP = 60        # past the ramp and past every arm's lock press
 
@@ -104,6 +107,14 @@ def main():
           f"{'common':>7} {'margin':>7} {'cm sd':>7} {'mg sd':>7}")
     rows = []
     for path in args.logs:
+        # This probe compares a locked camera against a free-running one, so a
+        # log where the auto loops never engaged is a THIRD arm wearing one of
+        # the two names - and if it lands in `free` it is a lock that nobody
+        # asked for. Flagged per row rather than dropped, because which arm it
+        # landed in is exactly what the reader needs to see.
+        if doubt := acquire_doubt(path):
+            print(f"!! {path.stem}: the board distrusted its own camera - "
+                  f"{doubt}", file=sys.stderr)
         frames, cols, lock = series(path)
         if len(frames) <= args.skip + WINDOW:
             print(f"{path.stem:<22} too short: {len(frames)} frames")

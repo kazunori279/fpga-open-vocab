@@ -54,6 +54,9 @@ import statistics as st
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from probe_reject import acquire_doubt
+
 # frame   266 :  a hand +19.02*  an open hand~ -0.70  a closed hand~ -4.92   led ...
 FRAME = re.compile(r"^frame\s+(\d+) :\s+(.*?)\s+led")
 SCORE = re.compile(r"(\S.*?)\s([-+]\d+\.\d+)\*?(?=\s|$)")
@@ -219,6 +222,19 @@ def main():
                    help="frames to drop after each cue, for the operator's hand "
                         "to arrive and the EMA to follow it (default 10)")
     args = p.parse_args()
+
+    # WARNED AND NOT REFUSED, and the difference is deliberate. This tool prints
+    # one bench's reading; the pooled tools that would let a faulted camera move
+    # a mean (probe_adapt.py, probe_selfquiet.py) refuse outright. Here the run
+    # is still the run - three archived benches carry this line and one of them
+    # is half of what opened #19 - so the number stays and the doubt travels
+    # with it, on stderr, above the number rather than after it.
+    if doubt := acquire_doubt(args.log):
+        print(f"!! {args.log.name}: THE BOARD DISTRUSTED ITS OWN CAMERA.\n"
+              f"!! {doubt}\n"
+              f"!! Every figure below is against whatever picture that was. See\n"
+              f"!! \"A camera nobody checked\" in bench/README.md.",
+              file=sys.stderr)
 
     cues, frames, roles, bg, enrol, window = load(args.log)
     # Neither empty segment is a class, and they are dropped here for two
