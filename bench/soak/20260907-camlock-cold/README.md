@@ -92,6 +92,36 @@ before pair 1 and this paragraph is amended, not quietly satisfied.
 first reading*, is the one that let `m9_cue-20260816-172256.log` be scored for
 three weeks. Commit `90a2189`.
 
+## The room light, and the one thing that can tell dawn from drift
+
+Nothing in 09-06's design says anything about the light, and it should have. The
+tertiary test is the sign of the per-arm slope of `common` against position in
+the session; this session runs 06:00 to roughly 07:20 JST in September, so
+**sunrise happens inside the measurement window and has the same shape as the
+decay the hypothesis predicts.** The primary is safe — the arms alternate and
+the leading arm swaps every pair, so a monotone drift in the room falls on both
+arms equally — but the tertiary is not.
+
+The room light is not touched during the session and the curtains stay as they
+are. Today is overcast, which flattens the ramp, and that is a helpful accident
+rather than a control.
+
+**The control is that the session already carries its own photometer, and only
+one arm can be it.** `last frame mean RGB` is recorded for every run. In the
+`free` arm it is worthless for this — the auto-exposure loop is running and
+absorbs a change in the room, so the field reads flat whether the light moved or
+not. In the `lock` arm `--enrol=40:L` freezes exposure and gain at frame 40
+(one press; white balance keeps running, so this is a luminance photometer and
+not a colour one), and every frame after that reports the room as it actually
+is. The arms alternate, so the session yields **eight fixed-exposure brightness
+samples spread evenly across the eighty minutes**.
+
+Stated now so it cannot be chosen afterwards: **if the eight `lock` mean-RGB
+readings show a monotone trend across the session, the tertiary test is reported
+as confounded and not as a result.** If they are flat, the tertiary stands as
+pre-registered. This is a diagnostic on an existing test, not a new test, and it
+changes nothing about the primary or the secondary.
+
 ## Recorded for #32, with no test pre-registered
 
 `last mean RGB` per run, as 09-06 planned, and now also **the number of acquires
