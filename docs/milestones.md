@@ -1,8 +1,11 @@
 <!-- moved out of README.md on 2026-08-01; see ../README.md#documentation -->
 <!-- 2026-08-11: the project was renamed MicroCLIP -> fpga-open-vocab, and that
      one identifier was replaced mechanically throughout this file. No number,
-     date, claim or verdict was touched. It is the only after-the-fact edit
-     here; the reasons are in history.md#the-name -->
+     date, claim or verdict was touched; the reasons are in history.md#the-name.
+     2026-09-07: an Index section was added between the intro and M0. It is
+     navigation only - headings, anchors and one-line glosses - and touches no
+     number, date, claim or verdict either. Those are the only two after-the-fact
+     edits to this file. -->
 
 # Dev plan — M0 through M21
 
@@ -13,6 +16,58 @@ and [`history.md`](history.md) is the curated read of the same material.
 
 [← back to the README](../README.md) · [architecture](architecture.md) ·
 [building](building.md) · [history](history.md) · [bring-up log](bring-up-log.md)
+
+---
+
+## Index
+
+Six thousand lines is not a document you read front to back. This table is the
+way in: what each milestone settled, and the frame time it left behind. **The
+frame column is a ladder, not a set of current numbers** — every row is what was
+true the day that milestone closed, and only the last one is near where the
+appliance is now. For today's figures see [`../README.md`](../README.md).
+
+Two things about reading order. **The file is not in milestone order** — M7i sits
+before M7b, because that is when each was written. And a ✅ in a heading means
+the milestone closed, **not** that its claim survived: M20 shipped and had its
+own premise falsified on hardware in the next section.
+
+| | what it settled | frame |
+|---|---|---|
+| [M0](#m0--answer-the-open-questions--done) | The pin map, from the vendor KiCad. Headline is negative: **question 5 killed the 8-bit bus**, so M2 became "measure the 3-bit link and find out if the FPGA is worth using" | |
+| [M1](#m1--bitstream-loader--done-using-the-vendor-loader) | The vendor loader configures the T8. **CDONE is not an integrity check** — a 4 KB corruption still reports success | |
+| [M1b](#m1b--own-the-config-path--folded-into-m2) | Our own config path. **The lead-in clocks are the thing to know**: the T8 needs clocks, not time, after `CRESET_N`; 256 zero bytes, measured minimum 32 | |
+| [M2](#m2--mcufpga-link--second-go--no-go-gate--passed) | **Gate, passed.** 8.94 MB/s on one line, 26.8 predicted with the jumper. The link is *clean*, which is not the same as *fast enough* | |
+| [M3](#m3--memory-bandwidth--answered-as-a-side-effect-of-m5) | Answered as a side-effect of M5 | |
+| [M4](#m4--distill-the-student--go--no-go-gate--passed) | **Gate, passed.** 1.40 M params retain 94% of what CLIP ViT-B/16 clears; simulated int8 costs nothing | |
+| [M5](#m5--int8-reference-on-the-mcu--passed-bit-exact-on-device) | int8 reference, bit-exact on device | 31,798 ms |
+| [M5b](#m5b--tuned-mcu-baseline--3358-msframe-bit-exact-74-the-reference) | `SMLAD`, and where the missing 1.5× went | **3,358 ms** |
+| [M5c](#m5c--make-u1-talk--closed-the-vendor-never-fitted-u1-on-purpose-and-never-tested-it) | Closed by the vendor: **U1 was never meant to be fitted** and was never tested on any Forgix board. The 18-bit offset stays unexplained, on a part this project does not use | |
+| [M6](#m6--fpga-gemm-tile--bit-exact-on-silicon-2048-of-2048-accumulators) | The tile, bit-exact on silicon, 2048/2048 accumulators. **im2col in fabric** is the reason it was worth building | |
+| [M7](#m7--full-inference-on-the-fpga--a-whole-frame-runs-bit-exact-at-917-ms-on-three-data-lines-376-the-mcu) | A whole frame on the FPGA. Eight sub-milestones; [the road to 280 ms](#the-road-to-280-ms) is the ledger | 2,164 → **917 ms** |
+| [M7i](#m7i--two-instructions-for-the-epilogue--config-c-917--851-ms-and-the-mcu-baseline-moved-too) | Two instructions in the epilogue — and the MCU baseline moved too | **851 ms** |
+| [M7b](#m7b--source-the-camera--runs-in-parallel-it-exists-because-of-lead-time) | Sourcing the camera. Exists because of lead time, not sequence | |
+| [M8](#m8--camera) | Bus up, pixels correct, the ladder on a live frame, then the loop running continuously. **The camera was a quarter turn out and nothing said so** | |
+| [M9](#m9--query-loop-fpga-open-vocab-the-demo-everything-else-is-for--2026-08-07-describe-it-the-board-spots-it) | The demo everything else is for. **THE FINDING: COCO's negatives are the wrong background for one room** — the board learns its own | |
+| [M10](#m10--take-the-tile-off-the-links-clock--closed-measured-70-mhz-and-the-prize-is-32-ms) | **Closed without building it.** Two corrections first: RUN is compute not transport, and there was never a sequencer FSM to write. Measured 70 MHz; the prize was 32 ms | |
+| [M11](#m11--d1-as-a-score-meter--2026-08-07-the-board-says-what-it-sees-without-a-laptop) | The board answers without a laptop. **A P&R seed is not portable across netlists** — why `bitstreams/` is checked in. Also [recovering a wedged board](#recovering-a-wedged-board) | |
+| [M12](#m12--contrast-queries-and-a-background-that-stops-moving--2026-08-08-the-first-state-question-answered-backwards-and-reproducibly) | A query can say what it is *not*; the background stops moving. The first state question — **answered backwards, and reproducibly** | |
+| [M13](#m13--the-embedding-read-back-in-words--2026-08-08-the-student-never-says-book) | Read the embedding back in words. **The student never says "book."** The hub problem nearly made this ship broken | |
+| [M14](#m14--int4-weights-and-the-packed-mac-closed-without-building-it--wgt-666--376-mclk-on-the-board-121-ms-of-frame-in-config-a-35-in-config-c) | int4 weights. Two proposals measured GO and then overturned; **P3 ships because `conv0` is 8-bit** | 798 ms |
+| [M15](#m15--requantize-in-the-tile-drain-at-int8--drain-153--41-ms-on-the-board-config-c-798--631) | Requantize in the tile, DRAIN at int8. Resources were GO; **Fmax was the real bill** | **631 ms** |
+| [M16](#m16--le-built-macs-two-k-steps-per-lane--run-314--220-ms-on-the-board-config-c-631--569) | LE-built MACs, two K steps per lane. **The image the appliance still ships on** | **569 ms** |
+| [between M16 and M17](#between-m16-and-m17--the-150-mhz-ceiling-was-never-measured--220-mhz-sys--110-mhz-link-config-c-569--387-ms) | **The 150 MHz ceiling had never been measured.** RUN moved, which M16 said it could not | **387 ms** |
+| [M17](#m17--a-2-win-and-the-counter-that-explained-it--config-c-387--385-ms-and-the-milestones-own-premise-falsified) | A 2% win, and **the milestone's own premise falsified** by the counter that explained it | 385 ms |
+| [after M17](#after-m17--the-audit-and-a-ladder-that-is-not-monotonic--280-mhz-sys--140-mhz-link-config-c-385--304-ms) | **The ladder is not monotonic.** 260 fails where 280 passes; the PLL story is raised and refuted; two dead bands, a voltage sweep, and the upper bound | **304 ms** |
+| [M18](#m18--the-teacher-swap-and-a-guard-for-a-mistake-that-does-not-look-like-one--2026-08-10-shipped-and-bit-exact-on-the-board-the-guard-fired-and-was-broken-until-it-did-and-one-real-book-opened-then-closed-ranks-the-way-the-swap-was-for--by-242-sd-on-the-difference-axis-from-040-of-the-frames) | The teacher swap: a space that can tell an opened book from a closed one. **The guard fired, and was broken until it did.** Gate 2 did not reproduce, and the honest version is better than the claim | |
+| [M19](#m19--the-bench-itself-was-the-instrument-and-it-was-not-calibrated--2026-08-10-boundaries-become-data-the-error-bar-starts-measuring-what-varies-and-a-wording-sweep-says-the-wording-is-not-the-lever) | **The bench was the instrument and it was not calibrated.** `--hold 120` was a guess; the error bar was measuring the wrong term; wording is not the lever | |
+| [M20](#m20--gate-on-presence-rank-the-states--2026-08-10-shipped-and-its-premise-is-falsified-on-hardware--161-against-794-for-the-rule-it-replaced) | ⚠️ Shipped, **premise falsified on hardware**: 16.1% against 79.4% for the rule it replaced | |
+| [after M20](#after-m20--the-premise-falsified-twice-and-the-drift-that-turned-out-not-to-exist--2026-08-11-two-stage-161-bare-pair-ranked-794-and-the-board-is-stable-to-0065-z-over-four-minutes) | Falsified twice, and **the drift turned out not to exist** — 0.065 z over four minutes. One run had supported three conclusions | |
+| [M21](#m21--learn-the-reference-and-put-two-edges-on-the-presence-stage--2026-08-11-120120-held-out-on-the-board-against-90180-for-ranking-the-same-frames) | Learn the reference, two edges on the presence stage. **120/120 held out**, against 90/180 for ranking the same frames | |
+
+Two appendices close the file: [the design-time performance
+model](#appendix-the-design-time-performance-model) and [the frame-time target
+and its nine restatements](#appendix-the-frame-time-target-and-its-nine-restatements).
 
 ---
 

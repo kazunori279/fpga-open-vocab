@@ -1,4 +1,9 @@
 <!-- moved out of README.md on 2026-08-01; see ../README.md#documentation -->
+<!-- 2026-09-07: a "How to read this file" section was added above the newest
+     entry. It is navigation only - thread groupings and anchors into entries
+     that were already here - and no entry's numbers, dates or verdicts were
+     touched. It is the only after-the-fact edit to this file. -->
+
 
 # Bring-up log
 
@@ -8,6 +13,79 @@ exist only to record a claim that later turned out to be false.
 
 [← back to the README](../README.md) · [architecture](architecture.md) ·
 [building](building.md) · [history](history.md) · [dev plan](milestones.md)
+
+---
+
+## How to read this file
+
+Fifty-eight dated entries, newest first. **Do not treat any single entry as the
+current answer.** Several are here only because they were wrong, and the
+discipline is that a retraction sits beside the table it retracts rather than
+replacing it — so an entry can be accurate about what was measured that day and
+still describe a conclusion the next entry killed. For what is currently
+believed, read [`history.md`](history.md) or [`../README.md`](../README.md);
+this file is the evidence, not the summary.
+
+The entries fall into seven threads. Following a thread forward is the way to
+find where it ended up.
+
+**The camera's two faults, and the flag nobody scored.** Started as one fault and
+split into two, then turned out to have been silently invalidating benches for
+weeks.
+[08-21 early](#2026-08-21-early-morning--the-flash-record-survives-the-power-cycle-and-the-camera-has-two-faults-rather-than-one) ·
+[08-21 midday](#2026-08-21-midday--the-acquires-doubt-outlives-the-banner-and-a-settle-that-was-never-a-settle) ·
+[08-25](#2026-08-25-the-absent-rule-has-no-room-to-work-in-and-a-cache-that-outlived-its-sensor) ·
+[09-06](#2026-09-06-the-board-had-been-flagging-a-broken-camera-for-weeks-and-no-scorer-read-the-line) — the last one refuses two benches and takes a +21.7 and a +33.4 point result with them.
+
+**Drift, the auto loops, and #30.**
+[08-25 afternoon](#2026-08-25-afternoon-the-third-reference-on-the-board-and-the-band-that-could-not-have-fired) ·
+[08-25 night](#2026-08-25-night-30s-off-switch-turns-out-to-have-been-an-on-switch-for-a-different-fault) — the intervention that was meant to remove a variable introduced a different one.
+
+**#19, and the enrolment-time predictors that keep failing the same way.**
+[08-17, the guard asked for](#2026-08-17--the-guard-the-entry-below-asked-for-and-it-turns-out-to-order-every-bench-there-is) ·
+[08-17, it fires](#2026-08-17--the-guard-fires-for-the-first-time-and-then-a-fourth-run-says-what-it-is-still-not-measuring) ·
+[08-17, first prospective test](#2026-08-17--the-two-visit-guards-first-prospective-test-rejects-the-best-run-of-the-day) ·
+[08-17, two clean enrolments](#2026-08-17--two-clean-enrolments-and-the-second-one-retracts-what-the-first-one-seemed-to-prove) ·
+[08-17, ceiling first](#2026-08-17-later--measure-the-ceiling-first-and-half-of-19-goes-away) ·
+[08-17, the control run](#2026-08-17--the-control-run-says-19-is-not-the-schedule-and-the-bar-certified-the-run-it-settles) ·
+[08-25 evening](#2026-08-25-evening-the-way-out-of-19-turns-out-to-be-closed).
+
+**The axis, the contrast pairs, and what actually moved the number.** Six entries
+in about thirty hours, several correcting the one above them.
+[08-21](#2026-08-21-1035--the-glass-axis-is-lost-at-the-student-and-only-at-the-student) ·
+[08-22](#2026-08-22--a-pair-can-be-generated-screened-by-machine-and-still-not-rank) ·
+[08-22 later](#2026-08-22-later--a-second-draw-and-two-sweeps-that-measured-nothing) ·
+[08-22 evening](#2026-08-22-evening--the-sweep-did-measure-something-i-had-read-the-wrong-column) ·
+[08-22 night](#2026-08-22-night--a-second-draw-is-not-a-second-contrast-and-rkd-10-is-worth-nothing) ·
+[08-22 late](#2026-08-22-late--the-first-setting-that-moved-the-number-was-data-and-the-shipped-model-is-the-best-one) — the standing answer: it was the data, and the shipped model is the best one.
+
+**The bench as an instrument, and the metrics that measured the wrong thing.**
+[08-17, into the repository](#2026-08-17--the-benches-move-into-the-repository-and-two-rows-of-the-table-turn-out-to-be-the-wrong-column) ·
+[08-17, tooling](#2026-08-17-tooling--a-probe-that-never-ran-on-the-version-it-advertises-and-a-lint-set-that-was-nobodys) ·
+[08-20, `lost`](#2026-08-20-tooling--lost-was-subtracting-two-different-populations-and-one-bench-changed-sides) ·
+[08-20, the book control](#2026-08-20-bench--the-book-control-on-both-sides-of-the-glass-and-a-display-that-kept-a-dead-sessions-labels) ·
+[08-22 evening, the monitor](#2026-08-22-evening--the-first-live-run-of-the-monitor-and-the-two-bugs-no-corpus-was-going-to-find) ·
+[08-23](#2026-08-23-what-lost-is-made-of-and-a-trend-that-turned-round-while-nobody-re-ran-it) ·
+[08-22, the entry after "last"](#2026-08-22-the-entry-after-last--two-numbers-that-were-already-sitting-there).
+
+**Outages, and getting the board back.** The one thread where the cause was found
+in a place nobody was looking.
+[08-15](#2026-08-15--three-faults-that-only-ever-happened-when-nobody-was-watching) ·
+[08-16, the reboot](#2026-08-16--the-outage-happens-with-the-instruments-on-and-the-reboot-turns-out-not-to-be-the-recovery) ·
+[08-16, **it was never USB**](#2026-08-16--it-was-never-usb-the-psrams-chip-select-had-the-qspi-bus-the-whole-time) ·
+[08-20 evening](#2026-08-20-evening--the-first-soak-with-a-bus-side-witness-and-the-room-went-dark-in-the-middle-of-it) ·
+[08-20 night](#2026-08-20-night--last-words-in-flash-and-2-kb-of-heap-that-no-allocator-could-reach) ·
+[08-20 host](#2026-08-20-host--a-stale-rp2350-mount-held-finder-dead-for-eight-days-and-diskutil-unmount-force-is-not-the-way-out) — **eight days of dead Finder; read this one before touching `/Volumes/RP2350`** ·
+[08-20 firmware](#2026-08-20-firmware--9-caught-in-the-act-and-cleared-in-one-command-and-the-fix-for-it-has-never-booted).
+
+**The frame-time ladder and the original bring-up**, 07-29 to 07-31: the 8-bit bus
+dying, both bitstreams building, the two gates passing, the tile going bit-exact,
+the jumper, and M7 ending.
+[07-29 netlist](#2026-07-29--netlist-and-the-8-bit-bus-dies) →
+[07-31, why M7 ends here](#2026-07-31--211-ms-of-cpu-58-ms-of-frame-and-why-m7-ends-here).
+Note [07-29, two boards](#2026-07-29--two-boards-one-alive-one-dead-corrected-2026-07-30): the "dead" board was never dead, and the strikethrough in that heading is the house style for a correction.
+
+[08-01 – 08-14](#2026-08-01--2026-08-14--where-this-logs-gap-went) explains the gap.
 
 ---
 
