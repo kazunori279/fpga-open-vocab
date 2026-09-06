@@ -24,7 +24,7 @@ uv run host/demo.py --bitstream rtl/bitstreams/m16/gemm_top_wide.hex
 
 | | link config | measured on hardware |
 |---|---|---|
-| [`m16/`](m16/README.txt) | `gemm_top` = A (narrow), `gemm_top_wide` = C | **current.** int4 weights, in-tile requantize, paired taps; config C 569 ms at 75.0 MHz, 304 ms at 140.0 MHz |
+| [`m16/`](m16/README.txt) | `gemm_top` = A (narrow), `gemm_top_wide` = C | **current, and what the appliance ships on.** int4 weights, in-tile requantize, paired taps; config C `m7` frame 569 ms at 75.0 MHz, 304 at 140.0, **270 at the 160.0 MHz that ships** |
 | [`m11/`](m11/README.txt) | same | previous known-good, kept as the fallback; m7 ladder PASS both, config C 845 ms at 75.0 MHz |
 | [`m10/`](m10/README.txt) | same | kept as the seed evidence above |
 
@@ -35,9 +35,11 @@ The m16 images need firmware built at `GP_KPACK=1`; the m10 and m11 images need
 Each directory's `README.txt` carries its seeds, its reported fmax and slack, and
 what was run against it. Read those before trusting a number here.
 
-**The reported fmax is below the clock these run at, and they are bit-exact
-anyway** — 75 MHz `link_clk` against a 52–65 MHz report, and 140 MHz against
-M16's 52.9, which has been true of every image since M6c and is discussed in the clock rows of
-[`docs/history.md`](../../docs/history.md). Treat the
-slack figures as a way to spot drift between respins, not as a prediction of
-whether the board will work.
+**The reported fmax is far below the clock these run at, and they are bit-exact
+anyway** — 75 MHz `link_clk` against a 52–65 MHz report, and the m16 image
+against M16's reported 52.9 at 140, at the **160 MHz that ships**, and — in
+`m6`, on the narrow image, at 1.30 V — as high as **172**, which is 3.25× that
+same report. That has been true of
+every image since M6c and is discussed in the clock rows of
+[`docs/history.md`](../../docs/history.md). Treat the slack figures as a way to
+spot drift between respins, not as a prediction of whether the board will work.
