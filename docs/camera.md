@@ -1,0 +1,176 @@
+# The camera, and what it will not tell you
+
+The sensor is an **[Arducam Mega](https://docs.arducam.com/Arduino-SPI-camera/MEGA-SPI/MEGA-SPI-Camera/)**
+— a module with an image sensor behind an FPGA bridge Arducam calls the
+ArduChip, spoken to over SPI. `firmware/cam.{c,h}` is the driver; this page is
+what the vendor documentation says the part can do, checked against what the
+driver actually uses.
+
+It exists because of [#33](https://github.com/kazunori279/fpga-open-vocab/issues/33).
+The board spent weeks unable to say whether its own auto-exposure loop had ever
+engaged, and the reason turned out not to be an oversight in the firmware.
+
+**Source for every register below:** the
+[Mega SPI Camera Series Application Note](https://blog.arducam.com/downloads/datasheet/Arducam_MEGA_SPI_Camera_Application_Note.pdf),
+September 2023, section 4 "Register Table". **Nothing on this page has been run
+on the board.** It is a reading of the datasheet against the source, and the
+column that says so is marked.
+
+## The one fact that explains #33
+
+**Almost the entire control surface is write-only.**
+
+| range | what | type |
+|---|---|---|
+| `0x20`–`0x2A` | format, resolution, brightness, contrast, saturation, EV, white-balance mode, effects, sharpness, autofocus, JPEG quality | **WO** |
+| `0x30` | auto gain / auto exposure / auto white balance on-off | **WO** |
+| `0x31`–`0x35` | manual gain, manual exposure | **WO** |
+| `0x40`–`0x49` | sensor id, firmware date, sensor state, FPGA revision | RO |
+| `0x00`–`0x0C` | test, frame count, power, memory control, data source, resets, I²C passthrough | RW |
+
+So the board can tell the camera what to do and cannot ask it what it is doing.
+Every adjustment is fire-and-forget. `cam.h` already suspected this —
+
+> One register, three switches, selected by the low bits… and there is no way to
+> read back which of the three you last touched — hence `cam_probe.c`'s sweep
+> rather than a query.
+
+— and the datasheet confirms it: `0x30` is typed `WO`, which is why
+`cam_read_reg(0x30)` returns `00` no matter what was written. **That is not a bus
+fault and not a driver bug. There is nothing there to read.**
+
+This is the structural half of #33. The firmware could only infer the state of
+the auto-exposure loop by watching the pixels change over a ramp, which is
+exactly what `ft_acquire()` does and exactly why its answer is a judgement call
+that can be wrong in two directions.
+
+## The way round it, which the driver has half-built
+
+The ArduChip can pass an I²C transaction through to the sensor die, where the
+real AEC/AGC registers live and **are** readable.
+
+| reg | type | what | used today |
+|---|---|---|---|
+| `0x0A` | RW | I²C device address | **yes** — `cam.c` writes `0x78` |
+| `0x0B` | RW | I²C register address, upper 8 bits | no |
+| `0x0C` | RW | I²C register address, lower 8 bits | no |
+| `0x07` bit[0] | RW | write 1 to **initiate an I²C direct read** | no |
+
+`cam_begin()` writes the device address and stops there, so the passthrough is
+configured and never fired. Completing it is the only route to a genuine
+readback of what the exposure loop is doing, and it is what
+[#33](https://github.com/kazunori279/fpga-open-vocab/issues/33)'s first item
+was asking for. Which sensor registers to read then depends on the die, which
+`0x40` identifies (this module reads `0x82`).
+
+## Registers the driver does not use, in the order they are worth something
+
+### `0x05` bit[7] — the sensor can be taken out of the loop
+
+| value | data source |
+|---|---|
+| `0` | camera data |
+| `1` | **simulated data** |
+
+`0x06` bit[7] does the same with a 32-bit counter pattern. The ArduChip will
+feed the pipeline frames the sensor never saw.
+
+This is the control the drift work has never had. Every drift measurement so far
+asks whether scores move while the scene is still, and cannot separate a camera
+that is re-deciding from anything else in the chain that might be. **Run the
+whole scoring path on frames that cannot drift; if `common` still moves, the
+drift is not the camera.** That is [#30](https://github.com/kazunori279/fpga-open-vocab/issues/30)'s
+question answered without the camera in the experiment.
+
+### `0x31`–`0x35` — exposure and gain can be *set*, not just released
+
+| reg | field |
+|---|---|
+| `0x31` / `0x32` | manual gain [9:8] / [7:0] |
+| `0x33` / `0x34` / `0x35` | manual exposure [19:16] / [15:8] / [7:0] |
+
+The `'L'` hotkey today switches the auto loops off through `0x30` and relies on
+whatever value they last converged to staying put. `20260825-camlock/` found
+that it does not hold the white balance. Writing an explicit value turns that
+hope into a lock, and makes exposure reproducible **across** runs rather than
+merely constant within one — which is the quantity `bench/` has never been able
+to hold still.
+
+### `0x02` — the sensor die can be power-cycled on its own
+
+| bit | field | 1 | 0 |
+|---|---|---|---|
+| [2] | `cam_power_en` | normal | power off |
+| [1] | `cam_pwdn` | sleep | normal |
+| [0] | `cam_rst_n` | normal | reset |
+
+Default `0x05`. [#32](https://github.com/kazunori279/fpga-open-vocab/issues/32)
+wants a cold-boot count — one scene, N boots, the ramp only — and today that
+costs one board power-cycle per sample and therefore a morning. If the fault
+lives in the sensor's own power-on rather than the board's, this register
+collects the same samples in minutes. Whether it does is itself the test.
+
+### `0x01` — frames can be burst into the 8 MB cache
+
+`0`–`254` means frames = value + 1; `255` means the memory is full (8 MB). The
+driver captures one frame at a time. The exposure ramp could be kept as images
+rather than as a row of numbers in a banner.
+
+## Two things in the driver worth knowing about
+
+**`0x07`'s bit names are the library's, not the hardware's.** `cam.h` has
+`CAM_REG_SENSOR_RESET 0x07` and `CAM_SENSOR_RESET_ENABLE (1 << 6)`. The
+datasheet says:
+
+| bit | datasheet |
+|---|---|
+| [7] | reset cache (SDRAM, 8 M) |
+| [6] | **reset FPGA** |
+| [1] | reset I²C |
+| [0] | initiate an I²C direct read |
+
+ArduCam's own driver uses the same name for bit 6, so the code matches the
+library it was transcribed from. The reset does work — `cam_begin()`'s comment
+about the sensor returning to its default VGA is [#29](https://github.com/kazunori279/fpga-open-vocab/issues/29)
+and was observed — so this is a naming mismatch to be aware of when reading the
+datasheet next to the source, not a defect.
+
+**The 128×128 mode code is right for this module and would be wrong for a 5MP
+one.** The datasheet lists resolution `11` (`0x0b`) as 128×128 in *both* the 3MP
+and 5MP columns, and `1` as 320×240. `cam_mode_128()` returns `0x0b` when the id
+is below `0x85` and `0x01` when it is not. This module reads `0x82`, so it takes
+the `0x0b` branch and is correct. The other branch has never run here and, read
+against this table, would capture 320×240. Unverified — Arducam's `legacyMode()`
+remapping is a library behaviour and the datasheet may not describe what the
+library does.
+
+## What the driver already gets right, and why it is written down
+
+Three of these cost a debugging session each and are in `cam.h` at length. The
+short forms:
+
+- **8 MHz for register writes, whatever you use for pixels.** The datasheet
+  recommends 8 MHz SCLK. A 16 MHz register *write* lands — right FIFO length,
+  sensor IDLE, `CAP_DONE` on time — and produces a black frame. Only the pixels
+  report it.
+- **Never rewrite `CAM_REG_CAPTURE_RESOLUTION` with the value it already holds.**
+  It blanks the *next* capture, silently and with every status bit correct.
+- **Every wait is bounded.** [#8](https://github.com/kazunori279/fpga-open-vocab/issues/8)
+  was an unbounded PIO transfer loop that spun the core until the 8 s watchdog
+  rebooted the board. There is now a 2,000 µs stall deadline, and
+  `CAM_XFER_STALL_US` is public because a margin quoted without its deadline is
+  not a figure.
+
+## What to do about it
+
+In the order the value falls, and none of it before
+[#30](https://github.com/kazunori279/fpga-open-vocab/issues/30)'s current
+session finishes, because that session's firmware is pinned by md5:
+
+1. **Finish the I²C passthrough** (`0x0B`, `0x0C`, `0x07` bit[0]). It is the only
+   readback of the exposure loop that exists, and #33 has been waiting on it.
+2. **Add a simulated-data mode** (`0x05` bit[7]) and run the scoring chain on it.
+   It separates camera drift from every other drift in one bench.
+3. **Write explicit exposure and gain** (`0x31`–`0x35`) so `'L'` locks rather
+   than hopes.
+4. **Try the sensor-only power cycle** (`0x02`) against #32's cold-boot count.

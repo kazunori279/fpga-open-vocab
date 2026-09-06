@@ -200,6 +200,7 @@ the frictions, the rejected designs and what they taught are in
 | [`docs/monitor.md`](docs/monitor.md) | **using it** — `host/watch.py`, enrolment off the live camera, what it catches and what it misses, and how to hang an alert off it |
 | [`docs/architecture.md`](docs/architecture.md) | **how it works** — the board, the model, the decision rule, the pipeline, the link, the fabric, the two cores, and where each of them lives in the tree |
 | [`docs/building.md`](docs/building.md) | **how to build and run it** — toolchain, firmware, bitstream, tests, flashing, every harness |
+| [`docs/camera.md`](docs/camera.md) | the ArduCam Mega's register map against the driver — why the board cannot ask the camera what it is doing, and the four things it could do and does not |
 | [`docs/history.md`](docs/history.md) | **how it got here** — the timeline, the frictions, the learnings, the rejected alternatives, the risks |
 | [`docs/milestones.md`](docs/milestones.md) | the dev plan, M0 through M21: what each milestone was scoped to do, what it actually measured, and where the two differed |
 | [`docs/bring-up-log.md`](docs/bring-up-log.md) | dated bench entries, newest first, including several that exist only to record a claim that later turned out to be false |
