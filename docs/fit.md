@@ -147,10 +147,12 @@ distinction the encoder does not carry reads like.
 There is no substitute and no shortcut, and the reason is not caution. It is
 measured:
 
-**No enrolment-time number has ever predicted a run.** Five have been tried and
-all five failed the same way. The current one compares the gap between the two
-references against the spread of the frames each was averaged from, and prints
-its verdict ninety seconds in. Prospectively, over eight benches:
+**No enrolment-time number has ever predicted a run.** Four have been tried —
+`sep`, the spread ratio measured inside one enrolment window, the same ratio
+measured across two visits, and that one read one-sided — and all four failed
+the same way. The last of them compares the gap between the two references
+against the spread of the frames each was averaged from, and prints its verdict
+ninety seconds in. Prospectively, over eight benches:
 
 | board ratio | held out | the bar's call |
 | --- | --- | --- |

@@ -142,8 +142,10 @@ decision rule, not something the monitor can paper over.
 `--confirm N` is why the output is readable. The board's per-frame verdict
 flickers — between 0 and 9 changes per hundred frames while a scene is being
 held perfectly still — and a state has to survive N frames in a row before it is
-announced. At 322 ms a frame the default of 5 is about 1.6 seconds of latency.
-Raise it for something slow and noisy, lower it for something you need promptly.
+announced. The runs above were taken at 280 MHz and 322 ms a frame, where the
+default of 5 is about 1.6 seconds of latency; at the 320 MHz the appliance ships
+at it is 293 ms and about 1.5. Raise it for something slow and noisy, lower it
+for something you need promptly.
 
 **It is a latency knob, not an accuracy knob.** It removes flicker. It cannot
 turn a wrong answer into a right one.
