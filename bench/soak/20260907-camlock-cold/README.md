@@ -19,11 +19,22 @@ Amendment 3 in the same file at that commit. They are not restated here. A git
 hash cannot drift and a copy can, and the thing being protected is precisely
 that the design did not move once numbers existed.
 
-`run.sh` in this directory is a copy of that directory's with two differences,
-both of them recording and neither of them design: `DIR` points here, and each
-run's line in `session.log` now carries `relit=N`, the number of times #33's
-ramp rescue fired during that boot. Nothing about the order, the arms, the frame
-count or the discard rule differs. `diff` the two files.
+`run.sh` in this directory is a copy of that directory's with three differences,
+all of them recording and none of them design: `DIR` points here; each run's
+line in `session.log` now carries `relit=N`, the number of times #33's ramp
+rescue fired during that boot; and the `frames=` field has been fixed. Nothing
+about the order, the arms, the number of frames requested or the discard rule
+differs. `diff` the two files.
+
+The third one is a bug found at 05:30 today, before the first frame, and it is
+written here rather than folded in quietly. `frames=` was
+`grep -cE '^ *[0-9]+ '`, which matches no frame line — they all begin with the
+word `frame` — and instead matched the three indented timing lines under
+`stopped :`. 20260906 recorded `frames=3` for a run of 602 and nobody caught it,
+because that session was being abandoned for other reasons. It now reads the
+board's own `602 frames, 602 good`, and prints `NO stopped LINE` when a run
+never reached its summary. Nothing was scored off the old field; it is
+provenance, and the discard rule is the greps below it.
 
 In one line, so this file is readable on its own: **eight pairs, sixteen runs of
 600 frames, `free` and `lock` alternating with the leading arm swapping every

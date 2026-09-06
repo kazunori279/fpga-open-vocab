@@ -40,7 +40,17 @@ run_one() {
   # discard rule is failures only, so what is wanted here is a flag and never a
   # number: anything printed is a reason to re-run at the END of the session.
   rgb=$(grep -oE 'mean RGB +[0-9]+ +[0-9]+ +[0-9]+' "$log" | tail -1)
-  lines=$(grep -cE '^ *[0-9]+ ' "$log" 2>/dev/null || echo 0)
+  # THE FRAME COUNT WAS NEVER THE FRAME COUNT. This read
+  #   grep -cE '^ *[0-9]+ ' "$log"
+  # which matches no frame line at all - every one of them begins with the word
+  # `frame` - and instead matched the three indented timing lines under
+  # `stopped :`. 20260906 duly recorded frames=3 for a run of 602, and nobody
+  # looked because the run was being aborted for other reasons. Take the board's
+  # own count, which also says how many of them were good.
+  lines=$(grep -oE '[0-9]+ frames, [0-9]+ good' "$log" | tail -1)
+  # No `stopped :` line means the run did not reach its own summary. Say that in
+  # the field rather than printing a plausible number for a truncated run.
+  [ -n "$lines" ] || lines="$(grep -c '^frame ' "$log") frames, NO stopped LINE"
   # For #32, and an OBSERVATION WITH NO TEST BEHIND IT - see the README. The
   # firmware prints this only when #33's ramp rescue actually fired, so an
   # absent field means zero and not "not measured". Sixteen cold boots is the
