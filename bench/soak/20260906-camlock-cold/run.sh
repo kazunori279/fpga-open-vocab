@@ -48,8 +48,14 @@ run_one() {
   # "camera bus: worst gap 14 us against the 2000 us deadline" and "usb: 0
   # outages" - so every run flagged three mechanical failures and the flag meant
   # nothing. What is wanted is the non-zero case of each.
-  grep -q 'EXPOSURE NEVER SETTLED' "$log" &&
-    printf '  !! %s-%s EXPOSURE NEVER SETTLED (#33)\n' "$arm" "$n" | tee -a "$SESSION"
+  # BOTH OF ft_acquire()'s DOUBTS AND NOT JUST THE LOUD ONE. This grepped only
+  # for EXPOSURE NEVER SETTLED, which is the case where the ramp also failed to
+  # reach the floor. The quieter case - the ramp climbed enough to satisfy the
+  # settle test but never MOVED from its first reading - prints a different
+  # sentence, and it is the one two of the three flagged benches in bench/cue/
+  # carry. Missing it here is how 20260816-172256 got scored.
+  grep -qE 'EXPOSURE NEVER SETTLED|the exposure never moved from its first reading' "$log" &&
+    printf '  !! %s-%s the board distrusted its own camera (#33)\n' "$arm" "$n" | tee -a "$SESSION"
   grep -qE 'usb: [1-9][0-9]* outages' "$log" &&
     printf '  !! %s-%s USB outage (#9)\n' "$arm" "$n" | tee -a "$SESSION"
   grep -qiE 'camera bus: .*(stall|fault|missed|deadline exceeded)' "$log" &&
