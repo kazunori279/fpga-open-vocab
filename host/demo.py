@@ -786,8 +786,11 @@ def main() -> int:
     ap.add_argument("--enrol", action="append", default=[], metavar="FRAME:KEY",
                     help="M21. At the board's frame FRAME, press KEY - '0' for "
                          "the empty scene, '1'..'6' for the Nth class query, "
-                         "'L' to freeze the camera's exposure, gain and white "
-                         "balance where they stand, 'M' to replace the camera "
+                         "'L' to freeze the camera's gain and white balance "
+                         "where they stand - the two loops this board obeys on, "
+                         "the AE being left free because it ignores the mask "
+                         "either way, and one press per run because the unlock "
+                         "fails 31 times in 56 - 'M' to replace the camera "
                          "with a fixed pattern that cannot drift at all (both "
                          "issue #30), 'K' to ask the sensor die whether the "
                          "'L' lock actually took - which costs the frames "

@@ -667,10 +667,56 @@ static bool     bg_hold = FGX_BG_HOLD_DEFAULT;
 // So the first press is the lock worth benching and the second is the control
 // that reproduces the fault, which is the order a run wants them in. Wrapping
 // back to CAM_AUTO_ALL keeps every state reachable from any other.
+//
+// AND ON 2026-09-08 A STEP WAS ADDED IN FRONT, BECAUSE THE ARM ABOVE FREEZES
+// THE ONE LOOP THIS BOARD CANNOT FREEZE. Everything above is about which loop
+// moves the pixels, and it is still right about that. What it could not know is
+// which loop obeys, and three probes on 09-07 measured it:
+//
+//   exposure  bench/probe/20260907-lockrate/  the lock does not take. 32 boots
+//             of 33 dragged, 84 of 99 warm checks, and 9 boots gave two
+//             different answers ten seconds apart. Not a per-boot property to
+//             screen on, and bench/probe/20260907-cure/ found nothing that
+//             fixes it - the last untried lever lost to a null arm over 18
+//             boots.
+//   gain      bench/probe/20260907-hold/  holds. 0 of 140 polls dragged over 7
+//             boots, four of them while the exposure was dragging in the same
+//             window under the same mask.
+//   white bal bench/probe/20260907-hold/  holds. 18/41 on every locked visit
+//             across 40 seconds, against a free arm that read differently.
+//
+// CAM_AUTO_WB therefore asks to freeze exposure (which ignores it) and gain
+// (which obeys), and leaves free the white balance (which would have obeyed).
+// One of its three requests is honoured the way the name suggests, and the arm
+// is named after the loop it does not touch. A bench run under it is not the
+// experiment its log says it is.
+//
+// CAM_AUTO_EXPOSURE is that arm turned round: leave the AE loop free, since it
+// runs either way and saying otherwise in a log is the actual harm, and freeze
+// the two that stick. It is a WEAKER intervention on purpose - it can only
+// remove the gain and white-balance share of #30's common-mode walk, and the
+// AE share stays in both arms. That share is measurable by subtraction and was
+// not measurable at all before.
+//
+// THE ORDER MATTERS AND OLD LOGS SURVIVE IT. The new arm goes first so one 'L'
+// press gives the arm the measurements support. Logs from before today are
+// still readable because the handler prints the frozen loops BY NAME and never
+// the step number - which is what that was for.
+//
+// NEITHER ARM UNLOCKS. 20260907-hold/ measured cam_image_auto_mask(CAM_AUTO_ALL)
+// failing to switch a loop back ON 31 times in 56, so a run that locks and then
+// unlocks to get its control arm is comparing against a camera that is
+// sometimes still locked. Use one arm per run and interleave across runs, not
+// within one. The wrap back to CAM_AUTO_ALL is kept because every state has to
+// stay reachable, not because it is a control.
 static const uint8_t CAM_LOCK_STEPS[] = {
-    CAM_AUTO_ALL,   // boot: nothing frozen
-    CAM_AUTO_WB,    // exposure + gain frozen, AWB left alone. #30's arm
-    0u,             // all three, which goes green. Kept as the live control
+    CAM_AUTO_ALL,        // boot: nothing frozen
+    CAM_AUTO_EXPOSURE,   // gain + white balance frozen, AE left free. #30's arm,
+                         // and the only one whose every request is obeyed
+    CAM_AUTO_WB,         // exposure + gain frozen, AWB left alone. The arm as it
+                         // was benched before 09-07; kept so runs under it stay
+                         // reproducible, not because it means what it says
+    0u,                  // all three, which goes green. The live control
 };
 static uint8_t  cam_lock_step;
 
@@ -3235,11 +3281,16 @@ int main(void)
            "capture between overlapped and serial;\n"
            "            'D' does the same and flips the trigger between late "
            "and at-the-collect, which is #14's A/B.\n"
-           "            'L' freezes exposure and gain, then on a second press "
-           "the white balance too - which goes green,\n"
-           "            and is the control. A third restores all three. Issue "
-           "#30, and the one hotkey whose answer depends on when you press "
-           "it.\n"
+           "            'L' freezes gain and white balance - the two loops this "
+           "board actually obeys on - leaving\n"
+           "            the AE free because it ignores the mask anyway. A "
+           "second press is the pre-09-07 arm\n"
+           "            (exposure + gain), a third freezes all three and goes "
+           "green, a fourth restores. Issue #30,\n"
+           "            and the one hotkey whose answer depends on when you "
+           "press it. Do not use two arms in one\n"
+           "            run: the unlock fails 31 times in 56, so the second arm "
+           "is a camera still in the first.\n"
            "            Every 'L' now prints what the sensor die did about it a "
            "few frames later, which is usually\n"
            "            'nothing moved' and means nothing either way. 'K' asks "
