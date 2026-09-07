@@ -51,8 +51,11 @@ reason.
 
 - **Not that the abort will fire when a lock fails.** It fires when the witness
   *catches* a lock failing, and the witness is nearly blind on a still scene.
-  This buys back nine minutes on the failures it can see, and sees an unknown
-  fraction of them.
+  This buys back 150 seconds on the failures it can see, and sees an unknown
+  fraction of them. (It said *nine minutes* when this page was written. Every
+  09-08 bench reports `282 ms/frame`, so a 546-frame run is 154 s of board time
+  and about three and a half minutes of the operator's — the nine came from
+  m9's 851 ms/frame, which is not the rate this path runs at.)
 - **Not a rate for the gain lock.** [`../20260907-hold/`](../20260907-hold/)
   measured 0 of 140 polls dragged on a still desk and 0615 dragged with the
   light moving. Two conditions, no rate.

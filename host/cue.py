@@ -189,7 +189,12 @@ DOUBT = re.compile(r"EXPOSURE NEVER SETTLED|the exposure never moved from its "
 # is printed around frame 72 and the first enrolment window opens at 74. That is
 # the whole window this exists in: after it, the run has taught itself a
 # reference under a camera nobody is controlling and there is nothing to do but
-# spend the other nine minutes.
+# spend the other two and a half minutes. (Measured, not guessed: every
+# 2026-09-08 bench reports `547 frames timed, 282 ms/frame`, so the default
+# schedule is 154 s of board time and about three and a half minutes of
+# operator time once the flash and the startup handshake are counted. Three
+# places in this repo said "nine minutes" before 09-08 evening; that was
+# 540 frames at m9's 851 ms/frame, which is not the rate this path runs at.)
 #
 # ONLY THE MOVEMENT LINE. bench/probe/20260907-witness/ measured the witness as
 # nearly blind on a still desk - something moved inside the window once in 26 -
@@ -868,7 +873,8 @@ def main() -> int:
                          "default because a locked arm whose lock did not take "
                          "is a free arm with an extra keypress, and the verdict "
                          "lands two frames before the first enrolment - so "
-                         "carrying on spends nine more minutes to produce a run "
+                         "carrying on spends another 150 seconds to produce a "
+                         "run "
                          "that cannot go in either arm. Pass this when the "
                          "point of the run is the failure itself")
     ap.add_argument("--preview", type=int, default=0, metavar="N",
@@ -1229,8 +1235,9 @@ def main() -> int:
         print("            the board witnesses its own press about eleven "
               "frames later. If it sees the\n"
               "            gain still revising, "
-              + ("this run stops there rather than spend nine more\n"
-                 "            minutes on a run that cannot be the locked arm"
+              + ("this run stops there rather than spend another\n"
+                 "            150 seconds on a run that cannot be the "
+                 "locked arm"
                  if args.abort_on_drag else
                  "this run says so and CARRIES ON "
                  "(--no-abort-on-drag)"))
@@ -1332,7 +1339,7 @@ def main() -> int:
 
         # #33's witness, and unlike the warning above this one is acted on. It
         # is not a judgement call: the operator cannot un-fail a lock, the
-        # remaining nine minutes cannot be scored in the locked arm, and by the
+        # remaining 150 seconds cannot be scored in the locked arm, and by the
         # time the run ends the desk has been staged sixteen times for nothing.
         # Stopping here also leaves the empty desk in shot, which is the one
         # scene the next attempt can reproduce exactly.

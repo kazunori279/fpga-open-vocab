@@ -210,6 +210,11 @@ timestamp in the filename — see 11:44 below.
 | `m9_cue-20260825-0618.log` | 93.4% | 92.8% | 08-25 06:18 | fourth of five, the best of the session, `lost` **0.0** — the rule collected every point its scene offered |
 | `m9_cue-20260825-0622.log` | 91.1% | 92.0% | 08-25 06:22 | fifth of five, and **the one with an operator error in it**: the book was removed instead of opened on the last cue, so frames 461–500 are an empty desk. The span is relabelled `empty` in the sidecar; the error had inflated the run to 92.5% over 120 frames and correcting it gives 91.1% over 90 |
 | `m9_cue-20260825-1309.log` | 63.3% | 87.2% | 08-25 13:09 | **the first bench of the third reference on the board** — `'0'` pressed on the empty visit of cycle 2, so the empty span at 260–299 runs #18's band for 33 frames and nearest-of-three for the last 7 and releases on the frame the reference lands. Presence 83.3% held on empty against the band's 50.0 *on this bench* (its largest `d/sep` is 0.50 against a 2.0 trip, so the band cannot fire here at all). The 24-point live/replay gap is the gate and not the classifier: 41 of the 44 held-out misses are absent-calls, 35 of them `an opened book`. Also has #19 in it — the closed book's span means walk +0.25, +7.48, +3.50, +6.20 |
+| `m9_cue-20260908-0602.log` | 67.5% | 78.9% | 09-08 06:02 | **[#30](https://github.com/kazunori279/fpga-open-vocab/issues/30)'s first pair, locked arm** — `--lock-camera`, and the only run of the four to march: raw z on `a closed book` at the empty scene goes +1.44 → +6.49 → +9.27 across its three held-out revisits. Read it with 0733/0737 below, which is what took the lock out of the explanation |
+| `m9_cue-20260908-0610.log` | 60.0% | 80.0% | 09-08 06:10 | the free arm eight minutes later. Its empty revisits are flat (−0.04) but its common mode still climbs +2.09, so it drifts by the wider measure and not the narrow one. Presence held 13/66 — the archive's worst |
+| `m9_cue-20260908-0615.log` | — | — | | **the gain lock did not take**, and `m9` said so in its own log: `gain 08 0d`, `STILL REVISING WITH THE MASK ASKING IT TO FREEZE`. No sidecar, so nothing here is scoreable and nothing should be scored. It is the run `host/cue.py`'s abort was written against — replayed, the abort fires at frame 72, two before the first enrolment window |
+| `m9_cue-20260908-0733.log` | 86.7% | 83.3% | 09-08 07:33 | **the second pair, free arm and this time it ran FIRST** — the reversal that separates "which arm" from "which ran first". Best live figure of the four, `three-nn` 100.0 against `shipped` 50.0, empty revisits flat |
+| `m9_cue-20260908-0737.log` | 73.3% | 90.6% | 09-08 07:37 | the locked arm running second, **and it does not march** (−0.73, common mode −1.68). That is what closes the lock out. Its witness read `gain 00 00 / did not move`, which is silence rather than proof the lock took, so this is the arm that *asked*. Best replay figure in the archive since 08-11, on a run whose live figure is 17 points below its own sibling — the two columns again |
 | `m9_cue-smoke-2e48d86.log` | 37.5% | 37.5% | | `/tmp/m9_cue.log` as it stood after flashing the one-sided guard — a smoke test, kept because it is the only log of that firmware running |
 | `m9_cue_fake_d.log` | 58.3% | 48.3% | | **synthetic.** A doctored copy of `m9_cue-20260816-172256.log`, made to exercise a probe against a class that was never in the room. Not a bench, and it will happily score like one if you forget that |
 
@@ -640,6 +645,53 @@ correction below.
 
 `cue/analysis/20260906-adapt-doubt.txt` is both tools' output with the refusal in.
 
+## The arm flips sign when the order does
+
+[#30](https://github.com/kazunori279/fpga-open-vocab/issues/30) asks whether the
+camera's auto loops are what makes a run drift, and the way to ask it is a pair:
+one run with `--lock-camera`, one without, same scene and schedule. The first
+pair ran **locked then free** on 2026-09-08 at 06:02 and 06:10, and the locked
+arm's empty revisits marched — which is a result about the lock only if the lock
+is the thing that differed. It is not: the locked arm also ran *first*, and at
+06:00 the earlier eight minutes are the ones where the light moves.
+
+So the pair was run again at 07:33 and 07:37 with the order reversed, **free
+first**. Nothing else changed, including the reflash between arms, because both
+runs of both sessions booted fresh.
+
+| | held-out | replay | rank only | empty held | empty-visit walk |
+| --- | --- | --- | --- | --- | --- |
+| `0602` locked, first | 67.5% | 78.9% | 46.2% | 63.6% | **+7.83** |
+| `0610` free, second | 60.0% | 80.0% | 56.7% | 19.7% | −0.04 |
+| `0733` free, first | 86.7% | 83.3% | 66.7% | 87.9% | +0.01 |
+| `0737` locked, second | 73.3% | 90.6% | 53.3% | 83.3% | −0.73 |
+
+**The arm changes sign on all four score columns** when the order is reversed:
+locked − free is +7.5 / −1.1 / −10.5 / +43.9 in the morning and −13.4 / +7.3 /
++13.4 / −4.6 in the second session. Two pairs is not a statistic, and that is
+the point — there is no effect here to be uncertain about.
+
+The last column is the one the question turns on. It is raw z on `a closed book`
+at the **empty** scene, one number per held-out revisit, last minus first; the
+enrolling visit is excluded. **One run of four marches and it is still 0602.**
+The locked arm running second is flat, so the lock is not what makes the empty
+desk walk. `score_drift.py`'s whole-run common mode agrees and says it slightly
+differently: both morning runs climb (+3.32, +2.09) and neither evening run does
+(+1.23, −1.68), so **the drift is a property of the session, not of the arm**.
+
+What is left confounded is not small. The board's own camera lines put the two
+sessions in different light — exposure register `030b` against `00c4`, the ramp
+settling in 29 frames against 12, mean RGB `132 129 128` against `90 93 90`. So
+"ran at 06:0x" and "ran while the light was moving fastest" are still one
+variable, and the next bench is two runs *inside* that window with the order
+reversed there, not another pair at a different hour.
+
+`cue/analysis/20260908-order.txt` is the run. It also carries the correction
+that a cue bench is **154 seconds** of board time and not the nine minutes three
+files in this repo used to claim: every 09-08 log prints `282 ms/frame`, and
+the nine came from 540 frames at m9's 851 ms/frame, which is not the rate this
+path runs at.
+
 ## A threshold that follows the scene, and why it is still not a fix
 
 **Read the section above first. This one was written on 2026-08-25 and the two
@@ -956,7 +1008,10 @@ over every span, and every arm rotates with it so the arms that never read an
 empty reference stay on the same held-out frames.
 
 It cost less than a point of mean and tightened everything else. Over 31 benches
-(three more than the table above, and the same rotation applied):
+as of that afternoon (three more than the table above, and the same rotation
+applied — [#30's pair](#the-arm-flips-sign-when-the-order-does) took it to 33
+the same evening and moved every arm the favourable way, `three-nn` to **79.4**
+and `three-nn` − `shipped` to **+25.6, t = 8.16, 29/33**):
 
 | arm | before | after |
 | --- | --- | --- |

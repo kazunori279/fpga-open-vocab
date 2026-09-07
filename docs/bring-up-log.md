@@ -97,6 +97,96 @@ Note [07-29, two boards](#2026-07-29--two-boards-one-alive-one-dead-corrected-20
 
 ---
 
+### 2026-09-08 evening, the pair was run backwards and the lock stopped being the explanation
+
+Four minutes of board time answered the thing this morning's entry could not.
+That entry's headline was the empty scene marching under a locked camera, and it
+said so with the caveat attached: `0602` was the locked arm **and** the arm that
+ran first, so "the lock" and "when it ran" were one variable. The fix is not a
+statistic, it is a swap. Same book scene, same schedule, same operator, one
+change — **the free arm goes first**.
+[`0733`](../bench/cue/m9_cue-20260908-0733.log) free, reflash,
+[`0737`](../bench/cue/m9_cue-20260908-0737.log) locked. Both sessions reflashed
+between arms, so both booted fresh both times.
+
+| | held out | replay | rank only | empty held |
+|---|---|---|---|---|
+| `0602` locked, **first** | 67.5% | 78.9% | 46.2% | 63.6% |
+| `0610` free, second | 60.0% | 80.0% | 56.7% | 19.7% |
+| `0733` free, **first** | 86.7% | 83.3% | 66.7% | 87.9% |
+| `0737` locked, second | 73.3% | 90.6% | 53.3% | 83.3% |
+
+Locked minus free is +7.5 / −1.1 / −10.5 / +43.9 in the morning and −13.4 / +7.3
+/ +13.4 / −4.6 in the evening. **Every column changes sign.** Two pairs cannot
+measure an effect, but they can fail to find one in four different ways at once.
+
+And this is the column the morning entry was actually about — raw z on
+"a closed book" at the **empty** scene, one number per revisit, the enrolling
+visit held out:
+
+| | visit | visit | visit | last − first |
+|---|---|---|---|---|
+| `0602` locked, first | +1.44 | +6.49 | +9.27 | **+7.83** |
+| `0610` free, second | +6.73 | +7.89 | +6.69 | −0.04 |
+| `0733` free, first | −0.46 | −1.75 | −0.44 | +0.01 |
+| `0737` locked, second | +3.25 | +0.90 | +2.52 | −0.73 |
+
+**One run of four marches and it is still 0602.** A locked camera running second
+is flat. So the lock is not what makes the empty desk walk, and #30's arm — the
+one this week already shrank from three loops to the gain alone — is not the
+handle on it. `score_drift.py` says the same thing one level wider and with
+0610 on the other side: the whole-run common mode climbs in **both** morning
+runs (+3.32, +2.09) and in neither evening one (+1.23, −1.68). Locked or free
+does not sort those four. **06:0x or 07:3x sorts them perfectly.** After the
+common mode is taken out, the margin span is +1.92 / +1.37 / −0.20 / −0.78 —
+the axis the board decides on barely moves in any of them, which is M21's
+argument restated by a bench that was aimed at something else.
+
+**What is left is bigger than what was removed, and it is in the camera lines.**
+The two sessions were not the same room:
+
+| | exposure register | ramp settles | mean RGB at handover |
+|---|---|---|---|
+| 06:0x | `030b` | 29 frames | `132 129 128`, `134 130 130` |
+| 07:3x | `00c4` | 12 frames | `90 93 90`, `72 77 72` |
+
+A 4× cut in the exposure register between two sessions ninety minutes apart.
+Sunrise was about 05:15, so 06:02 is three quarters of an hour after it and
+07:33 is two and a third hours after it, and a ramp that settles in 12 frames
+instead of 29 is an AE loop with much less ground to cover. **"Ran at 06:0x" and
+"ran while the light was moving" are still one variable**, and this bench does
+not split them — it only takes the lock and the running order out of the way
+first. The next one is two runs inside the 06:00 window with the order reversed
+*there*. Not another pair at a comfortable hour.
+
+**Two things this run corrected on the way past.**
+
+A cue bench is **154 seconds**, not nine minutes. Every log today prints
+`547 frames timed, 282 ms/frame`; the nine came from 540 frames at m9's
+851 ms/frame, which is not the rate this path runs at. It was in the entry
+below, in [`20260908-abortdrag/`](../bench/probe/20260908-abortdrag/) and in
+four places in `host/cue.py`, all written today, all fixed. Nothing turns on
+it except how much the abort is worth, which is two and a half minutes rather
+than nine.
+
+And `0737`'s witness read `gain 00 00`, `did not move`, which
+[`20260907-witness/`](../bench/probe/20260907-witness/) measured as almost
+always what that witness says — it caught movement in 1 of 26 windows on a still
+desk. So `0737` is **the arm that asked for the lock**. Whether it got it is not
+established, the abort added this morning correctly stayed quiet rather than
+claiming it was, and the conclusion above survives either way: an arm that asked
+for the lock and may have got it did not march.
+
+**Side effect on #18.** Two more logs takes `probe_third.py` from 31 benches to
+33, and both new ones land at the top: `three-nn` 100.0 and 93.0 against
+`shipped`'s 50.0. Pooled, `three-nn` 78.2 → **79.4** and `three-nn` − `shipped`
++24.2 at t = 7.62 → **+25.6 at t = 8.16, 29 of 33**. The `three-nn ×2` arm still
+does nothing (+0.2, t = 0.67). Every arm moved the favourable way on two runs,
+which is a fair measure of how much noise is left in a pool this size and the
+reason no single bench's presence figure is quoted anywhere.
+
+---
+
 ### 2026-09-08 evening, two tools were measuring which visit came first, and the fix costs one of them its headline
 
 No board for most of this one. Two replay tools were found doing the same thing

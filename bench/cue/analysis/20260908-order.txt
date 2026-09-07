@@ -1,0 +1,129 @@
+#30, the paired bench run backwards.  2026-09-08, 07:33 and 07:37.
+
+    ./ab.sh "an opened book" "a closed book" --enrol
+    ./ab.sh "an opened book" "a closed book" --enrol --lock-camera
+
+Same book scene, same schedule, same operator as 0602/0610 that morning, with
+one thing changed: THE FREE ARM RAN FIRST.  0602/0610 ran locked-then-free, so
+"which arm" and "which run came first" moved together and the entry written
+that morning could not tell them apart.  Reversing the order is the only way to
+separate them without a constant, so that is what this is.
+
+Between the two runs the board was reflashed with bootsel.py, because 0602/0610
+were taken without --leave-running and each of them booted fresh.  Same
+condition both sessions.
+
+
+THE FOUR RUNS
+
+  run    arm      ran      session   held-out  one-visit  rank    empty
+                                       MATCH    per state  only    held
+  0602   locked   first    06:0x       67.5%      78.9%   46.2%   63.6%
+  0610   free     second   06:0x       60.0%      80.0%   56.7%   19.7%
+  0733   free     first    07:3x       86.7%      83.3%   66.7%   87.9%
+  0737   locked   second   07:3x       73.3%      90.6%   53.3%   83.3%
+
+  held-out MATCH = tools/score_cue.py, 120 frames after the rule settles at 294
+  one-visit      = one visit per state enrolled, the other three held out (180)
+  rank only      = rank the two states with no presence gate (240)
+  empty held     = the 66 held-out empty frames the presence stage kept out
+
+  locked minus free, inside each session:
+    06:0x   +7.5   -1.1   -10.5   +43.9
+    07:3x  -13.4   +7.3   +13.4    -4.6
+
+  THE ARM CHANGES SIGN ON ALL FOUR COLUMNS when the order is reversed.  Not
+  one of them survives.  This is two pairs, so it is not a statistic; it is
+  the absence of the effect the morning entry led with.
+
+
+THE MARCH, WHICH IS THE ACTUAL QUESTION
+
+Raw z on "a closed book" at the EMPTY scene - the same wall each visit.  The
+enrolling visit (the one key '0' taught from, cue 260) is held out, so three
+revisits per run:
+
+  run    arm      ran      visit    visit    visit    last - first
+  0602   locked   first    +1.44    +6.49    +9.27       +7.83
+  0610   free     second   +6.73    +7.89    +6.69       -0.04
+  0733   free     first    -0.46    -1.75    -0.44       +0.01
+  0737   locked   second   +3.25    +0.90    +2.52       -0.73
+
+ONE RUN OF THE FOUR MARCHES, AND IT IS STILL 0602.  The locked arm running
+second is flat.  So the lock is not what makes the empty scene walk - which is
+what this bench was run to find out, and it answers it in the negative.
+
+tools/score_drift.py, whole-run common mode, Q1..Q4 and the span:
+
+  0602   locked   first    +0.72  +0.33  +2.66  +4.05   span +3.32
+  0610   free     second   +2.89  +0.98  +3.66  +4.98   span +2.09
+  0733   free     first    -2.12  -2.18  -3.54  -0.89   span +1.23
+  0737   locked   second   +0.51  -0.12  +0.03  -1.17   span -1.68
+
+By this wider measure both morning runs rise and neither of today's does,
+locked or free.  THE DRIFT IS A PROPERTY OF THE SESSION, NOT OF THE ARM.  The
+two measures disagree about 0610 - flat on the empty visits, +2.09 in common
+mode - and they are not the same quantity, so both are reported.
+
+After the common mode is removed the margin span is +1.92 / +1.37 / -0.20 /
+-0.78.  The thing the board decides on barely moves in any of the four; it is
+the term c[] subtracts that walks, which is M21's whole argument and not news.
+
+
+WHAT IS STILL CONFOUNDED, AND IT IS NOT SMALL
+
+The two sessions were not shot in the same light, and the board says so:
+
+  session   exposure reg   ramp settles   mean RGB at handover
+  06:0x     030b           29 frames      132 129 128 / 134 130 130
+  07:3x     00c4           12 frames      90 93 90    /  72 77 72
+
+A 4x cut in the exposure register and 60 counts of mean RGB between them.
+Sunrise was around 05:15; 06:02 is 45 minutes after it and 07:33 is two hours
+and twenty minutes after it, and the ramp settling in 12 frames instead of 29
+is the AE loop having much less distance to travel.  So "ran at 06:0x" and
+"ran in fast-changing light" are one variable here, and this bench does not
+split them.
+
+What it does split is arm from order, which is what it was for:
+
+  ruled out   the lock causes the march      0737 is locked and flat
+  ruled out   running first causes it        0733 ran first and is flat
+  left        something about the 06:0x session, of which the light moving
+              fastest is the candidate the log supports
+
+That is one run marching out of four and one session out of two.  The next
+bench is two runs in the same 06:0x window with the order reversed there, not
+another pair at a different hour.
+
+
+TWO CORRECTIONS THIS RUN FORCED
+
+1.  A cue bench is 154 SECONDS, not nine minutes.  Every run today prints
+    "547 frames timed, 282 ms/frame".  The nine came from 540 frames at m9's
+    851 ms/frame, which is not the rate this path runs at.  It was in
+    bring-up-log's 09-08 entry, in bench/probe/20260908-abortdrag/README.md
+    and in four places in host/cue.py; all fixed.
+
+2.  0737's witness read `gain 00 00 / did not move`, which per
+    bench/probe/20260907-witness/ is NOT evidence the lock took - that witness
+    caught movement in 1 of 26 windows on a still desk.  0737 is the arm that
+    ASKED for the lock.  Whether it got it is not established by this run, and
+    the abort added earlier today correctly stayed quiet rather than claiming
+    otherwise.
+
+
+SIDE EFFECT ON #18
+
+Adding these two logs takes probe_third.py from 31 benches to 33 and moves it
+the favourable way, so 20260908-third.txt has been re-run:
+
+  arm                      31 benches   33 benches
+  three-nn                    78.2         79.4
+  three-nn - shipped      +24.2 t 7.62  +25.6 t 8.16   (27/31 -> 29/33)
+  band-oracle                 72.0         73.7
+  midpoint                    55.3         55.0
+  three-nn x2              +0.3 t 0.67   +0.2 t 0.67   (still nothing)
+
+Both new benches score three-nn at 100.0 and 93.0 against shipped's 50.0.
+Nothing about #18's conclusion changes; the sample got two runs bigger.

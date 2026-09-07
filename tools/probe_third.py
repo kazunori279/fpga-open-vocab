@@ -89,29 +89,35 @@ from, one to hold out - so it is scored on 29 benches rather than 31 and is
 reported against three-nn on THOSE 29 only. Comparing it to the pooled mean
 above would be comparing two different sets of benches.
 
-WHAT IT SAYS OVER 31 BENCHES, 2026-09-08, after the rotation:
+WHAT IT SAYS OVER 33 BENCHES, 2026-09-08 evening, after the rotation and after
+#30's paired bench added two more logs:
 
-    band-oracle  72.0     three-nn  78.2     midpoint  55.3     shipped  54.0
+    band-oracle  73.7     three-nn  79.4     midpoint  55.0     shipped  53.8
 
 **The third reference holds and the second span does not help.** three-nn over
-shipped is +24.2 points, t = 7.62 on 30 df, winning 27 of 31 - and it beats even
-the fitted band-oracle by 6.3, which is the point: no radius can do what a cell
+shipped is +25.6 points, t = 8.16 on 32 df, winning 29 of 33 - and it beats even
+the fitted band-oracle by 5.7, which is the point: no radius can do what a cell
 does, so the best radius for a bench loses to a rule that fits nothing. But
-three-nn x2 over three-nn is +0.3 at t = 0.67, winning 12 of 29, worst -7.2.
+three-nn x2 over three-nn is +0.2 at t = 0.67, winning 12 of 31, worst -7.2.
 That is a coin flip. The second empty span buys nothing, and unlike #19's arm C
 it is not even aimed - so #18 does not need a second `'0'` press.
 
 **Drift is still the thing that decides a bench** and a second span does not
-touch it: steady (n=16) 84.1, wanders (n=15) 71.9, r = -0.405 against three-nn.
+touch it: steady (n=17) 84.7, wanders (n=16) 73.7, r = -0.395 against three-nn.
 The remaining loss is class frames crossing into the empty cell on runs where
 the desk moves under them, and averaging two positions of a moving desk gives
 you a position the desk is not at either. That is why this arm was flat. What
 would move it is the desk not moving - #30's territory, not this one's.
 
-**`midpoint` is dead.** -23.0 points against three-nn, t = -5.66, winning 4 of
-31, and `pos` has median 0.76 with 23 of 31 outside 0.25-0.75. The empty desk is
+**`midpoint` is dead.** -24.4 points against three-nn, t = -6.19, winning 4 of
+33, and `pos` has median 0.78 with 25 of 33 outside 0.25-0.75. The empty desk is
 not in the middle and is not reliably anywhere, so the `'0'` press cannot be
 skipped even though the second one is not worth making.
+
+At 31 benches these read 78.2 / +24.2 t 7.62 / 72.0 / 55.3 and steady 84.1
+against wanders 71.9. Two runs moved every one of them the favourable way,
+which is the size of the noise on a pool this small and the reason no single
+bench's figure is quoted anywhere.
 """
 import statistics as st
 import sys
