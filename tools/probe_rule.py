@@ -29,14 +29,52 @@ The rules:
               is what a two-query set collapses to, and it is here to say
               whether the vector form buys anything over the scalar one.
 
+  oracle cut  the best cut ANY rule could have put on the axis enrol-mid chose,
+              over the frames enrol-mid was scored on. Not a rule - it needs
+              held-out frames of both classes, so it does not exist until the
+              run is over. It is here so the enrolled rules are read against
+              what was collectable rather than against each other.
+
 Enrolment is scored HELD OUT. It sees the first visit to each class and is
 scored only on visits it has not seen, because a boundary fitted to all the
 data and then scored on all the data is not a measurement of anything.
+
+READ THE HELD-OUT THRESHOLD, NOT THE ONE AT THE TOP. `threshold (M20)` scores
+every cued frame; the enrolled rules spend the first visit to each class on
+enrolment and score the rest. That is 240 frames against 180, and the missing
+60 are not a random sample - they are the ones the light has drifted least far
+from. `threshold, held out` exists so the comparison is on one denominator, and
+on the sweep below the denominator was worth 1.3 points of the gap, not the gap.
+
+WHAT THE SWEEP FOUND, 2026-09-08
+---------------------------------
+Sixteen two-query benches - the fourteen `bench/README.md` names plus the two
+paired cue runs of 09-08 - on one denominator, 2460 held-out frames:
+
+    threshold, held out   58.0%
+    enrol-mid             74.0%     15 benches better, 1 tied, 0 worse
+    oracle cut            86.7%
+
+So putting the cut where the run's own enrolment says collects 55.7% of what
+the shipped constant leaves on the table, and it does not cost a single bench.
+No new constant: the cut is a relation among that run's own measurements.
+
+`enrol-1nn, centred` ties `enrol-mid` frame for frame on all sixteen, which is
+algebra rather than a result - with two queries the centred space is
+one-dimensional, so nearest-of-two-centred-references IS the midpoint cut on
+the margin axis. The win is not centring. It is where the cut comes from.
+
+WHAT IT DOES NOT EXPLAIN. The remaining 12.7 points split unevenly: on the four
+benches `probe_ceiling.py` marks `!` (separable, phrases backwards) the
+enrolment leaves 27.1 points on the axis, against 7.7 on the other twelve.
+enrol-mid takes its direction from the enrolment too, so inversion of the
+PHRASES should not reach it, and nothing here says why those four are worse.
+Issue #19's founding bench 08-16 17:22 is one of them, at 35.8.
 """
 import re
 import statistics as st
 import sys
-from itertools import combinations
+from itertools import combinations, pairwise
 from pathlib import Path
 
 FRAME = re.compile(r"^frame\s+(\d+) :\s+(.*?)\s+led")
@@ -168,6 +206,19 @@ def score(log: Path) -> None:
         print("    enrolment: not enough repeat visits to hold anything out")
         return
 
+    # The two calibration-free rules again, on exactly the frames the enrolled
+    # rules are scored on. Without this the comparison is 240 frames against
+    # 180 and any gap is partly the denominator: the enrolled rules spend the
+    # first visit to each class on enrolment, and the first visit is not a
+    # random sample of the run - it is the one the light has drifted least far
+    # from. Read the enrolled rules against THESE two numbers, not the ones
+    # above.
+    for title, fn in (("threshold, held out", lambda v: rule_threshold(v, states, gates, thr)),
+                      ("rank, held out", lambda v: rule_rank(v, states))):
+        ok = sum(1 for lab, v in held
+                 if (p := fn(v)) is not None and truth(p) == lab)
+        print(f"    {title:<22} {ok:>4}/{len(held)}  {100*ok/len(held):5.1f}%")
+
     cents = {lab: centroid(vecs, names) for lab, vecs in train.items()}
     ok = sum(1 for lab, v in held
              if min(cents, key=lambda c: dist(v, cents[c], names)) == lab)
@@ -204,10 +255,25 @@ def score(log: Path) -> None:
         hit = sum(1 for lab, v in held
                   if lab == (la if (v[a] - v[b]) < cut else lb))
         if best is None or hit > best[0]:
-            best = (hit, a, b, cut)
-    hit, a, b, cut = best
+            best = (hit, a, b, cut, la, lb)
+    hit, a, b, cut, la, lb = best
     print(f"    {'enrol-mid (held out)':<22} {hit:>4}/{len(held)}  "
           f"{100*hit/len(held):5.1f}%   on ({a}) - ({b}) at {cut:+.2f}")
+
+    # The best cut ANY rule could have put on that same axis over these same
+    # frames. This is #19's ceiling argument made local: with two queries the
+    # centred space is one-dimensional, so no enrolment, no rule and no
+    # threshold can beat it. Read the gap as what the ENROLMENT cost - the axis
+    # was there and separable, and the cut landed somewhere else on it. It is
+    # an oracle and cannot be a guard: it needs held-out frames of both classes,
+    # so it does not exist until the run is over.
+    ds = sorted({v[a] - v[b] for _, v in held})
+    cuts = [(x + y) / 2 for x, y in pairwise(ds)] or list(ds)
+    orc = max(sum(1 for lab, v in held if lab == (lo if (v[a] - v[b]) < c else hi))
+              for c in cuts for lo, hi in ((la, lb), (lb, la)))
+    print(f"    {'oracle cut, same axis':<22} {orc:>4}/{len(held)}  "
+          f"{100*orc/len(held):5.1f}%   the enrolment left "
+          f"{100*(orc-hit)/len(held):.1f} points on this axis")
 
     # How many frames the operator has to hold still for. 30 was cue.py's
     # --hold, not a requirement, and an appliance that needs half a minute per

@@ -1,0 +1,330 @@
+tools/probe_rule.py over the fourteen bench/README.md benches plus the two
+paired cue runs of 2026-09-08. Sixteen two-query benches, 2460 held-out frames.
+
+Read 'threshold, held out' and NOT 'threshold (M20)': the enrolled rules spend
+the first visit to each class on enrolment, so only the held-out line shares
+their denominator.
+
+pooled: threshold 1428/2460 58.0%   enrol-mid 1820/2460 74.0%   oracle 2132/2460 86.7%
+per bench, enrol-mid against threshold: 15 better, 1 tied (08-17 09:55), 0 worse
+
+
+=== bench/cue/m9_cue-20260816-172256.log
+    queries ['a closed book', 'an opened book']
+    ranking ['a closed book', 'an opened book']   gates (none)
+    classes ['an opened book', 'a closed book'], 10 segments
+    threshold (M20)          97/180   53.9%
+    rank                     97/180   53.9%
+    threshold, held out      61/120   50.8%
+    rank, held out           61/120   50.8%
+    enrol-1nn (held out)     58/120   48.3%   from 2 segments, 60 frames
+    enrol-1nn, centred       62/120   51.7%   <- common mode removed
+    enrol-mid (held out)     62/120   51.7%   on (a closed book) - (an opened book) at +7.06
+    oracle cut, same axis   105/120   87.5%   the enrolment left 35.8 points on this axis
+    enrolment frames       1f 55%   2f 54%   5f 46%   10f 69%   20f 73%   30f 72%   (3-fold, each visit used as the enrolment in turn)
+    + (absent), centred      72/130   55.4%   3-way, 2 real frames lost to (absent)
+    presence = mean z       191/200   95.5%   empty -0.46 vs object -10.61, cut -5.54
+    references:
+      an opened book     a closed book=-3.64  an opened book=-11.28
+      a closed book      a closed book=-11.07  an opened book=-17.54
+      separation 9.71 against a mean frame-to-reference distance of 5.15
+
+=== bench/cue/m9_cue-20260816-173537.log
+    queries ['a closed book', 'an opened book']
+    ranking ['a closed book', 'an opened book']   gates (none)
+    classes ['an opened book', 'a closed book'], 10 segments
+    threshold (M20)          85/180   47.2%
+    rank                     85/180   47.2%
+    threshold, held out      50/120   41.7%
+    rank, held out           50/120   41.7%
+    enrol-1nn (held out)     62/120   51.7%   from 2 segments, 60 frames
+    enrol-1nn, centred       66/120   55.0%   <- common mode removed
+    enrol-mid (held out)     66/120   55.0%   on (a closed book) - (an opened book) at +2.42
+    oracle cut, same axis    79/120   65.8%   the enrolment left 10.8 points on this axis
+    enrolment frames       1f 47%   2f 45%   5f 47%   10f 45%   20f 51%   30f 44%   (3-fold, each visit used as the enrolment in turn)
+    + (absent), centred      52/130   40.0%   3-way, 40 real frames lost to (absent)
+    presence = mean z       193/200   96.5%   empty +0.16 vs object -14.41, cut -7.13
+    references:
+      an opened book     a closed book=-11.48  an opened book=-13.93
+      a closed book      a closed book=-15.75  an opened book=-18.15
+      separation 6.00 against a mean frame-to-reference distance of 5.87
+
+=== bench/cue/m9_cue-20260817-073335.log
+    queries ['a closed book', 'an opened book']
+    ranking ['a closed book', 'an opened book']   gates (none)
+    classes ['an opened book', 'a closed book'], 10 segments
+    threshold (M20)         153/180   85.0%
+    rank                    153/180   85.0%
+    threshold, held out     103/120   85.8%
+    rank, held out          103/120   85.8%
+    enrol-1nn (held out)     92/120   76.7%   from 2 segments, 60 frames
+    enrol-1nn, centred      119/120   99.2%   <- common mode removed
+    enrol-mid (held out)    119/120   99.2%   on (a closed book) - (an opened book) at +1.17
+    oracle cut, same axis   120/120  100.0%   the enrolment left 0.8 points on this axis
+    enrolment frames       1f 69%   2f 92%   5f 96%   10f 98%   20f 98%   30f 98%   (3-fold, each visit used as the enrolment in turn)
+    + (absent), centred      88/130   67.7%   3-way, 42 real frames lost to (absent)
+    presence = mean z       125/200   62.5%   empty +0.18 vs object -5.72, cut -2.77
+    references:
+      an opened book     a closed book=-1.61  an opened book=-0.46
+      a closed book      a closed book=-11.15  an opened book=-14.64
+      separation 17.09 against a mean frame-to-reference distance of 4.18
+
+=== bench/cue/m9_cue-20260817-085504.log
+    queries ['a closed book', 'an opened book']
+    ranking ['a closed book', 'an opened book']   gates (none)
+    classes ['an opened book', 'a closed book'], 10 segments
+    threshold (M20)         117/180   65.0%
+    rank                    117/180   65.0%
+    threshold, held out      86/120   71.7%
+    rank, held out           86/120   71.7%
+    enrol-1nn (held out)     37/120   30.8%   from 2 segments, 60 frames
+    enrol-1nn, centred      100/120   83.3%   <- common mode removed
+    enrol-mid (held out)    100/120   83.3%   on (a closed book) - (an opened book) at +6.31
+    oracle cut, same axis   117/120   97.5%   the enrolment left 14.2 points on this axis
+    enrolment frames       1f 64%   2f 65%   5f 84%   10f 80%   20f 63%   30f 82%   (3-fold, each visit used as the enrolment in turn)
+    + (absent), centred      60/130   46.2%   3-way, 52 real frames lost to (absent)
+    presence = mean z       120/200   60.0%   empty +0.05 vs object +2.18, cut +1.11
+    references:
+      an opened book     a closed book=+1.48  an opened book=-4.54
+      a closed book      a closed book=+3.69  an opened book=-2.93
+      separation 2.74 against a mean frame-to-reference distance of 8.02
+
+=== bench/cue/m9_cue-20260817-091826.log
+    queries ['a closed book', 'an opened book']
+    ranking ['a closed book', 'an opened book']   gates (none)
+    classes ['an opened book', 'a closed book'], 10 segments
+    threshold (M20)          92/180   51.1%
+    rank                     92/180   51.1%
+    threshold, held out      61/120   50.8%
+    rank, held out           61/120   50.8%
+    enrol-1nn (held out)     88/120   73.3%   from 2 segments, 60 frames
+    enrol-1nn, centred      109/120   90.8%   <- common mode removed
+    enrol-mid (held out)    109/120   90.8%   on (a closed book) - (an opened book) at +6.46
+    oracle cut, same axis   111/120   92.5%   the enrolment left 1.7 points on this axis
+    enrolment frames       1f 71%   2f 73%   5f 76%   10f 83%   20f 87%   30f 88%   (3-fold, each visit used as the enrolment in turn)
+    + (absent), centred      93/130   71.5%   3-way, 27 real frames lost to (absent)
+    presence = mean z       123/200   61.5%   empty +0.37 vs object +5.29, cut +2.83
+    references:
+      an opened book     a closed book=+4.76  an opened book=+0.83
+      a closed book      a closed book=+4.03  an opened book=-4.96
+      separation 5.83 against a mean frame-to-reference distance of 9.20
+
+=== bench/cue/m9_cue-20260817-095529.log
+    queries ['a closed book', 'an opened book']
+    ranking ['a closed book', 'an opened book']   gates (none)
+    classes ['an opened book', 'a closed book'], 10 segments
+    threshold (M20)          89/180   49.4%
+    rank                     89/180   49.4%
+    threshold, held out      57/120   47.5%
+    rank, held out           57/120   47.5%
+    enrol-1nn (held out)    106/120   88.3%   from 2 segments, 60 frames
+    enrol-1nn, centred       57/120   47.5%   <- common mode removed
+    enrol-mid (held out)     57/120   47.5%   on (a closed book) - (an opened book) at +2.66
+    oracle cut, same axis    69/120   57.5%   the enrolment left 10.0 points on this axis
+    enrolment frames       1f 46%   2f 47%   5f 48%   10f 46%   20f 51%   30f 42%   (3-fold, each visit used as the enrolment in turn)
+    + (absent), centred      62/130   47.7%   3-way, 9 real frames lost to (absent)
+    presence = mean z       124/200   62.0%   empty -0.18 vs object +5.13, cut +2.47
+    references:
+      an opened book     a closed book=+10.51  an opened book=+8.59
+      a closed book      a closed book=+3.26  an opened book=-0.14
+      separation 11.35 against a mean frame-to-reference distance of 3.50
+
+=== bench/cue/m9_cue-20260817-095808.log
+    queries ['a closed book', 'an opened book']
+    ranking ['a closed book', 'an opened book']   gates (none)
+    classes ['an opened book', 'a closed book'], 10 segments
+    threshold (M20)         132/180   73.3%
+    rank                    132/180   73.3%
+    threshold, held out      84/120   70.0%
+    rank, held out           84/120   70.0%
+    enrol-1nn (held out)     65/120   54.2%   from 2 segments, 60 frames
+    enrol-1nn, centred       89/120   74.2%   <- common mode removed
+    enrol-mid (held out)     89/120   74.2%   on (a closed book) - (an opened book) at -2.42
+    oracle cut, same axis   101/120   84.2%   the enrolment left 10.0 points on this axis
+    enrolment frames       1f 24%   2f 24%   5f 23%   10f 52%   20f 79%   30f 79%   (3-fold, each visit used as the enrolment in turn)
+    + (absent), centred      81/130   62.3%   3-way, 25 real frames lost to (absent)
+    presence = mean z       117/200   58.5%   empty -0.15 vs object -0.62, cut -0.39
+    references:
+      an opened book     a closed book=-5.64  an opened book=+0.01
+      a closed book      a closed book=+0.13  an opened book=-0.68
+      separation 5.82 against a mean frame-to-reference distance of 4.57
+
+=== bench/cue/m9_cue-20260817-112606.log
+    queries ['a closed book', 'an opened book']
+    ranking ['a closed book', 'an opened book']   gates (none)
+    classes ['an opened book', 'a closed book'], 13 segments
+    threshold (M20)         154/240   64.2%
+    rank                    154/240   64.2%
+    threshold, held out     125/180   69.4%
+    rank, held out          125/180   69.4%
+    enrol-1nn (held out)    127/180   70.6%   from 2 segments, 60 frames
+    enrol-1nn, centred      165/180   91.7%   <- common mode removed
+    enrol-mid (held out)    165/180   91.7%   on (a closed book) - (an opened book) at -1.91
+    oracle cut, same axis   167/180   92.8%   the enrolment left 1.1 points on this axis
+    enrolment frames       1f 53%   2f 54%   5f 57%   10f 60%   20f 83%   30f 83%   (4-fold, each visit used as the enrolment in turn)
+    + (absent), centred     108/190   56.8%   3-way, 67 real frames lost to (absent)
+    presence = mean z       170/260   65.4%   empty -0.49 vs object +0.63, cut +0.07
+    references:
+      an opened book     a closed book=+0.63  an opened book=+2.65
+      a closed book      a closed book=-0.74  an opened book=+1.06
+      separation 2.10 against a mean frame-to-reference distance of 1.89
+
+=== bench/cue/m9_cue-20260817-113304.log
+    queries ['a closed book', 'an opened book']
+    ranking ['a closed book', 'an opened book']   gates (none)
+    classes ['an opened book', 'a closed book'], 13 segments
+    threshold (M20)         172/240   71.7%
+    rank                    172/240   71.7%
+    threshold, held out     135/180   75.0%
+    rank, held out          135/180   75.0%
+    enrol-1nn (held out)     74/180   41.1%   from 2 segments, 60 frames
+    enrol-1nn, centred      137/180   76.1%   <- common mode removed
+    enrol-mid (held out)    137/180   76.1%   on (a closed book) - (an opened book) at -0.31
+    oracle cut, same axis   141/180   78.3%   the enrolment left 2.2 points on this axis
+    enrolment frames       1f 54%   2f 53%   5f 55%   10f 68%   20f 71%   30f 70%   (4-fold, each visit used as the enrolment in turn)
+    + (absent), centred      76/190   40.0%   3-way, 96 real frames lost to (absent)
+    presence = mean z       141/260   54.2%   empty -0.74 vs object +0.12, cut -0.31
+    references:
+      an opened book     a closed book=-3.13  an opened book=-2.34
+      a closed book      a closed book=+0.24  an opened book=+0.08
+      separation 4.16 against a mean frame-to-reference distance of 5.15
+
+=== bench/cue/m9_cue-20260817-133952.log
+    queries ['a closed book', 'an opened book']
+    ranking ['a closed book', 'an opened book']   gates (none)
+    classes ['an opened book', 'a closed book'], 13 segments
+    threshold (M20)         127/240   52.9%
+    rank                    127/240   52.9%
+    threshold, held out      90/180   50.0%
+    rank, held out           90/180   50.0%
+    enrol-1nn (held out)    137/180   76.1%   from 2 segments, 60 frames
+    enrol-1nn, centred      127/180   70.6%   <- common mode removed
+    enrol-mid (held out)    127/180   70.6%   on (a closed book) - (an opened book) at +3.03
+    oracle cut, same axis   158/180   87.8%   the enrolment left 17.2 points on this axis
+    enrolment frames       1f 71%   2f 72%   5f 73%   10f 74%   20f 77%   30f 75%   (4-fold, each visit used as the enrolment in turn)
+    + (absent), centred     133/190   70.0%   3-way, 0 real frames lost to (absent)
+    presence = mean z       124/260   47.7%   empty -0.01 vs object +0.56, cut +0.28
+    references:
+      an opened book     a closed book=+3.04  an opened book=+2.73
+      a closed book      a closed book=+0.31  an opened book=-5.44
+      separation 8.61 against a mean frame-to-reference distance of 5.35
+
+=== bench/cue/m9_cue-20260817-152044.log
+    queries ['a closed hand', 'an opened hand']
+    ranking ['a closed hand', 'an opened hand']   gates (none)
+    classes ['an opened hand', 'a closed hand'], 13 segments
+    threshold (M20)         172/240   71.7%
+    rank                    172/240   71.7%
+    threshold, held out     126/180   70.0%
+    rank, held out          126/180   70.0%
+    enrol-1nn (held out)    146/180   81.1%   from 2 segments, 60 frames
+    enrol-1nn, centred      177/180   98.3%   <- common mode removed
+    enrol-mid (held out)    177/180   98.3%   on (a closed hand) - (an opened hand) at +2.14
+    oracle cut, same axis   178/180   98.9%   the enrolment left 0.6 points on this axis
+    enrolment frames       1f 95%   2f 96%   5f 94%   10f 92%   20f 95%   30f 97%   (4-fold, each visit used as the enrolment in turn)
+    + (absent), centred     159/190   83.7%   3-way, 31 real frames lost to (absent)
+    presence = mean z       247/260   95.0%   empty +0.70 vs object +11.99, cut +6.35
+    references:
+      an opened hand     a closed hand=+11.74  an opened hand=+11.68
+      a closed hand      a closed hand=+15.64  an opened hand=+11.42
+      separation 3.91 against a mean frame-to-reference distance of 3.35
+
+=== bench/cue/m9_cue-20260817-152757.log
+    queries ['a glass with tea', 'an empty glass']
+    ranking ['a glass with tea', 'an empty glass']   gates (none)
+    classes ['a glass with tea', 'an empty glass'], 13 segments
+    threshold (M20)         107/240   44.6%
+    rank                    107/240   44.6%
+    threshold, held out      85/180   47.2%
+    rank, held out           85/180   47.2%
+    enrol-1nn (held out)     89/180   49.4%   from 2 segments, 60 frames
+    enrol-1nn, centred      103/180   57.2%   <- common mode removed
+    enrol-mid (held out)    103/180   57.2%   on (a glass with tea) - (an empty glass) at +0.20
+    oracle cut, same axis   129/180   71.7%   the enrolment left 14.4 points on this axis
+    enrolment frames       1f 55%   2f 52%   5f 46%   10f 50%   20f 52%   30f 63%   (4-fold, each visit used as the enrolment in turn)
+    + (absent), centred      94/190   49.5%   3-way, 31 real frames lost to (absent)
+    presence = mean z       174/260   66.9%   empty +0.22 vs object -0.70, cut -0.24
+    references:
+      a glass with tea   a glass with tea=+0.51  an empty glass=+0.56
+      an empty glass     a glass with tea=-0.66  an empty glass=-1.11
+      separation 2.04 against a mean frame-to-reference distance of 5.32
+
+=== bench/cue/m9_cue-20260817-153747.log
+    queries ['a person standing', 'a person, hands up']
+    ranking ['a person standing', 'a person, hands up']   gates (none)
+    classes ['a person standing', 'a person, hands up'], 13 segments
+    threshold (M20)          64/240   26.7%
+    rank                     64/240   26.7%
+    threshold, held out      32/180   17.8%
+    rank, held out           32/180   17.8%
+    enrol-1nn (held out)    116/180   64.4%   from 2 segments, 60 frames
+    enrol-1nn, centred       78/180   43.3%   <- common mode removed
+    enrol-mid (held out)     78/180   43.3%   on (a person standing) - (a person, hands up) at -1.22
+    oracle cut, same axis   163/180   90.6%   the enrolment left 47.2 points on this axis
+    enrolment frames       1f 51%   2f 54%   5f 58%   10f 65%   20f 66%   30f 67%   (4-fold, each visit used as the enrolment in turn)
+    + (absent), centred      54/190   28.4%   3-way, 121 real frames lost to (absent)
+    presence = mean z       176/260   67.7%   empty -0.10 vs object -2.20, cut -1.15
+    references:
+      a person standing  a person standing=-1.20  a person, hands up=-0.12
+      a person, hands up a person standing=-8.60  a person, hands up=-7.23
+      separation 10.26 against a mean frame-to-reference distance of 4.98
+
+=== bench/cue/m9_cue-20260817-154206.log
+    queries ['a big bag', 'a small bag']
+    ranking ['a big bag', 'a small bag']   gates (none)
+    classes ['a small bag', 'a big bag'], 13 segments
+    threshold (M20)         185/240   77.1%
+    rank                    185/240   77.1%
+    threshold, held out     137/180   76.1%
+    rank, held out          137/180   76.1%
+    enrol-1nn (held out)    147/180   81.7%   from 2 segments, 60 frames
+    enrol-1nn, centred      145/180   80.6%   <- common mode removed
+    enrol-mid (held out)    145/180   80.6%   on (a big bag) - (a small bag) at -2.32
+    oracle cut, same axis   165/180   91.7%   the enrolment left 11.1 points on this axis
+    enrolment frames       1f 16%   2f 16%   5f 50%   10f 83%   20f 84%   30f 81%   (4-fold, each visit used as the enrolment in turn)
+    + (absent), centred     117/190   61.6%   3-way, 62 real frames lost to (absent)
+    presence = mean z       162/260   62.3%   empty +0.78 vs object +0.50, cut +0.64
+    references:
+      a small bag        a big bag=-2.58  a small bag=+2.14
+      a big bag          a big bag=+0.14  a small bag=+0.05
+      separation 3.43 against a mean frame-to-reference distance of 2.91
+
+=== bench/cue/m9_cue-20260908-0602.log
+    queries ['a closed book', 'an opened book']
+    ranking ['a closed book', 'an opened book']   gates (none)
+    classes ['a closed book', 'an opened book'], 13 segments
+    threshold (M20)         111/240   46.2%
+    rank                    111/240   46.2%
+    threshold, held out      90/180   50.0%
+    rank, held out           90/180   50.0%
+    enrol-1nn (held out)    156/180   86.7%   from 2 segments, 60 frames
+    enrol-1nn, centred      142/180   78.9%   <- common mode removed
+    enrol-mid (held out)    142/180   78.9%   on (a closed book) - (an opened book) at +7.61
+    oracle cut, same axis   165/180   91.7%   the enrolment left 12.8 points on this axis
+    enrolment frames       1f 19%   2f 21%   5f 35%   10f 69%   20f 67%   30f 81%   (4-fold, each visit used as the enrolment in turn)
+    + (absent), centred     109/190   57.4%   3-way, 45 real frames lost to (absent)
+    presence = mean z       123/260   47.3%   empty +0.10 vs object +1.84, cut +0.97
+    references:
+      a closed book      a closed book=+4.46  an opened book=-4.56
+      an opened book     a closed book=+5.53  an opened book=-0.68
+      separation 4.03 against a mean frame-to-reference distance of 7.44
+
+=== bench/cue/m9_cue-20260908-0610.log
+    queries ['a closed book', 'an opened book']
+    ranking ['a closed book', 'an opened book']   gates (none)
+    classes ['a closed book', 'an opened book'], 13 segments
+    threshold (M20)         136/240   56.7%
+    rank                    136/240   56.7%
+    threshold, held out     106/180   58.9%
+    rank, held out          106/180   58.9%
+    enrol-1nn (held out)    149/180   82.8%   from 2 segments, 60 frames
+    enrol-1nn, centred      144/180   80.0%   <- common mode removed
+    enrol-mid (held out)    144/180   80.0%   on (a closed book) - (an opened book) at +6.90
+    oracle cut, same axis   164/180   91.1%   the enrolment left 11.1 points on this axis
+    enrolment frames       1f 17%   2f 19%   5f 33%   10f 47%   20f 84%   30f 85%   (4-fold, each visit used as the enrolment in turn)
+    + (absent), centred     130/190   68.4%   3-way, 22 real frames lost to (absent)
+    presence = mean z       136/260   52.3%   empty +0.19 vs object +2.47, cut +1.33
+    references:
+      a closed book      a closed book=+3.91  an opened book=-6.67
+      an opened book     a closed book=+10.31  an opened book=+7.09
+      separation 15.18 against a mean frame-to-reference distance of 5.83
