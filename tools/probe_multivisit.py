@@ -37,9 +37,48 @@ Arm A does not reproduce the board's own figure exactly and is not meant to: its
 window starts at the top of the counted segment rather than two frames after the
 key, and it is scored on held-out visits only. Compare the arms with each other,
 not with tools/score_cue.py.
+
+THE ENROLLING VISIT IS ROTATED, and until 2026-09-08 it was not. Arms A and B
+took `keep[0]`, which is visit 0 on every fold but one, so they did not measure
+"one visit" - they measured VISIT 0, and a run whose visit 0 sat badly handed
+both arms the same bad reference on three folds out of four. C averaged
+`keep[:2]` and was only half exposed to it, so the bug flattered C over A and
+flattered B over A even harder. Each arm now averages over every enrolment its
+shape allows - all singles for A and B, all pairs for C - so the arms differ by
+what they average and not by which visit they landed on. The arms therefore have
+DIFFERENT DENOMINATORS and must be ranked on the rate, not the count.
+
+The tell was two tools disagreeing: probe_rule.py's frame-count curve rotates
+evenly and said 20 frames and 30 frames were level, while this file said B beat
+A by 28 to 33 points on three benches. Those three are exactly the ones
+probe_midpoint.py blames on ENROL.
+
+WHAT IT SAYS OVER SIXTEEN BENCHES, 2026-09-08. The fourteen bench/README.md
+names plus the two paired cue runs of 09-08:
+
+    A one visit, 20 frames    68.0%
+    B one visit, every frame  70.2%    +2.1 over A, t = 1.24 on 15 df
+    C two visits, 20 each     71.0%    +3.0 over A, t = 2.11 on 15 df
+
+**The longer window is not the answer.** B over A is +2.1 and does not clear,
+and it is not aimed - +2.8 on the eight benches that lost ten points or more to
+probe_ceiling.py's oracle against +1.5 on the eight that did not. Before the
+rotation was fixed the same arm read +6.1 and looked aimed at +12.0 / +0.2. That
+was the bug, not the window.
+
+**The second visit is the better candidate and still does not clear.** C over A
+is +3.0 at t = 2.11, just under the 2.131 that 15 df wants, and it IS aimed:
++5.8 on the eight that lost ten or more, +0.2 on the eight that did not. What
+distinguishes it from issue #19's `adapt` arm, which was aimed about as well, is
+the downside: C's worst single bench is -4.4 points where `adapt` could cost a
+healthy bench 23. A bounded worst case is the thing that has been missing.
+
+C over B is +0.8 at t = 0.47 - so on this evidence the second visit and the
+longer window are not separable from each other, only from doing neither.
 """
 import statistics as st
 import sys
+from itertools import combinations
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -106,25 +145,42 @@ def score(log: Path) -> None:
             # things at once and the comparison would say nothing.
             base = {o: mean_of([vis[o][0][:WINDOW]]) for o in labs if o != lab}
             keep = [i for i in range(counts[lab]) if i != out_i]
+            # ROTATE THE ENROLLING VISIT, do not take keep[0]. The first cut of
+            # this took keep[0], which is visit 0 on every fold but one, so arms
+            # A and B did not measure "one visit" - they measured VISIT 0, and a
+            # run whose visit 0 sat badly handed both arms the same bad
+            # reference. That is how B beat A by 28 to 33 points on exactly the
+            # three benches probe_midpoint.py blames on ENROL, and why
+            # probe_rule.py's own frame-count curve, which rotates evenly,
+            # disagreed. Each arm now averages over every enrolment it could
+            # have had, so the arms differ by what they average and not by which
+            # visit they happened to land on.
             refs = {
-                "A one visit, 20 frames":   mean_of([vis[lab][keep[0]][:WINDOW]]),
-                "B one visit, every frame": mean_of([vis[lab][keep[0]]]),
-                "C two visits, 20 each":    mean_of([vis[lab][k][:WINDOW]
-                                                     for k in keep[:2]]),
+                "A one visit, 20 frames":   [[vis[lab][e][:WINDOW]] for e in keep],
+                "B one visit, every frame": [[vis[lab][e]] for e in keep],
+                "C two visits, 20 each":    [[vis[lab][p][:WINDOW],
+                                              vis[lab][q][:WINDOW]]
+                                             for p, q in combinations(keep, 2)],
             }
-            for arm, own in refs.items():
-                pool = {lab: own, **base}
-                for f in test:
-                    hit = min(pool, key=lambda k: dist(f, pool[k]))
-                    tally[arm][hit == lab] += 1
+            for arm, choices in refs.items():
+                for chunks in choices:
+                    pool = {lab: mean_of(chunks), **base}
+                    for f in test:
+                        hit = min(pool, key=lambda k: dist(f, pool[k]))
+                        tally[arm][hit == lab] += 1
 
-    print(f"    leave-one-visit-out, {sum(tally['A one visit, 20 frames'])} "
-          f"held-out frames per arm")
-    best = max(tally, key=lambda k: tally[k][1])
+    # Every arm sees the same held-out frames; they differ in how many
+    # enrolments each frame is scored under, so the denominators differ and the
+    # arms have to be ranked on the rate. Ranking on the raw count would hand it
+    # to C, which has one row per PAIR of enrolling visits.
+    held = sum(len(vis[lab][i]) for lab in labs for i in range(counts[lab]))
+    print(f"    leave-one-visit-out, {held} held-out frames, each scored under "
+          f"every enrolment its arm allows")
+    best = max(tally, key=lambda k: tally[k][1] / sum(tally[k]))
     for arm in arms:
         bad, good = tally[arm]
         n = bad + good
-        print(f"      {arm:<26} {good:>4}/{n}  {100.0 * good / n:5.1f} %"
+        print(f"      {arm:<26} {good:>5}/{n:<5} {100.0 * good / n:5.1f} %"
               f"{'  <' if arm == best else ''}")
 
 

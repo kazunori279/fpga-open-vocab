@@ -1,0 +1,163 @@
+tools/probe_multivisit.py after the enrolling visit was rotated (it took keep[0],
+which is visit 0 on every fold but one). Sixteen benches: the fourteen
+bench/README.md names plus the two paired cue runs of 2026-09-08.
+
+  A one visit, 20 frames    68.0%
+  B one visit, every frame  70.2%   +2.1 over A, t = 1.24 on 15 df, not aimed
+  C two visits, 20 each     71.0%   +3.0 over A, t = 2.11 on 15 df, aimed
+
+aimed = mean gain on the 8 benches probe_ceiling.py says lost 10+ points,
+against the 8 that did not:  B +2.8/+1.5   C +5.8/+0.2. Worst single bench:
+B -12.2, C -4.4.
+
+For the pre-fix numbers, which flattered B over A by 4 points, see the
+docstring - they are not reproduced here because they were wrong.
+
+
+=== m9_cue-20260816-172256.log
+    a closed book x3, an opened book x3
+    a closed book      visit centres  +3.24   +3.85   +4.26
+    an opened book     visit centres  +3.82   +5.25   +4.77
+    leave-one-visit-out, 180 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       227/360    63.1 %
+      B one visit, every frame     264/360    73.3 %
+      C two visits, 20 each        140/180    77.8 %  <
+
+=== m9_cue-20260816-173537.log
+    a closed book x3, an opened book x3
+    a closed book      visit centres  +1.20   +1.65   -0.02
+    an opened book     visit centres  +1.22   +1.21   +1.03
+    leave-one-visit-out, 180 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       126/360    35.0 %
+      B one visit, every frame     173/360    48.1 %  <
+      C two visits, 20 each         55/180    30.6 %
+
+=== m9_cue-20260817-073335.log
+    a closed book x3, an opened book x3
+    a closed book      visit centres  +1.74   +1.95   +1.34
+    an opened book     visit centres  -0.58   -1.04   -0.09
+    leave-one-visit-out, 180 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       346/360    96.1 %  <
+      B one visit, every frame     336/360    93.3 %
+      C two visits, 20 each        173/180    96.1 %
+
+=== m9_cue-20260817-085504.log
+    a closed book x3, an opened book x3
+    a closed book      visit centres  +3.31   +2.81   +5.37
+    an opened book     visit centres  +3.01   +0.73   +0.01
+    leave-one-visit-out, 180 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       122/360    33.9 %
+      B one visit, every frame     178/360    49.4 %  <
+      C two visits, 20 each         78/180    43.3 %
+
+=== m9_cue-20260817-091826.log
+    a closed book x3, an opened book x3
+    a closed book      visit centres  +4.49   +4.67   +4.73
+    an opened book     visit centres  +1.97   +0.69   +2.61
+    leave-one-visit-out, 180 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       315/360    87.5 %
+      B one visit, every frame     317/360    88.1 %
+      C two visits, 20 each        162/180    90.0 %  <
+
+=== m9_cue-20260817-095529.log
+    a closed book x3, an opened book x3
+    a closed book      visit centres  +1.70   +1.35   +1.24
+    an opened book     visit centres  +0.96   +1.41   +1.54
+    leave-one-visit-out, 180 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       208/360    57.8 %
+      B one visit, every frame     210/360    58.3 %
+      C two visits, 20 each        109/180    60.6 %  <
+
+=== m9_cue-20260817-095808.log
+    a closed book x3, an opened book x3
+    a closed book      visit centres  +0.41   -1.14   +0.20
+    an opened book     visit centres  -2.82   -2.30   -2.42
+    leave-one-visit-out, 180 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       293/360    81.4 %
+      B one visit, every frame     289/360    80.3 %
+      C two visits, 20 each        147/180    81.7 %  <
+
+=== m9_cue-20260817-112606.log
+    a closed book x4, an opened book x4
+    a closed book      visit centres  -0.90   -0.16   -0.37   -0.04
+    an opened book     visit centres  -1.01   -1.32   -1.72   -1.62
+    leave-one-visit-out, 240 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       451/720    62.6 %
+      B one visit, every frame     464/720    64.4 %  <
+      C two visits, 20 each        456/720    63.3 %
+
+=== m9_cue-20260817-113304.log
+    a closed book x4, an opened book x4
+    a closed book      visit centres  +0.08   +0.31   +0.82   +0.44
+    an opened book     visit centres  -0.39   -1.67   -0.01   -0.37
+    leave-one-visit-out, 240 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       428/720    59.4 %
+      B one visit, every frame     449/720    62.4 %
+      C two visits, 20 each        455/720    63.2 %  <
+
+=== m9_cue-20260817-133952.log
+    a closed book x4, an opened book x4
+    a closed book      visit centres  +2.87   +4.02   +3.61   +3.95
+    an opened book     visit centres  +0.16   +2.09   +0.95   +2.84
+    leave-one-visit-out, 240 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       585/720    81.2 %  <
+      B one visit, every frame     497/720    69.0 %
+      C two visits, 20 each        576/720    80.0 %
+
+=== m9_cue-20260817-152044.log
+    a closed hand x4, an opened hand x4
+    a closed hand      visit centres  +2.11   +2.16   +2.68   +1.40
+    an opened hand     visit centres  +0.03   +0.34   -0.27   +0.08
+    leave-one-visit-out, 240 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       690/720    95.8 %
+      B one visit, every frame     693/720    96.2 %  <
+      C two visits, 20 each        690/720    95.8 %
+
+=== m9_cue-20260817-152757.log
+    a glass with tea x4, an empty glass x4
+    a glass with tea   visit centres  -0.03   +0.15   -0.07   +0.16
+    an empty glass     visit centres  +0.23   +0.19   +0.43   +0.20
+    leave-one-visit-out, 240 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       438/720    60.8 %
+      B one visit, every frame     460/720    63.9 %  <
+      C two visits, 20 each        421/720    58.5 %
+
+=== m9_cue-20260817-153747.log
+    a person standing x4, a person, hands up x4
+    a person standing  visit centres  -0.54   -0.22   -0.47   +0.31
+    a person, hands up visit centres  -0.69   +0.90   +0.96   +1.32
+    leave-one-visit-out, 240 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       446/720    61.9 %
+      B one visit, every frame     426/720    59.2 %
+      C two visits, 20 each        536/720    74.4 %  <
+
+=== m9_cue-20260817-154206.log
+    a big bag x4, a small bag x4
+    a big bag          visit centres  +0.04   +1.15   -0.31   +0.54
+    a small bag        visit centres  -2.36   -1.64   -1.80   -1.00
+    leave-one-visit-out, 240 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       613/720    85.1 %  <
+      B one visit, every frame     596/720    82.8 %
+      C two visits, 20 each        608/720    84.4 %
+
+=== m9_cue-20260908-0602.log
+    a closed book x4, an opened book x4
+    a closed book      visit centres  +4.51   +6.98   +7.81   +7.63
+    an opened book     visit centres  +3.10   +2.14   +4.14   +1.42
+    leave-one-visit-out, 240 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       347/720    48.2 %
+      B one visit, every frame     411/720    57.1 %
+      C two visits, 20 each        421/720    58.5 %  <
+
+=== m9_cue-20260908-0610.log
+    a closed book x4, an opened book x4
+    a closed book      visit centres  +5.29   +6.68   +6.87   +6.21
+    an opened book     visit centres  +1.61   +2.22   +0.61   +3.76
+    leave-one-visit-out, 240 held-out frames, each scored under every enrolment its arm allows
+      A one visit, 20 frames       565/720    78.5 %  <
+      B one visit, every frame     553/720    76.8 %
+      C two visits, 20 each        561/720    77.9 %
+
+C over A is the second key press; C over B is the second VISIT. Only the
+second one is an argument for changing the bench, and only a change that
+holds on more than one run is a change.
