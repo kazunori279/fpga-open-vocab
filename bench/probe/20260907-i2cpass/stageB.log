@@ -1,0 +1,34 @@
+
+=== Does 0x07 bit 0 fire an I2C read, or clear a FIFO id? (#33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+  luma before anything is fired: 70
+
+-- the space at rest, three dumps, nothing fired --
+  registers that moved on their own: none
+
+-- stage A: fire a read at 12 addresses, three visits, up down up --
+  visit 0 done
+  visit 1 done
+  visit 2 done
+
+  reg    per-address means, all 12              spread   scatter  retrace
+  0b^    00 00 00 00 00 00 00 30 30 30 30 31    49       0        yes   (the probe writes this one)
+  0c^    00 01 02 03 0a 1c 1d 00 02 0a 0b 00    29       0        yes   (the probe writes this one)
+  48     00 00 00 00 00 00 00 00 00 36 4c 02    76       0        yes   <- A1 and A2
+  8b     00 00 00 00 00 00 00 30 30 30 30 31    49       0        yes   <- A1 and A2
+  8c     00 01 02 03 0a 1c 1d 00 02 0a 0b 00    29       0        yes   <- A1 and A2
+  c8     00 00 00 00 00 00 00 00 00 36 4c 02    76       0        yes   <- A1 and A2
+
+-- did firing it break the capture path? --
+  luma after 36 fires: 96
+
+RESULT : stage A names MORE THAN ONE register, which is not a result - see the table.
+
+         THE AWB ARM STAYS BLOCKED. Do not write an arm against a
+         readback this probe did not find.

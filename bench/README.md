@@ -15,6 +15,10 @@ the scoring chain was run on it and came out bit-flat.
 [`probe/20260907-manexp/`](probe/20260907-manexp/) is where the module was found
 to take a written exposure and gain after all, against a claim `firmware/cam.h`
 had been stating as fact.
+[`probe/20260907-i2cpass/`](probe/20260907-i2cpass/) is where the I²C
+passthrough was fired for the first time, `0x48` was found holding what it
+returns, and the die turned out to be an OV3640 — and where the causal check
+that would let any of that be adopted could not be run.
 
 **`stills/`** is neither, and is not a bench. It holds PNGs off the appliance's
 camera, shot so that the stages of the encoder chain can be asked about the same
