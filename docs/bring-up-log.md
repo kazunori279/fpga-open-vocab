@@ -97,6 +97,85 @@ Note [07-29, two boards](#2026-07-29--two-boards-one-alive-one-dead-corrected-20
 
 ---
 
+### 2026-09-08 evening, two tools were measuring which visit came first, and the fix costs one of them its headline
+
+No board for most of this one. Two replay tools were found doing the same thing
+wrong, in the same week, on the two references this project's two open issues
+each blame.
+
+**The bug.** `tools/probe_multivisit.py` took `keep[0]` as the enrolling visit,
+which is visit 0 on every leave-one-out fold but one. So arms A and B did not
+measure "one visit" — they measured **visit 0**, and a run whose visit 0 sat
+badly handed both arms the same bad reference three folds in four. Arm C
+averaged `keep[:2]` and was only half exposed, so the bug flattered C over A and
+flattered B over A harder still. `tools/probe_third.py` had the same shape:
+it enrolled the empty reference from `empties[0]` and held out the rest, one
+draw of which empty span the operator happened to show first — on precisely the
+reference #18 says wanders.
+
+**The tell was two tools disagreeing.** `probe_rule.py`'s frame-count curve
+rotates evenly and said 20 frames and 30 frames were level; `probe_multivisit.py`
+said B beat A by 28 to 33 points on three benches. Those three are exactly the
+ones `probe_midpoint.py` blames on `ENROL`. Nothing else was going to catch this:
+each tool was internally consistent and each printed a plausible number.
+
+**What it cost, per tool.** Both now rotate over every enrolment their arm
+allows, which gives the arms different denominators and forces ranking on the
+rate.
+
+| | before | after |
+|---|---|---|
+| #19, B over A (a longer window) | +6.1, aimed +12.0 / +0.2 | **+2.1, t = 1.24, not aimed** |
+| #19, C over A (a second visit) | — | **+3.0, t = 2.11 on 15 df, aimed +5.8 / +0.2** |
+| #18, `three-nn` pooled | 77.5 | 78.2 |
+| #18, `three-nn` − `shipped` | +23.3, t = 6.12, 26/31 | **+24.2, t = 7.62, 27/31** |
+
+**So the longer enrolment window is not the answer, and it never was — that was
+the bug talking.** The second *visit* survives as the better candidate and still
+does not clear: t = 2.11 against the 2.131 that 15 df wants. What keeps it open
+where #19's `adapt` arm was closed is the downside. C's worst single bench is
+−4.4 points; `adapt` could cost a healthy bench 23. A bounded worst case is the
+thing every proposal in that issue has been missing.
+
+**#18 came out the other way.** The rotation barely moved `three-nn`'s mean and
+tightened its margin, so the single draw there was noise and not bias — but the
+arm the issue actually needed, the empty reference averaged over **two** spans,
+does nothing: +0.3 points over the 29 benches with a third span to hold out,
+t = 0.67, winning 12, worst −7.2, and not aimed. The reason is the same `drift`
+correlation that made it look promising (steady 84.1, wanders 71.9, r = −0.405):
+averaging two positions of a desk that moves gives a position the desk is not at
+either. **The remaining presence loss belongs to #30, not to the enrolment**, and
+the bench does not gain a second `'0'` press.
+
+**Then the one board thing.** `host/cue.py` now reads #33's die witness out of
+the board's own output and stops a `--lock-camera` run when it says the lock did
+not take. The timing is the whole point: the verdict prints about eleven frames
+after the `'L'`, which on the standard schedule is frame 72, and the first
+enrolment window opens at 74. `m9_cue-20260908-0615` had that verdict in its log
+and ran to frame 405 anyway. Both of that morning's runs were replayed through
+the matcher before it was wired up — fires at 72 on 0615, never on 0602 — and
+[`bench/probe/20260908-abortdrag/`](../bench/probe/20260908-abortdrag/README.md)
+is a live run confirming the quiet case and that the board survives it.
+
+It only matches the *movement* line, never `did not move`, because
+[`20260907-witness/`](../bench/probe/20260907-witness/README.md) measured that
+witness as nearly blind on a still desk: something moved inside the window on 1
+of 26. So this buys back nine minutes on the failures the board can see, and an
+unknown fraction of the ones it cannot. The sidecar gets
+`# camera-lock-dragged`, and deliberately **not** `VOID` — the frames are honest
+free-running frames, so the run is unusable as the locked arm and fine as
+anything else.
+
+**What this does not say.** None of the four arms above is shippable. #19 is
+still short of its own bar and #18's second span is dead, so the only thing that
+changed on the board today is an instrument. And the retraction goes the other
+way too: an earlier comment on #19 blamed the loss on the four `!` benches,
+27.1 points against 7.7. That grouping came from `probe_rule.py`'s own synthetic
+first-visit split, not from the board's enrolment; `probe_midpoint.py` says the
+flag is `BACKWARDS` — 085504 and 095529 — and neither of those is a `!` bench.
+
+---
+
 ### 2026-09-08 later, the gain lock fails when the light moves, and the axis it was protecting turns out not to be the one that is broken
 
 The room was bright, so #30's paired bench finally had daylight to run in. Three

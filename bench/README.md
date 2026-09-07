@@ -947,6 +947,40 @@ dropped, because dropping them moves the answer the *favourable* way: on the 26
 real benches it is 80.8 against 53.6, +27.2. `cue/analysis/20260825-third.txt`
 is the run.
 
+#### Re-run 2026-09-08: the enrolling span was one draw, and a second one does not help
+
+The table above enrolled the empty reference from the **first** empty span and
+held out the rest — one draw of which span the operator happened to show first,
+on exactly the reference this section says wanders. `probe_third.py` now rotates
+over every span, and every arm rotates with it so the arms that never read an
+empty reference stay on the same held-out frames.
+
+It cost less than a point of mean and tightened everything else. Over 31 benches
+(three more than the table above, and the same rotation applied):
+
+| arm | before | after |
+| --- | --- | --- |
+| `three-nn` | 77.5 | **78.2** |
+| `three-nn` − `shipped` | +23.3, t = 6.12, 26/31 | **+24.2, t = 7.62, 27/31** |
+| `band-oracle` | 72.7 | 72.0 |
+| `midpoint` | 55.7 | 55.3 |
+
+So the single draw was noise rather than bias, and the headline — a rule with
+nothing fitted beating the per-bench fitted radius, here by 6.3 points on 18 of
+31 — did not rest on it.
+
+**The obvious next arm does nothing.** `three-nn ×2` averages the empty
+reference over *two* spans, which is the presence-stage twin of the second
+enrolling visit #19 was weighing at the same time. It needs a third span to hold
+out, so it is scored on 29 benches and paired against one-span `three-nn` on
+those 29 only: **+0.3 points, t = 0.67 on 28 df, winning 12 of 29, worst −7.2.**
+Unlike #19's arm C it is not even aimed at the benches that lose most.
+
+The reason is in the `drift` column and it says the loss is not the enrolment's.
+Steady benches score 84.1 and wandering ones 71.9, r = −0.405 — and averaging two
+positions of a desk that moves between visits gives a position the desk is not at
+either. `cue/analysis/20260908-third.txt` is the run.
+
 ### And then the board ran it
 
 `m9_cue-20260825-1309.log`, the same afternoon. `'0'` is a key again — it enrols

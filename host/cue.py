@@ -53,6 +53,7 @@ import math
 import queue
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -181,6 +182,32 @@ def cue(text: str, *, speak: bool) -> None:
 # but never actually moved.
 DOUBT = re.compile(r"EXPOSURE NEVER SETTLED|the exposure never moved from its "
                    r"first reading")
+
+# THE ONE THING #33's WITNESS CAN SAY OUTRIGHT, and it arrives with four frames
+# to spare. `--lock-camera` presses 'L' on the last baseline frame; the board
+# samples the die four frames later and again eight after that, so the verdict
+# is printed around frame 72 and the first enrolment window opens at 74. That is
+# the whole window this exists in: after it, the run has taught itself a
+# reference under a camera nobody is controlling and there is nothing to do but
+# spend the other nine minutes.
+#
+# ONLY THE MOVEMENT LINE. bench/probe/20260907-witness/ measured the witness as
+# nearly blind on a still desk - something moved inside the window once in 26 -
+# so `did not move` is silence and must never abort anything. Movement is
+# conclusive by construction and not by a threshold: a loop the mask asked to
+# freeze that is still revising is a lock that did not take. The weaker
+# `changed across the mask write` line says the write reached the loop, not that
+# the loop then ran, and is deliberately not matched here.
+#
+# m9_cue-20260908-0615 is the run this is for. Its gain read 08 then 0d, the
+# board said so at frame 72, and the bench ran to frame 405 before anybody
+# looked. Both of that morning's logs were replayed through these two patterns
+# before this was wired up: the abort fires at frame 72 on 0615, two frames
+# before its first enrolment window, and never fires on 0602, whose gain held.
+DRAGGED = re.compile(r"STILL REVISING WITH THE MASK ASKING IT TO FREEZE")
+# For the sidecar: which press, and on which frame, so the record names the
+# event rather than just asserting it happened.
+WITNESS = re.compile(r"^camera\s+: die witness on the '(.)' at frame (\d+)")
 
 
 def parse_scores(body: str) -> dict[str, float]:
@@ -834,6 +861,16 @@ def main() -> int:
                          "survives being obeyed, and this is it. Off by default, "
                          "because the whole archive was taken with all three "
                          "free-running and this is the A/B against it")
+    ap.add_argument("--no-abort-on-drag", dest="abort_on_drag",
+                    action="store_false",
+                    help="with --lock-camera, keep the run going even after the "
+                         "board witnesses the lock failing to take. On by "
+                         "default because a locked arm whose lock did not take "
+                         "is a free arm with an extra keypress, and the verdict "
+                         "lands two frames before the first enrolment - so "
+                         "carrying on spends nine more minutes to produce a run "
+                         "that cannot go in either arm. Pass this when the "
+                         "point of the run is the failure itself")
     ap.add_argument("--preview", type=int, default=0, metavar="N",
                     help=f"ask the board for a picture every N frames and keep "
                          f"{PREVIEW_PNG} showing the newest one. Costs ~44 KB "
@@ -1088,22 +1125,28 @@ def main() -> int:
         # with two queries the centred space is one-dimensional, so "further
         # than r from both" is an interval and the empty desk sits inside it on
         # ten of 28 archived benches. Enrolling it as a third reference and
-        # taking the nearest of three scores 79.1% against the band's 54.6%
-        # (tools/probe_third.py), and this is the press that makes that
+        # taking the nearest of three scores 78.2% against the band's 54.0%
+        # over 31 benches (tools/probe_third.py, re-run 2026-09-08 with the
+        # enrolling span rotated), and this is the press that makes that
         # possible on the board.
         #
-        # WHICH VISIT, and it is not the first. tools/probe_third.py enrolled
-        # from the first empty span AFTER the rule engaged, so this matches it
-        # exactly: cycle ENROL_VISITS - 1, the last of the teaching cycles, by
-        # which point both classes have all their visits and the board is
+        # WHICH VISIT: cycle ENROL_VISITS - 1, the last of the teaching cycles,
+        # by which point both classes have all their visits and the board is
         # already deciding. Earlier would enrol before the rule exists; later
-        # would spend a held-out visit that the replay kept.
+        # would spend a held-out visit that the replay kept. This used to say it
+        # matched tools/probe_third.py's own choice of the FIRST empty span
+        # after engage. That is no longer a choice the tool makes - it rotates
+        # over every empty span now, because taking the first one made its whole
+        # table one draw of which span the operator happened to show first.
         #
-        # ONE VISIT, NOT ENROL_VISITS, for the same reason: one is what was
-        # measured. The firmware folds a repeat press in exactly like a class,
-        # so a second visit is a one-line change here when somebody wants to
-        # test whether it helps - `drift` says it might, r = -0.427 - but it is
-        # not what the 79.1% figure is a figure for.
+        # ONE VISIT, NOT ENROL_VISITS, AND THAT IS NOW MEASURED RATHER THAN
+        # MERELY UNTESTED. The firmware folds a repeat press in exactly like a
+        # class, so a second empty visit is a one-line change here - and on
+        # 2026-09-08 probe_third.py grew the arm and it does nothing: +0.3
+        # points over 29 benches, t = 0.67, winning 12 of them, worst -7.2. The
+        # reason is in the same `drift` correlation that made it look promising:
+        # averaging two positions of a desk that moves between visits gives a
+        # position the desk is not at either. Do not spend the visit.
         if args.revisit_empty and len(base) >= 2:
             cyc   = min(ENROL_VISITS, max(1, args.repeat)) - 1
             scene = cyc * len(rotation) + len(base)
@@ -1183,6 +1226,14 @@ def main() -> int:
               f"colour gains instead of\n"
               f"            holding them and the frame goes green. "
               f"Issue #30's locked arm")
+        print("            the board witnesses its own press about eleven "
+              "frames later. If it sees the\n"
+              "            gain still revising, "
+              + ("this run stops there rather than spend nine more\n"
+                 "            minutes on a run that cannot be the locked arm"
+                 if args.abort_on_drag else
+                 "this run says so and CARRIES ON "
+                 "(--no-abort-on-drag)"))
     else:
         print("camera    : exposure, gain and white balance left free-running "
               "for the whole run, as every\n            bench in bench/cue/ was "
@@ -1246,6 +1297,12 @@ def main() -> int:
     drawing = not args.raw and sys.stdout.isatty()
     scene_now = "empty (leave it that way until the cue)"
     doubted = False             # ft_acquire()'s warning, announced once
+    dragged: str | None = None  # #33's witness saying the lock did not take
+    # The witness prints its verdict on the line after the one that names the
+    # press, so the press has to be remembered. Defaulted rather than left
+    # unbound: the verdict line is what matters and a missing header must not
+    # turn a caught failure into a NameError.
+    witness_key, witness_frame, witness_line = "L", -1, "(no witness line seen)"
 
     assert proc.stdout is not None
     for line in proc.stdout:
@@ -1272,6 +1329,40 @@ def main() -> int:
                   f"  Ctrl-C, then run it again - the fault clears on a retry\n"
                   f"  more often than not. If the scene is meant to be dark,\n"
                   f"  this is expected and you can ignore it.\n", flush=True)
+
+        # #33's witness, and unlike the warning above this one is acted on. It
+        # is not a judgement call: the operator cannot un-fail a lock, the
+        # remaining nine minutes cannot be scored in the locked arm, and by the
+        # time the run ends the desk has been staged sixteen times for nothing.
+        # Stopping here also leaves the empty desk in shot, which is the one
+        # scene the next attempt can reproduce exactly.
+        if w := WITNESS.match(line):
+            witness_key, witness_frame = w.group(1), int(w.group(2))
+            witness_line = line.strip()
+        if DRAGGED.search(line) and dragged is None:
+            dragged = f"{witness_key} at frame {witness_frame}"
+            if bars is not None:
+                bars.release()
+            cue("Stop. The camera lock did not take.", speak=not args.quiet)
+            # Both the board's lines, quoted. The banner is printed from the
+            # reader thread, so it lands ABOVE the lines it is reacting to -
+            # same as the acquire warning above, and quoting is what makes the
+            # scrollback readable either way round.
+            print(f"  {witness_line}\n  {line.strip()}\n"
+                  f"  Every frame from here is a free-running frame, so this "
+                  f"cannot be the\n"
+                  f"  locked arm - and the first enrolment window is two frames "
+                  f"away.\n", flush=True)
+            if args.abort_on_drag:
+                # SIGINT and not terminate(): demo.py has a KeyboardInterrupt
+                # path that shuts the board down the way Ctrl-C does, and a
+                # bench in this repo is stopped with Ctrl-C or not at all.
+                print("  Stopping the run. --no-abort-on-drag keeps it going.\n",
+                      flush=True)
+                proc.send_signal(signal.SIGINT)
+            else:
+                print("  Carrying on because --no-abort-on-drag was passed.\n",
+                      flush=True)
 
         q = QUERY.match(line)
         if q:
@@ -1399,6 +1490,14 @@ def main() -> int:
               f">>> The boundaries below are recorded, the measurement is not.\n"
               f">>> Re-run it; the hang line above says where the board was.\n"
               f"{bar}", flush=True)
+    if dragged:
+        bar = "=" * 60
+        print(f"\n{bar}\n>>> The camera lock did not take ('{dragged}').\n"
+              f">>> This run is not the locked arm. Its frames are free-running\n"
+              f">>> frames and the sidecar says so; nothing else about it is\n"
+              f">>> wrong. Re-run it. No rate is quoted on purpose: #33's 32-in-33\n"
+              f">>> is the EXPOSURE lock, and this flag only locks the gain.\n"
+              f"{bar}", flush=True)
     if open_seg is not None and scores:
         segments.append((open_seg[0], open_seg[1], max(scores) + 1))
 
@@ -1441,6 +1540,13 @@ def main() -> int:
         # nothing at all, which is exactly the difference worth recording.
         + (f"# camera-lock {lock_at}\n" if lock_at is not None
            else "# camera-lock none\n")
+        # AND WHETHER IT TOOK, which is a different fact from whether it was
+        # asked for and is the one the locked arm is actually keyed on. Not
+        # marked VOID: the frames are honest frames, they are simply free-running
+        # ones, so the run is unusable as the LOCKED arm and perfectly usable as
+        # everything else. Marking it VOID would make every tool in tools/ refuse
+        # a bench that has nothing wrong with its scores.
+        + (f"# camera-lock-dragged {dragged}\n" if dragged else "")
         # Where the pictures are, for the same reason the flags above are: an
         # artifact that cannot say whether a dump was asked for cannot be told
         # apart from one where the board ignored the request.

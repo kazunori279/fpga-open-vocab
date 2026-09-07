@@ -1,0 +1,8 @@
+# host/cue.py, settle 10, hold 22, baseline 30, bg-tau 30
+# demo.py --leave-running
+# log /tmp/m9_cue.log
+# camera-lock 59
+30	59	baseline
+60	91	a closed book
+92	123	an opened book
+124	155	empty
