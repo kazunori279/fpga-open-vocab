@@ -1174,11 +1174,15 @@ def main() -> int:
     print(f"            about {frames * 0.5 / 60:.1f} min of frames, plus a minute of startup")
     if lock_at is not None:
         print(f"camera    : 'L' at frame {lock_at}, the last baseline frame - "
-              f"exposure and gain frozen where the\n"
-              f"            empty desk left them, before anything is enrolled. "
-              f"White balance keeps tracking,\n"
-              f"            because switching it off drops the colour gains "
-              f"instead of holding them. Issue #30's locked arm")
+              f"the GAIN frozen where the empty\n"
+              f"            desk left it, before anything is enrolled, and only "
+              f"the gain. Exposure keeps\n"
+              f"            running because the AE loop ignores the mask on 32 "
+              f"boots of 33; white balance\n"
+              f"            keeps running because switching it off drops the "
+              f"colour gains instead of\n"
+              f"            holding them and the frame goes green. "
+              f"Issue #30's locked arm")
     else:
         print("camera    : exposure, gain and white balance left free-running "
               "for the whole run, as every\n            bench in bench/cue/ was "
