@@ -1,0 +1,89 @@
+probe_third.py over every cue bench in the archive, 2026-09-08.  Issue #18.
+
+    uv run --script tools/probe_third.py bench/cue/*.log
+
+WHY IT WAS RE-RUN.  Until today the script enrolled the empty reference from
+`empties[0]` and held out the rest, so the whole table was one draw of "which
+empty span did the operator show first" - on exactly the reference #18 says
+wanders.  The same bug had just been found in probe_multivisit.py, where it was
+worth four points and a wrong conclusion.  Every arm now rotates over every
+empty span, including the arms that never look at an empty reference, so the
+comparison stays on one test set.
+
+WHAT CHANGED.  Less than the multivisit case: three-nn 77.5 -> 78.2 pooled.  The
+spread moved more than the mean - three-nn over shipped went from +23.3 at
+t = 6.12 to +24.2 at t = 7.62 on the same 31 benches, and it now wins 27 of 31
+rather than 26.  The single draw was noise, not bias.  The pre-rotation numbers
+are not reproduced below, only summarised here, because they were a sample of
+one enrolment each.
+
+WHAT THE NEW ARM SAYS.  `three2` averages the empty reference over TWO spans -
+the presence-stage twin of probe_multivisit.py's arm C.  It needs a third span
+to hold out, so it is scored on 29 benches and paired against three-nn on those
+29 only.  +0.3 points, t = 0.67 on 28 df, wins 12/29, worst -7.2.  That is a
+coin flip, and unlike arm C it is not aimed at the benches that lose most.  #18
+does not need a second '0' press.
+
+The reason is in the drift column and not in the arm: steady benches score 84.1
+and wandering ones 71.9, r = -0.405, and averaging two positions of a desk that
+is moving gives a position the desk is not at either.  The remaining loss is
+#30's, not this issue's.
+
+`midpoint` stays dead: -23.0 against three-nn, wins 4/31, and `pos` has median
+0.76 with 23 of 31 outside 0.25-0.75.  The empty desk is not in the middle, so
+the '0' press cannot be skipped even though the second one is not worth making.
+
+bench               oracle   three  three2     mid    ship three-ship    pos  drift spans
+20260817-104849       67.0    49.1       -    51.8    64.3      -15.2  -1.27  14.06     2
+20260825-0618         49.4    45.3    44.7    49.4    50.0       -4.7   1.15   1.64     3
+20260816-173537       99.6    91.3    91.1    44.8    95.9       -4.7  -2.87   0.73     3
+20260816-172256      100.0   100.0   100.0    41.3   100.0       +0.0  -3.51   0.46     3
+20260817-153747       51.7    37.5    41.2    54.7    36.6       +0.9   1.10   1.34     3
+20260825-0622         51.0    57.1    60.0    51.9    50.0       +7.1   1.02   5.01     4
+20260817-095529       51.2    58.0    57.2    55.0    48.3       +9.7   0.65   0.54     3
+20260820-063704       68.8    62.4    62.8    50.0    50.0      +12.4   1.63   1.22     3
+20260817-105251       60.7    66.1       -    50.0    53.6      +12.5   4.46   0.08     2
+20260908-0610         49.4    63.2    66.6    45.9    50.0      +13.2   0.87   0.97     3
+20260908-0602         51.0    70.1    62.9    82.3    50.0      +20.1   0.51   1.66     3
+20260820-062932       99.0    82.6    82.8    48.3    61.6      +20.9 -16.62   0.17     3
+20260825-0558         54.0    71.1    70.2    59.0    50.0      +21.1   0.73   1.01     3
+20260817-085504       81.4    76.9    76.7    50.0    52.9      +24.0 -23.37   0.26     3
+20260820-062406       62.3    74.5    73.8    74.1    50.0      +24.5   0.76   0.58     3
+20260817-073335       51.9    76.5    77.1    47.7    50.0      +26.5   0.90   0.41     3
+20260817-154206       68.4    77.9    77.9    76.5    50.0      +27.9   0.30   0.10     3
+20260824-0651         83.3    78.0    79.3    48.9    50.0      +28.0   1.94   2.38     3
+20260817-152757       73.3    89.7    88.8    45.9    58.7      +31.0  -1.78   1.12     3
+20260825-1309         90.5    81.1    85.3    78.9    50.0      +31.1   0.62   2.93     3
+20260817-112606       75.4    85.8    87.5    46.5    53.3      +32.5   1.93   1.23     3
+20260817-095808       55.6    83.2    81.8    43.6    50.0      +33.2  -0.08   0.12     3
+20260817-152044       57.5    88.8    88.2    40.0    50.0      +38.8   0.86   0.34     3
+20260824-0839         79.9    88.8    91.0    87.8    50.0      +38.8   0.64   0.80     3
+20260817-091826       97.3    89.3    89.3    45.3    50.0      +39.3   2.06   0.69     3
+20260825-0611         64.9    89.7    89.5    52.4    50.0      +39.7   0.75   0.40     3
+20260820-063324       97.2    94.7    95.2    35.5    50.0      +44.7   2.17   0.79     3
+20260825-0602         53.3    97.5    97.5    64.2    50.0      +47.5   0.78   0.31     3
+20260817-133952       87.5    99.4    99.6    46.5    50.0      +49.4   1.53   0.53     3
+20260817-113304       98.8   100.0   100.0    45.3    50.0      +50.0   2.25   1.41     3
+20260820-132448      100.0   100.0   100.0   100.0    50.0      +50.0   0.39   1.57     3
+
+n = 31   balanced accuracy, held out, mean over benches
+  band-oracle (unshippable ceiling)    72.0
+  three-nn    (a third reference)      78.2
+  midpoint    (assumed, no '0' press)  55.3
+  shipped     (2.0 sep)                54.0
+
+two empty spans instead of one, on the 29 benches with a third span to hold out:
+  three-nn x2  79.9 against  79.7 for one span, +0.3 points
+  sd 2.0, t = 0.67 on 28 df, wins 12/29, worst -7.2
+
+midpoint against three-nn: -23.0 points, sd 22.6, t = -5.66 on 30 df, wins 4/31
+where the enrolled empty reference actually sits: pos median 0.76, IQR 0.30-1.53, 23/31 outside the middle half
+  (0.50 is the midpoint the heuristic assumes; outside 0.25-0.75 it is not even in its own cell)
+
+three-nn against shipped: +24.2 points, sd 17.7, t = 7.62 on 30 df, wins 27/31
+three-nn against the band's own ceiling: +6.3 points, beats it on 18/31
+
+empty-span drift (class SD): median 0.79, max 14.06
+drift against three-nn: r = -0.405
+  steady   (n=16): three-nn  84.1, shipped  57.0
+  wanders  (n=15): three-nn  71.9, shipped  50.9
