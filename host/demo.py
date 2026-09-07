@@ -787,7 +787,9 @@ def main() -> int:
                     help="M21. At the board's frame FRAME, press KEY - '0' for "
                          "the empty scene, '1'..'6' for the Nth class query, "
                          "'L' to freeze the camera's exposure, gain and white "
-                         "balance where they stand (issue #30). Repeatable. The "
+                         "balance where they stand, 'M' to replace the camera "
+                         "with a fixed pattern that cannot drift at all (both "
+                         "issue #30). Repeatable. The "
                          "frame is the BOARD's number off the frame line, not a "
                          "count of lines here, because the caller computing "
                          "these knows the schedule in board frames and an "
@@ -826,13 +828,24 @@ def main() -> int:
     # needs and is not worth a second copy of. What it is NOT allowed to be is
     # any hotkey at all: 'B' mid-run would drop the board into BOOTSEL and end
     # the bench, so the set stays closed and small.
-    keys = [str(k) for k in range(MAX_Q + 1)] + ["L"]
+    # 'M' rides here for the same reason 'L' does, and it is the arm 'L' cannot
+    # reach: it swaps the camera for a fixed pattern out of the ArduChip, so a
+    # scheduled `--enrol=200:M` gives a run two halves - live and no-camera - on
+    # one boot, one background and one room, which is the only way the two are
+    # comparable. Still not "any hotkey": the set stays closed.
+    # 'H' rides here BECAUSE 'M' does, and the board says so on the arm itself:
+    # against a frame that never changes a tracking background converges onto
+    # that frame, so z goes to zero by construction and the walk is a tautology.
+    # Freezing it first is not an option on this arm, it is the arm - and doing
+    # it by hand at the right frame is exactly the timing --enrol exists to take
+    # out of an operator's hands. Still not "any hotkey": the set stays closed.
+    keys = [str(k) for k in range(MAX_Q + 1)] + ["L", "M", "H"]
     enrol: list[tuple[int, str]] = []
     for spec in args.enrol:
         frame, _, key = spec.partition(":")
         if not frame.isdigit() or key not in keys:
             raise SystemExit(f"--enrol {spec}: want FRAME:KEY with KEY in "
-                             f"0..{MAX_Q} or L, e.g. --enrol=125:1")
+                             f"0..{MAX_Q}, L, M or H, e.g. --enrol=125:1")
         enrol.append((int(frame), key))
     enrol.sort()
     if any(k < 1 for k in args.snap_at):
@@ -1215,7 +1228,8 @@ def main() -> int:
                         bf = int(tok[1]) if len(tok) > 1 and tok[1].isdigit() else -1
                         while enrol and bf >= enrol[0][0]:
                             key = enrol.pop(0)[1]
-                            what = "camera" if key == "L" else "enrol "
+                            what = "camera" if key in ("L", "M") else \
+                                   "bg    " if key == "H" else "enrol "
                             print(f"{what}    : pressing '{key}' at board frame "
                                   f"{bf}")
                             sys.stdout.flush()

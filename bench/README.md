@@ -10,7 +10,8 @@ standalone binary that answer one hardware question each — no cue schedule, no
 enrolment, no held-out set, nothing scoreable.
 [`probe/20260907-simsrc/`](probe/20260907-simsrc/) is where the ArduChip was
 found to have a frame source that is not the sensor, which is the control every
-drift measurement in `soak/` has been missing.
+drift measurement in `soak/` has been missing — and then, two logs later, where
+the scoring chain was run on it and came out bit-flat.
 [`probe/20260907-manexp/`](probe/20260907-manexp/) is where the module was found
 to take a written exposure and gain after all, against a claim `firmware/cam.h`
 had been stating as fact.

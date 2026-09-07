@@ -673,6 +673,22 @@ static const uint8_t CAM_LOCK_STEPS[] = {
     0u,             // all three, which goes green. Kept as the live control
 };
 static uint8_t  cam_lock_step;
+
+// #30's synthetic-source arm. Both default false, so a boot that never receives
+// an 'M' behaves exactly as it did before this existed - the register is not
+// written at all on that path, which is what keeps every bench in the archive
+// comparable with a run off this binary.
+static bool     cam_synth;
+static uint32_t synth_n;            // good frames since the source was switched
+// Frames to let pass before report() describes the pattern. NOT zero, and the
+// first live run of 'M' is why: with the capture overlapped - which is the
+// default - frame N's capture is already in flight when frame N's keypress is
+// read, so the frame right after the toggle is still the room. It printed
+// "first frame off the synthetic source - mean RGB 115 116 114", the live
+// value, on a line whose whole job is to show the pattern's. One under the
+// overlap, none without it; taken from `overlap` rather than assumed, because
+// 'O' can flip it mid-run.
+static uint32_t cam_synth_announce;  // 0 = nothing to say
 static bool     bg_room_sd;   // both default off, so a build that is never sent
 static bool     bg_smooth;    // a query set behaves exactly as M12 did
 
@@ -1986,6 +2002,16 @@ static int poll_host(uint32_t dim, uint32_t us)
         // builds cannot answer it because the two runs would then differ in the
         // room and the hour as well as in the lock. One boot, both arms.
         if (c == 'L' || c == 'l') return 'L';
+        // #30's other one, and the pair is the point. 'L' freezes the camera's
+        // three loops and leaves the camera in the experiment; 'M' - for mock -
+        // takes the sensor OUT of it, feeding the pipeline a fixed pattern from
+        // the ArduChip. A hotkey for the same one-boot reason as 'L': the two
+        // arms have to be compared on the same board in the same hour, and the
+        // whole question is whether the walk survives the camera being gone.
+        // Misses all four of F, G, X and Q. Recoverable - a stray 0x4D costs
+        // one toggle and a printed frame boundary, not the run - so a bare
+        // compare, like 'L' and 'O' and not like 'B'.
+        if (c == 'M' || c == 'm') return 'M';
         // #10's toggle. 'O' for overlap, and it misses all four of F, G, X and
         // Q. A hotkey rather than a build flag for M5b's reason - see frame.h -
         // and here that reason is not a nicety: the question 'O' answers is
@@ -2590,6 +2616,48 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
     } else {
         printf("   -\n");
     }
+
+    // #30's synthetic-source arm, announced on the FIRST FRAME TAKEN UNDER IT
+    // and not on the keypress. The keypress handler has only ft_cap_stats() to
+    // read, and that reports the capture BEFORE the toggle - so a mean RGB
+    // printed there would be the live room's, on the line telling the reader to
+    // trust the pattern's. One frame later the numbers are the pattern's own.
+    //
+    // What it prints is the z spread across the query set, because that is the
+    // question this arm has to pass before any walk read off it means anything.
+    // The pattern is nothing like a photograph and the student was distilled on
+    // photographs; if the queries collapse onto each other here, a subsequent
+    // "the walk is small" is a statement about the encoder's floor and not
+    // about drift. The number is printed rather than judged - there is no
+    // threshold for "degenerate" in this repo and inventing one on the first
+    // frame that ever produced the quantity would be fitting a constant to it.
+    if (cam_synth_announce && nq && --cam_synth_announce == 0u) {
+        int mn[3];
+        ft_cap_stats(mn, NULL, NULL);
+        printf("camera    : first frame off the synthetic source - mean RGB "
+               "%d %d %d.  cos", mn[0], mn[1], mn[2]);
+        // THE RAW COSINES AND NOT THE z, WHICH IS THE WHOLE POINT OF THIS LINE.
+        // The first run of 'M' printed a z span of -0.00 to +0.00 and that is
+        // not evidence of a degenerate encoder: the background is TRACKING by
+        // default, and against a frame that never changes it converges onto
+        // that frame's own cosine, so z -> 0 BY CONSTRUCTION. Every number
+        // downstream of the background is uninformative on this arm. cos is
+        // upstream of it and is the encoder's actual output, so it is the one
+        // that answers "is there anything here to compare".
+        for (uint32_t i = 0; i < nq; i++)
+            printf(" %s %+.3f", qname[i], (double)cos[i]);
+        printf("\n");
+        printf("            those cosines are what to judge, NOT the z. This arm "
+               "needs the background FROZEN: while it\n"
+               "            tracks, a frame that never changes drags the "
+               "background onto itself and z goes to zero on\n"
+               "            its own, so the walk would be a tautology. It reads "
+               "%s right now - 'H' TOGGLES it, and\n"
+               "            pressing it out of habit here is how you unfreeze "
+               "the one thing this arm needs held.\n",
+               (bg_hold && bg_n >= bg_tau) ? "FROZEN, which is right"
+                                           : "TRACKING, which is wrong for this");
+    }
     stdio_flush();
 
     // Scored first, folded in second. A frame that contributed to its own
@@ -2980,7 +3048,15 @@ int main(void)
            "the white balance too - which goes green,\n"
            "            and is the control. A third restores all three. Issue "
            "#30, and the one hotkey whose answer depends on when you press "
-           "it.\n",
+           "it.\n"
+           "            'M' goes further and takes the sensor OUT of the loop: "
+           "the ArduChip feeds a fixed pattern, so\n"
+           "            the frame cannot drift for any reason. If the walk "
+           "survives that, the walk is not the camera.\n"
+           "            Run it with the background frozen and z smoothing OFF, "
+           "or the flat column is a filter and not a\n"
+           "            result. The pattern is not a photograph - judge the "
+           "cosines it prints, not the z.\n",
            (unsigned)ft_nconv());
     printf("            scores are z against this room's background, ranked; "
            "'*' means over its threshold.\n");
@@ -3182,15 +3258,54 @@ int main(void)
         // noise - so a cosine of exactly 1.0 means the tile is being handed the
         // same bytes twice, and every score above is an opinion about a picture
         // the camera did not take.
+        //
+        // AND IT IS SUSPENDED UNDER 'M', WHERE ITS PREMISE IS FALSE BY DESIGN.
+        // The synthetic source exists precisely to hand the tile the same bytes
+        // every frame - bench/probe/20260907-simsrc/ measured six captures and
+        // one distinct crc32 - so this fires on the first ten frames of that
+        // arm and tells the operator to cold-power-cycle a board that is doing
+        // exactly what it was asked. Caught on the first live run of 'M'.
+        // `pinned` keeps counting so the state is right when the camera comes
+        // back; only the sentence is withheld.
         if (good) {
             pinned = cosine(emb[cur], emb[cur ^ 1], dim) > 0.999999 ? pinned + 1 : 0;
-            if (pinned >= 10 && !said_pinned) {
+            if (pinned >= 10 && !said_pinned && !cam_synth) {
                 said_pinned = true;
                 printf("            ^ the last 10 frames were bit-identical. The "
                        "capture is not reaching the tile,\n"
                        "              so these scores describe one frozen frame: "
                        "cold-power-cycle the board.\n");
                 stdio_flush();
+            }
+            // THE SAME CHECK, INVERTED, WHICH IS THE POINT OF INVERTING IT
+            // RATHER THAN JUST SUPPRESSING IT. Under 'M' bit-identical is the
+            // contract, so the failure to report is frames that still VARY -
+            // that would mean the register did not take and the arm is quietly
+            // measuring the camera it was supposed to have removed, which is
+            // the one way this experiment could produce a confident wrong
+            // answer. Ten frames to match the count above; `pinned` is a
+            // running streak, so at the tenth synthetic frame a streak shorter
+            // than nine means at least one pair differed.
+            // Counted only once cam_synth_announce has run down, so the window
+            // starts on a frame KNOWN to be off the pattern. The one or two
+            // frames the overlap keeps in flight across the toggle are live and
+            // must differ; counting them would make a working arm trip its own
+            // alarm. report() runs earlier in this iteration than this block,
+            // so by here the countdown for this frame has already happened.
+            if (cam_synth && cam_synth_announce == 0u) {
+                synth_n++;
+                // At the tenth such frame, nine consecutive identical pairs is
+                // what a fixed source must produce - the pair that straddles
+                // the switch is live-to-synthetic and is expected to differ.
+                if (synth_n == 10u && pinned < 9) {
+                    printf("            ^ TEN FRAMES ON THE SYNTHETIC SOURCE AND "
+                           "THEY ARE NOT BIT-IDENTICAL.\n"
+                           "              0x06 did not take, or something after "
+                           "the capture is adding the variation.\n"
+                           "              Do not read a drift number off this "
+                           "arm - it still contains a camera.\n");
+                    stdio_flush();
+                }
             }
         }
 
@@ -3256,6 +3371,46 @@ int main(void)
                    (tracking & CAM_AUTO_GAIN)     ? "" : "gain ",
                    (tracking & CAM_AUTO_WB)       ? "" : "white-balance ",
                    tracking == CAM_AUTO_ALL ? "nothing - all three tracking" : "",
+                   (unsigned)n, mn[0], mn[1], mn[2]);
+            stdio_flush();
+            continue;
+        }
+        // #30, the arm where the camera is not in the experiment at all. 'L'
+        // above freezes the sensor's loops and still photographs the room; this
+        // replaces the frames with a fixed pattern out of the ArduChip, so the
+        // capture cannot drift for ANY reason - not the loops, not the lamp,
+        // not the room. If the common-mode walk survives that, the walk is not
+        // the camera, and every soak in bench/ that assumed it might be gets a
+        // control it has never had.
+        //
+        // Prints the frame it happened on for the same reason 'L' does: a rule
+        // that changes mid-run and does not say where is a run scored under two
+        // rules and named as one.
+        //
+        // READ THE mean RGB ON THAT LINE BEFORE READING ANY WALK OFF THIS ARM.
+        // The pattern is 6 63 63 - dark, green, and nothing like a photograph.
+        // The student was distilled on photographs, so the first question is
+        // whether the z values here are still separated at all, not how much
+        // they move; a walk measured on collapsed embeddings is a number about
+        // the encoder's floor wearing the name of drift. cam.h says the same
+        // thing at the declaration.
+        if (c == 'M') {
+            cam_synth = !cam_synth;
+            cam_frame_source_synth(cam_synth);
+            synth_n = 0;
+            cam_synth_announce = cam_synth ? (overlap ? 2u : 1u) : 0u;
+            int mn[3];
+            ft_cap_stats(mn, NULL, NULL);
+            // The mean RGB here is the LAST FRAME BEFORE the switch and is
+            // labelled as such. It is worth printing anyway: it is the live
+            // baseline the next frame's pattern gets compared against, and a
+            // boundary line that carries both halves is one less thing for a
+            // reader to go and find. report() prints the pattern's own numbers
+            // on the next frame.
+            printf("\ncamera    : frames now %s at frame %u "
+                   "(last live frame: mean RGB %d %d %d)\n",
+                   cam_synth ? "SYNTHETIC - the sensor is out of the loop"
+                             : "from the sensor again",
                    (unsigned)n, mn[0], mn[1], mn[2]);
             stdio_flush();
             continue;

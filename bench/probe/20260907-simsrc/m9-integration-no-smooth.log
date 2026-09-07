@@ -1,0 +1,132 @@
+bitstream : rtl/bitstreams/m16/gemm_top_wide.hex (Efinity ASCII hex), 173124 bytes, crc32=0x0A2E9953
+export    : model/runs/so400m-full-a05/export/weights.bin, run so400m-full-a05, 780720 bytes, crc32=0xF368CC6E
+thresholds: model/cache/thresholds_so400m-full-a05.json, 67 queries at 10% FPR on camera geometry, median z 1.23
+teacher   : ViT-SO400M-14-SigLIP2:webli, 7 templates, on mps
+space     : projected by emb_train2017_SO400M-pca512-a0.5.basis.npz -> 512-d
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+query     : cup                  plain    z> 1.24 (background -0.145 +-0.034, cos -0.103)   AUC 0.767 on 90 positives
+query     : book                 plain    z> 1.30 (background -0.147 +-0.028, cos -0.110)   AUC 0.842 on 51 positives
+queries   : 2 x 512-d, 4192 bytes, background frozen after 8 frames, room spread
+port      : /dev/cu.usbmodem21101
+
+=== M9: fpga-open-vocab - describe it, the board spots it ===
+
+clock     : 320 MHz requested; BOOTSEL is reachable for 1.5 s
+clock     : 320 MHz system, core 1.25 V
+reset     : chip_reset 00010000
+            nothing new since the last banner - whatever reset the core left powman alone.
+waiting for a bitstream on USB CDC (host/demo.py)
+bitstream : 173124 bytes announced, crc32 0a2e9953
+bitstream : received intact
+configure : configured, CDONE high   CDONE=1 nSTATUS=0
+crc       : DMA sniffer, calc=1 out_rev=1 out_inv=1
+model     : 9 layers, 512-d embedding, 131072 B/buffer
+weights   : 780720 B, crc32=0xF368CC6E  (126 ms to hash)
+
+reference : encoder_fast on the flash test vector  (1582 ms)
+
+link      : probing the wire by running the whole test vector over it
+probe     : 3 forward data lines -> 512/512 floats exact, 269 ms
+link      : configuration C, 3 forward data lines, 160.0 MHz
+
+camera    : exposure ramp 96 98 100 102 104 107 108 110 112 113 113 113 113
+camera    : live 128x128 RGB565, id 0x82, 16.0 MHz, expose 37 ms, read 16 ms, exposure settled after 13 frames
+            regs fmt 02 res 00 bri 00 ev 00 wb 00 auto 00 state 26 id 82 fpga 20
+            reset gate: polls 425, first state 21, busy yes   defaults polls: ae 0 ag 10 awb 0 wbmode 10
+            mean RGB 114 113 114  (tuned camera on a neutral scene: about 115 107 105)
+
+queries   : waiting for a query set on USB CDC (host/demo.py)flash     : crc32 0xF368CC6E matches model/runs/so400m-full-a05/export/export.json
+
+queries   : 2 accepted, 512-d, crc ok
+            level axis carries 0.94 of one query's swing; most opposed pair +0.760
+            scored as z = (cos - background) / std, where the background is this room's
+            own mean over its first 8 frames and is then FROZEN - so a thing left in
+            shot keeps its score instead of decaying into the furniture. 'N' re-learns
+            it, 'H' switches to tracking. The COCO figures below are only the seed for
+            frame 0 and the fixed std.
+            std is THIS ROOM's, measured over the same 8 frames ('S' switches to COCO's).
+            The thresholds below still mean the 90th percentile of a background; the
+            background they now mean it against is this room empty, not 5000 COCO photos.
+            cup                  match above z 1.24   (COCO background -0.145 +- 0.034, so cos -0.103)
+            book                 match above z 1.30   (COCO background -0.147 +- 0.028, so cos -0.110)
+
+loop      : capture, 8 convs on the T8, pool and head, then one cosine per query. 'B' for BOOTSEL, 'R' to restart,
+            'P' to dump the next frame for host/cam.py, 'V' to dump its 512 floats for host/caption.py,
+            'E' to provoke a fault so D1 shows its fault display, 'H' to freeze/unfreeze the background,
+            'S' to switch the spread between this room's and COCO's, 'W' to hang on purpose and see
+            the watchdog name the stage, 'C' to stall the camera bus on purpose and see it cost one frame,
+            'U' to drop off USB on purpose and watch it come back, 'I' to drop off and refuse to,
+            'N' to forget it and learn it again from now. 'P' and 'V' together describe the same frame.
+            'O' closes the timing window, prints it and flips the capture between overlapped and serial;
+            'D' does the same and flips the trigger between late and at-the-collect, which is #14's A/B.
+            'L' freezes exposure and gain, then on a second press the white balance too - which goes green,
+            and is the control. A third restores all three. Issue #30, and the one hotkey whose answer depends on when you press it.
+            'M' goes further and takes the sensor OUT of the loop: the ArduChip feeds a fixed pattern, so
+            the frame cannot drift for any reason. If the walk survives that, the walk is not the camera.
+            The pattern is not a photograph - read the z span it prints before reading any walk off it.
+            scores are z against this room's background, ranked; '*' means over its threshold.
+            '1'..'6' enrol the next 20 frames as that class, and press again on a LATER visit
+            to fold a second one in - 2 visits is what makes the enrolment guard mean
+            something. Two classes in and the board decides by nearest reference instead of
+            by threshold - see M21.
+            '0' ENROLS THE EMPTY SCENE the same way, and it is worth a visit: with one, a frame
+            is absent when the empty reference is the nearest of the three and no radius is
+            involved. Without one the board falls back to the band - absent beyond 2.0 sep
+            from every class - which scores 54.6% over 28 benches against the third reference's
+            79.1%, because with two queries that band is an interval the empty scene can sit
+            inside. #18.
+            The first 8 frames set the baseline and it is then frozen, so anything left in
+            shot KEEPS its score. Point the camera at the empty scene for those frames.
+            Send a new set at any time to re-query - that resets the baseline too.
+
+frame     0 :  cup +1.33*  book +1.22   led 255/  0 h1.00 lvl+1.28   MATCH cup (cos -0.100)
+frame     1 :  cup -0.19  book -0.25   led   0/255 h0.00 lvl-0.22   -
+frame     2 :  book +0.07  cup +0.01   led   0/227 h0.05 lvl+0.04   -
+frame     3 :  cup -0.08  book -0.11   led   0/255 h0.00 lvl-0.09   -
+frame     4 :  cup +0.07  book +0.07   led   0/224 h0.06 lvl+0.07   -
+frame     5 :  cup -0.01  book -0.18   led   0/255 h0.00 lvl-0.09   -
+frame     6 :  cup +0.01  book -0.04   led   0/252 h0.00 lvl-0.02   -
+frame     7 :  cup +0.08  book +0.06   led   1/220 h0.06 lvl+0.07   -
+background: after 8 frames (frozen, room spread), this room reads  cup -0.103 +-0.0023 (COCO -0.145 +-0.0341)  book -0.116 +-0.0029 (COCO -0.147 +-0.0281)
+frame     8 :  book +1.98*  cup -0.29   led 255/  0 h1.00 lvl+0.84   MATCH book (cos -0.111)
+frame     9 :  book +0.87  cup +0.47   led 105/ 23 h0.67 lvl+0.67   -
+frame    10 :  book -0.02  cup -0.34   led   0/255 h0.00 lvl-0.18   -
+frame    11 :  book -1.02  cup -1.33   led   0/255 h0.00 lvl-1.18   -
+frame    12 :  cup -1.11  book -1.52   led   0/255 h0.00 lvl-1.31   -
+frame    13 :  book -0.30  cup -1.47   led   0/255 h0.00 lvl-0.89   -
+frame    14 :  book +0.19  cup -0.99   led   4/182 h0.14 lvl-0.40   -
+camera    : pressing 'M' at board frame 14
+frame    15 :  book +0.55  cup -0.01   led  38/ 77 h0.42 lvl+0.27   -
+
+camera    : frames now SYNTHETIC - the sensor is out of the loop at frame 16 (last live frame: mean RGB 114 113 114)
+frame    16 :  cup +1.57*  book +1.31*   led 255/  0 h1.00 lvl+1.44   MATCH cup (cos -0.099)
+frame    17 :  book -6.03  cup -18.44   led   0/255 h0.00 lvl-12.24   -
+camera    : first frame off the synthetic source - mean RGB 6 63 63.  cos cup -0.146 book -0.134
+            those cosines are what to judge, NOT the z. This arm needs the background FROZEN: while it
+            tracks, a frame that never changes drags the background onto itself and z goes to zero on
+            its own, so the walk would be a tautology. It reads FROZEN, which is right right now - 'H' TOGGLES it, and
+            pressing it out of habit here is how you unfreeze the one thing this arm needs held.
+frame    18 :  book -6.03  cup -18.44   led   0/255 h0.00 lvl-12.24   -
+frame    19 :  book -6.03  cup -18.44   led   0/255 h0.00 lvl-12.24   -
+frame    20 :  book -6.03  cup -18.44   led   0/255 h0.00 lvl-12.24   -
+frame    21 :  book -6.03  cup -18.44   led   0/255 h0.00 lvl-12.24   -
+frame    22 :  book -6.03  cup -18.44   led   0/255 h0.00 lvl-12.24   -
+frame    23 :  book -6.03  cup -18.44   led   0/255 h0.00 lvl-12.24   -
+frame    24 :  book -6.03  cup -18.44   led   0/255 h0.00 lvl-12.24   -
+frame    25 :  book -6.03  cup -18.44   led   0/255 h0.00 lvl-12.24   -
+frame    26 :  book -6.03  cup -18.44   led   0/255 h0.00 lvl-12.24   -
+frame    27 :  book -6.03  cup -18.44   led   0/255 h0.00 lvl-12.24   -
+
+stopped   : 28 frames, 28 good, capture overlapped with the compute, configuration C
+            28 frames timed, 283 ms/frame mean (capture included)
+            265 ms encode + 1 ms waiting for the sensor + 16 ms burst; 292 ms/frame by the clock
+            412 ms shutter to LED, arming with 125 ms of compute left
+            last frame mean RGB 6 63 63
+            camera bus: worst gap 16 us against the 2000 us deadline (#12)
+            usb: 0 outages, 0 ms off the bus, 0 re-attaches (#9)
+
+saved     : /tmp/m9.log  (27 frame lines, 1 query set)
+            no match                        24 frames  (88%)
+            MATCH cup                        2 frames  (7%)
+            MATCH book                       1 frames  (3%)

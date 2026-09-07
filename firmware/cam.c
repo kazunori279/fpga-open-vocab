@@ -325,6 +325,23 @@ void cam_begin(uint8_t id, bool verbose)
     cam_write_reg(CAM_REG_DEBUG_DEVICE_ADDRESS, 0x78);
     cam_wait_idle("device address");
 
+    // THE FRAME SOURCE IS PUT BACK TO THE SENSOR HERE, AND IT IS NOT PARANOIA.
+    // 0x06 lives on the ArduChip, which a reflash and an RP2354 reboot do not
+    // power down - bench/probe/20260907-simsrc/ established that a hub power
+    // cycle is the only thing that does. So a run that ends on the synthetic
+    // source hands the next boot a camera that is not a camera, and the reset
+    // above does not clear it: caught on the first bench-shaped run of m9's 'M'
+    // key, which booted with the exposure ramp reading 44 44 44 for 174 frames,
+    // a background spread of exactly +-0.0000, and every score in the log taken
+    // against a fixed pattern nobody had asked for. Nothing in that log said so
+    // - it looked like a scene the camera could not expose for.
+    //
+    // ONE WRITE, UNCONDITIONALLY, and not a read-then-fix. This is the point in
+    // the program where "what the camera is" gets decided, and a bring-up that
+    // only corrects the state it happens to find leaves the boot path depending
+    // on what the last run did.
+    cam_frame_source_synth(false);
+
     // The reset above put the sensor back to its default VGA, so the cache
     // above now describes a machine that no longer exists. Saying so is the
     // whole of issue #29: without it a `rewrite = false` capture skips the
@@ -361,6 +378,29 @@ void cam_image_auto_mask(uint8_t tracking)
 void cam_image_auto(bool on)
 {
     cam_image_auto_mask(on ? CAM_AUTO_ALL : 0u);
+}
+
+// One register write and nothing else. In particular it does NOT touch the auto
+// loops: switching the synthetic source on while they run leaves them running,
+// which is deliberate, because the arm this exists for is "the camera is not in
+// the experiment" and not "the camera is frozen" - those are different controls
+// and 'L' is the other one. Off restores the camera without re-running
+// cam_image_defaults(), so whatever the loops had converged to is what comes
+// back; the probe saw the camera return on all three boots.
+// READ-MODIFY-WRITE, NOT A CONSTANT. 0x06 is RW and only bit 7 is documented;
+// the other seven are not, and this module powers on with 0x01 in there. The
+// probe preserved them and got its six bit-identical frames with 0x81, so
+// writing a bare 0x80 or a bare 0x00 would be a different experiment from the
+// one that produced the evidence, and writing 0x81 as a literal would be
+// hardcoding one boot's power-on content as if it were the specification.
+void cam_frame_source_synth(bool on)
+{
+    const uint8_t was = cam_read_reg(CAM_REG_FRAME_SOURCE);
+    const uint8_t now = on ? (uint8_t)(was |  CAM_FRAME_SOURCE_SYNTH)
+                           : (uint8_t)(was & ~CAM_FRAME_SOURCE_SYNTH);
+    cam_write_reg(CAM_REG_FRAME_SOURCE, now);
+    cam_wait_idle(on ? "synthetic frame source on"
+                     : "frame source back to the sensor");
 }
 
 void cam_image_defaults(void)

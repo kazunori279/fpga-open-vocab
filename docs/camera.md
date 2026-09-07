@@ -104,12 +104,48 @@ boot gave six distinct ones, and the camera came back afterwards.
 **The pattern is `1608eb14` at 150 MHz and at 320, under `cam_capture()` and
 under `ft_pipeline()`'s split trigger/collect 265 ms apart, and after a hub
 power cycle** — a reflash leaves the ArduChip powered, so the power cycle is the
-only one of those three that tests the across-boots claim. Nothing about it is
-unverified any more. What is left is wiring it into `m9.c`.
+only one of those three that tests the across-boots claim.
 
-Its mean RGB is 6 63 63, dark and green. Whether the scoring chain produces
-anything worth comparing on a frame that is nothing like a photograph is a
-different question from whether the frame is fixed, and no probe has asked it.
+#### It is wired into `m9.c` as `'M'`, and the scoring chain is flat on it
+
+The same day. `'M'` toggles `cam_frame_source_synth()`; the run is in
+[`bench/probe/20260907-simsrc/`](../bench/probe/20260907-simsrc/) alongside the
+probe logs. Two things came out of it that the probe could not have found.
+
+**The scoring chain does not drift on a fixed frame.** With `--no-smooth` and
+the background frozen, ten consecutive frames scored `book -6.03  cup -18.44` —
+identical to the last decimal, no variation at all. Everything downstream of the
+sensor is deterministic, so a walk seen in a soak is the camera or the scene, and
+is not capture, PIO burst, the T8, the head, or the cosine. That is the control
+[#30](https://github.com/kazunori279/fpga-open-vocab/issues/30) was missing.
+
+Two things have to be right before that number means anything, and both are
+enforced in the firmware rather than left to the operator:
+
+- **The background has to be FROZEN.** A tracking background converges onto a
+  frame that never changes, so z falls to zero on its own and the flatness is a
+  tautology. The board reads `bg_hold` on the first synthetic frame and prints
+  which state it is actually in. Note that `demo.py` sends hold ON by default, so
+  `'H'` *unfreezes* — pressing it out of habit here breaks the experiment.
+- **z smoothing has to be off.** With `zema` on, z converges asymptotically
+  (`-5.33 → -16.07` over ten frames in the first run) and that curve is the EMA
+  filling up, not drift. `--no-smooth` is what makes the column readable.
+
+**The encoder is not degenerate on the pattern**, which was the open worry — mean
+RGB 6 63 63 is nothing like a photograph. It reads `cos cup -0.146 book -0.134`:
+separated from each other, and in the same range as the live cosines in the same
+boot (-0.09 to -0.11). The cosines are what to judge on this arm, not the z.
+
+The liveness check that warns when frames go bit-identical is suppressed under
+`'M'` and replaced by its inverse: ten synthetic frames that are *not* identical
+mean `0x06` did not take, and the run cannot be used.
+
+**A reflash does not clear `0x06`.** One whole run was void before this was
+found: the board booted already on the pattern, with the exposure ramp reading
+`44 44 44` for 174 frames and a background spread of exactly ±0.0000. The
+register is on the ArduChip, which neither a reflash nor an RP2354 reboot powers
+down. `cam_begin()` now writes the source back to the sensor unconditionally,
+right after the device-address write — one write, not a read-then-fix.
 
 ### `0x31`–`0x35` — exposure and gain can be *set*, and this has now been run
 
@@ -223,10 +259,11 @@ In the order the value falls. The hold this list used to carry — nothing befor
 finished, because its firmware was pinned by md5 — came off on 2026-09-07 when
 that session completed and was read out:
 
-1. ~~**Add a simulated-data mode**~~ — **probed and verified on 2026-09-07, and
-   it is `0x06` bit[7], not `0x05`.** What is left is wiring it into `m9.c` and
-   running the scoring chain on it, which separates camera drift from every
-   other drift in one bench.
+1. ~~**Add a simulated-data mode**~~ — **done on 2026-09-07. `0x06` bit[7], not
+   `0x05`, and it is m9's `'M'` key.** The scoring chain is bit-flat on it, so
+   #30's walk is the camera or the scene and nothing downstream of the sensor.
+   What is left is spending it: a soak on `'M'` long enough to compare against a
+   live one of the same length.
 2. **Finish the I²C passthrough** (`0x0B`, `0x0C`, `0x07` bit[0]). It is the only
    readback of the exposure loop that exists, and #33 has been waiting on it.
    [`20260907-camlock-cold/`](../bench/soak/20260907-camlock-cold/) gave it a

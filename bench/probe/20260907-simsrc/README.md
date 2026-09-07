@@ -1,14 +1,17 @@
 # The ArduChip will feed the pipeline frames the sensor never saw
 
-**2026-09-07, three boots of `forgix_cam_simsrc`.** Not a bench: no cue
-schedule, no enrolment, no held-out set, no accuracy. It answers one hardware
-question and the three logs here are the whole of it.
+**2026-09-07, three boots of `forgix_cam_simsrc` and two of `m9`.** Not a bench:
+no cue schedule, no enrolment, no held-out set, no accuracy. It answers one
+hardware question, then spends the answer once, and the five logs here are the
+whole of it.
 
 | log | what it was for |
 |---|---|
 | [`discover-150.log`](discover-150.log) | the first run, which found the register. **150 MHz** — the probe took no clock then, and the appliance ships at 320, so it answered about a board nobody runs |
 | [`verify-320-boot1.log`](verify-320-boot1.log) | 320 MHz, and the split trigger/collect m9 actually uses |
 | [`verify-320-boot2-after-power-cycle.log`](verify-320-boot2-after-power-cycle.log) | the same again after a **hub power cycle**, which is the only thing that takes the ArduChip's own power down |
+| [`m9-integration-smoothed.log`](m9-integration-smoothed.log) | the real scoring chain on it, via m9's new `'M'` key — and the one that shows why the z column is not readable with smoothing on |
+| [`m9-integration-no-smooth.log`](m9-integration-no-smooth.log) | the same with `--no-smooth`. **The result** |
 
 The question is [#30](https://github.com/kazunori279/fpga-open-vocab/issues/30)'s,
 asked from underneath. Every drift measurement in this repo asks whether scores
@@ -69,13 +72,56 @@ built with, so this cannot silently regress to 150 again.
 ## What this does not say
 
 It does not say the drift is or is not the camera. **It says the experiment that
-would tell you is now possible**, which it was not this morning. The remaining
-work is wiring `0x06` into `m9.c` and running the scoring chain on it.
+would tell you is now possible**, which it was not this morning.
 
 One thing to carry into that: the pattern's mean RGB is **6 63 63**, which is
 dark and green. Whether a scoring chain fed a frame nothing like a photograph
 produces embeddings worth comparing is a separate question from whether the
 frame is fixed, and this probe does not touch it.
+
+## Wired into m9 the same day: `m9-integration-*.log`
+
+`'M'` toggles it. Both logs are the same two-query set (`cup`, `book`) with the
+background frozen after 8 frames and `'M'` pressed at frame 14; the only
+difference is z smoothing.
+
+| log | smoothing | frames 18-27 |
+|---|---|---|
+| `m9-integration-smoothed.log` | on (default) | z converges `-5.33 → -16.07`, still moving at the last frame |
+| `m9-integration-no-smooth.log` | `--no-smooth` | `book -6.03  cup -18.44`, **identical to the last decimal, ten frames running** |
+
+Read the second row and not the first. **The convergence in the smoothed run is
+the z EMA filling up, not drift** — the same asymptote a step input produces on
+any first-order filter, and it would appear on this arm even if the chain were
+perfect. It is in the table because it is the trap: the first read of that run
+looked like a walk.
+
+The flat row is the result. Everything downstream of the sensor is
+deterministic, so a walk in a soak is the camera or the scene and is not
+capture, the burst, the T8, the head, or the cosine.
+
+The open question this probe left — whether the encoder does anything sane on a
+frame that is not a photograph — is answered too, and the answer is yes:
+`cos cup -0.146 book -0.134`, separated, and in the same range as the live
+cosines in the same boot (-0.09 to -0.11). Not degenerate. **On this arm judge
+the cosines, not the z**, which is why the board prints them.
+
+### Two ways to void a run on this arm, both hit before the logs above
+
+- **`'H'` unfreezes.** The background must be frozen or a never-changing frame
+  drags the background onto itself and z decays to zero by construction. But
+  `demo.py` sends hold ON by default, so `'H'` is the wrong key here. The board
+  now reads `bg_hold` and prints which state it is actually in rather than
+  advising a keypress.
+- **A reflash does not clear `0x06`.** One run was void because the board booted
+  already on the pattern: exposure ramp `44 44 44` for 174 frames, `EXPOSURE
+  NEVER SETTLED`, background spread exactly `±0.0000`. Same reason a reflash
+  does not re-run the across-boots test in the table above — the ArduChip stays
+  powered. `cam_begin()` now clears it unconditionally at boot, which was
+  verified by ending a run on the pattern and reflashing without a power cycle:
+  the next boot came up live, ramp `98 100 103 …`, settled after 13 frames,
+  `expose 37 ms`. That log was overwritten before it was archived; the lines are
+  quoted in `firmware/cam.c` at the call site.
 
 ## Reproducing it
 

@@ -66,6 +66,23 @@
 #define FIFO_SIZE3          0x47
 #define BURST_FIFO_READ     0x3C
 
+// THE ONE REGISTER IN THIS BLOCK THAT IS NOT THE DRIVER'S. Everything else here
+// is transcribed from ArduCAM's ArducamCamera.c; this is from the application
+// note, which the driver never reads or writes (checked 2026-09-07 against
+// github.com/ArduCAM/Arducam_Mega). It is in the map anyway because m9 calls it
+// in the scoring path, and a register the shipped binary depends on belongs
+// where the others are - but it is labelled, because the two sources disagree
+// often enough that provenance is worth a line.
+//
+// The note calls 0x05 the data source and 0x06 a counter pattern. On this
+// module - fpga rev 32, sensor 0x82 - 0x05 takes the write and then returns
+// zero good captures, and 0x06 is the one that produces frames. Measured over
+// three boots, bench/probe/20260907-simsrc/: six captures, one distinct crc32
+// (1608eb14), at 150 MHz and 320, under cam_capture() and under the split
+// trigger/collect, and across a hub power cycle.
+#define CAM_REG_FRAME_SOURCE         0x06
+#define CAM_FRAME_SOURCE_SYNTH       0x80u
+
 #define CAM_REG_SENSOR_RESET         0x07
 #define CAM_REG_DEBUG_DEVICE_ADDRESS 0x0A
 #define CAM_REG_FORMAT               0x20
@@ -324,6 +341,26 @@ void cam_image_auto_mask(uint8_t tracking);
 // CAM_AUTO_ALL or nothing, which is what cam_image_defaults() wants and what the
 // 'L' hotkey meant before the mask existed.
 void cam_image_auto(bool on);
+
+// TAKE THE SENSOR OUT OF THE LOOP. With this on, the ArduChip feeds the pipeline
+// a fixed pattern the sensor never saw, so every capture is bit-identical and
+// the frame cannot drift for any reason - not exposure, not gain, not colour,
+// not the room, not the lamp. Off puts the camera back.
+//
+// THIS IS A CONTROL AND NOT A FEATURE. Every drift measurement in bench/soak/
+// asks whether scores move while the scene is still, and none of them can
+// separate a camera that is re-deciding from anything else in the chain that
+// might be. This is the arm where the camera is not in the experiment: if the
+// scores still walk, the walk is not the camera.
+//
+// AND IT IS NOT A PHOTOGRAPH. Mean RGB 6 63 63, dark and green. Whether the
+// distilled student produces embeddings worth comparing on a frame nothing like
+// its training distribution is a SEPARATE question from whether the frame is
+// fixed, and no run has asked it. A common-mode walk measured on degenerate
+// embeddings would be a number about the encoder's floor and not about drift,
+// so the first thing to check on this arm is that the z values are not
+// degenerate against the live ones - not the walk.
+void cam_frame_source_synth(bool on);
 
 // One capture into `dst`. Returns the FIFO length in bytes, or 0 on failure;
 // a length longer than `cap` is returned but not read, so the caller can report
