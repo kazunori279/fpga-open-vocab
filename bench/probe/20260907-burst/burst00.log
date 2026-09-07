@@ -1,0 +1,70 @@
+
+=== 0x01: frames burst into the cache, or not ===
+
+clock     : 320 MHz sys
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+== stage L (before): one frame, four times ==
+  capture 0: 32768 bytes
+  capture 1: 32768 bytes
+  capture 2: 32768 bytes
+  capture 3: 32768 bytes
+  ruler: 32768 bytes a frame
+
+== stage R: does 0x01 read back what was written? ==
+  at entry: 00
+  wrote 00, read 00   echoes
+  wrote 01, read 01   echoes
+  wrote 03, read 03   echoes
+  wrote 07, read 07   echoes
+  4 of 4 writes echoed - 0x01 is readable
+
+== stage N: the FIFO length against the count register ==
+
+  0x01  frames wanted   FIFO bytes   / ruler   verdict
+  00    1              32768        1 exactly as the note says
+        38582 us to CAP_DONE
+  01    2              65536        2 exactly as the note says
+        71465 us to CAP_DONE
+  03    4              131072       4 exactly as the note says
+        143125 us to CAP_DONE
+  07    8              262144       8 exactly as the note says
+        286646 us to CAP_DONE
+
+  4 of 4 counts gave (N+1) rulers
+
+== stage P: slicing a burst of 8 at the ruler ==
+
+  slice   crc32     R   G   B
+  0       256f684a   16  17   4
+  1       718196fd   16  17   5
+  2       e88ac587   16  17   5
+  3       9770d91b   16  17   5
+  4       af252087   17  18   5
+  5       f7fd5d8b   17  17   5
+  6       94cc34fb   17  18   5
+  7       165fc415   17  18   5
+
+  8 distinct slices out of 8
+  every slice differs - these are captures
+
+== stage T: 8 frames, singly and in one burst ==
+  8 singles : 590547 us  (73818 us a frame)
+  one burst  : 552234 us for 262144 bytes (8 rulers)
+  the burst is 93% of the singles, for the same pixels
+
+== stage M: 0x01 = 255, which the note calls 'memory full' ==
+  the cache is 8 MB, so the note's claim is 256 rulers, and at this
+  boot's frame rate that is tens of seconds. Bound: 40 s.
+  8390500 bytes after 9198968 us - 256 rulers, NOT the 8 MB the note claims
+
+== stage L (after): one frame, four times ==
+  !! FIFO length 0, buffer is 262144
+  capture 0: 0 bytes
+  capture 1: 32768 bytes
+  capture 2: 32768 bytes
+  capture 3: 32768 bytes
+  RULER VOID - the single-frame length is not stable on this boot, so no multiple of it means anything
+
+VERDICT : count=burst  restore=VOID

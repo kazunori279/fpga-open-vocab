@@ -18,7 +18,7 @@ exist only to record a claim that later turned out to be false.
 
 ## How to read this file
 
-Sixty-two dated entries, newest first. **Do not treat any single entry as the
+Sixty-three dated entries, newest first. **Do not treat any single entry as the
 current answer.** Several are here only because they were wrong, and the
 discipline is that a retraction sits beside the table it retracts rather than
 replacing it — so an entry can be accurate about what was measured that day and
@@ -39,7 +39,8 @@ weeks.
 [09-07](#2026-09-07-the-sensor-answers--and-the-thing-that-kept-it-silent-was-never-the-question-being-asked) — the sensor becomes readable, and a third camera fault turns out to have been sitting under the other two ·
 [09-07 later](#2026-09-07-later-the-white-balance-bit-lands-on-the-die-and-the-cure-written-up-that-morning-cures-nothing) — the white-balance bit is found at `0x332b`, and the morning's cure for that third fault is retracted the same day ·
 [09-07 evening](#2026-09-07-evening-the-exposure-lock-fails-on-32-boots-in-33-and-the-check-written-to-catch-it-could-not-fail) — the third fault gets a rate, and it is not "some acquires" ·
-[09-07 night](#2026-09-07-night-the-last-cure-loses-to-doing-nothing-and-the-fault-that-had-never-been-looked-for-is-the-unlock) — the last cure loses to a null arm, the other two loops turn out to lock fine, and a *fourth* fault appears facing the other way.
+[09-07 night](#2026-09-07-night-the-last-cure-loses-to-doing-nothing-and-the-fault-that-had-never-been-looked-for-is-the-unlock) — the last cure loses to a null arm, the other two loops turn out to lock fine, and a *fourth* fault appears facing the other way ·
+[09-07 late](#2026-09-07-late-night-the-one-register-that-does-what-its-datasheet-says-and-the-reason-to-use-it-is-not-the-reason-written-down) — the last unprobed register does exactly what the note says, and the argument for using it turns out to be the wrong one.
 
 **Drift, the auto loops, and #30.**
 [08-25 afternoon](#2026-08-25-afternoon-the-third-reference-on-the-board-and-the-band-that-could-not-have-fired) ·
@@ -90,6 +91,99 @@ the jumper, and M7 ending.
 Note [07-29, two boards](#2026-07-29--two-boards-one-alive-one-dead-corrected-2026-07-30): the "dead" board was never dead, and the strikethrough in that heading is the house style for a correction.
 
 [08-01 – 08-14](#2026-08-01--2026-08-14--where-this-logs-gap-went) explains the gap.
+
+---
+
+### 2026-09-07 late night, the one register that does what its datasheet says, and the reason to use it is not the reason written down
+
+Five boots of `forgix_cam_burst` against `0x01`, the last unprobed line in
+`docs/camera.md`'s register section. After a week in which the application note
+was wrong about the frame source, wrong about `0x07` bit 6's name, and in which
+three separate probes found the camera doing the opposite of what it was told,
+this register turns out to be exactly as documented. That is worth an entry on
+its own.
+
+**`(N+1)` frames, exactly, on 20 counts of 20.** The FIFO length after one
+trigger, read out of `0x45`/`0x46`/`0x47` before a byte of pixels moves:
+
+| `0x01` | frames wanted | FIFO bytes | / ruler | trigger → CAP_DONE |
+|---|---|---|---|---|
+| `00` | 1 | 32,768 | 1 exactly | 38.6 ms |
+| `01` | 2 | 65,536 | 2 exactly | 71.5 ms |
+| `03` | 4 | 131,072 | 4 exactly | 143.1 ms |
+| `07` | 8 | 262,144 | 8 exactly | 286.5 ms |
+
+The "ruler" is not a constant. Each boot measures it — four ordinary captures
+that have to agree — and every figure above is reported as a multiple of that
+boot's own number, so no frame size appears anywhere in the probe. It came out
+32,768 on all five boots and all four visits of each.
+
+**`0x01` reads back**, 20 writes of 20, which is rare enough on this surface to
+be the second finding. `CAM_REG_AUTO_CONTROL` being write-only is the whole
+reason #33 took three weeks: a switch that cannot be read has to be inferred
+from its effect, and the last four probes are what inferring it costs.
+
+**They are captures, not padding.** A FIFO eight times as long could be eight
+frames or one frame written eight times. Slicing at the ruler and crc32ing each
+slice: 40 slices over five boots, 40 distinct crcs, no repeat. Two boots were
+taken in a dark room and three in a lit one, by accident, and the dark ones are
+the better evidence — the channel means walk monotonically across the eight
+slices (`16 17 4` → `17 18 5`), which is the AE loop revising *between frames
+inside one burst*.
+
+**And the reason to use it is not the reason `camera.md` gave.** Eight frames in
+one burst take **93%** of eight frames one at a time, on all five boots — 552 ms
+against 591 ms, including the SPI read on both arms:
+
+```
+  8 singles : 591473 us  (73934 us a frame)
+  one burst : 552021 us for 262144 bytes (8 rulers)
+```
+
+The marginal frame costs 35.8 ms of sensor whichever way it is asked for, the
+262 KB has to come over SPI either way, and all the burst saves is seven trigger
+sequences at about 5 ms each. So the speed argument is gone and the capacity
+argument is the whole of it: 8 MB of ArduChip cache against 520 KB of SRAM, which
+is somewhere to put frames the RP cannot hold.
+
+**`255` is not 8 MB, and it costs the capture after it.** The note says "memory
+full (8 MB)". The board returns **8,390,500 bytes** — 1,892 more than 8 MB,
+which is also 1,892 more than 256 whole frames — identical to the byte on all
+five boots. So the note's two descriptions of `255` agree with each other and
+neither agrees with the board, the last frame in that FIFO is torn 1,892 bytes
+in, and the 1,892 is recorded and not explained.
+
+```
+  !! FIFO length 0, buffer is 262144
+  capture 0: 0 bytes   <- EMPTY
+  capture 1: 32768 bytes
+```
+
+That is the ruler stage immediately after the `255`, on 5 boots of 5. Nothing
+below `255` does it.
+
+**The stage that found that was split because of a boot it got wrong.** Boot 00
+ran the ruler check once at the end, saw `0 / 32768 / 32768 / 32768`, and called
+the whole run void — "all four agree" was the only rule it had. One empty capture
+followed by three good ones is a different fault from a ruler that wanders, and
+it belongs to whichever stage ran before it. So the stage now counts empties
+separately and runs **four times a boot**, between the other stages. The empty
+count then reads `0 / 0 / 0 / 1` on every boot and the charge lands where it
+belongs. `burst00` is kept in the directory as the run that showed the check
+needed splitting.
+
+**The put-back was checked because of what the last two weeks taught.** Writing
+`0` back to `0x01` takes, on 5 of 5. That is only worth stating because
+[`20260907-hold/`](../bench/probe/20260907-hold/) found the *un*-set failing 31
+times in 56 on a different register, on the same board through the same bus; a
+`0x01` that did not clear would leave every later capture returning a multi-frame
+blob into a single-frame buffer, with nothing to attribute it to.
+
+Five boots, `bench/probe/20260907-burst/`, all reading sensor id `0x82`, firmware
+`2023-03-03, fpga rev 32`, at 320 MHz. These are firmware resets rather than hub
+power cycles: `20260907-lockrate/` needed power cycles because it was measuring
+something that varies by boot, and five readings identical to the byte are the
+evidence that this does not.
 
 ---
 

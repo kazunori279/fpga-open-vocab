@@ -290,11 +290,30 @@ costs one board power-cycle per sample and therefore a morning. If the fault
 lives in the sensor's own power-on rather than the board's, this register
 collects the same samples in minutes. Whether it does is itself the test.
 
-### `0x01` — frames can be burst into the 8 MB cache
+### `0x01` — frames can be burst into the 8 MB cache, and this one was measured
 
 `0`–`254` means frames = value + 1; `255` means the memory is full (8 MB). The
 driver captures one frame at a time. The exposure ramp could be kept as images
 rather than as a row of numbers in a banner.
+
+[`bench/probe/20260907-burst/`](../bench/probe/20260907-burst/) ran it, five
+boots, and the note is right about the count and wrong about the size. Every
+number below is a multiple of a ruler that boot measured — four ordinary
+captures that had to agree — so no frame size is assumed anywhere in it.
+
+| asked | measured | boots |
+|---|---|---|
+| is `0x01` readable? | **yes**, 20 writes of 20 echoed. Almost nothing else on this surface is — `CAM_REG_AUTO_CONTROL` being write-only is why #33 took three weeks | 5 |
+| does `N` give `N+1` frames? | **yes, exactly**, 20 counts of 20 across `00`, `01`, `03`, `07` | 5 |
+| are they captures or padding? | **captures.** 40 slices, 40 distinct crc32s, no repeat. In a dark room the channel means walk monotonically across the slices — the AE loop moving mid-burst | 5 |
+| is it faster? | **barely.** Eight frames in one burst take **93%** of eight singles. The frame boundary costs 35.8 ms and is paid either way; the burst saves seven trigger sequences at about 5 ms each | 5 |
+| is `255` 8 MB? | **no.** 8,390,500 bytes, identical to the byte on all five — 256 whole frames and 1,892 bytes over. The last frame in that FIFO is torn, and the 1,892 is unexplained | 5 |
+| does writing `0` back take? | **yes**, on 5 of 5, which was worth checking after `20260907-hold/` — but a `255` costs the capture after it: length 0, then the ruler again, on 5 boots of 5 | 5 |
+
+So the reason to use this register is the 8 MB, not the speed: it holds frames
+the RP has nowhere to put, 8 MB of cache against 520 KB of SRAM. `cam_collect()`
+reads the whole FIFO into one buffer and nothing in `frame.c` has room for eight
+frames, so wiring it up is a separate change with a separate argument.
 
 ## Two things in the driver worth knowing about
 
@@ -425,3 +444,20 @@ that session completed and was read out:
    frame, and 216 slots of cycling left no dead capture path behind. The sensor
    really can be put through a power cycle on its own, so the sampling idea is
    still live.
+
+5. ~~**Probe `0x01`**~~ — **run on 2026-09-07 over five boots, and it does what
+   the note says.** `(N+1)` frames, exactly, 20 counts of 20; the slices are
+   distinct captures and not padding; `0x01` reads back, which is rare here.
+   [`20260907-burst/`](../bench/probe/20260907-burst/).
+
+   **What it takes off the list is the speed argument, not the register.** A
+   burst of eight costs 93% of eight singles, because the 35.8 ms frame boundary
+   and the SPI read are paid either way and only the trigger sequence is saved.
+   The reason to reach for `0x01` is the 8 MB of cache — somewhere to put frames
+   the RP cannot hold — and that is the exposure-ramp-as-images idea at the top
+   of its section, unchanged and still unbuilt.
+
+   **And two things a caller would have to handle.** `255` returns 8,390,500
+   bytes rather than 8 MB, so its last frame is torn 1,892 bytes in; and the
+   capture immediately after a `255` comes back with a FIFO length of zero, on
+   5 boots of 5. Neither shows up below `255`.

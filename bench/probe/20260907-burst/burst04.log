@@ -1,0 +1,88 @@
+
+=== 0x01: frames burst into the cache, or not ===
+
+clock     : 320 MHz sys
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+== stage L (before): one frame, four times ==
+  capture 0: 32768 bytes
+  capture 1: 32768 bytes
+  capture 2: 32768 bytes
+  capture 3: 32768 bytes
+  ruler: 32768 bytes a frame
+
+== stage R: does 0x01 read back what was written? ==
+  at entry: 00
+  wrote 00, read 00   echoes
+  wrote 01, read 01   echoes
+  wrote 03, read 03   echoes
+  wrote 07, read 07   echoes
+  4 of 4 writes echoed - 0x01 is readable
+
+== stage N: the FIFO length against the count register ==
+
+  0x01  frames wanted   FIFO bytes   / ruler   verdict
+  00    1              32768        1 exactly as the note says
+        38583 us to CAP_DONE
+  01    2              65536        2 exactly as the note says
+        71467 us to CAP_DONE
+  03    4              131072       4 exactly as the note says
+        143329 us to CAP_DONE
+  07    8              262144       8 exactly as the note says
+        286445 us to CAP_DONE
+
+  4 of 4 counts gave (N+1) rulers
+
+== stage L (after N): one frame, four times ==
+  capture 0: 32768 bytes
+  capture 1: 32768 bytes
+  capture 2: 32768 bytes
+  capture 3: 32768 bytes
+  ruler: 32768 bytes a frame
+
+== stage P: slicing a burst of 8 at the ruler ==
+
+  slice   crc32     R   G   B
+  0       28e32785  136 133 135
+  1       699fa8e6  136 133 134
+  2       eb954147  136 133 135
+  3       244921b4  136 133 135
+  4       0ef6b241  136 133 135
+  5       1c2e2863  136 133 134
+  6       9c956a59  136 133 135
+  7       27eff89b  136 133 135
+
+  8 distinct slices out of 8
+  every slice differs - these are captures
+
+== stage T: 8 frames, singly and in one burst ==
+  8 singles : 591471 us  (73933 us a frame)
+  one burst  : 552224 us for 262144 bytes (8 rulers)
+  the burst is 93% of the singles, for the same pixels
+
+== stage L (after P and T): one frame, four times ==
+  capture 0: 32768 bytes
+  capture 1: 32768 bytes
+  capture 2: 32768 bytes
+  capture 3: 32768 bytes
+  ruler: 32768 bytes a frame
+
+== stage M: 0x01 = 255, which the note calls 'memory full' ==
+  the cache is 8 MB, so the note's claim is 256 rulers, and at this
+  boot's frame rate that is tens of seconds. Bound: 40 s.
+  8390500 bytes after 9178260 us
+  against 8 MB (8388608): +1892 bytes
+  against the ruler: 256 whole frames and 1892 bytes over
+  NEITHER 8 MB NOR A WHOLE NUMBER OF FRAMES - the last frame in this FIFO is torn
+
+== stage L (after M): one frame, four times ==
+  !! FIFO length 0, buffer is 262144
+  capture 0: 0 bytes   <- EMPTY
+  capture 1: 32768 bytes
+  capture 2: 32768 bytes
+  capture 3: 32768 bytes
+  ruler: 32768 bytes a frame, after 1 empty capture. The empty one is charged to the stage above, not to the camera.
+
+VERDICT : count=burst  ruler=unchanged  empties=0/0/0/1
+          and the empty captures are charged to stage M: 1 after the 8 MB burst against 0 and 0 after the others. A 255 costs the capture that follows it.

@@ -51,6 +51,13 @@ question it cannot answer — and where the witness turned out to be almost blin
 on a static desk, moving once in 26 windows, while a `'K'` verdict of `held` was
 found to leave the sensor parked on the check's own exposure for the rest of the
 run.
+[`probe/20260907-burst/`](probe/20260907-burst/) is the one register in that
+week's set that turned out to work exactly as documented — `0x01` gives `N+1`
+frames, 20 counts of 20, and they are distinct captures rather than padding —
+and where the reason to use it was measured away all the same: a burst of eight
+costs 93% of eight singles, so what the register buys is the 8 MB of cache and
+not the time. `255` returns 1,892 bytes more than 8 MB and costs the capture
+after it, on 5 boots of 5.
 
 **`stills/`** is neither, and is not a bench. It holds PNGs off the appliance's
 camera, shot so that the stages of the encoder chain can be asked about the same
