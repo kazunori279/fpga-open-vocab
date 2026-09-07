@@ -1,0 +1,29 @@
+
+=== Does the white-balance lock reach the die, and does it hold? (#30, #33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- warm-up, auto loops running --
+  settled at luma 133
+
+-- the handle, before anything is asked of the die --
+  ladder at rest
+    up    137 140 141 140 140 140
+    down  140 141 141 141 140 141
+    wobble 1, retrace 3 | H1 NO  H2 NO  -> NO HANDLE
+  no handle on the first ladder - re-applying the mask and the reset
+  ladder after a second mask and reset
+    up    141 141 141 141 141 141
+    down  141 141 141 141 141 141
+    wobble 0, retrace 0 | H1 NO  H2 yes  -> NO HANDLE
+
+RESULT : NO HANDLE AT REST, twice, with the cache reset applied after the
+         mask both times - which is the sequence 20260907-i2crec recovered
+         on every time it ran. Nothing below can be read as a statement
+         about white balance. Repeat; if it repeats, that is the finding
+         and it is a new shape of the cold-boot fault.

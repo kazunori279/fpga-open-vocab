@@ -87,9 +87,24 @@ first firing and one conclusion it got wrong.
 and at 3072, with a six-rung exposure ladder either side of each.
 
 One caveat the shipping path has to carry: the manual exposure surface comes up
-deaf on some boots, with nothing fired, and **`0x07` bit 7 — reset cache —
-clears it**. One register write. `0x07` bit 1, the documented I²C reset, does
-not. Why the cache goes stale between boots is unknown.
+deaf on some boots, with nothing fired. **No register write is known to clear
+it.** `0x07` bit 7 was written up as the cure on a single observation and
+[`bench/probe/20260907-awb/`](../bench/probe/20260907-awb/) then walked the same
+ladder on seven boots without it recovering one of them; bit 1 recovered one,
+bit 6 broke capture every time it was tried, and re-running the whole of
+`cam_begin()` never worked.
+
+What that directory did establish is what the fault *is*. Ask the die instead of
+the picture — write an exposure, then read `0x3002`/`0x3003` back over a few
+seconds — and the deaf boots split into two shapes. On one the die drags the
+value back to whatever its own AE loop had settled on, so the loop is still
+running with the mask at zero and the frame is parked at mid-scale because that
+is where a working AE loop parks a frame. On the other the die holds the written
+value perfectly and the picture still does not move. Both look identical from
+the host: a flat ladder around luma 110–120.
+
+Neither can be fixed from here. The passthrough is a read path and there is no
+measured way to write the die's own AE enable.
 
 ## Registers the driver does not use, in the order they are worth something
 
@@ -283,13 +298,25 @@ that session completed and was read out:
    #30's walk. The suspect is now "at or before the sensor", and since locking
    exposure and gain did not reduce it either, **AWB is what is left** — which
    `'L'`'s second press turns off and no session has run.
+
+   The WB bit was then followed into the die on 2026-09-07
+   ([`20260907-awb/`](../bench/probe/20260907-awb/)). Sweeping 1024 addresses
+   from `0x3000` with white balance free against white balance locked, three
+   visits an arm, **two of them separate and hold: `0x332b` (`10` free → `18`
+   locked) and `0x33ca` (`4a`/`4e` free → `41` locked).** `0x332b` came back on
+   four separate boots. So the bit reaches the die and is readable there, and
+   `'L'`'s AWB arm can be written as something that gets checked rather than
+   hoped at. What is *not* established is that the lock holds over a session:
+   that stage has never reached a board with a live handle.
 2. ~~**Finish the I²C passthrough**~~ (`0x0B`, `0x0C`, `0x07` bit[0]) —
    **measured and adopted on 2026-09-07.** `0x48` returns the exposure this
    firmware wrote, byte for byte, at the OV3640's `0x3002`/`0x3003`, on two
    consecutive boots
    ([`20260907-i2crec/`](../bench/probe/20260907-i2crec/)). What is left is
-   putting it in the driver: a `cam_sensor_read()` in `cam.c`, and the `0x07`
-   bit 7 cache reset before the exposure surface is used. That turns the sharper
+   putting it in the driver: a `cam_sensor_read()` in `cam.c`, and — instead of
+   the cache reset this list used to ask for, which does not work — a check that
+   the exposure lock took, which the same readback can now make. That turns the
+   sharper
    question [`20260907-camlock-cold/`](../bench/soak/20260907-camlock-cold/)
    asked — three of eight locked runs moved their level by 14 to 18 after the
    freeze, which the AWB drift in `cam.h:245` does not account for — into

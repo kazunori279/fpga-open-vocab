@@ -22,10 +22,15 @@ that would let any of that be adopted could not be run.
 [`probe/20260907-i2crec/`](probe/20260907-i2crec/) is where the reason it could
 not be run turned out not to be the passthrough at all, but a boot-to-boot fault
 that leaves the manual exposure surface deaf before anything is fired — and
-where one bit was found to clear it, the check was rebuilt into a six-rung
+where one bit was thought to clear it, the check was rebuilt into a six-rung
 ladder after the two-point version passed a board it should have failed, and
 `0x48` was then shown to return the exposure this firmware wrote, byte for byte,
 on two boots.
+[`probe/20260907-awb/`](probe/20260907-awb/) is where the white-balance bit was
+followed into the die and found to move `0x332b` on four boots — and where the
+bit that was thought to clear the deaf boots recovered none of seven, the fault
+turned out to be watchable at `0x3002`/`0x3003` in two distinct shapes, and the
+six-rung ladder turned out to span a wider range than the sensor has.
 
 **`stills/`** is neither, and is not a bench. It holds PNGs off the appliance's
 camera, shot so that the stages of the encoder chain can be asked about the same

@@ -1,0 +1,24 @@
+
+=== Does the white-balance lock reach the die, and does it hold? (#30, #33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+  cache reset (0x07 bit 7) applied - 20260907-i2crec's cold-boot cure
+
+-- warm-up, auto loops running --
+  settled at luma 132
+
+-- the handle, before anything is asked of the die --
+  ladder at rest
+    up    134 134 134 135 134 134
+    down  135 135 135 135 135 135
+    wobble 1, retrace 1 | H1 NO  H2 yes  -> NO HANDLE
+
+RESULT : NO HANDLE AT REST. The manual exposure surface is deaf even after
+         the cache reset, which is a new shape - i2crec's rung 2 always
+         cleared it. Nothing below can be read as a statement about white
+         balance. Repeat the run; if it repeats, that is the finding.

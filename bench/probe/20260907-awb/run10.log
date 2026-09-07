@@ -1,0 +1,84 @@
+
+=== Does the white-balance lock reach the die, and does it hold? (#30, #33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- warm-up, auto loops running --
+  settled at luma 129
+
+-- placing the ladder against this scene --
+  the die's own AE, loop free and settled: 0x030b
+  written        8     10     20     40     80    100    200    400    800   1000   2000   4000   8000  10000
+  die says   030b?  030b?  030b?  030b?  0080   0100   030b?  030b?  030b?  030b?  030b?  4000   8000   030b?
+  4 of 14 echoed the write; ? marks the ones that did not and are ignored
+  0x00100 echoed nearest the die's choice (off by 523), so writes land in die
+  units; rungs step by three halves down from 0x0030b: 66 99 e6 15a 207 30b
+
+-- does a lock reach the die? asked at 0x3002/0x3003, not at the picture --
+  locked         wrote 0080, die: 0080 0080 0080 0080 0080 0080 0080 0080 0080 0080   held
+  locked         wrote 0400, die: 0400 0400 0400 0400 0400 0400 0400 0400 0400 0400   held
+  AE free        wrote 0080, die: 0080 0080 0080 0080 0080 0080 0080 0080 0080 0080   held
+  locked held both exposures:  yes
+  AE free dragged it back:     no   <- the control failed, so nothing here is readable
+  -> INCONCLUSIVE: the die held the write even with AE free, so this stage
+     cannot tell a lock from a loop that had nowhere to go.
+
+-- stage M: sweep 1024 addresses from 0x3000, every loop free against every loop locked --
+  visit 0 done  (loops free)
+  visit 1 done  (loops LOCKED)
+  visit 2 done  (loops LOCKED)
+  visit 3 done  (loops free)
+  visit 4 done  (loops free)
+  visit 5 done  (loops LOCKED)
+  W0 positive control, 0x300a and 0x300b in all six visits: yes
+    0x332b  free 10 10 10   locked 18 18 18
+    0x33ca  free 4a 4a 4a   locked 41 41 41
+  2 addresses separated and held, 6 moved without separating, 1016 never moved
+  -> the mask reaches the die at the addresses above.
+
+-- the handle, before anything is asked of the die --
+  ladder at rest
+    up     38  58  84 113 143 174
+    down   38  58  84 113 143 174
+    wobble 1, retrace 0 | H1 yes  H2 yes  -> HANDLE
+
+-- picking the exposure both arms are held at --
+  rung     38  57  83 112 143 174
+  holding both arms at 0x00207, the rung nearest mid-scale
+
+-- stage A: sweep 1024 addresses from 0x3000, WB free against WB locked --
+  visit 0 done  (WB free)
+  visit 1 done  (WB LOCKED)
+  visit 2 done  (WB LOCKED)
+  visit 3 done  (WB free)
+  visit 4 done  (WB free)
+  visit 5 done  (WB LOCKED)
+
+  W0 positive control: 0x300a and 0x300b read 0x36 and 0x4c in all six visits: yes
+
+  sensor   WB free        WB locked      verdict
+  0x301b   33 32 34      2f 2f 2d      separates but is not still - not claimed
+  0x30de   68 6a 68      79 7a 84      separates but is not still - not claimed
+  0x332b   10 10 10      18 18 18      W1 and W2 - RESPONDS
+  0x33ca   4a 4a 4a      41 41 41      W1 and W2 - RESPONDS
+
+  2 responded to the WB bit, 2 separated without being still, 1 wobbled without
+  separating, 1019 never moved.
+
+-- the frame in each arm, three channels --
+  WB free     R 127  G 127  B 119   spread 8
+  WB locked   R 114  G 133  B  89   spread 44
+  20260825-camlock saw 130 127 129 go to 100 158 122 on this operation.
+  ladder after stage A
+    up     23  37  57  83 112 143
+    down   23  37  56  83 112 143
+    wobble 0, retrace 1 | H1 yes  H2 NO  -> NO HANDLE
+
+RESULT : THE HANDLE WAS ALIVE FOR STAGE A AND GONE AFTER IT. The table above
+         spans a change in the die that this run cannot attribute to the WB
+         bit. Repeat before reading it.

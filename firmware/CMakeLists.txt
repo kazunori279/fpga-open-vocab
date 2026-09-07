@@ -597,6 +597,19 @@ pico_enable_stdio_usb(forgix_cam_i2crec 1)
 pico_enable_stdio_uart(forgix_cam_i2crec 0)
 pico_add_extra_outputs(forgix_cam_i2crec)
 
+add_executable(forgix_cam_awb
+    cam_awb.c
+    cam.c
+    qspi_park.c)
+
+target_include_directories(forgix_cam_awb PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+pico_generate_pio_header(forgix_cam_awb ${CMAKE_CURRENT_LIST_DIR}/cam_spi.pio)
+target_link_libraries(forgix_cam_awb
+    pico_stdlib hardware_pio hardware_clocks hardware_vreg)
+pico_enable_stdio_usb(forgix_cam_awb 1)
+pico_enable_stdio_uart(forgix_cam_awb 0)
+pico_add_extra_outputs(forgix_cam_awb)
+
 add_executable(forgix_diag
     diag.c
     fpga_config.c

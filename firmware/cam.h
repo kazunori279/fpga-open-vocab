@@ -135,6 +135,18 @@
 // exposure surface - bench/probe/20260907-i2crec/ checked that specifically,
 // one fire, thirty-six fires, and 3072, with a six-rung exposure ladder either
 // side of each. It is a read path only; nothing here writes the die.
+//
+// TEARING. A 16-bit value off this path is two transactions and they can tear.
+// bench/probe/20260907-awb/ wrote 0x0400 into the manual exposure block and
+// read 040b back out of 0x3002/0x3003 - high byte refreshed, low byte still
+// holding the previous value's 0b. Read the pair twice and use it only when the
+// two agree. A single pair is not a number.
+//
+// AND WHAT 0x3002/0x3003 IS GOOD FOR. It is the only place the ArduChip's
+// write-only auto mask can be observed landing, or failing to. Write an exposure
+// with the loops locked and watch these two: held is a lock that took, dragged
+// back to the AE loop's own value is a lock that did not. Every "flat boot" in
+// bench/probe/20260907-awb/ is one of those two, and no reset bit fixes either.
 #define CAM_REG_I2C_ADDR_H           0x0B
 #define CAM_REG_I2C_ADDR_L           0x0C
 #define CAM_REG_I2C_DATA             0x48

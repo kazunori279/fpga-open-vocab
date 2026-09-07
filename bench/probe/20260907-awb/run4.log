@@ -1,0 +1,91 @@
+
+=== Does the white-balance lock reach the die, and does it hold? (#30, #33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- warm-up, auto loops running --
+  settled at luma 131
+
+-- the handle, before anything is asked of the die --
+  ladder at rest
+    up      5   4   7  19  43  86
+    down    5   5   7  20  44  87
+    wobble 0, retrace 1 | H1 NO  H2 NO  -> NO HANDLE
+  -- recovery ladder --
+     rung 0: apply the auto mask a second time, no reset
+  ladder after rung 0
+    up     19  37  71 118 123 115
+    down   21  39  73 119 129 115
+    wobble 1, retrace 6 | H1 NO  H2 NO  -> NO HANDLE
+     rung 1: 0x07 bit 1, the documented I2C reset
+  ladder after rung 1
+    up     21  41  75 122 176 222
+    down   21  41  76 123 177 222
+    wobble 1, retrace 1 | H1 yes  H2 yes  -> HANDLE
+  recovered on rung 1. The run below stands on a board that needed one,
+  which is worth knowing when reading it.
+
+-- stage A: sweep 1024 addresses from 0x3000, WB free against WB locked --
+  visit 0 done  (WB free)
+  visit 1 done  (WB LOCKED)
+  visit 2 done  (WB LOCKED)
+  visit 3 done  (WB free)
+  visit 4 done  (WB free)
+  visit 5 done  (WB LOCKED)
+
+  W0 positive control: 0x300a and 0x300b read 0x36 and 0x4c in all six visits: yes
+
+  sensor   WB free        WB locked      verdict
+  0x301b   0e 0e 0e      0d 0d 0d      W1 and W2 - RESPONDS
+  0x332b   10 10 10      18 18 18      W1 and W2 - RESPONDS
+
+  2 responded to the WB bit, 0 separated without being still, 2 wobbled without
+  separating, 1020 never moved.
+
+-- the frame in each arm, three channels --
+  WB free     R  39  G  46  B  39   spread 7
+  WB locked   R  37  G  49  B  25   spread 24
+  20260825-camlock saw 130 127 129 go to 100 158 122 on this operation.
+  ladder after stage A
+    up      4   7  16  37  73 123
+    down    4   7  16  37  73 123
+    wobble 1, retrace 0 | H1 yes  H2 yes  -> HANDLE
+
+-- stage D: 40 rounds an arm on the 2 registers stage A named --
+  repeat wobble, three back-to-back reads, worst over the 2: 0
+  block 0, WB LOCKED done
+  block 1, WB free   done
+  block 2, WB LOCKED done
+
+  sensor   locked  free  locked   (excursion over 40 rounds each)
+  0x301b      0      0      1
+  0x332b      0      0      0
+  ladder after stage D
+    up      5   8  17  38  76 126
+    down    5   8  17  39  77 126
+    wobble 1, retrace 1 | H1 yes  H2 yes  -> HANDLE
+
+=== what this run says ===
+
+  THE HANDLE NEEDED RUNG 1. i2crec's claim was rung 2 alone; this board does not.
+  W1+W2  2 registers in 0x3000-0x33ff respond to the WB bit.
+  W3     locked arms still within the repeat wobble: NO
+         free arm moved beyond it:                    no
+
+  THE LOCK DOES NOT HOLD. Registers the WB bit moves keep moving with it
+  off, by more than a back-to-back read wobbles. Turning the AWB off is
+  therefore NOT sufficient for #30, and the walk it was supposed to remove
+  has no remaining suspect on the list this repo has been working down.
+  That is worth more than a confirmation would have been. Reproduce it
+  before acting on it.
+
+  NOT CLAIMED: what the responding registers ARE. This probe names addresses
+  that follow a bit, which is not the same as reading a datasheet. 0x3002 and
+  0x3003 are exposure and were identified by writing a value and reading it
+  back; nothing here does that for white balance, because there is no write
+  path to the die.

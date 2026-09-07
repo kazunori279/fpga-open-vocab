@@ -1,5 +1,14 @@
 # `0x48` is a readback. The flat boots are a cache, and one bit clears it
 
+> **Finding 2 below is wrong and [`../20260907-awb/`](../20260907-awb/) says why.**
+> Seven boots there walked this directory's recovery ladder and `0x07` bit 7
+> brought none of them back. One recovered on bit 1 and the rest on nothing at
+> all. The flat condition is not a cache and it is not cleared by a bit: it is
+> the exposure lock failing to take, and it can be watched failing at
+> `0x3002`/`0x3003` instead of guessed at from the picture. Finding 2's own
+> evidence was one observation of a five-step sequence, reported as one register
+> write. Findings 1 and 3, and everything about `0x48`, stand.
+
 *2026-09-07, thirteen boots of `forgix_cam_i2crec` and `forgix_cam_i2c`. Not a
 bench: no cue schedule, no enrolment, no held-out set, no accuracy. This
 directory was opened to find a recovery that [`../20260907-i2cpass/`](../20260907-i2cpass/)
@@ -95,6 +104,15 @@ register write. It is cheap enough for the shipping path to do unconditionally
 before it touches exposure, and it explains every flat run in this series:
 `cam_i2c.c` never does a cache reset, and `cam.c:455` does one only when it
 flushes.
+
+> **Struck out.** ~~The paragraph above~~ is one observation of a three-rung
+> sequence written up as one register write. The rung fired only after rung 0
+> and rung 1 had already run, and the handle that came back alive was measured
+> after a *third* application of the mask, so the bit was never isolated from
+> what preceded it. [`../20260907-awb/`](../20260907-awb/) ran this same ladder
+> on seven boots: bit 7 recovered none of them, bit 1 recovered one, and the
+> `n=1` here is the whole of the support the claim ever had. Do not put a cache
+> reset in the shipping path on the strength of it.
 
 Two written-down predictions were refuted along the way and are kept here
 rather than dropped: a second application of the mask does not recover it

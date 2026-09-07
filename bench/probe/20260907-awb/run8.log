@@ -1,0 +1,484 @@
+
+=== Does the white-balance lock reach the die, and does it hold? (#30, #33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- warm-up, auto loops running --
+  settled at luma 129
+
+-- placing the ladder against this scene --
+  the die's own AE, loop free and settled: 0x024c
+  written        8     10     20     40     80    100    200    400    800   1000   2000   4000   8000  10000
+  die says   024c?  024c?  024c?  024c?  024c?  024c?  0200   0400   024c?  024c?  024c?  024c?  024c?  0000 
+  3 of 14 echoed the write; ? marks the ones that did not and are ignored
+  0x00200 lands the die nearest its own choice (off by 76), so the ladder is 40 80 100 200 400 800
+
+-- does a lock reach the die? asked at 0x3002/0x3003, not at the picture --
+  locked         wrote 0080, die: 024c 024c 024c 024c 024c 024c 024c 024c 024c 024c   dragged
+  locked         wrote 0400, die: 024c 024c 024c 024c 024c 024c 024c 024c 024c 024c   dragged
+  AE free        wrote 0080, die: 024c 024c 024c 024c 024c 024c 024c 024c 024c 024c   dragged
+  locked held both exposures:  NO
+  AE free dragged it back:     yes
+  -> THE EXPOSURE LOCK DOES NOT REACH THE DIE. The AE loop is still running
+     with the mask at zero, which is what pins the frame near mid-scale and
+     is what every flat handle in this directory has actually been.
+
+-- the handle, before anything is asked of the die --
+  ladder at rest
+    up    110 110 110 110 110 110
+    down  110 110 110 110 110 110
+    wobble 0, retrace 0 | H1 NO  H2 yes  -> NO HANDLE
+  -- recovery ladder --
+     rung 0: apply the auto mask a second time, no reset
+  ladder after rung 0
+    up    114 114 114 114 114 114
+    down  114 114 114 114 114 114
+    wobble 0, retrace 0 | H1 NO  H2 yes  -> NO HANDLE
+     rung 1: 0x07 bit 1, the documented I2C reset
+  ladder after rung 1
+    up    115 115 115 114 115 116
+    down  117 117 117 114 115 115
+    wobble 1, retrace 2 | H1 NO  H2 NO  -> NO HANDLE
+     rung 2: 0x07 bit 7, reset cache - i2crec came back on this
+  ladder after rung 2
+    up    115 115 115 115 116 117
+    down  116 116 116 116 116 116
+    wobble 1, retrace 1 | H1 NO  H2 yes  -> NO HANDLE
+     rung 3: 0x07 bit 6, reset FPGA - what cam_begin() uses
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  ladder after rung 3: CAPTURE FAILED - no frame came back, so there is nothing to
+    read here either way.
+     rung 4: the whole of cam_begin() again
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+  ladder after rung 4
+    up    122 122 122 122 122 122
+    down  123 123 123 123 123 122
+    wobble 0, retrace 1 | H1 NO  H2 NO  -> NO HANDLE
+  no rung passed. Top rung minus bottom rung, by rung:  0:0  1:1  2:2  3:2  4:0
+
+RESULT : NO HANDLE, AND NO RUNG BROUGHT IT BACK - not the mask again, not
+         0x07 bit 1, not bit 7, not bit 6, not the whole of cam_begin().
+         Nothing below can be read as a statement about white balance,
+         and the flat boot is worse than 20260907-i2crec left it: that
+         directory always recovered. Power-cycle the hub and repeat.

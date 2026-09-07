@@ -1,0 +1,124 @@
+
+=== Does the white-balance lock reach the die, and does it hold? (#30, #33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- warm-up, auto loops running --
+  settled at luma 133
+
+-- the handle, before anything is asked of the die --
+  ladder at rest
+    up    137 137 137 137 137 136
+    down  136 136 136 136 137 137
+    wobble 1, retrace 1 | H1 NO  H2 yes  -> NO HANDLE
+  -- recovery ladder --
+     rung 0: apply the auto mask a second time, no reset
+  ladder after rung 0
+    up     23  41  75 122 168 146
+    down   21  40  74  61  91 129
+    wobble 8, retrace 77 | H1 NO  H2 NO  -> NO HANDLE
+     rung 1: 0x07 bit 1, the documented I2C reset
+  ladder after rung 1
+    up     21  40  74 121 167 146
+    down   21  39  72  60  90 128
+    wobble 9, retrace 77 | H1 NO  H2 NO  -> NO HANDLE
+     rung 2: 0x07 bit 7, reset cache - i2crec came back on this
+  ladder after rung 2
+    up     21  40  74 120 166 145
+    down   23  42  73  60  91 128
+    wobble 8, retrace 75 | H1 NO  H2 NO  -> NO HANDLE
+     rung 3: 0x07 bit 6, reset FPGA - what cam_begin() uses
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  !! FIFO length 614400, buffer is 32768
+  ladder after rung 3
+    up     -1  -1  -1  -1  -1  -1
+    down   -1  -1  -1  -1  -1  -1
+    wobble 0, retrace 0 | H1 NO  H2 yes  -> NO HANDLE
+     rung 4: the whole of cam_begin() again
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+  ladder after rung 4
+    up    130 130 131 131 131 131
+    down  131 130 131 131 131 131
+    wobble 0, retrace 1 | H1 NO  H2 NO  -> NO HANDLE
+
+RESULT : NO HANDLE, AND NO RUNG BROUGHT IT BACK - not the mask again, not
+         0x07 bit 1, not bit 7, not bit 6, not the whole of cam_begin().
+         Nothing below can be read as a statement about white balance,
+         and the flat boot is worse than 20260907-i2crec left it: that
+         directory always recovered. Power-cycle the hub and repeat.

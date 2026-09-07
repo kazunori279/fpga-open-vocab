@@ -18,7 +18,7 @@ exist only to record a claim that later turned out to be false.
 
 ## How to read this file
 
-Fifty-nine dated entries, newest first. **Do not treat any single entry as the
+Sixty dated entries, newest first. **Do not treat any single entry as the
 current answer.** Several are here only because they were wrong, and the
 discipline is that a retraction sits beside the table it retracts rather than
 replacing it — so an entry can be accurate about what was measured that day and
@@ -36,7 +36,8 @@ weeks.
 [08-21 midday](#2026-08-21-midday--the-acquires-doubt-outlives-the-banner-and-a-settle-that-was-never-a-settle) ·
 [08-25](#2026-08-25-the-absent-rule-has-no-room-to-work-in-and-a-cache-that-outlived-its-sensor) ·
 [09-06](#2026-09-06-the-board-had-been-flagging-a-broken-camera-for-weeks-and-no-scorer-read-the-line) — refuses two benches and takes a +21.7 and a +33.4 point result with them ·
-[09-07](#2026-09-07-the-sensor-answers--and-the-thing-that-kept-it-silent-was-never-the-question-being-asked) — the sensor becomes readable, and a third camera fault turns out to have been sitting under the other two.
+[09-07](#2026-09-07-the-sensor-answers--and-the-thing-that-kept-it-silent-was-never-the-question-being-asked) — the sensor becomes readable, and a third camera fault turns out to have been sitting under the other two ·
+[09-07 later](#2026-09-07-later-the-white-balance-bit-lands-on-the-die-and-the-cure-written-up-that-morning-cures-nothing) — the white-balance bit is found at `0x332b`, and the morning's cure for that third fault is retracted the same day.
 
 **Drift, the auto loops, and #30.**
 [08-25 afternoon](#2026-08-25-afternoon-the-third-reference-on-the-board-and-the-band-that-could-not-have-fired) ·
@@ -87,6 +88,85 @@ the jumper, and M7 ending.
 Note [07-29, two boards](#2026-07-29--two-boards-one-alive-one-dead-corrected-2026-07-30): the "dead" board was never dead, and the strikethrough in that heading is the house style for a correction.
 
 [08-01 – 08-14](#2026-08-01--2026-08-14--where-this-logs-gap-went) explains the gap.
+
+---
+
+### 2026-09-07 later, the white-balance bit lands on the die, and the cure written up that morning cures nothing
+
+Eleven boots of `forgix_cam_awb`, following `'L'`'s AWB arm through the
+passthrough adopted in the entry below.
+[`bench/probe/20260907-awb/`](../bench/probe/20260907-awb/) has all of it.
+
+**What the bit does.** Sweeping 1024 addresses from `0x3000` with white balance
+free against white balance locked, three visits an arm, interleaved FREE LOCK
+LOCK FREE FREE LOCK:
+
+```
+  sensor   WB free        WB locked      verdict
+  0x301b   33 32 34      2f 2f 2d      separates but is not still - not claimed
+  0x30de   68 6a 68      79 7a 84      separates but is not still - not claimed
+  0x332b   10 10 10      18 18 18      W1 and W2 - RESPONDS
+  0x33ca   4a 4a 4a      41 41 41      W1 and W2 - RESPONDS
+```
+
+`0x332b` came back on four boots, twice under a different mask. The frame either
+side went `R 127 G 127 B 119` free to `R 114 G 133 B 89` locked — spread 8 to
+44, the same direction `20260825-camlock` saw. Neither address is named. Nothing
+here was read against a datasheet, and `0x301b` tracked *exposure* in the
+morning's sweep, which is enough of a warning.
+
+**And the correction.** The entry below says the deaf-exposure boots are a stale
+cache and that `0x07` bit 7 clears it. That is wrong, and it was wrong when it
+was written. Seven flat boots here walked the identical recovery ladder:
+
+```
+  rung 0: apply the auto mask a second time        0 of 7
+  rung 1: 0x07 bit 1, the documented I2C reset     1 of 7
+  rung 2: 0x07 bit 7, reset cache                  0 of 7
+  rung 3: 0x07 bit 6, reset FPGA                   0 of 7, and broke capture every time
+  rung 4: the whole of cam_begin() again           0 of 7
+```
+
+The morning's rung 2 had fired only after rungs 0 and 1 had run, and the handle
+that came back alive was measured after a *third* application of the mask. One
+observation of a five-step sequence, reported as one register write, and it was
+one register write away from going into the shipping path.
+
+**What the fault is.** Ask the die instead of the picture — write an exposure,
+read `0x3002`/`0x3003` back over a few seconds — and the flat boots are two
+different things wearing the same face. On one the die drags the value back to
+whatever its AE loop had settled on, locked and free alike, so the loop never
+stopped and the frame is parked at mid-scale because that is where a working AE
+loop parks a frame. On the other the die holds the write perfectly and the
+picture still does not move. Both read as a flat ladder around luma 110–120 from
+the host. Neither is fixable from here: the passthrough is a read path.
+
+**Three things got wrong on the way**, all in the instrument, all of which
+produced a confident wrong verdict first.
+
+Six exposures doubling from `0x00010` to `0x00200` span a factor of 32 and this
+sensor's floor-to-ceiling range at one gain is about 16, so *no* placement of
+those six fits inside it. Run 4's clean `21 41 75 122 176 222` was that fixed
+ladder happening to straddle the range in September daylight. Runs 5 and 6 sat
+too low (`5 4 7 19 43 84`, and `5 → 4` fails H1) and run 9 sat too high (`51 95
+146 180 180 180`, and `180 → 180` fails it too). The rungs are now placed
+against the die's own AE choice and stepped by three halves; H1 and H2 are
+untouched.
+
+A 16-bit read off this passthrough is two transactions and they tear — `0x0400`
+read back `040b`, high byte fresh and low byte stale. Run 6's ladder placement
+then picked the *stalest* reading in its table, because a stale reading matched
+the value it was hunting for exactly.
+
+And a wobble of 0 makes H2 unsatisfiable: run 10 held its handle through stage A
+and failed H2 on a retrace of 1, because the wobble came from three captures on
+the way up and the retrace compared it against a single capture on the way down.
+Same shape as the void two-point verdict below. A degenerate null turning one
+count into a signal is the mistake this repo keeps making.
+
+**Not claimed.** Whether the lock *holds* over a session. Stage D has never
+reached a board with a live handle, and its positive control has failed every
+time it has been read.
 
 ---
 
