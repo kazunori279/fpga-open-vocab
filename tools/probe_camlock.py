@@ -58,6 +58,13 @@ SKIP = 60        # past the ramp and past every arm's lock press
 FRAME = re.compile(r"^frame\s+(\d+)\s*:\s*(.*?)\s+led\s", re.MULTILINE)
 SCORE = re.compile(r"([a-z][a-z' ]*?)\s+([+-]\d+\.\d+)\*?(?=\s\s|$)")
 LOCK = re.compile(r"^camera\s*:\s*frozen now (.*?) at frame (\d+)", re.MULTILINE)
+# m9's 'M' key, which is a THIRD arm and not a lock: the ArduChip feeds a fixed
+# pattern and the sensor is out of the loop entirely. Matched separately because
+# it does not print "frozen now" and would otherwise be counted as `free` - the
+# one arm it is the exact opposite of. No log written before 2026-09-07 can
+# contain this line, so adding it rescores nothing.
+SYNTH = re.compile(r"^camera\s*:\s*frames now SYNTHETIC.*?at frame (\d+)",
+                   re.MULTILINE)
 
 
 def series(path):
@@ -77,6 +84,8 @@ def series(path):
     for name, zs in cols.items():
         if len(zs) != n:
             sys.exit(f"{path}: '{name}' has {len(zs)} scores against {n} frames")
+    if synth := SYNTH.search(text):
+        return frames, cols, ("synthetic", int(synth.group(1)))
     lock = LOCK.search(text)
     return frames, cols, (lock.group(1).strip(), int(lock.group(2))) if lock else None
 
