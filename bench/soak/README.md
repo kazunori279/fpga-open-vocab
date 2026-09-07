@@ -24,6 +24,7 @@ directory started as is the last section.
 | [`20260825-camlock/`](20260825-camlock/) | #30 | nineteen runs on an empty desk. Switching the white-balance loop off does not hold the white balance, and this is the first set here whose headline **fails** significance and says so |
 | [`20260906-camlock-cold/`](20260906-camlock-cold/) | #30 | pre-registered cold run, **aborted after one pair** when the instrument turned out to be broken. The design was never spent and carries forward |
 | [`20260907-camlock-cold/`](20260907-camlock-cold/) | #30 | the second attempt, incorporating the design above by hash rather than by copy |
+| [`20260907-simsrc-vs-live/`](20260907-simsrc-vs-live/) | #30 | **two runs, and not a bench.** The sensor taken out of the loop scores 541 frames at a `common` walk of exactly 0.00. Everything downstream of the sensor is ruled out; the prediction was zero and was written down first |
 | the four `usb_watch-*.log.gz` slices | #9 | one `host/usb_watch.py` process polling every port `uhubctl` can see, once a second, since 2026-08-16 |
 
 Like [`../cue/`](../cue/), the 08-15 logs lived in `/tmp` until they were

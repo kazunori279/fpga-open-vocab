@@ -65,3 +65,58 @@ published reference and not re-measured.
 that the rig still behaves like it did this morning, not an estimate of
 anything. If it lands outside the free arm's 1.38 – 2.94, the session says
 nothing about the synthetic arm either and has to be repeated.
+
+## The prediction was exactly zero and the arm returned exactly zero
+
+`uv run --script tools/probe_camlock.py bench/soak/20260907-simsrc-vs-live/live.log bench/soak/20260907-simsrc-vs-live/synth.log`
+
+| run | arm | n | `common` | `margin` | cm sd | mg sd |
+|---|---|---|---|---|---|---|
+| `live` | free | 542 | 2.45 | 3.12 | 1.13 | 1.20 |
+| `synth` | synthetic | 541 | **0.00** | **0.00** | **0.00** | **0.00** |
+
+The live arm's 2.45 is inside the free arm's 1.38 – 2.94, so the pre-registered
+sanity criterion passes and the synthetic arm can be read.
+
+**541 scored frames of the synthetic arm carry one distinct score line between
+them** — `a closed book -8.59  an opened book -10.72` — for two minutes and
+thirty-six seconds. Not a rounding artefact and not a parse failure: the numbers
+are real and separated, and `sort -u` over the scored window returns exactly one
+row. The sd columns are 0.00 for the same reason the walk columns are.
+
+## What it rules out, and it is most of the appliance
+
+Everything downstream of the sensor readout contributes **exactly nothing** to
+the walk over three minutes: the capture path, the PIO burst, the T8's eight
+convolutions, the int4 weights, the pool, the head, the cosine and the z. Not
+"a small amount" — zero, to the resolution the board prints. Whatever moves the
+live arm's 2.45 enters the chain **at or before the frame leaving the sensor.**
+
+Combined with [`../20260907-camlock-cold/`](../20260907-camlock-cold/), where
+locking exposure and gain did not reduce the walk, that leaves a short list. The
+lock arm there was `CAM_LOCK_STEPS` step 1, which freezes exposure and gain and
+**leaves AWB running on purpose**, so the auto white balance is still a live
+suspect and is the one `'L'`'s second press turns off.
+
+## What it does NOT say, and this is the limit that matters
+
+**It does not separate the sensor from the scene.** Taking the sensor out of the
+loop removes the room along with it, so a walk that is really the light changing
+and a walk that is really the sensor re-deciding are both excluded by this arm
+and neither is identified. This session narrows the suspect to "at or before the
+sensor". It does not narrow it further, and no reading of `0.00` ever can.
+
+One observation with no test behind it, recorded rather than given one after
+the fact: the live arm's `margin` walk of 3.12 is **larger** than its `common`
+walk of 2.45. #30 is a common-mode story and the probe's docstring treats
+`margin` as the column that should not move. On this one run it moves more. That
+is a single run on a scene with objects in it, which is not the condition either
+number was designed for, so it is a thing to look at and not a finding.
+
+That limit is sharper here than it would have been this morning, because **the
+scene was not the camlock sessions' blank wall.** It was an ordinary evening
+desk: 264 of 602 live frames scored a MATCH and the level swung from -3.11 to
++3.70. The scene was left motionless as the protocol requires and the run's
+`common` still landed inside the free arm's published range, which is what the
+criterion asked. But the live arm here is a rig check and nothing else, and it
+is not a replication of the camlock free arm on a different day.

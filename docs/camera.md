@@ -259,11 +259,14 @@ In the order the value falls. The hold this list used to carry — nothing befor
 finished, because its firmware was pinned by md5 — came off on 2026-09-07 when
 that session completed and was read out:
 
-1. ~~**Add a simulated-data mode**~~ — **done on 2026-09-07. `0x06` bit[7], not
-   `0x05`, and it is m9's `'M'` key.** The scoring chain is bit-flat on it, so
-   #30's walk is the camera or the scene and nothing downstream of the sensor.
-   What is left is spending it: a soak on `'M'` long enough to compare against a
-   live one of the same length.
+1. ~~**Add a simulated-data mode**~~ — **done and spent on 2026-09-07. `0x06`
+   bit[7], not `0x05`, and it is m9's `'M'` key.** 541 frames scored, `common`
+   walk **0.00** against a live arm's 2.45
+   ([`20260907-simsrc-vs-live/`](../bench/soak/20260907-simsrc-vs-live/)).
+   Everything downstream of the sensor readout contributes exactly nothing to
+   #30's walk. The suspect is now "at or before the sensor", and since locking
+   exposure and gain did not reduce it either, **AWB is what is left** — which
+   `'L'`'s second press turns off and no session has run.
 2. **Finish the I²C passthrough** (`0x0B`, `0x0C`, `0x07` bit[0]). It is the only
    readback of the exposure loop that exists, and #33 has been waiting on it.
    [`20260907-camlock-cold/`](../bench/soak/20260907-camlock-cold/) gave it a
