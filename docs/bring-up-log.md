@@ -18,7 +18,7 @@ exist only to record a claim that later turned out to be false.
 
 ## How to read this file
 
-Sixty-three dated entries, newest first. **Do not treat any single entry as the
+Sixty-four dated entries, newest first. **Do not treat any single entry as the
 current answer.** Several are here only because they were wrong, and the
 discipline is that a retraction sits beside the table it retracts rather than
 replacing it — so an entry can be accurate about what was measured that day and
@@ -40,7 +40,8 @@ weeks.
 [09-07 later](#2026-09-07-later-the-white-balance-bit-lands-on-the-die-and-the-cure-written-up-that-morning-cures-nothing) — the white-balance bit is found at `0x332b`, and the morning's cure for that third fault is retracted the same day ·
 [09-07 evening](#2026-09-07-evening-the-exposure-lock-fails-on-32-boots-in-33-and-the-check-written-to-catch-it-could-not-fail) — the third fault gets a rate, and it is not "some acquires" ·
 [09-07 night](#2026-09-07-night-the-last-cure-loses-to-doing-nothing-and-the-fault-that-had-never-been-looked-for-is-the-unlock) — the last cure loses to a null arm, the other two loops turn out to lock fine, and a *fourth* fault appears facing the other way ·
-[09-07 late](#2026-09-07-late-night-the-one-register-that-does-what-its-datasheet-says-and-the-reason-to-use-it-is-not-the-reason-written-down) — the last unprobed register does exactly what the note says, and the argument for using it turns out to be the wrong one.
+[09-07 late](#2026-09-07-late-night-the-one-register-that-does-what-its-datasheet-says-and-the-reason-to-use-it-is-not-the-reason-written-down) — the last unprobed register does exactly what the note says, and the argument for using it turns out to be the wrong one ·
+[09-08](#2026-09-08-morning-the-white-balance-register-holds-and-the-picture-does-not-which-is-a-claim-the-probe-never-made) — a register that holds and a picture that survives turn out to be different claims, and #30's arm shrinks to one loop.
 
 **Drift, the auto loops, and #30.**
 [08-25 afternoon](#2026-08-25-afternoon-the-third-reference-on-the-board-and-the-band-that-could-not-have-fired) ·
@@ -91,6 +92,56 @@ the jumper, and M7 ending.
 Note [07-29, two boards](#2026-07-29--two-boards-one-alive-one-dead-corrected-2026-07-30): the "dead" board was never dead, and the strikethrough in that heading is the house style for a correction.
 
 [08-01 – 08-14](#2026-08-01--2026-08-14--where-this-logs-gap-went) explains the gap.
+
+---
+
+### 2026-09-08 morning, the white-balance register holds and the picture does not, which is a claim the probe never made
+
+A short entry, and it is a correction of something written a few hours earlier
+in this file rather than of anything measured yesterday. The measurement stands;
+the conclusion drawn from it this morning did not survive one run.
+
+**What yesterday measured.** [`20260907-hold/`](../bench/probe/20260907-hold/)
+asked which of the three auto loops obey `cam_image_auto_mask()`. Exposure does
+not — 32 boots of 33 drag, and nothing cures it. Gain does — 0 of 140 polls
+dragged. And white balance does: `0x332b` read `18` on every locked visit across
+forty seconds, against a free arm that read differently.
+
+**What was built on it this morning.** `m9`'s `CAM_LOCK_STEPS` had `CAM_AUTO_WB`
+as #30's arm — freeze exposure and gain, leave the AWB alone — chosen on 08-25
+from which loop *moves the pixels*. Knowing now which loop *obeys*, the obvious
+repair is to turn it round: leave the AE free, since it runs either way and the
+harm is a log that claims otherwise, and freeze the two that stick. That was
+written, flashed, and run against a no-lock control on the same desk minutes
+apart:
+
+| arm | last frame mean RGB |
+|---|---|
+| nothing frozen | 133 130 132 |
+| **gain + white balance frozen** | **133 153 79** |
+| gain only | 135 132 135, and 135 132 133 on a repeat |
+
+The middle row is green. It is the same shape as the `+ white balance frozen`
+row in `20260825-camlock/`'s table — the row that attribution already pointed
+at — reached this time **without freezing the exposure**, which is what makes it
+new: the AWB switch does it on its own, not in combination.
+
+**The error is a conflation and it is worth naming.** A register that holds and
+a picture that survives are different claims. `0x332b` sitting at `18` for forty
+seconds is consistent with the colour gains being *held* and equally consistent
+with their being *dropped to a stuck value*, and a probe that never looks at the
+frame cannot tell those apart. `20260907-hold/` never looked at the frame. Its
+number is right and the word "holds" in front of it was doing more work than the
+number could carry.
+
+So the arm is the gain and nothing else — `CAM_AUTO_EXPOSURE | CAM_AUTO_WB`,
+leaving both the loop that ignores the mask and the loop that wrecks the frame
+free. It is a deliberately weak intervention: it can remove the gain's share of
+#30's common-mode walk and no more. That share has never been measured on its
+own, and the subtraction against the free arm is the whole of what it is for.
+
+Both green arms are kept in the step table as controls, so the fault is one
+keypress away rather than a paragraph in a log.
 
 ---
 

@@ -13,7 +13,8 @@ likely:
    20 polls dragged, on all 7 boots that ran the poll. The gain lock takes.
 2. **The white-balance lock holds for the full 40 seconds**, on all 7 boots that
    had a control to hold it against, including every boot whose exposure lock
-   was failing at the same moment.
+   was failing at the same moment. *The register holds. The picture under it
+   does not — see the 2026-09-08 addendum in §3 before using this.*
 3. **What fails instead is the unlock.** Switching the loops back *on* did not
    take on 2 to 6 of 8 attempts a boot — a fault nobody has been looking for,
    pointing the opposite way from #33.
@@ -85,6 +86,21 @@ and at second 40, on all 7 boots. The locked arm never wandered. The blue
 channel sits near 90 locked and near 133 free, the same direction
 [`../../soak/20260825-camlock/`](../../soak/20260825-camlock/) saw.
 
+**Added 2026-09-08.** That last sentence is in the wrong tone and it cost a day.
+Blue at 90 was written here as corroboration — the means move with the register,
+so the register must be doing something. It is corroboration. It is also the
+frame being unusable, and this directory never said so, because a probe that
+reads registers has no opinion about pictures. When #30's arm was widened to
+include the white balance on the strength of §3's headline, the frame went
+green: `R 133 G 153 B 79` against a free control's `R 133 G 130 B 132`, which is
+the table above, reproduced through `demo.py` on a scene instead of a probe.
+
+A gain dragged down to a stuck value reads exactly as still as a gain held at a
+good one. Every stillness test in this directory passes either way, so **"the
+white-balance lock holds" is a claim about `0x332b` and about nothing else.**
+The arm shipped in `m9` is the gain and nothing else; see
+[`../../../docs/bring-up-log.md`](../../../docs/bring-up-log.md), 2026-09-08.
+
 ## 4. The unlock is the thing that fails
 
 The first boot voided, and the reason is the finding. The pooled rule — no value
@@ -133,6 +149,10 @@ throughout.
 
 - **Not that `'L'` is safe.** Two of its three loops lock; the third does not,
   and switching any of them back on is unreliable. Both halves need handling.
+- **Not that a held white balance is a usable white balance.** §3 measures
+  `0x332b`, which holds, and says nothing about whether the frame under it is
+  worth classifying. It is not: it is green. The two claims were conflated once
+  already, on 2026-09-08, and the fix is in that day's log entry.
 - **Not that the gain lock is useful yet.** `0x31`/`0x32` respond and the value
   sticks, but `../20260907-manexp/` measured the gain curve as non-monotone —
   peaking at `0x010`, dipping through `0x100`. A wanted gain still has to be

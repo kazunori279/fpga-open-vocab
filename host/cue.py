@@ -820,14 +820,20 @@ def main() -> int:
                          "out")
     ap.add_argument("--lock-camera", action="store_true",
                     help="issue #30. On the last frame of the baseline - before "
-                         "any enrolment - freeze the camera's exposure and gain "
-                         "where the room has just settled them, and leave them "
-                         "frozen for the run. NOT the white balance: switching "
-                         "that loop off does not hold the colour gains, it "
-                         "drops them, and the frame goes green within thirty "
-                         "frames (bench/soak/20260825-camlock/). Off by "
-                         "default, because the whole archive was taken with "
-                         "them free-running and this is the A/B against it")
+                         "any enrolment - freeze the camera's GAIN where the "
+                         "room has just settled it, and leave it frozen for the "
+                         "run. Not the exposure: the AE loop ignores the mask on "
+                         "32 boots of 33 (bench/probe/20260907-lockrate/), so "
+                         "asking puts a claim in the log the sensor does not "
+                         "honour. Not the white balance: switching that loop off "
+                         "does not hold the colour gains, it drops them, and the "
+                         "frame goes green - 133 153 79 against a free arm's 133 "
+                         "130 132 on 2026-09-08, with the exposure left free, so "
+                         "it is the AWB switch on its own and not the "
+                         "combination. That leaves one loop that both obeys and "
+                         "survives being obeyed, and this is it. Off by default, "
+                         "because the whole archive was taken with all three "
+                         "free-running and this is the A/B against it")
     ap.add_argument("--preview", type=int, default=0, metavar="N",
                     help=f"ask the board for a picture every N frames and keep "
                          f"{PREVIEW_PNG} showing the newest one. Costs ~44 KB "
