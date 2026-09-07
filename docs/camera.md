@@ -56,24 +56,40 @@ the auto-exposure loop by watching the pixels change over a ramp, which is
 exactly what `ft_acquire()` does and exactly why its answer is a judgement call
 that can be wrong in two directions.
 
-## The way round it, which the driver has half-built
+## The way round it, and it works
 
 The ArduChip can pass an I²C transaction through to the sensor die, where the
-real AEC/AGC registers live and **are** readable.
+real AEC/AGC registers live and **are** readable. This has now been fired and
+measured; the addresses below are in `firmware/cam.h`.
 
 | reg | type | what | used today |
 |---|---|---|---|
 | `0x0A` | RW | I²C device address | **yes** — `cam.c` writes `0x78` |
-| `0x0B` | RW | I²C register address, upper 8 bits | no |
-| `0x0C` | RW | I²C register address, lower 8 bits | no |
-| `0x07` bit[0] | RW | write 1 to **initiate an I²C direct read** | no |
+| `0x0B` | RW | I²C register address, upper 8 bits | measured, not yet in `cam.c` |
+| `0x0C` | RW | I²C register address, lower 8 bits | measured, not yet in `cam.c` |
+| `0x07` bit[0] | RW | write 1 to **initiate an I²C direct read** | measured, not yet in `cam.c` |
+| `0x48` | RO | the byte the read returned | measured, not yet in `cam.c` |
 
-`cam_begin()` writes the device address and stops there, so the passthrough is
-configured and never fired. Completing it is the only route to a genuine
-readback of what the exposure loop is doing, and it is what
-[#33](https://github.com/kazunori279/fpga-open-vocab/issues/33)'s first item
-was asking for. Which sensor registers to read then depends on the die, which
-`0x40` identifies (this module reads `0x82`).
+Write the die address to `0x0A`, the sensor register to `0x0B`/`0x0C`, fire
+`0x07` bit 0, wait idle, read `0x48`.
+
+**The die is an OV3640**, not whatever `0x40`'s `0x82` was meant to mean:
+`0x300A`/`0x300B` return `0x36`/`0x4C` through this path, on six boots. And the
+readback is real — the sixteen bits written into the WO exposure block at
+`0x33`–`0x35` come back out at `0x3002`/`0x3003`, byte for byte, on two
+consecutive boots, with a handle on the exposure surface held either side of the
+sweep and the product ID standing as a positive control.
+[`bench/probe/20260907-i2crec/`](../bench/probe/20260907-i2crec/) has the runs;
+[`bench/probe/20260907-i2cpass/`](../bench/probe/20260907-i2cpass/) has the
+first firing and one conclusion it got wrong.
+
+**Firing the passthrough costs nothing.** Checked at one fire, at thirty-six,
+and at 3072, with a six-rung exposure ladder either side of each.
+
+One caveat the shipping path has to carry: the manual exposure surface comes up
+deaf on some boots, with nothing fired, and **`0x07` bit 7 — reset cache —
+clears it**. One register write. `0x07` bit 1, the documented I²C reset, does
+not. Why the cache goes stale between boots is unknown.
 
 ## Registers the driver does not use, in the order they are worth something
 
@@ -267,12 +283,17 @@ that session completed and was read out:
    #30's walk. The suspect is now "at or before the sensor", and since locking
    exposure and gain did not reduce it either, **AWB is what is left** — which
    `'L'`'s second press turns off and no session has run.
-2. **Finish the I²C passthrough** (`0x0B`, `0x0C`, `0x07` bit[0]). It is the only
-   readback of the exposure loop that exists, and #33 has been waiting on it.
-   [`20260907-camlock-cold/`](../bench/soak/20260907-camlock-cold/) gave it a
-   sharper question than it had: locking exposure and gain did not reduce the
-   walk, and three of eight locked runs moved their level by 14 to 18 after the
-   freeze, which the AWB drift in `cam.h:245` does not account for.
+2. ~~**Finish the I²C passthrough**~~ (`0x0B`, `0x0C`, `0x07` bit[0]) —
+   **measured and adopted on 2026-09-07.** `0x48` returns the exposure this
+   firmware wrote, byte for byte, at the OV3640's `0x3002`/`0x3003`, on two
+   consecutive boots
+   ([`20260907-i2crec/`](../bench/probe/20260907-i2crec/)). What is left is
+   putting it in the driver: a `cam_sensor_read()` in `cam.c`, and the `0x07`
+   bit 7 cache reset before the exposure surface is used. That turns the sharper
+   question [`20260907-camlock-cold/`](../bench/soak/20260907-camlock-cold/)
+   asked — three of eight locked runs moved their level by 14 to 18 after the
+   freeze, which the AWB drift in `cam.h:245` does not account for — into
+   something answerable by reading the die instead of the pixels.
 3. ~~**Write explicit exposure and gain**~~ — **probed on 2026-09-07 and both
    groups respond**, so `'L'` can lock rather than hope. What is left is doing
    it, and the two open items above the section are part of the job: the loops

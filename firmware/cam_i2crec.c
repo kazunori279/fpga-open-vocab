@@ -93,18 +93,18 @@
 #include "cam.h"
 #include "qspi_park.h"
 
-#define CAM_REG_I2C_ADDR_H         0x0B
-#define CAM_REG_I2C_ADDR_L         0x0C
-#define CAM_I2C_INITIATE_READ      0x01u
+// CAM_REG_I2C_ADDR_H/_L, CAM_REG_I2C_DATA, CAM_I2C_INITIATE_READ and
+// CAM_SENSOR_I2C_ADDR now live in cam.h - adopted on the strength of this file's
+// stage B. What is left here is the reset bits and the WO exposure block, which
+// only a probe needs.
 #define CAM_I2C_RESET              0x02u   // 0x07 bit[1], the documented one
 #define CAM_FPGA_RESET             0x40u   // 0x07 bit[6], what cam_begin() uses
 #define CAM_CACHE_RESET            0x80u   // 0x07 bit[7], what cam.c:455 uses
 #define CAM_REG_MANUAL_EXPOSURE_H  0x33
 #define CAM_REG_MANUAL_EXPOSURE_M  0x34
 #define CAM_REG_MANUAL_EXPOSURE_L  0x35
-#define CAM_REG_I2C_DATA           0x48   // named by 20260907-i2cpass, not adopted
 
-#define SENSOR_I2C_ADDR 0x78
+#define SENSOR_I2C_ADDR CAM_SENSOR_I2C_ADDR
 #define EXP_LOW   0x00010u
 #define EXP_HIGH  0x00200u
 #define FIRES     36            // what the last probe did, reproduced exactly
@@ -112,6 +112,28 @@
 // 0x300A is where the OV3640 keeps the high byte of its product id, and the
 // last probe read 0x36 there. Used only to confirm a fire went out at all.
 #define SENSOR_ID_HIGH 0x300A
+
+// Stage B's sweep, and the base moved after the first run of it.
+//
+// cam_i2c.c's stage B was written to sweep 0x3400-0x35FF, and run here it found
+// 0 of 512 with a handle alive on both sides. That null is worth much less than
+// it looks, for two reasons the first run made obvious. The OV3640 keeps its
+// automatic exposure at 0x3002-0x3003, which 0x3400 does not contain; and a
+// sweep that returns nothing everywhere is indistinguishable from a sweep that
+// is not reading anything at all.
+//
+// 0x3000 fixes both. It covers the exposure registers, and it contains the one
+// address in this whole probe whose answer is already known: stage A read 0x36
+// and 0x4C at 0x300A and 0x300B across four runs, which is the OV3640's product
+// ID. Those two are a POSITIVE CONTROL the sweep gets for free - if 512 reads
+// starting at 0x3000 do not reproduce them, the sweep is broken and its null is
+// not evidence about anything. That check is not a rule about 0x48; it is a
+// rule about whether this stage is measuring.
+#define SWEEP_BASE  0x3000
+#define NSWEEP      512
+#define CTRL_A      0x300A   // reads 0x36 - OV3640 product ID high
+#define CTRL_B      0x300B   // reads 0x4C - and low
+static uint8_t lo_v[NSWEEP][3], hi_v[NSWEEP][3];
 
 static uint8_t raw[128 * 128 * 2];
 static uint8_t m128;
@@ -148,6 +170,81 @@ static int range3(const int *v)
         if (v[i] > hi) hi = v[i];
     }
     return hi - lo;
+}
+
+// THE LADDER, and it is here because two points were not enough twice.
+// cam_i2c.c's stage B gate passed on 97 against 100, was tightened to
+// parting-versus-wobble, and then passed again on a parting of 4 against a
+// wobble of 2 - and both times the sweep behind it reported nothing and a
+// verdict was printed calling 0x48 an artefact. Both are void. The answer is
+// not a floor under the parting, which would be a constant fitted to the two
+// runs that embarrassed us; it is more points. Six exposures each double the
+// last, up and then down:
+//
+//   H1  luma rises at EVERY rung by more than the worst within-rung wobble
+//   H2  the descent retraces to within that same wobble
+//
+// Relations among this run's own measurements, no number in either. Noise that
+// can fake a four-count parting cannot climb five rungs and come back down
+// through the same five. This is the gate stage B runs behind.
+#define NRUNG 6
+static const uint32_t LADDER[NRUNG] = {
+    0x00010u, 0x00020u, 0x00040u, 0x00080u, 0x00100u, 0x00200u,
+};
+static int ladder_wobble;
+
+static int rangen(const int *v, int n)
+{
+    int lo = v[0], hi = v[0];
+    for (int i = 1; i < n; i++) {
+        if (v[i] < lo) lo = v[i];
+        if (v[i] > hi) hi = v[i];
+    }
+    return hi - lo;
+}
+
+static bool ladder(const char *when)
+{
+    int up[NRUNG], down[NRUNG], wob[NRUNG];
+
+    for (int i = 0; i < NRUNG; i++) {
+        int rep[3];
+        write_exposure(LADDER[i]);
+        for (int k = 0; k < 4; k++) (void)luma();
+        for (int k = 0; k < 3; k++) rep[k] = luma();
+        up[i]  = rep[0];
+        wob[i] = rangen(rep, 3);
+    }
+    for (int i = NRUNG - 1; i >= 0; i--) {
+        write_exposure(LADDER[i]);
+        for (int k = 0; k < 4; k++) (void)luma();
+        down[i] = luma();
+    }
+
+    int worst = 0;
+    for (int i = 0; i < NRUNG; i++) if (wob[i] > worst) worst = wob[i];
+    ladder_wobble = worst;
+
+    bool h1 = true;
+    for (int i = 1; i < NRUNG; i++)
+        if (up[i] - up[i - 1] <= worst) h1 = false;
+
+    int retrace = 0;
+    for (int i = 0; i < NRUNG; i++) {
+        int d = up[i] - down[i];
+        if (d < 0) d = -d;
+        if (d > retrace) retrace = d;
+    }
+    bool h2 = retrace <= worst;
+
+    printf("  ladder %s\n    up   ", when);
+    for (int i = 0; i < NRUNG; i++) printf("%4d", up[i]);
+    printf("\n    down ");
+    for (int i = 0; i < NRUNG; i++) printf("%4d", down[i]);
+    printf("\n    wobble %d, retrace %d | H1 %s  H2 %s  -> %s\n",
+           worst, retrace, h1 ? "yes" : "NO", h2 ? "yes" : "NO",
+           (h1 && h2) ? "HANDLE" : "NO HANDLE");
+    return h1 && h2;
 }
 
 // Self-contained on purpose: it applies the mask itself, so what it reports is
@@ -511,6 +608,204 @@ int main(void)
                    "property of the passthrough. 0x30 is\n  write-only, so "
                    "there is nothing to read back - the only check available "
                    "is\n  the handle itself.\n");
+    }
+
+    // ------------------------------------------------------------- stage B --
+    // THE CAUSAL CHECK, RUN IN THIS BINARY BECAUSE cam_i2c.c CANNOT HOLD A
+    // HANDLE. Six boots of that file have tried and none got one; three of the
+    // four boots of this one did, off the same luma(), the same
+    // write_exposure(), the same exposures and - in phase 5 above - the same
+    // stage A. Chasing the difference cost five runs and produced two refuted
+    // predictions (apply the mask twice; drop the CAM_AUTO_ALL re-enable) and
+    // one that only half worked (put the mask on before the fires). Moving the
+    // sweep to the binary that works is not a workaround for that mystery, it
+    // is declining to make stage B wait on it. The mystery is written down in
+    // the README and still open.
+    //
+    // WHAT WOULD MAKE 0x48 A READBACK. Stage A named it by where its value
+    // comes from - it depends on which sensor address was asked for. That is
+    // consistent with a data register and equally consistent with an echo of
+    // something the probe itself put on the bus. The way to tell is to change
+    // something on the DIE that the probe does not write directly, and see it
+    // come back: set two exposures four decades apart through 0x33-0x35, sweep
+    // 512 sensor addresses at each, and look for one whose value follows.
+    //
+    //   B1  the value at that address differs between the two exposures
+    //   B2  it is stable across three visits at each exposure
+    //
+    // Neither has a number in it. B2 is what stops a register that is merely
+    // noisy from being read as one that tracks.
+    //
+    // AND THE GATE IS CHECKED ON BOTH SIDES. cam_i2c.c printed "THE PICTURE DID
+    // NOT BRIGHTEN" and then reported 0 tracked and condemned 0x48 anyway. A
+    // sweep run on a die whose exposure is not moving collects nothing and
+    // means nothing, and it takes minutes, so the handle is re-checked after.
+    printf("\n-- stage B: does anything read through 0x%02x track an exposure "
+           "we set? --\n", CAM_REG_I2C_DATA);
+
+    if (!ladder("before the sweep")) {
+        printf("\nRESULT : the handle did not survive to stage B. THIS IS NOT A "
+               "VERDICT ON\n         0x%02x EITHER WAY.\n", CAM_REG_I2C_DATA);
+        while (true) tight_loop_contents();
+    }
+
+    write_exposure(EXP_LOW);
+    for (int i = 0; i < 4; i++) (void)luma();
+    int lo_luma = luma();
+    for (int v = 0; v < 3; v++)
+        for (int a = 0; a < NSWEEP; a++) {
+            fire_read((uint16_t)(SWEEP_BASE + a));
+            lo_v[a][v] = cam_read_reg(CAM_REG_I2C_DATA);
+        }
+
+    write_exposure(EXP_HIGH);
+    for (int i = 0; i < 4; i++) (void)luma();
+    int hi_luma = luma();
+    for (int v = 0; v < 3; v++)
+        for (int a = 0; a < NSWEEP; a++) {
+            fire_read((uint16_t)(SWEEP_BASE + a));
+            hi_v[a][v] = cam_read_reg(CAM_REG_I2C_DATA);
+        }
+
+    int sweep_part = lo_luma - hi_luma;
+    if (sweep_part < 0) sweep_part = -sweep_part;
+    printf("  exposure 0x%05x -> luma %d,  0x%05x -> luma %d   (parting %d "
+           "against the ladder's wobble of %d)\n",
+           EXP_LOW, lo_luma, EXP_HIGH, hi_luma, sweep_part, ladder_wobble);
+    if (sweep_part <= ladder_wobble) {
+        printf("\nRESULT : THE HANDLE WAS GONE BY THE END OF THE SWEEP, so the "
+               "value it was\n         looking for was never on the die. THIS "
+               "IS NOT A VERDICT ON 0x%02x\n         EITHER WAY.\n",
+               CAM_REG_I2C_DATA);
+        while (true) tight_loop_contents();
+    }
+
+    // IS THE SWEEP READING ANYTHING? Asked before the table, because a null
+    // from a sweep that is not reading is not a null about 0x48.
+    uint8_t ca_lo = lo_v[CTRL_A - SWEEP_BASE][0], ca_hi = hi_v[CTRL_A - SWEEP_BASE][0];
+    uint8_t cb_lo = lo_v[CTRL_B - SWEEP_BASE][0], cb_hi = hi_v[CTRL_B - SWEEP_BASE][0];
+    bool ctrl_ok = ca_lo == 0x36 && ca_hi == 0x36 && cb_lo == 0x4c && cb_hi == 0x4c;
+    printf("\n  positive control: 0x%04x reads %02x/%02x and 0x%04x reads "
+           "%02x/%02x (low/high exp)\n", CTRL_A, ca_lo, ca_hi, CTRL_B,
+           cb_lo, cb_hi);
+    printf("  the product ID the sweep should find, 36 and 4c: %s\n",
+           ctrl_ok ? "found, so the sweep is reading"
+                   : "NOT FOUND - THE SWEEP IS NOT READING");
+    if (!ctrl_ok) {
+        printf("\nRESULT : the sweep could not reproduce a value four earlier "
+               "runs read at\n         the same address, so whatever the table "
+               "below says it is not\n         about 0x%02x. THIS IS NOT A "
+               "VERDICT EITHER WAY.\n", CAM_REG_I2C_DATA);
+        while (true) tight_loop_contents();
+    }
+
+    printf("\n  %d addresses swept from 0x%04x. Only the ones that moved:\n\n",
+           NSWEEP, SWEEP_BASE);
+    printf("  %-8s %-14s %-14s %s\n", "sensor", "at low exp", "at high exp",
+           "verdict");
+    int tracks = 0, unstable = 0, first = -1;
+    for (int a = 0; a < NSWEEP; a++) {
+        uint8_t l3[3] = { lo_v[a][0], lo_v[a][1], lo_v[a][2] };
+        uint8_t h3[3] = { hi_v[a][0], hi_v[a][1], hi_v[a][2] };
+        int lw = 0, hw = 0;
+        for (int i = 1; i < 3; i++) {
+            if (l3[i] != l3[0]) lw = 1;
+            if (h3[i] != h3[0]) hw = 1;
+        }
+        bool stable = !lw && !hw;
+        bool differs = l3[0] != h3[0];
+        if (!stable) unstable++;
+        if (stable && !differs) continue;
+        printf("  0x%04x   %02x %02x %02x      %02x %02x %02x      %s\n",
+               (unsigned)(SWEEP_BASE + a), l3[0], l3[1], l3[2],
+               h3[0], h3[1], h3[2],
+               (stable && differs) ? "B1 and B2 - TRACKS" : "unstable");
+        if (stable && differs) { tracks++; if (first < 0) first = a; }
+    }
+    printf("\n  %d tracked, %d unstable, %d unchanged and not listed.\n",
+           tracks, unstable, NSWEEP - tracks - unstable);
+
+    if (!ladder("after the sweep")) {
+        printf("\nRESULT : the handle was alive going in and dead coming out, "
+               "so the table\n         above spans a change in the die that "
+               "this probe stopped\n         controlling partway. THIS IS NOT "
+               "A VERDICT ON 0x%02x EITHER WAY.\n", CAM_REG_I2C_DATA);
+        while (true) tight_loop_contents();
+    }
+
+    // B3, AND IT IS WORTH MORE THAN B1 AND B2 TOGETHER.
+    //
+    // B1 and B2 only ask whether SOMETHING follows the exposure. The first run
+    // of this sweep at 0x3000 answered something much stronger without being
+    // asked: 0x3002 and 0x3003 read 00/10 at an exposure written as 0x00010 and
+    // 02/00 at one written as 0x00200. That is the value this firmware put into
+    // the ArduChip's 0x33-0x35, coming back byte for byte out of the die's own
+    // registers, at the two addresses an OV3640 keeps its automatic exposure
+    // at - an agreement with a part number nobody in this experiment chose.
+    //
+    // A tracking register could be a coincidence at four addresses out of 512.
+    // A tracking register that returns the exact sixteen bits that were written
+    // cannot be. So B3 is stated here as a rule rather than admired as an
+    // observation, and it is checked against what THIS run wrote rather than
+    // against the bytes the first run happened to see.
+    uint16_t want_lo = (uint16_t)(EXP_LOW  & 0xffffu);
+    uint16_t want_hi = (uint16_t)(EXP_HIGH & 0xffffu);
+    uint16_t got_lo = (uint16_t)((lo_v[0x3002 - SWEEP_BASE][0] << 8) |
+                                  lo_v[0x3003 - SWEEP_BASE][0]);
+    uint16_t got_hi = (uint16_t)((hi_v[0x3002 - SWEEP_BASE][0] << 8) |
+                                  hi_v[0x3003 - SWEEP_BASE][0]);
+    bool b3 = got_lo == want_lo && got_hi == want_hi;
+    printf("\n  B3: exposure written 0x%04x, read back from 0x3002/0x3003 as "
+           "0x%04x\n      exposure written 0x%04x, read back as 0x%04x   ->  "
+           "%s\n",
+           want_lo, got_lo, want_hi, got_hi,
+           b3 ? "BYTE FOR BYTE" : "they do not match");
+
+    printf("\n=== stage B ===\n\n");
+    if (b3) {
+        printf("  0x%02x IS A READBACK, AND THIS IS THE STAGE THAT WAS "
+               "MISSING.\n\n  The sixteen bits this firmware wrote into "
+               "0x33-0x35 came back out of the\n  die through 0x%02x, at "
+               "0x3002 and 0x3003, which is where an OV3640 keeps\n  its "
+               "automatic exposure - the same part number stage A read off "
+               "0x300A\n  and 0x300B. The value cannot be an echo of the "
+               "question: the probe never\n  writes 0x3002, it only asks for "
+               "it, and what comes back is a number the\n  sensor was told by "
+               "a different register entirely.\n",
+               CAM_REG_I2C_DATA, CAM_REG_I2C_DATA);
+        printf("\n  %d addresses tracked in all and the other %d are the "
+               "sensor's own\n  business - an exposure change moves more than "
+               "the register it is stored\n  in. 0x301B and 0x30DE are not "
+               "identified here and are not claimed.\n", tracks, tracks - 1);
+        printf("\n  STILL NOT ADOPTED ON THIS RUN ALONE. cam.h gets 0x%02x when "
+               "a second boot\n  reproduces this table, and not before.\n",
+               CAM_REG_I2C_DATA);
+    } else if (tracks == 1) {
+        printf("  0x%02x IS A READBACK. Sensor address 0x%04x followed an "
+               "exposure this\n  board set through 0x33-0x35 and nothing else "
+               "in 512 did. The value came\n  off the die, not off the "
+               "question - which is what stage A could not\n  tell and what "
+               "0x%02x has been one stage short of since it was named.\n",
+               CAM_REG_I2C_DATA, (unsigned)(SWEEP_BASE + first),
+               CAM_REG_I2C_DATA);
+        printf("\n  It is still not adopted here. cam.h gets it when a second "
+               "run reproduces\n  this table, and not on one boot.\n");
+    } else if (tracks == 0) {
+        printf("  NOTHING TRACKED, with a handle alive on both sides of the "
+               "sweep. That is\n  the first time this test has been able to "
+               "say so: the two earlier runs\n  that reported it had no handle "
+               "and their verdicts are void.\n");
+        printf("\n  It is evidence against 0x%02x and it is not conclusive - "
+               "512 addresses\n  from 0x%04x is where an OV3640 keeps its "
+               "exposure and it is not everywhere\n  the value could be. Do "
+               "not adopt 0x%02x; do not write it off on one boot\n  either.\n",
+               CAM_REG_I2C_DATA, SWEEP_BASE, CAM_REG_I2C_DATA);
+    } else {
+        printf("  %d ADDRESSES TRACKED, which is not a result. An exposure "
+               "change moves\n  more than one register on any real sensor, so "
+               "this is either the truth\n  about the die or a sweep that is "
+               "reading something wider than it thinks.\n  See the table.\n",
+               tracks);
     }
 
     while (true) tight_loop_contents();

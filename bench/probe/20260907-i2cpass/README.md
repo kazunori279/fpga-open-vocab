@@ -109,23 +109,32 @@ no constant in it, and a stage that cannot move its own handle exits without a
 verdict. The void log is kept rather than deleted, for the same reason
 `20260907-manexp/` kept the runs its rule (b) rejected.
 
-**So `0x48` is not adopted.** Nothing in `firmware/cam.h` refers to it. The
-evidence for it is strong and one-sided — three runs, A1 and A2, and a chip ID
-that matches a part number — and it is still one stage short of the standard
-this repo has been holding.
+**So `0x48` is not adopted on the evidence in this directory.** The evidence
+here is strong and one-sided — three runs, A1 and A2, and a chip ID that
+matches a part number — and it is one stage short of the standard this repo has
+been holding.
 
-## What to do next, in order
+> **The missing stage was run the same day.**
+> [`../20260907-i2crec/`](../20260907-i2crec/) got a handle either side of the
+> sweep and ran stage B to a verdict: the sixteen bits written into
+> `0x33`–`0x35` come back through `0x48` at `0x3002`/`0x3003` byte for byte, on
+> two consecutive boots, with the product ID as a positive control proving the
+> sweep reads. **`0x48` is now adopted** — `firmware/cam.h` carries
+> `CAM_REG_I2C_DATA` and the four OV3640 addresses, so the sentence above about
+> `cam.h` no longer holds.
 
-1. **Recover the control surface after firing, and find out how.** Candidates
-   in cost order: `0x07` bit 1, the documented I²C reset; re-running
-   `cam_begin()`; a hub power cycle. Whichever works tells you what bit 0
-   actually disturbed, and it is the difference between a readback the shipping
-   firmware can use mid-run and one that costs a re-init every time.
-2. **Then run stage B**, either after that recovery or with the order reversed
-   so the handle is established and read back before anything is fired.
+## What was done next, in order
+
+1. **~~Recover the control surface after firing, and find out how.~~** Answered,
+   and the question was wrong: nothing needed recovering *after* firing. The
+   flat surface is a boot-to-boot condition present with **zero fires**, and
+   `0x07` bit 7 — reset cache — clears it. `0x07` bit 1, the candidate this list
+   named first, does not.
+2. **~~Then run stage B.~~** Run, with the order reversed as suggested. It
+   passed B1, B2 and B3 on two boots. See `../20260907-i2crec/`.
 3. **Then the AWB gains.** With the die named, the OV3640's white-balance gain
    registers are documentable rather than guessable, and #30's AWB arm can be
-   written as a lock instead of a hope.
+   written as a lock instead of a hope. Still open, and now unblocked.
 
 ## Reproduce
 

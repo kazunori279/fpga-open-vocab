@@ -1,0 +1,55 @@
+
+=== Does 0x07 bit 0 fire an I2C read, or clear a FIFO id? (#33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+  luma before anything is fired: 80
+
+-- the space at rest, three dumps, nothing fired --
+  registers that moved on their own: none
+
+-- stage A: fire a read at 12 addresses, three visits, up down up --
+  visit 0 done
+  visit 1 done
+  visit 2 done
+
+  reg    per-address means, all 12              spread   scatter  retrace
+  0b^    00 00 00 00 00 00 00 30 30 30 30 31    49       0        yes   (the probe writes this one)
+  0c^    00 01 02 03 0a 1c 1d 00 02 0a 0b 00    29       0        yes   (the probe writes this one)
+  48     00 00 00 00 00 00 00 00 00 36 4c 02    76       0        yes   <- A1 and A2
+
+  the space is 7 bits: 0x80-0xff mirrored 0x00-0x7f in all of 4608 reads
+
+-- did firing it break the capture path? --
+  luma after 36 fires: 106
+
+  stage A names register 0x48.
+
+-- stage B: does anything read through it track an exposure we control? --
+  attempt 1: CAM_AUTO_WB straight onto the board, no re-enable
+  handle ladder 1, six exposures doubling from 0x00010 to 0x00200:
+    up    115 120 120 120 120 120
+    down  120 120 120 120 120 120
+    worst wobble 1, worst retrace 5
+    H1 rises at every rung by more than the wobble: NO
+    H2 the descent retraces within the wobble:      NO
+    SO STAGE B HAS NONE
+  attempt 1 found none. Attempt 2: the old warm-up, CAM_AUTO_ALL and
+  twenty captures first, exactly as it used to run.
+  handle ladder 2, six exposures doubling from 0x00010 to 0x00200:
+    up    130 130 130 130 130 130
+    down  130 130 130 130 130 130
+    worst wobble 0, worst retrace 0
+    H1 rises at every rung by more than the wobble: NO
+    H2 the descent retraces within the wobble:      yes
+    SO STAGE B HAS NONE
+
+RESULT : stage A names 0x48, and STAGE B COULD NOT TEST IT. The two
+         exposures did not part the picture, so the value stage B was
+         going to look for was never put on the die. THIS IS NOT A VERDICT
+         ON 0x48 EITHER WAY - do not read it as one, and do not adopt
+         0x48 on stage A alone.

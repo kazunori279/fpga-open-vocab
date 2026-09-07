@@ -18,7 +18,7 @@ exist only to record a claim that later turned out to be false.
 
 ## How to read this file
 
-Fifty-eight dated entries, newest first. **Do not treat any single entry as the
+Fifty-nine dated entries, newest first. **Do not treat any single entry as the
 current answer.** Several are here only because they were wrong, and the
 discipline is that a retraction sits beside the table it retracts rather than
 replacing it — so an entry can be accurate about what was measured that day and
@@ -35,7 +35,8 @@ weeks.
 [08-21 early](#2026-08-21-early-morning--the-flash-record-survives-the-power-cycle-and-the-camera-has-two-faults-rather-than-one) ·
 [08-21 midday](#2026-08-21-midday--the-acquires-doubt-outlives-the-banner-and-a-settle-that-was-never-a-settle) ·
 [08-25](#2026-08-25-the-absent-rule-has-no-room-to-work-in-and-a-cache-that-outlived-its-sensor) ·
-[09-06](#2026-09-06-the-board-had-been-flagging-a-broken-camera-for-weeks-and-no-scorer-read-the-line) — the last one refuses two benches and takes a +21.7 and a +33.4 point result with them.
+[09-06](#2026-09-06-the-board-had-been-flagging-a-broken-camera-for-weeks-and-no-scorer-read-the-line) — refuses two benches and takes a +21.7 and a +33.4 point result with them ·
+[09-07](#2026-09-07-the-sensor-answers--and-the-thing-that-kept-it-silent-was-never-the-question-being-asked) — the sensor becomes readable, and a third camera fault turns out to have been sitting under the other two.
 
 **Drift, the auto loops, and #30.**
 [08-25 afternoon](#2026-08-25-afternoon-the-third-reference-on-the-board-and-the-band-that-could-not-have-fired) ·
@@ -88,6 +89,91 @@ Note [07-29, two boards](#2026-07-29--two-boards-one-alive-one-dead-corrected-20
 [08-01 – 08-14](#2026-08-01--2026-08-14--where-this-logs-gap-went) explains the gap.
 
 ---
+
+### 2026-09-07, the sensor answers — and the thing that kept it silent was never the question being asked
+
+`0x48` returns what the die holds. Write the sensor register to `0x0B`/`0x0C`,
+fire `0x07` bit 0, read `0x48`. The proof is not that something moved: it is
+that the **exact sixteen bits** this firmware wrote into the write-only exposure
+block at `0x33`–`0x35` came back out at `0x3002`/`0x3003`, byte for byte, on two
+consecutive boots.
+
+```
+B3: exposure written 0x0010, read back from 0x3002/0x3003 as 0x0010
+    exposure written 0x0200, read back as 0x0200   ->  BYTE FOR BYTE
+```
+
+The probe never writes `0x3002`. It only asks for it. **The die is an OV3640** —
+`0x300A`/`0x300B` read `0x36`/`0x4C` on six boots, and `0x3002`/`0x3003` being
+its automatic exposure is the same agreement seen from the other end.
+`firmware/cam.h` now carries the passthrough and those four addresses; the
+adoption condition was written into the probe before the run that met it.
+
+**Three things were got wrong on the way and all three are worth the space.**
+
+*One.* [`bench/probe/20260907-i2cpass/`](../bench/probe/20260907-i2cpass/)
+concluded that firing `0x07` bit 0 costs the manual exposure surface, and that
+is **false**. It does not cost it at one fire, at thirty-six, at low sensor
+addresses, at high ones, or stacked with 3456 register reads. What is actually
+happening is a boot-to-boot condition that leaves the surface deaf with **zero
+fires** — the same flat `luma 133` that `20260907-manexp/` saw once and could
+not explain. The evidence for the wrong conclusion was that the surface was dead
+after firing. Nobody had checked whether it was alive before.
+
+*Two.* The recovery ladder found the rung, and it is not the one the previous
+day's list named first:
+
+```
+rung 0: apply the auto mask a second time, no reset       DEAD
+rung 1: 0x07 bit 1, the documented I2C reset              DEAD
+rung 2: 0x07 bit 7, reset cache                           ALIVE   part 149, wobble 1
+```
+
+One register write, from cold, cheap enough for the shipping path. It also
+explains why `forgix_cam_i2c` could not get a handle in six boots while
+`forgix_cam_i2crec` did on byte-identical code: neither does a cache reset, but
+only one of them was unlucky about it. Two predictions written down before the
+board answered were refuted — a second mask application, and restoring the full
+warm-up — and both logs are kept.
+
+*Three, and this is the one that nearly shipped a wrong result.* The handle
+check was **two exposures four decades apart must part the picture by more than
+repeated captures at one exposure wobble**. It passed on `parting 4 against a
+wobble of 2`, and the sweep behind it printed a verdict calling `0x48` an
+artefact. Four grey levels is not a control surface. That verdict is void
+([`stageB-void-verdict.log`](../bench/probe/20260907-i2crec/stageB-void-verdict.log)),
+and the shape of the error is one this log has recorded before: a rule that is
+threshold-free and still too weak, because a two-point test cannot tell drift
+from response.
+
+The replacement is a **six-rung ladder**, six exposures doubling from `0x00010`
+to `0x00200`, and two rules, still with no fitted constant in them:
+
+- **H1** — the picture rises at every rung by more than the worst repeat-capture
+  wobble across the six.
+- **H2** — walking back down retraces every rung to within that same wobble.
+
+It rejected the same board the two-point check had passed. The temptation was to
+add a floor — *parting must exceed twenty* — and that would have been a constant
+fitted to the run that embarrassed us. More rungs cost nothing and answer the
+question the constant was standing in for.
+
+One more thing the sweep needed and did not have at first: a **positive
+control**. Reading 512 addresses from `0x3400` returned nothing, and a sweep
+that reads nothing and a sweep that is broken print the same table. Moving to
+`0x3000` put the product ID inside the swept range, so the run has to find `36`
+and `4c` before its silence anywhere else means anything.
+
+Four addresses track an exposure change. Two of them are the exposure. The other
+two, `0x301B` and `0x30DE`, read differently on the two boots and are **not
+claimed**. Thirteen logs in
+[`bench/probe/20260907-i2crec/`](../bench/probe/20260907-i2crec/), including the
+six that failed.
+
+What this unblocks is the AWB gains. #30's walk survived locking exposure and
+gain, survived taking the sensor out of the pipeline entirely, and white balance
+is what is left — and it is now a register that can be read rather than a
+brightness ramp that has to be interpreted.
 
 ### 2026-09-06, the board had been flagging a broken camera for weeks and no scorer read the line
 

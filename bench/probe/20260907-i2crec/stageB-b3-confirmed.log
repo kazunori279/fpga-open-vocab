@@ -1,0 +1,105 @@
+
+=== What does firing the passthrough cost, and what buys it back? (#33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- warm-up, auto loops running --
+  settled at luma 120
+
+-- phase 0: baseline, nothing fired yet --
+  handle at rest                 41  41  41 | 172 169 165   part 131  wobble  7  ALIVE
+
+  one fire at sensor 0x300a returns 0x36 through 0x48   (0x36, as 20260907-i2cpass read)
+  handle after ONE fire           5   5   5 | 165 165 165   part 160  wobble  0  ALIVE
+
+-- phase 1: read all 128 ArduChip registers, 3 times, NO fires --
+  done. Capture still returns luma 165.
+  handle after                    5   5   5 | 165 165 165   part 160  wobble  0  ALIVE
+
+-- phase 2: 36 writes of 0x07 = 0x00, no bits set --
+  done. Capture still returns luma 165.
+  handle after                    5   5   5 | 165 165 165   part 160  wobble  0  ALIVE
+
+-- phase 3: fire at the FIVE HIGH addresses, 3 visits (0x3000-0x3100) --
+  done. Capture still returns luma 165.
+  handle after                    5   5   5 | 165 165 165   part 160  wobble  0  ALIVE
+
+-- phase 4: fire at the SEVEN LOW addresses, 3 visits (0x0000-0x001D) --
+  done. Capture still returns luma 165.
+  handle after                    5   5   5 | 165 165 165   part 160  wobble  0  ALIVE
+
+-- phase 5: 20260907-i2cpass's STAGE A, whole and unshortened --
+  visit 0 done
+  visit 1 done
+  visit 2 done
+  done. Capture still returns luma 165.
+  handle after                    5   5   5 | 165 165 165   part 160  wobble  0  ALIVE
+
+=== what this run says ===
+
+  baseline                                          ALIVE
+  after ONE fire at 0x300a                          ALIVE
+  phase 1  read all 128 ArduChip registers, 3 times, NO fires ALIVE
+  phase 2  36 writes of 0x07 = 0x00, no bits set    ALIVE
+  phase 3  fire at the FIVE HIGH addresses, 3 visits (0x3000-0x3100) ALIVE
+  phase 4  fire at the SEVEN LOW addresses, 3 visits (0x0000-0x001D) ALIVE
+  phase 5  20260907-i2cpass's STAGE A, whole and unshortened ALIVE
+
+  NOTHING BREAKS THE HANDLE - not the pieces and not stage A whole.
+  20260907-i2cpass's dead control surface DOES NOT REPRODUCE, so the
+  reading in that directory - that firing 0x07 bit 0 costs the manual
+  exposure - is wrong, and its stage B failed for some other reason
+  this run has not found. What is now unblocked is stage B itself: the
+  handle is alive on both sides of a fire, which is the precondition it
+  needed and never had.
+
+-- stage B: does anything read through 0x48 track an exposure we set? --
+  ladder before the sweep
+    up      5  12  29  63 111 165
+    down    5  12  29  63 111 165
+    wobble 1, retrace 0 | H1 yes  H2 yes  -> HANDLE
+  exposure 0x00010 -> luma 5,  0x00200 -> luma 165   (parting 160 against the ladder's wobble of 1)
+
+  positive control: 0x300a reads 36/36 and 0x300b reads 4c/4c (low/high exp)
+  the product ID the sweep should find, 36 and 4c: found, so the sweep is reading
+
+  512 addresses swept from 0x3000. Only the ones that moved:
+
+  sensor   at low exp     at high exp    verdict
+  0x3002   00 00 00      02 02 02      B1 and B2 - TRACKS
+  0x3003   10 10 10      00 00 00      B1 and B2 - TRACKS
+  0x301b   02 02 02      54 54 54      B1 and B2 - TRACKS
+  0x30de   ff ff ff      39 39 39      B1 and B2 - TRACKS
+  0x3118   40 f8 f8      f8 40 40      unstable
+
+  4 tracked, 1 unstable, 507 unchanged and not listed.
+  ladder after the sweep
+    up      5  12  29  63 111 165
+    down    5  12  29  63 111 165
+    wobble 1, retrace 0 | H1 yes  H2 yes  -> HANDLE
+
+  B3: exposure written 0x0010, read back from 0x3002/0x3003 as 0x0010
+      exposure written 0x0200, read back as 0x0200   ->  BYTE FOR BYTE
+
+=== stage B ===
+
+  0x48 IS A READBACK, AND THIS IS THE STAGE THAT WAS MISSING.
+
+  The sixteen bits this firmware wrote into 0x33-0x35 came back out of the
+  die through 0x48, at 0x3002 and 0x3003, which is where an OV3640 keeps
+  its automatic exposure - the same part number stage A read off 0x300A
+  and 0x300B. The value cannot be an echo of the question: the probe never
+  writes 0x3002, it only asks for it, and what comes back is a number the
+  sensor was told by a different register entirely.
+
+  4 addresses tracked in all and the other 3 are the sensor's own
+  business - an exposure change moves more than the register it is stored
+  in. 0x301B and 0x30DE are not identified here and are not claimed.
+
+  STILL NOT ADOPTED ON THIS RUN ALONE. cam.h gets 0x48 when a second boot
+  reproduces this table, and not before.

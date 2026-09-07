@@ -1,0 +1,92 @@
+
+=== What does firing the passthrough cost, and what buys it back? (#33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- warm-up, auto loops running --
+  settled at luma 129
+
+-- phase 0: baseline, nothing fired yet --
+  handle at rest                 50  51  50 | 140 140 140   part  90  wobble  1  ALIVE
+
+  one fire at sensor 0x300a returns 0x36 through 0x48   (0x36, as 20260907-i2cpass read)
+  handle after ONE fire           5   5   5 | 140 140 140   part 135  wobble  0  ALIVE
+
+-- phase 1: read all 128 ArduChip registers, 3 times, NO fires --
+  done. Capture still returns luma 140.
+  handle after                    5   5   5 | 140 140 140   part 135  wobble  0  ALIVE
+
+-- phase 2: 36 writes of 0x07 = 0x00, no bits set --
+  done. Capture still returns luma 140.
+  handle after                    5   5   5 | 140 140 140   part 135  wobble  0  ALIVE
+
+-- phase 3: fire at the FIVE HIGH addresses, 3 visits (0x3000-0x3100) --
+  done. Capture still returns luma 140.
+  handle after                    5   5   5 | 140 140 140   part 135  wobble  0  ALIVE
+
+-- phase 4: fire at the SEVEN LOW addresses, 3 visits (0x0000-0x001D) --
+  done. Capture still returns luma 140.
+  handle after                    5   5   5 | 140 140 140   part 135  wobble  0  ALIVE
+
+-- phase 5: 20260907-i2cpass's STAGE A, whole and unshortened --
+  visit 0 done
+  visit 1 done
+  visit 2 done
+  done. Capture still returns luma 140.
+  handle after                    5   5   5 | 140 140 140   part 135  wobble  0  ALIVE
+
+=== what this run says ===
+
+  baseline                                          ALIVE
+  after ONE fire at 0x300a                          ALIVE
+  phase 1  read all 128 ArduChip registers, 3 times, NO fires ALIVE
+  phase 2  36 writes of 0x07 = 0x00, no bits set    ALIVE
+  phase 3  fire at the FIVE HIGH addresses, 3 visits (0x3000-0x3100) ALIVE
+  phase 4  fire at the SEVEN LOW addresses, 3 visits (0x0000-0x001D) ALIVE
+  phase 5  20260907-i2cpass's STAGE A, whole and unshortened ALIVE
+
+  NOTHING BREAKS THE HANDLE - not the pieces and not stage A whole.
+  20260907-i2cpass's dead control surface DOES NOT REPRODUCE, so the
+  reading in that directory - that firing 0x07 bit 0 costs the manual
+  exposure - is wrong, and its stage B failed for some other reason
+  this run has not found. What is now unblocked is stage B itself: the
+  handle is alive on both sides of a fire, which is the precondition it
+  needed and never had.
+
+-- stage B: does anything read through 0x48 track an exposure we set? --
+  ladder before the sweep
+    up      5   7  20  46  89 140
+    down    5   7  20  45  89 140
+    wobble 1, retrace 1 | H1 yes  H2 yes  -> HANDLE
+  exposure 0x00010 -> luma 5,  0x00200 -> luma 139   (parting 134 against the ladder's wobble of 1)
+
+  positive control: 0x300a reads 36/36 and 0x300b reads 4c/4c (low/high exp)
+  the product ID the sweep should find, 36 and 4c: found, so the sweep is reading
+
+  512 addresses swept from 0x3000. Only the ones that moved:
+
+  sensor   at low exp     at high exp    verdict
+  0x3002   00 00 00      02 02 02      B1 and B2 - TRACKS
+  0x3003   10 10 10      00 00 00      B1 and B2 - TRACKS
+  0x301b   02 02 02      3d 3d 3d      B1 and B2 - TRACKS
+  0x30c1   1a 19 1a      19 19 19      unstable
+  0x30de   ff ff ff      55 55 55      B1 and B2 - TRACKS
+  0x3118   48 f8 f8      f8 40 40      unstable
+
+  4 tracked, 2 unstable, 506 unchanged and not listed.
+  ladder after the sweep
+    up      5   7  20  45  88 139
+    down    5   7  20  45  88 139
+    wobble 0, retrace 0 | H1 yes  H2 yes  -> HANDLE
+
+=== stage B ===
+
+  4 ADDRESSES TRACKED, which is not a result. An exposure change moves
+  more than one register on any real sensor, so this is either the truth
+  about the die or a sweep that is reading something wider than it thinks.
+  See the table.

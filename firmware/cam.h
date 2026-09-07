@@ -106,6 +106,45 @@
 #define CAM_REG_SENSOR_STATE         0x44
 #define CAM_REG_FPGA_VERSION_NUMBER  0x49
 
+// THE I2C PASSTHROUGH. Not transcribed from anywhere - measured, over two
+// directories and eleven boots, because the driver does not have it and the
+// app note's account of 0x07 bit 0 disagrees with the driver's.
+//
+// Write the sensor's device address to 0x0A, the register you want to
+// 0x0B/0x0C high byte first, then 0x01 to 0x07. The answer appears in 0x48.
+//
+// WHY 0x48 IS BELIEVED. bench/probe/20260907-i2cpass/ found it by asking twelve
+// sensor addresses three times each and keeping the one register whose value
+// depended on which address was asked for by more than it wobbled when nothing
+// changed, and which retraced exactly on the way back down. That names a
+// register but cannot tell a readback from an echo of the question, and the
+// stage that could kept failing for reasons that turned out to have nothing to
+// do with the passthrough. bench/probe/20260907-i2crec/ ran it: write an
+// exposure through 0x33-0x35, sweep 512 sensor addresses, and see what follows.
+// 0x3002 and 0x3003 came back holding THE EXACT SIXTEEN BITS that were written
+// - 0x0010 read back as 0x0010, 0x0200 as 0x0200 - on two consecutive boots.
+// The probe never writes 0x3002. It only asks for it.
+//
+// THE DIE IS AN OV3640, and this is how that is known: 0x300A/0x300B read
+// 0x36/0x4C through this path on six boots, and 0x364C is the OV3640's product
+// ID. 0x3002/0x3003 being its automatic exposure is the same agreement seen
+// from the other end. CAM_REG_SENSOR_ID says 0x82, which cam.c resolves off the
+// legacy table and which only means "below 5MP".
+//
+// SAFETY. Firing this does not disturb capture and does not disturb the manual
+// exposure surface - bench/probe/20260907-i2crec/ checked that specifically,
+// one fire, thirty-six fires, and 3072, with a six-rung exposure ladder either
+// side of each. It is a read path only; nothing here writes the die.
+#define CAM_REG_I2C_ADDR_H           0x0B
+#define CAM_REG_I2C_ADDR_L           0x0C
+#define CAM_REG_I2C_DATA             0x48
+#define CAM_I2C_INITIATE_READ        0x01u   // written to CAM_REG_SENSOR_RESET
+#define CAM_SENSOR_I2C_ADDR          0x78
+#define CAM_OV3640_PID_H             0x300A  // reads 0x36
+#define CAM_OV3640_PID_L             0x300B  // reads 0x4C
+#define CAM_OV3640_AEC_H             0x3002
+#define CAM_OV3640_AEC_L             0x3003
+
 #define CAM_REG_SENSOR_STATE_IDLE (1 << 1)
 
 // ArduCAM's name, kept so this file matches the driver it was transcribed from.

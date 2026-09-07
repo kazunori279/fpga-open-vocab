@@ -1,0 +1,105 @@
+
+=== What does firing the passthrough cost, and what buys it back? (#33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- warm-up, auto loops running --
+  settled at luma 134
+
+-- phase 0: baseline, nothing fired yet --
+  handle at rest                135 135 135 | 135 135 135   part   0  wobble  0  DEAD
+
+  THE HANDLE IS DEAD BEFORE ANYTHING WAS FIRED. This is the condition
+  20260907-i2cpass blamed on the passthrough, and it is here with zero
+  fires. Running the ladder against it instead.
+  -- recovery ladder --
+     rung 0: apply the auto mask a second time, no reset
+  handle after rung 0           135 134 135 | 134 134 134   part   1  wobble  1  DEAD
+     rung 1: 0x07 bit 1, the documented I2C reset
+  handle after rung 1           134 134 134 | 134 134 134   part   0  wobble  0  DEAD
+     rung 2: 0x07 bit 7, reset cache - what cam.c:455 flushes with
+  handle after rung 2             4   4   4 | 153 153 154   part 149  wobble  1  ALIVE
+
+  Recovered from cold. The phases below run on a board that needed a
+  rung to get here, which is worth knowing when reading them.
+
+  one fire at sensor 0x300a returns 0x36 through 0x48   (0x36, as 20260907-i2cpass read)
+  handle after ONE fire           4   4   4 | 156 155 154   part 152  wobble  2  ALIVE
+
+-- phase 1: read all 128 ArduChip registers, 3 times, NO fires --
+  done. Capture still returns luma 153.
+  handle after                    5   5   5 | 136 139 141   part 131  wobble  5  ALIVE
+
+-- phase 2: 36 writes of 0x07 = 0x00, no bits set --
+  done. Capture still returns luma 142.
+  handle after                    4   4   4 | 149 151 153   part 145  wobble  4  ALIVE
+
+-- phase 3: fire at the FIVE HIGH addresses, 3 visits (0x3000-0x3100) --
+  done. Capture still returns luma 155.
+  handle after                    4   5   5 | 171 172 173   part 167  wobble  2  ALIVE
+
+-- phase 4: fire at the SEVEN LOW addresses, 3 visits (0x0000-0x001D) --
+  done. Capture still returns luma 175.
+  handle after                    5   5   5 | 176 176 176   part 171  wobble  0  ALIVE
+
+-- phase 5: 20260907-i2cpass's STAGE A, whole and unshortened --
+  visit 0 done
+  visit 1 done
+  visit 2 done
+  done. Capture still returns luma 176.
+  handle after                    5   5   5 | 176 176 176   part 171  wobble  0  ALIVE
+
+=== what this run says ===
+
+  baseline                                          ALIVE
+  after ONE fire at 0x300a                          ALIVE
+  phase 1  read all 128 ArduChip registers, 3 times, NO fires ALIVE
+  phase 2  36 writes of 0x07 = 0x00, no bits set    ALIVE
+  phase 3  fire at the FIVE HIGH addresses, 3 visits (0x3000-0x3100) ALIVE
+  phase 4  fire at the SEVEN LOW addresses, 3 visits (0x0000-0x001D) ALIVE
+  phase 5  20260907-i2cpass's STAGE A, whole and unshortened ALIVE
+
+  NOTHING BREAKS THE HANDLE - not the pieces and not stage A whole.
+  20260907-i2cpass's dead control surface DOES NOT REPRODUCE, so the
+  reading in that directory - that firing 0x07 bit 0 costs the manual
+  exposure - is wrong, and its stage B failed for some other reason
+  this run has not found. What is now unblocked is stage B itself: the
+  handle is alive on both sides of a fire, which is the precondition it
+  needed and never had.
+
+  RECOVERY: 0x07 bit 7, reset cache.
+  It was needed FROM COLD, with nothing fired.
+  That is cheap enough for m9 to do between frames.
+
+-- stage B: does anything read through 0x48 track an exposure we set? --
+  ladder before the sweep
+    up      5  14  34  71 121 176
+    down    5  14  34  71 121 176
+    wobble 0, retrace 0 | H1 yes  H2 yes  -> HANDLE
+  exposure 0x00010 -> luma 5,  0x00200 -> luma 176   (parting 171 against the ladder's wobble of 0)
+
+  512 addresses swept from 0x3400. Only the ones that moved:
+
+  sensor   at low exp     at high exp    verdict
+
+  0 tracked, 0 unstable, 512 unchanged and not listed.
+  ladder after the sweep
+    up      5  14  34  71 120 175
+    down    5  14  34  71 120 175
+    wobble 0, retrace 0 | H1 yes  H2 yes  -> HANDLE
+
+=== stage B ===
+
+  NOTHING TRACKED, with a handle alive on both sides of the sweep. That is
+  the first time this test has been able to say so: the two earlier runs
+  that reported it had no handle and their verdicts are void.
+
+  It is evidence against 0x48 and it is not conclusive - 512 addresses
+  from 0x3400 is where an OV3640 keeps its exposure and it is not everywhere
+  the value could be. Do not adopt 0x48; do not write it off on one boot
+  either.

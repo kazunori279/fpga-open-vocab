@@ -1,0 +1,27 @@
+
+=== Does 0x07 bit 0 fire an I2C read, or clear a FIFO id? (#33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+  luma before anything is fired: 84
+
+-- the space at rest, three dumps, nothing fired --
+  registers that moved on their own: none
+
+-- the handle, BEFORE anything is fired --
+  handle ladder 0, six exposures doubling from 0x00010 to 0x00200:
+    up    107 114 114 115 115 115
+    down  115 115 115 115 115 115
+    worst wobble 2, worst retrace 8
+    H1 rises at every rung by more than the wobble: NO
+    H2 the descent retraces within the wobble:      NO
+    SO STAGE B HAS NONE
+
+RESULT : NO HANDLE BEFORE A SINGLE FIRE. This is the flat boot
+         bench/probe/20260907-i2crec/ found one time in four, and it has
+         nothing to do with the passthrough. Power-cycle and run again;
+         the log is worth keeping either way.

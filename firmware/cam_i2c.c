@@ -144,11 +144,9 @@
 #include "cam.h"
 #include "qspi_park.h"
 
-// Application note only, and deliberately not in cam.h - same reason
-// cam_simsrc.c kept 0x05 and 0x06 out of it until one of them was adopted.
-#define CAM_REG_I2C_ADDR_H         0x0B
-#define CAM_REG_I2C_ADDR_L         0x0C
-#define CAM_I2C_INITIATE_READ      0x01u   // 0x07 bit[0], the disputed bit
+// The passthrough registers this probe was written to test are now in cam.h,
+// adopted on the strength of 20260907-i2crec's stage B. Kept here: the reset
+// bits and the WO exposure block, which only a probe needs.
 #define CAM_I2C_RESET              0x02u   // 0x07 bit[1], the recovery
 #define CAM_REG_MANUAL_EXPOSURE_H  0x33
 #define CAM_REG_MANUAL_EXPOSURE_M  0x34
@@ -156,15 +154,18 @@
 
 // The device address cam_begin() writes. Restated rather than read back,
 // because 0x0A's readback is one of the things this probe is testing.
-#define SENSOR_I2C_ADDR 0x78
+#define SENSOR_I2C_ADDR CAM_SENSOR_I2C_ADDR
 
-// THE LADDER IS A GUESS AND THE RULES DO NOT DEPEND ON IT. The die is unknown -
-// 0x40 reads 0x82, which cam.h only resolves as "below 5MP" - so its register
-// map is unknown too, and so is whether it takes 8-bit or 16-bit addresses.
-// The ladder therefore covers both conventions rather than betting on one: the
-// low block that an 8-bit map would use, and the 0x300x block that is where an
-// OmniVision-style 16-bit map keeps its chip id. All the rules need is that
-// SOME two of these hold different values on the die.
+// THE LADDER WAS A GUESS AND THE RULES DID NOT DEPEND ON IT. When this was
+// written the die was unknown - 0x40 reads 0x82, which cam.h only resolves as
+// "below 5MP" - so its register map was unknown too, and so was whether it
+// takes 8-bit or 16-bit addresses. The ladder therefore covers both conventions
+// rather than betting on one: the low block that an 8-bit map would use, and
+// the 0x300x block that is where an OmniVision-style 16-bit map keeps its chip
+// id. All the rules need is that SOME two of these hold different values.
+//
+// It is now known: 16-bit, and the die is an OV3640. The ladder is left as it
+// was so that re-running this probe reproduces the run that found that out.
 static const uint16_t ADDR[] = {
     0x0000, 0x0001, 0x0002, 0x0003, 0x000A, 0x001C, 0x001D,
     0x3000, 0x3002, 0x300A, 0x300B, 0x3100,
@@ -244,6 +245,108 @@ static void write_exposure(uint32_t v)
     cam_wait_idle("exp l");
 }
 
+static int range_int(const int *v, int n)
+{
+    int lo = v[0], hi = v[0];
+    for (int i = 1; i < n; i++) {
+        if (v[i] < lo) lo = v[i];
+        if (v[i] > hi) hi = v[i];
+    }
+    return hi - lo;
+}
+
+// THE HANDLE, AND WHY IT IS NO LONGER TWO POINTS.
+//
+// It was: write EXP_LOW, write EXP_HIGH, and pass if the two part the picture
+// by more than repeated captures at one exposure wobble. That rule has now let
+// through two runs it should have stopped. `decisive.log` passed on 97 against
+// 100 with a bare `hi > lo`, and after that was tightened to parting-versus-
+// wobble it passed again on a parting of 4 against a wobble of 2 - and both
+// times the sweep that followed found nothing and a verdict was printed
+// calling 0x48 an artefact. Both verdicts are void. Two points and a strict
+// inequality is simply not much of a hurdle: any pair of tight triples that
+// happen to sit four counts apart clears it.
+//
+// The fix is not a floor under the parting, because a floor is a constant
+// fitted to the runs that embarrassed us. It is more points. Six exposures,
+// each double the last, spanning the same range the two-point version used,
+// measured ascending and then descending:
+//
+//   H1  luma must rise at EVERY step of the ladder, and rise by more than the
+//       worst within-step wobble in the whole ladder.
+//   H2  the descent must retrace: at each rung, up and down must agree to
+//       within that same wobble.
+//
+// Both are relations among this run's own measurements and neither contains a
+// number. What they buy is that noise cannot fake them: a four-count parting
+// with a two-count wobble cannot climb five consecutive rungs and then come
+// back down through the same five.
+#define NRUNG 6
+static const uint32_t LADDER[NRUNG] = {
+    0x00010u, 0x00020u, 0x00040u, 0x00080u, 0x00100u, 0x00200u,
+};
+
+static int rung_luma(uint32_t exp)
+{
+    write_exposure(exp);
+    for (int i = 0; i < 4; i++) (void)luma();
+    return luma();
+}
+
+// The ladder's worst within-rung wobble, kept so the sweep can be held to the
+// same scale the handle was measured on rather than inventing its own.
+static int ladder_wobble;
+
+static bool handle_ladder(int attempt)
+{
+    int up[NRUNG], down[NRUNG], wob[NRUNG];
+
+    for (int i = 0; i < NRUNG; i++) {
+        int rep[3];
+        write_exposure(LADDER[i]);
+        for (int k = 0; k < 4; k++) (void)luma();
+        for (int k = 0; k < 3; k++) rep[k] = luma();
+        up[i]  = rep[0];
+        wob[i] = range_int(rep, 3);
+    }
+    for (int i = NRUNG - 1; i >= 0; i--)
+        down[i] = rung_luma(LADDER[i]);
+
+    int worst_wobble = 0;
+    for (int i = 0; i < NRUNG; i++)
+        if (wob[i] > worst_wobble) worst_wobble = wob[i];
+    ladder_wobble = worst_wobble;
+
+    bool h1 = true;
+    for (int i = 1; i < NRUNG; i++)
+        if (up[i] - up[i - 1] <= worst_wobble) h1 = false;
+
+    bool h2 = true;
+    int worst_retrace = 0;
+    for (int i = 0; i < NRUNG; i++) {
+        int d = up[i] - down[i];
+        if (d < 0) d = -d;
+        if (d > worst_retrace) worst_retrace = d;
+    }
+    if (worst_retrace > worst_wobble) h2 = false;
+
+    printf("  handle ladder %d, six exposures doubling from 0x%05x to 0x%05x:\n",
+           attempt, LADDER[0], LADDER[NRUNG - 1]);
+    printf("    up   ");
+    for (int i = 0; i < NRUNG; i++) printf("%4d", up[i]);
+    printf("\n    down ");
+    for (int i = 0; i < NRUNG; i++) printf("%4d", down[i]);
+    printf("\n    worst wobble %d, worst retrace %d\n", worst_wobble,
+           worst_retrace);
+    printf("    H1 rises at every rung by more than the wobble: %s\n",
+           h1 ? "yes" : "NO");
+    printf("    H2 the descent retraces within the wobble:      %s\n",
+           h2 ? "yes" : "NO");
+    printf("    %s\n", (h1 && h2) ? "so stage B has a handle"
+                                  : "SO STAGE B HAS NONE");
+    return h1 && h2;
+}
+
 // One passthrough read attempt. Returns nothing: WHERE the answer lands is the
 // question, so the caller dumps the whole space afterwards rather than being
 // handed a byte this function guessed at.
@@ -269,16 +372,6 @@ static void dump_space(uint8_t *into)
 {
     for (int r = 0; r < NREG; r++)
         into[r] = cam_read_reg((uint8_t)r);
-}
-
-static int range_int(const int *v, int n)
-{
-    int lo = v[0], hi = v[0];
-    for (int i = 1; i < n; i++) {
-        if (v[i] < lo) lo = v[i];
-        if (v[i] > hi) hi = v[i];
-    }
-    return hi - lo;
 }
 
 static int range_u8(const uint8_t *v, int n)
@@ -352,6 +445,59 @@ int main(void)
         }
     }
     printf("%s\n", nrest ? "" : " none");
+
+    // ------------------------------------------------ the handle, up front --
+    // THE ORDER IS THE EXPERIMENT NOW.
+    //
+    // Five boots of this binary have reached stage B and found no handle. Four
+    // boots of forgix_cam_i2crec, running the same luma(), the same
+    // write_exposure(), the same exposures and - in its phase 5 - this file's
+    // stage A whole and unshortened, found one three times. Two candidate
+    // differences have been written down and both were refuted on the board:
+    // applying the mask twice did nothing, and dropping the CAM_AUTO_ALL
+    // re-enable did nothing. Exactly one is left.
+    //
+    // i2crec applies CAM_AUTO_WB BEFORE it fires anything, and every later
+    // check re-applies it to a board that already has it. This file has always
+    // applied it for the first time AFTER stage A. So: the mask has to be on
+    // before the fires, and a mask applied afterwards does not take.
+    //
+    // That is testable in one boot without moving a threshold, which is why it
+    // is worth another run. Acquire the handle here, before a single fire, and
+    // check it again after stage A with the same ladder. Three outcomes and
+    // they mean different things:
+    //
+    //   alive here, alive after   - the order was the whole problem, and stage
+    //                               B can finally run
+    //   alive here, dead after    - stage A does cost it after all, and
+    //                               i2crec's phase 5 needs explaining
+    //   dead here                 - the flat boot from 20260907-i2crec, and
+    //                               this run measures nothing
+    // BOTH HALVES, AND THE PREVIOUS RUN IS WHY.
+    // Moving the mask to before stage A was not enough on its own: the ladder
+    // read 107 114 114 115 115 115 with nothing fired - the first rung moves it
+    // and then it pins, which is what a loop still doing the work looks like.
+    // What was missing is the other thing i2crec does and this file had lost:
+    // twenty captures with CAM_AUTO_ALL running before the mask goes on.
+    // 20260907-manexp/ left "the auto loops do not hand exposure back promptly"
+    // open, and this is that, costing every run in this file so far. The two
+    // changes are not independent and are not being credited separately - what
+    // is being tested is i2crec's opening, whole, in front of stage A.
+    printf("\n-- the handle, BEFORE anything is fired --\n");
+    cam_image_auto_mask(CAM_AUTO_ALL);
+    sleep_ms(200);
+    for (int i = 0; i < 20; i++) (void)luma();
+    cam_image_auto_mask(CAM_AUTO_WB);
+    sleep_ms(200);
+    bool handle_before = handle_ladder(0);
+    if (!handle_before) {
+        printf("\nRESULT : NO HANDLE BEFORE A SINGLE FIRE. This is the flat "
+               "boot\n         bench/probe/20260907-i2crec/ found one time in "
+               "four, and it has\n         nothing to do with the passthrough. "
+               "Power-cycle and run again;\n         the log is worth keeping "
+               "either way.\n");
+        while (true) tight_loop_contents();
+    }
 
     // ------------------------------------------------------------- stage A --
     printf("\n-- stage A: fire a read at %d addresses, three visits, "
@@ -475,54 +621,31 @@ int main(void)
     printf("\n-- stage B: does anything read through it track an exposure "
            "we control? --\n");
 
-    // WARM UP WITH THE LOOPS RUNNING FIRST, which cam_manexp.c does and the
-    // first version of this file did not. Thirty-six writes to 0x07 have just
-    // gone past and 0x07 carries reset bits at 6 and 7; whatever that left the
-    // auto-control state in, twenty captures with the loops on puts it back
-    // somewhere known before the mask is applied.
-    cam_image_auto_mask(CAM_AUTO_ALL);
-    sleep_ms(200);
-    for (int i = 0; i < 20; i++) (void)luma();
-    cam_image_auto_mask(CAM_AUTO_WB);   // exposure and gain manual, AWB running
-    sleep_ms(200);
-
     int lo_luma, hi_luma;
 
-    // DOES STAGE B HAVE A HANDLE AT ALL? Checked before it is used, and by the
-    // same shape as A1 rather than by a constant: the two exposures must part
-    // the picture by more than repeated captures at ONE exposure wobble. The
-    // first run of this file skipped the check, got luma 97 against 100 - a
-    // three-count separation where cam_manexp.c measured 11 against 233 - and
-    // then blamed stage A for finding nothing. A stage that cannot move the
-    // thing it is testing with does not get to return a verdict.
-    int lo_rep[3], hi_rep[3];
-    write_exposure(EXP_LOW);
-    for (int i = 0; i < 4; i++) (void)luma();
-    for (int i = 0; i < 3; i++) lo_rep[i] = luma();
-    write_exposure(EXP_HIGH);
-    for (int i = 0; i < 4; i++) (void)luma();
-    for (int i = 0; i < 3; i++) hi_rep[i] = luma();
-    int wob_lo = range_int(lo_rep, 3), wob_hi = range_int(hi_rep, 3);
-    int worst_wobble = wob_lo > wob_hi ? wob_lo : wob_hi;
-    int part = lo_rep[0] - hi_rep[0];
-    if (part < 0) part = -part;
-    bool has_handle = part > worst_wobble;
-    printf("  handle check: luma %d %d %d at 0x%05x, %d %d %d at 0x%05x - "
-           "parting %d against a wobble of %d, %s\n",
-           lo_rep[0], lo_rep[1], lo_rep[2], EXP_LOW,
-           hi_rep[0], hi_rep[1], hi_rep[2], EXP_HIGH,
-           part, worst_wobble,
-           has_handle ? "so stage B has one" : "SO STAGE B HAS NONE");
+    // THE HANDLE WAS ACQUIRED BEFORE STAGE A. This is the re-check, same
+    // ladder, and it is the second half of the ordering test written up there.
+    // A stage that cannot move the thing it is testing with does not get to
+    // return a verdict - that rule cost this file two void verdicts before it
+    // was enforced, and it is enforced here and again after the sweep.
+    bool has_handle = handle_ladder(1);
 
     if (!has_handle) {
-        printf("\nRESULT : stage A names 0x%02x, and STAGE B COULD NOT TEST IT."
-               " The two\n         exposures did not part the picture, so the "
-               "value stage B was\n         going to look for was never put on "
-               "the die. THIS IS NOT A VERDICT\n         ON 0x%02x EITHER WAY - "
-               "do not read it as one, and do not adopt\n         0x%02x on "
-               "stage A alone.\n", found, found, found);
+        printf("\nRESULT : THE HANDLE WAS ALIVE BEFORE STAGE A AND IS GONE "
+               "AFTER IT.\n         So stage A does cost it, and "
+               "bench/probe/20260907-i2crec/'s phase 5 -\n         which ran "
+               "this same stage A whole and kept its handle - is the thing\n"
+               "         that now needs explaining. The difference between "
+               "them is that\n         phase 5 had already applied the mask "
+               "several times.\n\n         THIS IS NOT A VERDICT ON 0x%02x "
+               "EITHER WAY.\n", found);
         while (true) tight_loop_contents();
     }
+
+    printf("\n  THE HANDLE SURVIVED STAGE A. Five boots of this binary could "
+           "not get\n  one at all, and the only change is that the mask now "
+           "goes on before the\n  fires instead of after them. Stage B runs "
+           "for the first time.\n");
 
     write_exposure(EXP_LOW);
     for (int i = 0; i < 4; i++) (void)luma();
@@ -542,10 +665,30 @@ int main(void)
             hi_v[a][v] = cam_read_reg((uint8_t)found);
         }
 
-    printf("  exposure 0x%05x -> luma %d,  0x%05x -> luma %d%s\n",
-           EXP_LOW, lo_luma, EXP_HIGH, hi_luma,
-           (hi_luma > lo_luma) ? "" :
-           "   <- THE PICTURE DID NOT BRIGHTEN, so stage B has no handle");
+    // THIS IS A GATE, NOT A REMARK, and it was a remark for one run too long.
+    // The sweep sets the two exposures itself, and if the picture does not part
+    // between them THEN - minutes after the ladder passed, with 3072 fires in
+    // between - the handle was lost somewhere in the sweep and the byte the
+    // sweep was looking for was never put on the die. The last run printed
+    // "THE PICTURE DID NOT BRIGHTEN" and then went on to report 0 tracked and
+    // condemn 0x48 as an artefact anyway. That verdict is void and this is the
+    // line that should have stopped it. Same rule as the ladder rungs: the
+    // parting must beat the wobble the ladder measured, not a number.
+    int sweep_part = hi_luma - lo_luma;
+    if (sweep_part < 0) sweep_part = -sweep_part;
+    printf("  exposure 0x%05x -> luma %d,  0x%05x -> luma %d   (parting %d)\n",
+           EXP_LOW, lo_luma, EXP_HIGH, hi_luma, sweep_part);
+    if (sweep_part <= ladder_wobble) {
+        printf("\nRESULT : THE HANDLE WAS ALIVE FOR THE LADDER AND GONE BY THE "
+               "END OF THE SWEEP.\n         Parting %d against the ladder's "
+               "wobble of %d, after %d fires. The\n         sweep read %d "
+               "addresses off a die whose exposure was not moving, so\n         "
+               "whatever it collected is not evidence about 0x%02x. THIS IS NOT "
+               "A\n         VERDICT ON 0x%02x EITHER WAY.\n",
+               sweep_part, ladder_wobble, 2 * VISITS * NSWEEP, NSWEEP,
+               found, found);
+        while (true) tight_loop_contents();
+    }
 
     printf("\n  %d addresses swept from 0x%04x. Only the ones that moved:\n",
            NSWEEP, SWEEP_BASE);
