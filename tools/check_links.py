@@ -55,7 +55,8 @@ MD_FILES = ['README.md', 'docs/architecture.md', 'docs/building.md',
             'slides/README.md', 'bench/README.md', 'bench/stills/README.md',
             'bench/stills/20260822-synth-book-crop2/README.md',
             'bench/soak/README.md', 'bench/soak/20260822-settle/README.md',
-            'bench/soak/20260825-fmtcache/README.md']
+            'bench/soak/20260825-fmtcache/README.md',
+            'bench/labelled/README.md']
 
 
 def slug(heading):

@@ -18,7 +18,7 @@ exist only to record a claim that later turned out to be false.
 
 ## How to read this file
 
-Sixty-four dated entries, newest first. **Do not treat any single entry as the
+Sixty-five dated entries, newest first. **Do not treat any single entry as the
 current answer.** Several are here only because they were wrong, and the
 discipline is that a retraction sits beside the table it retracts rather than
 replacing it — so an entry can be accurate about what was measured that day and
@@ -41,11 +41,13 @@ weeks.
 [09-07 evening](#2026-09-07-evening-the-exposure-lock-fails-on-32-boots-in-33-and-the-check-written-to-catch-it-could-not-fail) — the third fault gets a rate, and it is not "some acquires" ·
 [09-07 night](#2026-09-07-night-the-last-cure-loses-to-doing-nothing-and-the-fault-that-had-never-been-looked-for-is-the-unlock) — the last cure loses to a null arm, the other two loops turn out to lock fine, and a *fourth* fault appears facing the other way ·
 [09-07 late](#2026-09-07-late-night-the-one-register-that-does-what-its-datasheet-says-and-the-reason-to-use-it-is-not-the-reason-written-down) — the last unprobed register does exactly what the note says, and the argument for using it turns out to be the wrong one ·
-[09-08](#2026-09-08-morning-the-white-balance-register-holds-and-the-picture-does-not-which-is-a-claim-the-probe-never-made) — a register that holds and a picture that survives turn out to be different claims, and #30's arm shrinks to one loop.
+[09-08](#2026-09-08-morning-the-white-balance-register-holds-and-the-picture-does-not-which-is-a-claim-the-probe-never-made) — a register that holds and a picture that survives turn out to be different claims, and #30's arm shrinks to one loop ·
+[09-08 later](#2026-09-08-later-the-gain-lock-fails-when-the-light-moves-and-the-axis-it-was-protecting-turns-out-not-to-be-the-one-that-is-broken) — the one loop that was left fails too, once the light is moving, and the board catches it itself.
 
 **Drift, the auto loops, and #30.**
 [08-25 afternoon](#2026-08-25-afternoon-the-third-reference-on-the-board-and-the-band-that-could-not-have-fired) ·
-[08-25 night](#2026-08-25-night-30s-off-switch-turns-out-to-have-been-an-on-switch-for-a-different-fault) — the intervention that was meant to remove a variable introduced a different one.
+[08-25 night](#2026-08-25-night-30s-off-switch-turns-out-to-have-been-an-on-switch-for-a-different-fault) — the intervention that was meant to remove a variable introduced a different one ·
+[09-08 later](#2026-09-08-later-the-gain-lock-fails-when-the-light-moves-and-the-axis-it-was-protecting-turns-out-not-to-be-the-one-that-is-broken) — the paired bench finally runs, and says the camera was not what was costing the number.
 
 **#19, and the enrolment-time predictors that keep failing the same way.**
 [08-17, the guard asked for](#2026-08-17--the-guard-the-entry-below-asked-for-and-it-turns-out-to-order-every-bench-there-is) ·
@@ -92,6 +94,120 @@ the jumper, and M7 ending.
 Note [07-29, two boards](#2026-07-29--two-boards-one-alive-one-dead-corrected-2026-07-30): the "dead" board was never dead, and the strikethrough in that heading is the house style for a correction.
 
 [08-01 – 08-14](#2026-08-01--2026-08-14--where-this-logs-gap-went) explains the gap.
+
+---
+
+### 2026-09-08 later, the gain lock fails when the light moves, and the axis it was protecting turns out not to be the one that is broken
+
+The room was bright, so #30's paired bench finally had daylight to run in. Three
+runs, and the day ended pointing somewhere else entirely.
+
+**The pair.** Same book scene and same schedule as
+[`m9_cue-20260825-1309`](../bench/cue/m9_cue-20260825-1309.log), eight minutes
+apart, one arm each. [`0602`](../bench/cue/m9_cue-20260908-0602.log) with the
+gain frozen — the arm the entry below shrank it to — and
+[`0610`](../bench/cue/m9_cue-20260908-0610.log) free.
+
+| | 0602, gain locked | 0610, free |
+|---|---|---|
+| enrolled, held out | 81/120 (67.5%) | 72/120 (60.0%) |
+| one visit per state, then held out | 142/180 (78.9%) | 144/180 (80.0%) |
+| rank the states, no gate | 111/240 (46.2%) | 136/240 (56.7%) |
+| empty scene held | 42/66 (63.6%) | 13/66 (19.7%) |
+| AUC, "an opened book" | 0.922 | 0.966 |
+
+One run an arm cannot separate those, and none of them is the reason to keep
+this entry. This is:
+
+| | visit 1 | visit 2 | visit 3 | visit 4 |
+|---|---|---|---|---|
+| 0602, gain locked | +1.44 | +6.12 | +6.49 | +9.27 |
+| 0610, free | +6.73 | +6.56 | +7.89 | +6.69 |
+
+That is the raw z on "a closed book" at the **empty** scene, which is the same
+wall four times. The locked arm marches; the free arm does not. The lock fires
+at frame 61, and the run starts well matched to the background it froze at
+frame 30 and drifts away from it for nine minutes. The snapshot means stay flat
+(`144 135 137` to `132 127 138`), so this is not a brightness runaway, and the
+comparison is a relation among each run's own four revisits, so no constant is
+involved.
+
+**The third run was meant to settle that and did the opposite.** 0602 ran
+before 0610, and at sunrise the earlier eight minutes are the faster-moving
+ones, so "the arm" and "when it ran" are still confounded. A second locked run
+would have cut it. [`0615`](../bench/cue/m9_cue-20260908-0615.log) is that run,
+and its lock did not take:
+
+```
+die witness on the 'L' at frame 61, sampled 8 frames apart -
+exposure 030b 030b, gain 08 0d, wb 10 10
+STILL REVISING WITH THE MASK ASKING IT TO FREEZE: gain - the lock did
+not take on this press (#33), and frames from here are not locked frames.
+```
+
+**The gain lock had never failed before.**
+[`20260907-hold/`](../bench/probe/20260907-hold/) measured 0 of 140 polls
+dragged, which is why the entry below shrank #30's arm to the gain and nothing
+else. 0615's exposure ramp settled after 17 frames against 29 for both earlier
+runs — the light was moving fastest then. So: **the gain lock holds on a still
+scene and drags when the light moves**, and the probe only ever measured the
+still one. That is the same shape of error as the white balance in the entry
+below, one layer down, and the only reason it did not travel is that `m9` now
+reads the die after every `'L'` and said so in its own log. The run was stopped
+at frame 405 rather than finished.
+
+**Then the number that mattered turned out not to be about the camera at all.**
+The opened book scored 26/60 locked and 23/60 free. Two arms, one number. So
+whatever is losing it, the camera is not it — which is what the whole morning
+had been spent on.
+
+**The offline check, and a set that was not there.**
+[`tools/probe_open.py`](../tools/probe_open.py) asks exactly this with no board
+and no hands, and it could not run: the four labelled PNGs all five image
+probes hardcode lived in `/tmp/snaps` and are gone. Third thing this repo has
+lost to `/tmp`, and the worst of the three — five recorded results rested on
+those frames and none of them could be re-derived or disputed. The replacement
+is [`bench/labelled/`](../bench/labelled/README.md): a manifest of label, camera
+arm and path, pointing at the bench runs' own snapshots instead of copying them,
+so a label cannot drift from its pixels. Fifteen frames, six a class instead of
+one, which is the first time this probe's margins have had a spread under them.
+
+The probe also had to be rewritten before it could answer, and the bug it had
+would not have failed loudly: it scored every student against ViT-B/16 text
+vectors, and `so400m-full-a05` emits into a PCA-512 space off a SigLIP 2
+teacher. Two different 512-d spaces, numbers printed all the way. It now takes
+the teacher and the basis from the checkpoint's own `export.json`.
+
+Both checkpoints, same fifteen frames, OPEN−CLOSED gap in pooled within-class sd:
+
+| axis | `train2017` | `so400m-full-a05` |
+|---|---|---|
+| opened-closed | +0.42, overlaps | **+3.97, no overlap** |
+| pages-cover | −4.05, overlaps | −2.54, overlaps |
+| spread-front | +6.63, no overlap | +5.23, no overlap |
+
+**The opened-closed axis is no longer inverted**, and that is the axis the
+bench's two queries define. On 2026-08-07 the student was anti-correlated on it
+at −4.67 sd and that finding is why M12 exists. The six OPEN frames interleave
+across the three camera arms rather than blocking by them, so the separation is
+frame-level.
+
+Two things that go the other way and are worth more than the headline.
+`pages-cover` is still inverted in both, so the student has not simply
+inherited its teacher. And retention got *worse* while this got better: holdout
+cosine `+0.8430` → `+0.6718`, teacher-student cosine `0.73/0.88/0.76` →
+`0.37/0.57/0.43`. The shipped student matches its teacher markedly less well
+and answers the question markedly better, because the teacher it is failing to
+match is so much stronger. **Retention is not the metric**, and it has been
+quoted as one.
+
+**What is left.** The distinction survives distillation in fp32, on these exact
+frames, and still does not arrive: 26/60 and 23/60. Between the two sit int4 and
+the enrolled nearest-reference rule, which does not score the difference axis
+the probe projects onto. The board's own "an opened book" AUC was 0.966 on the
+free run, so the query path works. That points at the enrolment geometry, and
+it is where #30's successor should be aimed — not at the camera, and not at the
+loss.
 
 ---
 

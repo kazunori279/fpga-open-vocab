@@ -1,0 +1,25 @@
+# Labelled book frames, 2026-09-08 morning. label <TAB> camera arm <TAB> path from repo root.
+#
+# These REPLACE the four m9-5*-f0*-hi.png frames that tools/probe_open.py,
+# probe_noise.py, probe_teacher.py, probe_gemini.py and probe_inherit.py all
+# hardcoded. Those lived in /tmp/snaps and are gone. See README.md here.
+#
+# The paths point at the bench runs' own snapshots rather than at copies, so
+# there is exactly one of each file and it cannot drift from the run that
+# produced it. The arm column is a covariate, not a label: it says what the
+# camera was doing, and 0615's lock did not take (the board said so itself).
+CLOSED	locked-took	bench/cue/m9_cue-20260908-0602-f0086.png
+OPEN	locked-took	bench/cue/m9_cue-20260908-0602-f0126.png
+CLOSED	locked-took	bench/cue/m9_cue-20260908-0602-f0206.png
+OPEN	locked-took	bench/cue/m9_cue-20260908-0602-f0246.png
+EMPTY	locked-took	bench/cue/m9_cue-20260908-0602-f0286.png
+CLOSED	free	bench/cue/m9_cue-20260908-0610-f0087.png
+OPEN	free	bench/cue/m9_cue-20260908-0610-f0126.png
+CLOSED	free	bench/cue/m9_cue-20260908-0610-f0206.png
+OPEN	free	bench/cue/m9_cue-20260908-0610-f0246.png
+EMPTY	free	bench/cue/m9_cue-20260908-0610-f0286.png
+CLOSED	locked-FAILED	bench/cue/m9_cue-20260908-0615-f0086.png
+OPEN	locked-FAILED	bench/cue/m9_cue-20260908-0615-f0126.png
+CLOSED	locked-FAILED	bench/cue/m9_cue-20260908-0615-f0206.png
+OPEN	locked-FAILED	bench/cue/m9_cue-20260908-0615-f0246.png
+EMPTY	locked-FAILED	bench/cue/m9_cue-20260908-0615-f0286.png
