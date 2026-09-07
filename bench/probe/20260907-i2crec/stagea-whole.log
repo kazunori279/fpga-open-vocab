@@ -1,0 +1,59 @@
+
+=== What does firing the passthrough cost, and what buys it back? (#33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- warm-up, auto loops running --
+  settled at luma 134
+
+-- phase 0: baseline, nothing fired yet --
+  handle at rest                 54  54  54 | 144 144 144   part  90  wobble  0  ALIVE
+
+  one fire at sensor 0x300a returns 0x36 through 0x48   (0x36, as 20260907-i2cpass read)
+  handle after ONE fire          55  55  54 | 145 145 145   part  90  wobble  1  ALIVE
+
+-- phase 1: read all 128 ArduChip registers, 3 times, NO fires --
+  done. Capture still returns luma 145.
+  handle after                   53  53  53 | 145 145 145   part  92  wobble  0  ALIVE
+
+-- phase 2: 36 writes of 0x07 = 0x00, no bits set --
+  done. Capture still returns luma 145.
+  handle after                    4   4   4 | 145 145 145   part 141  wobble  0  ALIVE
+
+-- phase 3: fire at the FIVE HIGH addresses, 3 visits (0x3000-0x3100) --
+  done. Capture still returns luma 145.
+  handle after                    4   4   4 | 145 145 145   part 141  wobble  0  ALIVE
+
+-- phase 4: fire at the SEVEN LOW addresses, 3 visits (0x0000-0x001D) --
+  done. Capture still returns luma 145.
+  handle after                    4   4   4 | 145 145 145   part 141  wobble  0  ALIVE
+
+-- phase 5: 20260907-i2cpass's STAGE A, whole and unshortened --
+  visit 0 done
+  visit 1 done
+  visit 2 done
+  done. Capture still returns luma 145.
+  handle after                    4   4   4 | 144 143 143   part 140  wobble  1  ALIVE
+
+=== what this run says ===
+
+  baseline                                          ALIVE
+  after ONE fire at 0x300a                          ALIVE
+  phase 1  read all 128 ArduChip registers, 3 times, NO fires ALIVE
+  phase 2  36 writes of 0x07 = 0x00, no bits set    ALIVE
+  phase 3  fire at the FIVE HIGH addresses, 3 visits (0x3000-0x3100) ALIVE
+  phase 4  fire at the SEVEN LOW addresses, 3 visits (0x0000-0x001D) ALIVE
+  phase 5  20260907-i2cpass's STAGE A, whole and unshortened ALIVE
+
+  NOTHING BREAKS THE HANDLE - not the pieces and not stage A whole.
+  20260907-i2cpass's dead control surface DOES NOT REPRODUCE, so the
+  reading in that directory - that firing 0x07 bit 0 costs the manual
+  exposure - is wrong, and its stage B failed for some other reason
+  this run has not found. What is now unblocked is stage B itself: the
+  handle is alive on both sides of a fire, which is the precondition it
+  needed and never had.

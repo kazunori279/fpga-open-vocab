@@ -5,6 +5,18 @@ a bench: no cue schedule, no enrolment, no held-out set, no accuracy. **The
 headline question is answered and the validation is not**, and this file says
 which is which in every section.*
 
+> **CORRECTED THE SAME DAY. The second half of that title is wrong.**
+> [`../20260907-i2crec/`](../20260907-i2crec/) reproduced this file's stage A
+> whole and unshortened — twelve addresses, three visits, a 256-register read
+> after every fire — and the manual exposure handle was alive on the other side
+> of it, parting 140 against a wobble of 1. Firing `0x07` bit 0 does not cost
+> the control surface. What that directory did find is the handle **dead before
+> anything was fired**, on one boot in four, at the same luma 133 quoted below.
+> The dead surface is a boot-to-boot fault in `cam_image_auto_mask()` that this
+> file happened to run into and then blamed on the bit it was testing.
+> Everything about `0x48` and the OV3640 below stands; the section headed "What
+> is NOT answered" has the right facts and the wrong cause.
+
 | log | what it was for |
 |---|---|
 | [`discover.log`](discover.log) | the first run. Named `0x0b`, `0x0c` **and** `0x48`, which is a defect in the rule and not three registers |

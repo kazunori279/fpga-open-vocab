@@ -1,0 +1,20 @@
+
+=== What does firing the passthrough cost, and what buys it back? (#33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- warm-up, auto loops running --
+  settled at luma 133
+
+-- phase 0: baseline, nothing fired yet --
+  handle at rest                133 133 133 | 133 133 133   part   0  wobble  0  DEAD
+
+RESULT : THE HANDLE IS DEAD BEFORE ANYTHING WAS FIRED, so this run
+         measures nothing. 20260907-manexp got 11 against 233 on this
+         board; if that is not reproducible today the difference is not
+         the passthrough and this probe is asking the wrong question.

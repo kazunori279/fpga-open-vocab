@@ -19,6 +19,9 @@ had been stating as fact.
 passthrough was fired for the first time, `0x48` was found holding what it
 returns, and the die turned out to be an OV3640 — and where the causal check
 that would let any of that be adopted could not be run.
+[`probe/20260907-i2crec/`](probe/20260907-i2crec/) is where the reason it could
+not be run turned out not to be the passthrough at all, but a boot-to-boot fault
+that leaves the manual exposure surface deaf before anything is fired.
 
 **`stills/`** is neither, and is not a bench. It holds PNGs off the appliance's
 camera, shot so that the stages of the encoder chain can be asked about the same

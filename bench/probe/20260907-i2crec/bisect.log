@@ -1,0 +1,50 @@
+
+=== What does firing the passthrough cost, and what buys it back? (#33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- warm-up, auto loops running --
+  settled at luma 131
+
+-- phase 0: baseline, nothing fired yet --
+  handle at rest                 66  70  70 | 182 183 183   part 116  wobble  4  ALIVE
+
+  one fire at sensor 0x300a returns 0x36 through 0x48   (0x36, as 20260907-i2cpass read)
+  handle after ONE fire          80  80  80 | 183 183 183   part 103  wobble  0  ALIVE
+
+-- phase 1: read all 128 ArduChip registers, 3 times, NO fires --
+  done. Capture still returns luma 183.
+  handle after                    6   6   6 | 181 181 180   part 175  wobble  1  ALIVE
+
+-- phase 2: 36 writes of 0x07 = 0x00, no bits set --
+  done. Capture still returns luma 179.
+  handle after                    5   5   5 | 179 179 180   part 174  wobble  1  ALIVE
+
+-- phase 3: fire at the FIVE HIGH addresses, 3 visits (0x3000-0x3100) --
+  done. Capture still returns luma 181.
+  handle after                    6   6   6 | 184 184 184   part 178  wobble  0  ALIVE
+
+-- phase 4: fire at the SEVEN LOW addresses, 3 visits (0x0000-0x001D) --
+  done. Capture still returns luma 184.
+  handle after                    6   6   6 | 184 184 184   part 178  wobble  0  ALIVE
+
+=== what this run says ===
+
+  baseline                                          ALIVE
+  after ONE fire at 0x300a                          ALIVE
+  phase 1  read all 128 ArduChip registers, 3 times, NO fires ALIVE
+  phase 2  36 writes of 0x07 = 0x00, no bits set    ALIVE
+  phase 3  fire at the FIVE HIGH addresses, 3 visits (0x3000-0x3100) ALIVE
+  phase 4  fire at the SEVEN LOW addresses, 3 visits (0x0000-0x001D) ALIVE
+
+  NOTHING IN 20260907-i2cpass's STAGE A BREAKS THE HANDLE when it is done
+  a piece at a time - not the dump, not writing 0x07, not the high
+  addresses, not the low ones. Whatever cost that probe its control
+  surface needs the pieces STACKED, and the next run should stop
+  bisecting and instead re-run stage A whole with a handle check
+  before it as well as after.

@@ -1,0 +1,37 @@
+
+=== What does firing the passthrough cost, and what buys it back? (#33) ===
+
+clock     : 320 MHz sys
+sensor id : 0x82
+
+-- bring-up --
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+-- warm-up, auto loops running --
+  settled at luma 127
+
+-- phase 0: baseline, nothing fired yet --
+  handle at rest                 61  64  67 | 181 182 182   part 120  wobble  6  ALIVE
+
+  one fire at sensor 0x300a returns 0x36 through 0x48   (0x36, as 20260907-i2cpass read)
+  handle after ONE fire           6   6   6 | 182 182 182   part 176  wobble  0  ALIVE
+
+-- phase 2: 36 fires of 0x07 = 0x01, the initiate --
+  36 writes done. Capture still returns luma 182.
+  handle after                    6   6   6 | 182 182 181   part 176  wobble  1  ALIVE
+
+-- phase 3: 36 writes of 0x07 = 0x00, THE CONTROL --
+  36 writes done. Capture still returns luma 181.
+  handle after                    6   6   6 | 182 182 182   part 176  wobble  0  ALIVE
+
+=== what this run says ===
+
+  baseline handle              ALIVE
+  after ONE fire               ALIVE   - a single readback is affordable
+  after 36 fires                ALIVE
+  after 36 null writes (0x00)   ALIVE
+
+  NOTHING BROKE THIS TIME, which contradicts 20260907-i2cpass.
+  The difference between the two runs is the warm-up above - find it
+  before believing either.
