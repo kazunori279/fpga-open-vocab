@@ -31,6 +31,10 @@ followed into the die and found to move `0x332b` on four boots — and where the
 bit that was thought to clear the deaf boots recovered none of seven, the fault
 turned out to be watchable at `0x3002`/`0x3003` in two distinct shapes, and the
 six-rung ladder turned out to span a wider range than the sensor has.
+[`probe/20260907-lockrate/`](probe/20260907-lockrate/) is where that deaf-boot
+fault got a rate — 32 boots of 33, and 9 of them deaf and not deaf by turns
+inside ten seconds — and where the check written that afternoon to catch it
+turned out to answer `held` on every boot because it ran before the first frame.
 
 **`stills/`** is neither, and is not a bench. It holds PNGs off the appliance's
 camera, shot so that the stages of the encoder chain can be asked about the same

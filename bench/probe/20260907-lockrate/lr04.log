@@ -1,0 +1,15 @@
+
+=== #33: did the exposure lock take? ===
+
+clock     : 320 MHz sys
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+
+  cam_image_defaults() noticed: held        (wrote 0400, die said 0400)
+  recheck 0 after warm-up:      dragged     (wrote 0400, die said 00c4)
+  recheck 1 after warm-up:      held        (wrote 0400, die said 0400)
+  recheck 2 after warm-up:      dragged     (wrote 0400, die said 024c)
+  the picture at those two:     luma 119 and 119
+
+VERDICT : dragged UNSTABLE picture flat
+          first=held r0=dragged r1=held r2=dragged luma=119,119

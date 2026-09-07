@@ -87,8 +87,10 @@ first firing and one conclusion it got wrong.
 and at 3072, with a six-rung exposure ladder either side of each.
 
 One caveat the shipping path has to carry: the manual exposure surface comes up
-deaf on some boots, with nothing fired. **No register write is known to clear
-it.** `0x07` bit 7 was written up as the cure on a single observation and
+deaf on most boots, with nothing fired — 32 of 33 in
+[`bench/probe/20260907-lockrate/`](../bench/probe/20260907-lockrate/), and 9 of
+those 33 were deaf and not deaf by turns inside ten seconds. **No register write
+is known to clear it.** `0x07` bit 7 was written up as the cure on a single observation and
 [`bench/probe/20260907-awb/`](../bench/probe/20260907-awb/) then walked the same
 ladder on seven boots without it recovering one of them; bit 1 recovered one,
 bit 6 broke capture every time it was tried, and re-running the whole of
@@ -104,7 +106,11 @@ value perfectly and the picture still does not move. Both look identical from
 the host: a flat ladder around luma 110–120.
 
 Neither can be fixed from here. The passthrough is a read path and there is no
-measured way to write the die's own AE enable.
+measured way to write the die's own AE enable. What a run *can* do is find out,
+and `cam_exposure_lock_check()` is that call — but only after it has captured a
+frame. Before the first one the AE loop has nothing to revise, the write always
+appears to stick, and the check returns `CAM_LOCK_UNTESTED` rather than a `held`
+that means nothing.
 
 ## Registers the driver does not use, in the order they are worth something
 
@@ -312,15 +318,29 @@ that session completed and was read out:
    **measured and adopted on 2026-09-07.** `0x48` returns the exposure this
    firmware wrote, byte for byte, at the OV3640's `0x3002`/`0x3003`, on two
    consecutive boots
-   ([`20260907-i2crec/`](../bench/probe/20260907-i2crec/)). What is left is
-   putting it in the driver: a `cam_sensor_read()` in `cam.c`, and — instead of
-   the cache reset this list used to ask for, which does not work — a check that
-   the exposure lock took, which the same readback can now make. That turns the
-   sharper
+   ([`20260907-i2crec/`](../bench/probe/20260907-i2crec/)). ~~What is left is
+   putting it in the driver~~ — **in the driver on 2026-09-07.**
+   `cam_sensor_read()`, `cam_sensor_read16()` and `cam_exposure_lock_check()`
+   are in `cam.c`; the check writes two exposures a factor of eight apart with
+   the loops masked and reads `0x3002`/`0x3003` back, so `held` and `dragged`
+   are now things a run can know about itself. That turns the sharper
    question [`20260907-camlock-cold/`](../bench/soak/20260907-camlock-cold/)
    asked — three of eight locked runs moved their level by 14 to 18 after the
    freeze, which the AWB drift in `cam.h:245` does not account for — into
    something answerable by reading the die instead of the pixels.
+
+   **And the first thing it measured was how badly the lock fails**, over 33
+   boots ([`20260907-lockrate/`](../bench/probe/20260907-lockrate/)): 32 of them
+   dragged at least once after warm-up, only one never dragged, and 9 answered
+   differently to the same question three times inside ten seconds. #33's "on
+   some acquires" understates it, and the fault is not a property of the boot.
+
+   **The second thing it measured was itself.** The check was wired into
+   `cam_image_defaults()` and said `held` on all 33 boots, because the AE loop
+   only revises exposure while frames are being clocked and nothing has clocked
+   one that early. It now returns `CAM_LOCK_UNTESTED` before this boot's first
+   frame and the call is gone from the boot path; the caller runs it after its
+   warm-up. What remains is picking those call sites in `m9.c`.
 3. ~~**Write explicit exposure and gain**~~ — **probed on 2026-09-07 and both
    groups respond**, so `'L'` can lock rather than hope. What is left is doing
    it, and the two open items above the section are part of the job: the loops

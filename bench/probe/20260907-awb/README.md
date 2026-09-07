@@ -6,6 +6,11 @@ whether `'L'`'s AWB arm actually reaches the sensor, spent seven boots finding
 out that the instrument it inherited could not tell a deaf board from a badly
 aimed ladder, and answered the question on the eighth.*
 
+> **Read [`../20260907-lockrate/`](../20260907-lockrate/) after this one.** The
+> lock check built here was then run over 33 boots, which turned point 3's
+> "flat boot" from an occasional fault into the normal case: 32 of 33 dragged,
+> and 9 of them changed their answer inside ten seconds.
+
 Three things came out of it:
 
 1. **`0x332b` and `0x33ca` separate on the white-balance bit** and hold across

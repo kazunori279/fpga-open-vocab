@@ -18,7 +18,7 @@ exist only to record a claim that later turned out to be false.
 
 ## How to read this file
 
-Sixty dated entries, newest first. **Do not treat any single entry as the
+Sixty-one dated entries, newest first. **Do not treat any single entry as the
 current answer.** Several are here only because they were wrong, and the
 discipline is that a retraction sits beside the table it retracts rather than
 replacing it — so an entry can be accurate about what was measured that day and
@@ -37,7 +37,8 @@ weeks.
 [08-25](#2026-08-25-the-absent-rule-has-no-room-to-work-in-and-a-cache-that-outlived-its-sensor) ·
 [09-06](#2026-09-06-the-board-had-been-flagging-a-broken-camera-for-weeks-and-no-scorer-read-the-line) — refuses two benches and takes a +21.7 and a +33.4 point result with them ·
 [09-07](#2026-09-07-the-sensor-answers--and-the-thing-that-kept-it-silent-was-never-the-question-being-asked) — the sensor becomes readable, and a third camera fault turns out to have been sitting under the other two ·
-[09-07 later](#2026-09-07-later-the-white-balance-bit-lands-on-the-die-and-the-cure-written-up-that-morning-cures-nothing) — the white-balance bit is found at `0x332b`, and the morning's cure for that third fault is retracted the same day.
+[09-07 later](#2026-09-07-later-the-white-balance-bit-lands-on-the-die-and-the-cure-written-up-that-morning-cures-nothing) — the white-balance bit is found at `0x332b`, and the morning's cure for that third fault is retracted the same day ·
+[09-07 evening](#2026-09-07-evening-the-exposure-lock-fails-on-32-boots-in-33-and-the-check-written-to-catch-it-could-not-fail) — the third fault gets a rate, and it is not "some acquires".
 
 **Drift, the auto loops, and #30.**
 [08-25 afternoon](#2026-08-25-afternoon-the-third-reference-on-the-board-and-the-band-that-could-not-have-fired) ·
@@ -90,6 +91,74 @@ Note [07-29, two boards](#2026-07-29--two-boards-one-alive-one-dead-corrected-20
 [08-01 – 08-14](#2026-08-01--2026-08-14--where-this-logs-gap-went) explains the gap.
 
 ---
+
+### 2026-09-07 evening, the exposure lock fails on 32 boots in 33, and the check written to catch it could not fail
+
+Thirty-six boots of a new probe, `forgix_cam_lockrate`, over a hub power cycle
+each time. It is the previous entry's lock check with the sweep, the ladder and
+the recovery taken out — fifteen seconds a boot instead of four minutes, which
+is what turns eleven observations into a rate.
+[`bench/probe/20260907-lockrate/`](../bench/probe/20260907-lockrate/) has every
+log and the per-boot table.
+
+**The rate, over 33 boots.** Every boot warms up 20 captures, then asks three
+times, with the loops re-enabled and 8 captures in between: mask all the auto
+loops off, write `0x0080` and `0x0400`, read the die's `0x3002`/`0x3003` back.
+
+| | held | dragged |
+|---|---|---|
+| all 99 warm checks | 15 | 84 |
+| boots that dragged all three times | | 23 |
+| boots that dragged at least once | | 32 |
+| boots that never dragged | 1 | |
+
+`unreadable` — the passthrough failing to return a stable pair, this probe's own
+instrument giving up — came back 0 times on all 36 boots.
+
+**One boot in 33 locked and stayed locked**, and nine gave two different answers
+to the same question inside about ten seconds. That last number is the one that
+changes the shape of #33. The issue was written as "the auto loops come up
+disabled on some acquires", which reads as a per-boot condition you could detect
+once and route around. It is not. The same board, in the same unattended scene,
+ten seconds apart, answers differently — so whatever `cam_image_auto_mask(0)`
+does to the ArduChip does not durably stop the loop on the die.
+
+**And then the instrument turned on itself.** `cam_exposure_lock_check()` had
+been added to `cam.c` earlier the same day as the first statement of
+`cam_image_defaults()`, on the argument that #33's title is that this function
+does not notice. It printed `held` on 33 boots out of 33, while 32 of those same
+boots dragged a few frames later. A check that cannot fail is not a check.
+
+The reason is that the AE loop revises the exposure per frame, and at the top of
+`cam_image_defaults()` this boot has not captured one. Nothing is running that
+could drag the write back, so it stays, and the `held` reports the absence of a
+frame rather than the state of the sensor. Twelve boots then captured exactly
+one frame and asked again, changing nothing else:
+
+| point | held | dragged |
+|---|---|---|
+| before the first frame | 12 | 0 |
+| after one frame | 5 | 7 |
+| after twenty frames | 1 | 11 |
+
+So the call has been taken back out of `cam_image_defaults()` — the boot path is
+bit for bit where it was — and the check now returns `CAM_LOCK_UNTESTED`,
+writing no registers at all, when `cam_frames_triggered` is zero. Three further
+boots confirm the refusal fires and that the very next check drags. The noticing
+belongs to the caller, after its warm-up captures, and picking those call sites
+in `m9.c` is what is left.
+
+This also makes the two verdicts unequal, which the header in `cam.c` now says
+outright. `dragged` is proof: the die overwrote a value it was handed.
+`held` is only the absence of that proof inside two writes and 60 ms, and the
+nine mixed boots are the measure of how little that is worth on its own.
+
+**The picture agrees and is still not the verdict.** Every boot the die called
+`held` moved its frame between the two exposures (4 of 4); 23 of the 29 it
+called `dragged` were flat. But `settled()` hit its 30-capture bound on 7 boots,
+all 7 of them in the "moved" column and none in the "flat" one — a frame that
+will not sit still is being read as a frame that moved. The die's answer does
+not have that defect, which is why it is the one being counted.
 
 ### 2026-09-07 later, the white-balance bit lands on the die, and the cure written up that morning cures nothing
 

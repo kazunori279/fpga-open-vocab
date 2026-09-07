@@ -268,6 +268,150 @@ bool cam_wait_idle(const char *what)
     return false;
 }
 
+// ---- reading the die ---------------------------------------------------------
+//
+// The passthrough, adopted 2026-09-07 after bench/probe/20260907-i2crec/ showed
+// 0x48 returning the exact sixteen bits this firmware had written into the die's
+// exposure registers on two consecutive boots. cam.h carries the provenance and
+// the safety measurement; this is the driver's copy of the sequence, which until
+// now only existed inside the probes.
+uint8_t cam_sensor_read(uint16_t sensor_reg)
+{
+    cam_write_reg(CAM_REG_DEBUG_DEVICE_ADDRESS, CAM_SENSOR_I2C_ADDR);
+    cam_wait_idle("i2c device address");
+    cam_write_reg(CAM_REG_I2C_ADDR_H, (uint8_t)(sensor_reg >> 8));
+    cam_wait_idle("i2c register address high");
+    cam_write_reg(CAM_REG_I2C_ADDR_L, (uint8_t)(sensor_reg & 0xff));
+    cam_wait_idle("i2c register address low");
+    cam_write_reg(CAM_REG_SENSOR_RESET, CAM_I2C_INITIATE_READ);
+    cam_wait_idle("i2c direct read");
+    sleep_ms(2);
+    return cam_read_reg(CAM_REG_I2C_DATA);
+}
+
+// Sixteen bits is two transactions and they tear - bench/probe/20260907-awb/
+// wrote 0x0400 and read 040b, high byte refreshed and low byte still holding the
+// previous value's low half. Read the pair until two consecutive pairs agree.
+// `ok` is false when they never do, which is a different answer from any value.
+uint16_t cam_sensor_read16(uint16_t reg_h, uint16_t reg_l, bool *ok)
+{
+    uint16_t prev = 0;
+    for (int i = 0; i < 8; i++) {
+        uint16_t v = (uint16_t)((cam_sensor_read(reg_h) << 8) |
+                                 cam_sensor_read(reg_l));
+        if (i > 0 && v == prev) { if (ok) *ok = true; return v; }
+        prev = v;
+    }
+    if (ok) *ok = false;
+    return prev;
+}
+
+// ---- #33: did the lock take? -------------------------------------------------
+//
+// The manual exposure block. cam.h declines to declare 0x31-0x35 on purpose -
+// its register map is transcribed from ArduCAM's driver, which touches none of
+// them, and that is the provenance line it keeps. They are needed here and
+// nowhere else in the driver, so they live here.
+#define MANUAL_EXPOSURE_H  0x33
+#define MANUAL_EXPOSURE_M  0x34
+#define MANUAL_EXPOSURE_L  0x35
+
+cam_lock_state_t cam_exposure_lock_state = CAM_LOCK_UNKNOWN;
+uint16_t cam_exposure_lock_wrote;
+uint16_t cam_exposure_lock_read;
+
+static void write_manual_exposure(uint32_t v)
+{
+    cam_write_reg(MANUAL_EXPOSURE_H, (uint8_t)((v >> 16) & 0x0f));
+    cam_wait_idle("manual exposure high");
+    cam_write_reg(MANUAL_EXPOSURE_M, (uint8_t)((v >> 8) & 0xff));
+    cam_wait_idle("manual exposure mid");
+    cam_write_reg(MANUAL_EXPOSURE_L, (uint8_t)(v & 0xff));
+    cam_wait_idle("manual exposure low");
+}
+
+// WHAT THIS IS FOR, AND WHY IT IS NOT A PICTURE.
+//
+// Issue #33 is that the auto loops come up disabled on some acquires and
+// cam_image_defaults() does not notice. Until 2026-09-07 there was no way for it
+// to notice: CAM_REG_AUTO_CONTROL is write-only, so nothing could be read back
+// to say whether a mask had landed. bench/probe/20260907-awb/ found the place it
+// can be read - not on the ArduChip but one level down, at the die's own
+// exposure registers.
+//
+// Write an exposure with every loop locked and read 0x3002/0x3003 back. If the
+// die keeps it, the lock reached the sensor. If the die puts its own value back,
+// the AE loop is still running with the mask at zero - which is also what pins
+// the frame near mid-scale whatever exposure is written, and is what every "flat
+// boot" in that directory turned out to be.
+//
+// TWO EXPOSURES, NOT ONE. A single value the loop happens to agree with looks
+// held either way. These two are a factor of eight apart, so the loop cannot
+// agree with both.
+//
+// AND IT REFUSES TO ANSWER BEFORE THE FIRST FRAME. This was written on
+// 2026-09-07 as the first statement of cam_image_defaults() and it said `held`
+// on 33 boots out of 33 while the same call, run again a few frames later on
+// those same boots, said `dragged` on 32 of them - bench/probe/20260907-lockrate/.
+// A check that cannot fail is not a check. The AE loop only revises the
+// exposure when the sensor is clocking frames out, so at the top of
+// cam_image_defaults() there is nothing running that could drag the write back,
+// and the held is an artefact of asking early. Zero frames is the one case that
+// is knowably meaningless, so it is the one this refuses; one frame in it
+// already dragged on 7 of 12 boots.
+//
+// WHICH MAKES THE TWO ANSWERS UNEQUAL IN WEIGHT, and callers should read them
+// that way. `dragged` is proof: the die overwrote a value it was handed, so the
+// loop is live. `held` is only the absence of that proof within this call's
+// two writes and 60 ms - the 33 boots include 9 that answered differently to
+// the same question three times over about ten seconds.
+//
+// This leaves the loops FREE, because that is the state cam_image_defaults()
+// wants and this runs on the way there. It does not restore any manual exposure
+// value, and it does not need to: cam.h:362 records that switching the loops
+// back on does not undo a manual write, so the caller gets the loops re-enabled
+// and the sensor re-converging, which is exactly the boot state.
+uint32_t cam_frames_triggered;
+
+cam_lock_state_t cam_exposure_lock_check(void)
+{
+    static const uint32_t TRY[2] = { 0x00080u, 0x00400u };
+    bool held = true, readable = true;
+
+    if (cam_frames_triggered == 0) {
+        cam_exposure_lock_state = CAM_LOCK_UNTESTED;
+        return cam_exposure_lock_state;
+    }
+
+    cam_image_auto_mask(0u);
+    for (int i = 0; i < 2; i++) {
+        bool ok = false;
+        write_manual_exposure(TRY[i]);
+        sleep_ms(60);
+        uint16_t got = cam_sensor_read16(CAM_OV3640_AEC_H, CAM_OV3640_AEC_L, &ok);
+        cam_exposure_lock_wrote = (uint16_t)TRY[i];
+        cam_exposure_lock_read  = got;
+        if (!ok) readable = false;
+        if (got != (uint16_t)TRY[i]) held = false;
+    }
+
+    cam_exposure_lock_state = !readable ? CAM_LOCK_UNREADABLE
+                            : held      ? CAM_LOCK_HELD
+                                        : CAM_LOCK_DRAGGED;
+    return cam_exposure_lock_state;
+}
+
+const char *cam_lock_state_name(cam_lock_state_t s)
+{
+    switch (s) {
+    case CAM_LOCK_HELD:       return "held";
+    case CAM_LOCK_DRAGGED:    return "dragged";
+    case CAM_LOCK_UNREADABLE: return "unreadable";
+    case CAM_LOCK_UNTESTED:   return "untested";
+    default:                  return "unknown";
+    }
+}
+
 // What the last capture actually wrote, so `rewrite = false` can skip. -1 means
 // "unknown", which is the honest state after a reset or a cam_begin().
 static int last_fmt = -1, last_mode = -1;
@@ -405,6 +549,18 @@ void cam_frame_source_synth(bool on)
 
 void cam_image_defaults(void)
 {
+    // #33 IS NOT FIXABLE FROM INSIDE THIS FUNCTION, and that is a measurement
+    // rather than a judgement. cam_exposure_lock_check() was called here, as the
+    // first statement, for exactly one afternoon. Across 33 boots it said `held`
+    // 33 times, while the identical call a few frames later on those same boots
+    // said `dragged` on 32 of them: bench/probe/20260907-lockrate/. Nothing has
+    // clocked a frame by the time this runs, so the AE loop has nothing to
+    // revise and the lock trivially appears to take. The check now refuses that
+    // case outright and the call is gone, which leaves the boot path bit for bit
+    // where it has always been.
+    //
+    // So the noticing belongs to the caller, after its warm-up captures. cam.h
+    // says where; m9's bench arms are the place that wants it.
     cam_image_auto(true);
     // NOT part of cam_image_auto(). This one is not a loop being switched on -
     // cam.h:220 has the measurement: writing it AT ALL is what takes blue from
@@ -436,6 +592,11 @@ bool cam_trigger(const cam_recipe_t *r, uint8_t mode, uint8_t fmt, cam_time_t *t
     // One capture is the unit of recovery: the bus was resynced when the fault
     // was raised, so this one starts clean and gets to fail on its own merits.
     bus_fault = false;
+
+    // Only so cam_exposure_lock_check() can refuse to answer before the sensor
+    // has clocked a frame. Nothing reads it for any other purpose and nothing
+    // resets it: "has this boot ever taken a picture" is the whole question.
+    cam_frames_triggered++;
 
     uint64_t t0 = time_us_64();
     // The guard cam.h's header comment is about. Not tidiness.

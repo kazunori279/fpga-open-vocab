@@ -157,6 +157,50 @@
 #define CAM_OV3640_AEC_H             0x3002
 #define CAM_OV3640_AEC_L             0x3003
 
+// One byte out of the die. Sets the device address itself, so it does not
+// depend on what the last caller left in 0x0A.
+uint8_t cam_sensor_read(uint16_t sensor_reg);
+
+// Two bytes, read until two consecutive pairs agree, because of the tearing
+// above. `ok` false means they never did - which is not the same as any value,
+// and a caller that ignores it will believe a torn read.
+uint16_t cam_sensor_read16(uint16_t reg_h, uint16_t reg_l, bool *ok);
+
+// #33. Whether the exposure lock reached the sensor, which CAM_REG_AUTO_CONTROL
+// being write-only made unanswerable until the passthrough was adopted. See
+// cam.c for what each verdict means and bench/probe/20260907-lockrate/ for the
+// 33 boots behind the numbers below.
+//
+// DRAGGED IS NOT A DEGRADED HELD. It means the AE loop is still running with the
+// mask at zero, so a run that locks the camera has not locked it, the frame is
+// parked wherever the loop wants it, and any 'L'-arm measurement taken on that
+// boot is measuring nothing. Treat it the way a bench treats a failed positive
+// control. It is not rare: 32 boots of 33 dragged at least once after warm-up.
+//
+// CALL IT AFTER FRAMES ARE FLOWING, NOT AT BRING-UP. cam_image_defaults() does
+// not call this and cannot usefully: with no frame captured yet the AE loop has
+// nothing to revise, so the answer is CAM_LOCK_UNTESTED by construction. The
+// place for it is wherever a run decides its camera is ready - after the
+// warm-up captures, on the same boot, before the first measurement is kept.
+typedef enum {
+    CAM_LOCK_UNKNOWN = 0,   // never checked
+    CAM_LOCK_HELD,          // the die kept both written exposures
+    CAM_LOCK_DRAGGED,       // the die put its own value back: the loop is live
+    CAM_LOCK_UNREADABLE,    // the passthrough never returned a stable pair
+    CAM_LOCK_UNTESTED,      // asked before this boot's first frame: unanswerable
+} cam_lock_state_t;
+
+// Frames this boot has asked the sensor for, counted in cam_trigger(). Exposed
+// only because the check above refuses at zero; it is not a run statistic.
+extern uint32_t cam_frames_triggered;
+
+extern cam_lock_state_t cam_exposure_lock_state;
+extern uint16_t cam_exposure_lock_wrote;   // the last exposure written
+extern uint16_t cam_exposure_lock_read;    // what the die said to it
+
+cam_lock_state_t cam_exposure_lock_check(void);
+const char *cam_lock_state_name(cam_lock_state_t s);
+
 #define CAM_REG_SENSOR_STATE_IDLE (1 << 1)
 
 // ArduCAM's name, kept so this file matches the driver it was transcribed from.
