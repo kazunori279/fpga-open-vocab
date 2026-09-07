@@ -46,18 +46,27 @@ enrolment and score the rest. That is 240 frames against 180, and the missing
 from. `threshold, held out` exists so the comparison is on one denominator, and
 on the sweep below the denominator was worth 1.3 points of the gap, not the gap.
 
+`threshold` IS NOT WHAT THE BOARD RUNS. It was, before M21. Since 2026-08-11
+firmware/m9.c classifies by the nearest enrolled reference in the centred space
+and carries no threshold on either axis, so the row that stands for the current
+board is `enrol-mid`, not `threshold`. Read `threshold` as the rule M21
+replaced. Getting this backwards on 2026-09-08 turned a confirmation of a
+shipped design into a proposal to ship it again.
+
 WHAT THE SWEEP FOUND, 2026-09-08
 ---------------------------------
 Sixteen two-query benches - the fourteen `bench/README.md` names plus the two
 paired cue runs of 09-08 - on one denominator, 2460 held-out frames:
 
-    threshold, held out   58.0%
-    enrol-mid             74.0%     15 benches better, 1 tied, 0 worse
-    oracle cut            86.7%
+    threshold, held out   58.0%     the pre-M21 rule, retired
+    enrol-mid             74.0%     what the board runs now
+    oracle cut            86.7%     the bound on that axis
 
-So putting the cut where the run's own enrolment says collects 55.7% of what
-the shipped constant leaves on the table, and it does not cost a single bench.
-No new constant: the cut is a relation among that run's own measurements.
+Two readings, and only the second is live work. M21's decision is confirmed on
+sixteen benches instead of the two it shipped on: taking the cut from the run's
+own enrolment beats the retired constant on 15, ties 1 and loses none. And the
+current board leaves 12.7 points on an axis that already separates the scenes -
+that gap, not the 16 above it, is what issue #19 is about.
 
 `enrol-1nn, centred` ties `enrol-mid` frame for frame on all sixteen, which is
 algebra rather than a result - with two queries the centred space is
