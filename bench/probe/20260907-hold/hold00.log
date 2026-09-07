@@ -1,0 +1,48 @@
+
+=== the other two loops: gain and white balance ===
+
+clock     : 320 MHz sys
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+  exposure lock on this boot: held
+  passthrough control: 0x300a/0x300b = 36 4c  (OV3640, as expected)
+
+== stage G: the gain, and where the die keeps it ==
+  visit 0 (0x055) swept
+  visit 1 (0x0aa) swept
+  visit 2 (0x0aa) swept
+  visit 3 (0x055) swept
+  visit 4 (0x055) swept
+  visit 5 (0x0aa) swept
+
+  sensor   gain 0x055     gain 0x0aa     verdict
+  0x3001   55 55 55      aa aa aa      RESPONDS, and echoes the write byte for byte
+  1 address separated and held still; 1 of them echoed
+
+== stage W: does the white-balance lock hold over a minute? ==
+
+   t(s)  arm     0x332b  0x33ca  channel means
+      2  free    18      41      R 132 G 143 B  90
+      5  LOCKED  18      41      R 132 G 142 B  89
+      7  free    18      41      R 133 G 143 B  90
+     10  LOCKED  18      41      R 133 G 143 B  90
+     12  free    18      41      R 132 G 142 B  89
+     15  LOCKED  18      41      R 132 G 142 B  89
+     17  free    10      43      R 137 G 135 B 135
+     20  LOCKED  18      41      R 132 G 143 B  89
+     22  free    18      41      R 132 G 142 B  89
+     25  LOCKED  18      41      R 132 G 142 B  90
+     27  free    10      43      R 137 G 135 B 135
+     30  LOCKED  18      41      R 133 G 143 B  90
+     33  free    10      44      R 139 G 135 B 137
+     35  LOCKED  18      41      R 133 G 143 B  90
+     38  free    18      41      R 133 G 143 B  90
+     40  LOCKED  18      41      R 133 G 143 B  90
+
+  0x332b: ARMS DO NOT SEPARATE, locked arm holds one value
+  0x33ca: ARMS DO NOT SEPARATE, locked arm holds one value
+  VOID: neither address separated, so nothing here is about the lock.
+
+WB      : VOID - no separation, no positive control
+
+VERDICT : exposure=held  (gain and WB above)

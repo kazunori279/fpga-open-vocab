@@ -789,7 +789,10 @@ def main() -> int:
                          "'L' to freeze the camera's exposure, gain and white "
                          "balance where they stand, 'M' to replace the camera "
                          "with a fixed pattern that cannot drift at all (both "
-                         "issue #30). Repeatable. The "
+                         "issue #30), 'K' to ask the sensor die whether the "
+                         "'L' lock actually took - which costs the frames "
+                         "around it, so schedule it away from anything being "
+                         "scored (issue #33). Repeatable. The "
                          "frame is the BOARD's number off the frame line, not a "
                          "count of lines here, because the caller computing "
                          "these knows the schedule in board frames and an "
@@ -839,13 +842,20 @@ def main() -> int:
     # Freezing it first is not an option on this arm, it is the arm - and doing
     # it by hand at the right frame is exactly the timing --enrol exists to take
     # out of an operator's hands. Still not "any hotkey": the set stays closed.
-    keys = [str(k) for k in range(MAX_Q + 1)] + ["L", "M", "H"]
+    # 'K' rides here because it is the only way to ask whether 'L' did anything,
+    # and because WHEN it is pressed is part of what it measures - the exposure
+    # lock is not a per-boot property, it changed answer inside ten seconds on 9
+    # of 33 boots in bench/probe/20260907-lockrate/. It perturbs the sensor for
+    # about 120 ms, so a run schedules it away from anything it means to score,
+    # which is a timing decision and therefore this flag's business rather than
+    # an operator's. Still not "any hotkey": the set stays closed.
+    keys = [str(k) for k in range(MAX_Q + 1)] + ["L", "M", "H", "K"]
     enrol: list[tuple[int, str]] = []
     for spec in args.enrol:
         frame, _, key = spec.partition(":")
         if not frame.isdigit() or key not in keys:
             raise SystemExit(f"--enrol {spec}: want FRAME:KEY with KEY in "
-                             f"0..{MAX_Q}, L, M or H, e.g. --enrol=125:1")
+                             f"0..{MAX_Q}, L, M, H or K, e.g. --enrol=125:1")
         enrol.append((int(frame), key))
     enrol.sort()
     if any(k < 1 for k in args.snap_at):
@@ -1228,7 +1238,7 @@ def main() -> int:
                         bf = int(tok[1]) if len(tok) > 1 and tok[1].isdigit() else -1
                         while enrol and bf >= enrol[0][0]:
                             key = enrol.pop(0)[1]
-                            what = "camera" if key in ("L", "M") else \
+                            what = "camera" if key in ("L", "M", "K") else \
                                    "bg    " if key == "H" else "enrol "
                             print(f"{what}    : pressing '{key}' at board frame "
                                   f"{bf}")

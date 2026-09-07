@@ -5,6 +5,13 @@ schedule, no enrolment, no held-out set, no accuracy. One question, asked the
 same way every boot — with every auto loop masked off and an exposure written,
 does the die keep it?*
 
+> **Three directories follow this one and change what it means.**
+> [`../20260907-cure/`](../20260907-cure/) spends the last untried cure and
+> loses to a null arm. [`../20260907-hold/`](../20260907-hold/) asks the same
+> question of gain and white balance, finds both hold, and finds the *unlock*
+> failing instead. [`../20260907-witness/`](../20260907-witness/) carries all of
+> it into `m9`, where the fault stops being a probe result.
+
 [`../20260907-awb/`](../20260907-awb/) established that the question is
 answerable at all: `CAM_REG_AUTO_CONTROL` is write-only, but the die's own
 exposure registers `0x3002`/`0x3003` are readable through the I²C passthrough,

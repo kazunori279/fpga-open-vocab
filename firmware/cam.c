@@ -412,6 +412,35 @@ const char *cam_lock_state_name(cam_lock_state_t s)
     }
 }
 
+// ---- #33's read-only witness -------------------------------------------------
+//
+// cam.h has what this answers and, more to the point, what it does not. The one
+// thing to keep in mind reading the code: nothing here writes to the sensor, and
+// that is the whole reason it exists rather than being a second entry point into
+// the check above.
+void cam_die_sample(cam_die_sample_t *s)
+{
+    bool ok = false;
+    s->exposure = cam_sensor_read16(CAM_OV3640_AEC_H, CAM_OV3640_AEC_L, &ok);
+    // Single bytes, so there is no pair to disagree and no way to catch a torn
+    // read - the tearing cam_sensor_read16() defends against is between two
+    // transactions and these are one each. `ok` is the exposure's alone and the
+    // struct says so; do not read it as a verdict on the other two.
+    s->gain = cam_sensor_read(CAM_OV3640_GAIN);
+    s->awb  = cam_sensor_read(CAM_OV3640_AWB_WITNESS);
+    s->ok   = ok;
+}
+
+uint8_t cam_die_live(const cam_die_sample_t *a, const cam_die_sample_t *b)
+{
+    if (!a->ok || !b->ok) return 0u;
+    uint8_t live = 0u;
+    if (a->exposure != b->exposure) live |= CAM_AUTO_EXPOSURE;
+    if (a->gain     != b->gain)     live |= CAM_AUTO_GAIN;
+    if (a->awb      != b->awb)      live |= CAM_AUTO_WB;
+    return live;
+}
+
 // What the last capture actually wrote, so `rewrite = false` can skip. -1 means
 // "unknown", which is the honest state after a reset or a cam_begin().
 static int last_fmt = -1, last_mode = -1;

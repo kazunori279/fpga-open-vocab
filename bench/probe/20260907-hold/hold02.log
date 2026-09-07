@@ -1,0 +1,55 @@
+
+=== the other two loops: gain and white balance ===
+
+clock     : 320 MHz sys
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+  exposure lock on this boot: dragged
+  passthrough control: 0x300a/0x300b = 36 4c  (OV3640, as expected)
+
+== stage G: the gain, and where the die keeps it ==
+  visit 0 (0x055) swept
+  visit 1 (0x0aa) swept
+  visit 2 (0x0aa) swept
+  visit 3 (0x055) swept
+  visit 4 (0x055) swept
+  visit 5 (0x0aa) swept
+
+  sensor   gain 0x055     gain 0x0aa     verdict
+  0x3001   55 55 55      aa aa aa      RESPONDS, and echoes the write byte for byte
+  1 address separated and held still; 1 of them echoed
+
+== stage GH: does a written gain stay written, at 0x3001? ==
+  wrote 055, die: 55 55 55 55 55 55 55 55 55 55
+  wrote 0aa, die: aa aa aa aa aa aa aa aa aa aa
+  0 of 20 polls came back changed
+
+GAIN    : held
+
+== stage W: does the white-balance lock hold over a minute? ==
+
+   t(s)  arm     0x332b  0x33ca  channel means
+      2  free    18      41      R 118 G 130 B  77
+      5  LOCKED  18      41      R 118 G 130 B  77
+      7  free    10      44      R 123 G 122 B 123
+     10  LOCKED  18      41      R 118 G 130 B  77
+     12  free    10      44      R 133 G 130 B 131
+     15  LOCKED  18      41      R 134 G 146 B  92
+     17  free    10      44      R 132 G 131 B 132
+     20  LOCKED  18      41      R 136 G 147 B  92
+     22  free    10      44      R 133 G 131 B 131
+     25  LOCKED  18      41      R 134 G 147 B  91
+     27  free    10      44      R 132 G 131 B 132
+     30  LOCKED  18      41      R 135 G 147 B  90
+     33  free    18      41      R 136 G 147 B  91
+     35  LOCKED  18      41      R 136 G 148 B  91
+     38  free    18      41      R 136 G 148 B  91
+     40  LOCKED  18      41      R 136 G 148 B  91
+
+  0x332b: 5 of 8 free visits differed from the locked arm; locked arm holds one value
+  0x33ca: 5 of 8 free visits differed from the locked arm; locked arm holds one value
+
+WB      : HOLDS - the lock is not what fails here
+          and the unlock failed 3 of 8 times at 0x332b
+
+VERDICT : exposure=dragged  (gain and WB above)

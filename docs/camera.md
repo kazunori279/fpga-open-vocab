@@ -96,6 +96,28 @@ ladder on seven boots without it recovering one of them; bit 1 recovered one,
 bit 6 broke capture every time it was tried, and re-running the whole of
 `cam_begin()` never worked.
 
+The one candidate that argument did not cover was `0x02`, which is on the
+ArduChip rather than behind the passthrough and can reset, sleep or power-cycle
+the die on its own.
+[`bench/probe/20260907-cure/`](../bench/probe/20260907-cure/) ran all three
+against a null arm — a full re-bring-up with the `0x02` write left out —
+interleaved twelve slots to a boot over eighteen boots, and **the null arm won**:
+10 `held` of 54 against 8, 6 and 6. A positive control holding each line down
+killed the picture three ways on 17 boots of 17, so the writes reach the die;
+they do not touch this. That also puts `cam_begin()` at 54 observations instead
+of seven, and its 10-in-54 is the no-intervention background rate (lockrate's 15
+in 99, this probe's 30 in 216) rather than a recovery.
+
+**The fault is specific to exposure, and there is a second one pointing the other
+way.** [`bench/probe/20260907-hold/`](../bench/probe/20260907-hold/) asked the
+same question of the other two loops `cam_image_auto_mask(0)` masks. A written
+gain lands at `0x3001` and stays there — 0 of 140 polls dragged over 7 boots,
+including 4 whose exposure was dragging at that moment — and the white-balance
+lock held for the full 40 seconds on every boot. What failed instead was the
+*unlock*: `cam_image_auto_mask(CAM_AUTO_ALL)` did not switch the loop back on 31
+times in 56. Every "camera free" control arm in this repo writes that value and
+assumes it took, and `cam_image_defaults()` ends by doing exactly that.
+
 What that directory did establish is what the fault *is*. Ask the die instead of
 the picture — write an exposure, then read `0x3002`/`0x3003` back over a few
 seconds — and the deaf boots split into two shapes. On one the die drags the
@@ -111,6 +133,36 @@ and `cam_exposure_lock_check()` is that call — but only after it has captured 
 frame. Before the first one the AE loop has nothing to revise, the write always
 appears to stick, and the check returns `CAM_LOCK_UNTESTED` rather than a `held`
 that means nothing.
+
+### Finding out from inside a run, which is a different problem
+
+That check writes two manual exposures and leaves the second one on the sensor,
+so a scoring run cannot simply call it: the frames either side would be exposed
+by the instrument. `m9` therefore carries two things instead of one, and
+[`bench/probe/20260907-witness/`](../bench/probe/20260907-witness/) is where both
+were measured.
+
+`cam_die_sample()` and `cam_die_live()` are a **read-only witness** — exposure at
+`0x3002`/`0x3003`, gain at `0x3001`, white balance at `0x332b`, sampled twice
+with frames in between. A register that moved says its loop is still revising,
+which is conclusive. A register that did not move says nothing: a converged loop
+on an unchanging room sits exactly as still as a locked one. That is not a
+footnote. On a static desk the witness moved **once in 26 windows**, including
+windows where all three loops had just been set free.
+
+What does carry information is the value *across* the mask write, so every 'L'
+press also compares against the previous press's last sample, per loop, and only
+for loops that were standing still then. That fired on 11 of 17 windows.
+
+`'K'` is the write-based check on a hotkey, deliberately not on the boot path —
+the argument `cam_image_defaults()` carries is that a build perturbing every
+acquire makes every bench after it incomparable with every bench before it. It
+prints the frame it landed on, because the frames around it are not scoreable.
+**A verdict of `held` is not good news:** on 3 of 8 presses the die was still
+sitting on the check's own `0x0400` twelve frames later, through
+`cam_image_defaults()`, which is the unlock fault above arriving where it costs a
+run. The witness says so outright, since `0x0400` is a value the run wrote itself
+and a live AE loop would have moved off it.
 
 ## Registers the driver does not use, in the order they are worth something
 
@@ -312,8 +364,12 @@ that session completed and was read out:
    locked) and `0x33ca` (`4a`/`4e` free → `41` locked).** `0x332b` came back on
    four separate boots. So the bit reaches the die and is readable there, and
    `'L'`'s AWB arm can be written as something that gets checked rather than
-   hoped at. What is *not* established is that the lock holds over a session:
-   that stage has never reached a board with a live handle.
+   hoped at. ~~What is *not* established is that the lock holds over a session:
+   that stage has never reached a board with a live handle.~~ **It holds** —
+   [`20260907-hold/`](../bench/probe/20260907-hold/) removed the operator that
+   stage needed by interleaving free and locked visits, sixteen of them over 40
+   seconds, and every locked visit on every boot read `18`/`41`. The AWB *lock*
+   is not the problem. The AWB *unlock* is: 31 of 56 attempts left the loop off.
 2. ~~**Finish the I²C passthrough**~~ (`0x0B`, `0x0C`, `0x07` bit[0]) —
    **measured and adopted on 2026-09-07.** `0x48` returns the exposure this
    firmware wrote, byte for byte, at the OV3640's `0x3002`/`0x3003`, on two
@@ -340,9 +396,32 @@ that session completed and was read out:
    only revises exposure while frames are being clocked and nothing has clocked
    one that early. It now returns `CAM_LOCK_UNTESTED` before this boot's first
    frame and the call is gone from the boot path; the caller runs it after its
-   warm-up. What remains is picking those call sites in `m9.c`.
+   warm-up.
+
+   ~~What remains is picking those call sites in `m9.c`.~~ **Picked on
+   2026-09-07, and there is exactly one** — the `'L'` press, plus a new `'K'`
+   for the write-based check. Not the acquire path: that check perturbs the
+   sensor, and a build that perturbs every acquire makes every bench after it
+   incomparable with every bench before it. See "Finding out from inside a run"
+   above and [`20260907-witness/`](../bench/probe/20260907-witness/) for both
+   instruments and their limits.
 3. ~~**Write explicit exposure and gain**~~ — **probed on 2026-09-07 and both
    groups respond**, so `'L'` can lock rather than hope. What is left is doing
    it, and the two open items above the section are part of the job: the loops
    do not hand exposure back, and one run in four saw no response.
+
+   **The gain half is now measured all the way down.**
+   [`20260907-hold/`](../bench/probe/20260907-hold/) found where a written gain
+   lands — `0x3001`, the one address in 1024 that echoed `0x055` and `0x0aa`
+   byte for byte, on all 8 boots — and that it stays there, 0 of 140 polls
+   dragged. Writing a gain is not the problem exposure has. Choosing one still
+   is: [`20260907-manexp/`](../bench/probe/20260907-manexp/) measured that curve
+   as non-monotone, peaking around `0x010` and dipping through `0x100`.
 4. **Try the sensor-only power cycle** (`0x02`) against #32's cold-boot count.
+   [`20260907-cure/`](../bench/probe/20260907-cure/) did not answer this — it
+   asked a different question with the same register — but it does establish the
+   premise the idea rests on: `0x02` at boot reads the documented `0x05` on all
+   18 boots, each of its three lines individually stops the camera returning a
+   frame, and 216 slots of cycling left no dead capture path behind. The sensor
+   really can be put through a power cycle on its own, so the sampling idea is
+   still live.

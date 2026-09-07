@@ -1,0 +1,30 @@
+
+=== #33: does 0x02 put the exposure lock back? ===
+
+clock     : 320 MHz sys
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+  0x02 at boot : 0x05  (the documented default)
+  before any arm: dragged
+
+  slot arm  0x02  lock       luma
+     0  N   05    dragged     17
+     1  R   05    dragged    110
+     2  P   05    dragged    112
+     3  C   05    dragged    112
+     4  C   05    dragged    112
+     5  P   05    dragged     18
+     6  R   05    dragged    113
+     7  N   05    dragged    113
+     8  R   05    dragged    113
+     9  N   05    dragged    112
+    10  C   05    dragged    112
+    11  P   05    dragged    113
+
+  arm  held drag dead
+  N       0    3    0
+  R       0    3    0
+  P       0    3    0
+  C       0    3    0
+
+VERDICT : before=dragged  N=0/3  R=0/3  P=0/3  C=0/3   (held)

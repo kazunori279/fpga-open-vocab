@@ -1,0 +1,39 @@
+
+=== #33: does 0x02 put the exposure lock back? ===
+
+clock     : 320 MHz sys
+  sensor id : 0x82  (legacy table)
+  firmware  : 2023-03-03, fpga rev 32
+  0x02 at boot : 0x05  (the documented default)
+
+  0x02 positive control - each line held down, not pulsed:
+  !! CAP_DONE never asserted
+    reset held      0x02 reads 04, picture did not come back
+  !! CAP_DONE never asserted
+    sleep held      0x02 reads 07, picture did not come back
+  !! CAP_DONE never asserted
+    power off held  0x02 reads 00, picture did not come back
+    3 of 3 changed the picture
+  before any arm: dragged
+
+  slot arm  0x02  lock       luma
+     0  N   05    dragged      9
+     1  R   05    dragged     77
+     2  P   05    dragged     77
+     3  C   05    dragged      8
+     4  C   05    dragged     77
+     5  P   05    dragged     77
+     6  R   05    dragged     78
+     7  N   05    dragged     77
+     8  R   05    dragged     77
+     9  N   05    dragged     77
+    10  C   05    dragged     77
+    11  P   05    dragged     77
+
+  arm  held drag dead
+  N       0    3    0
+  R       0    3    0
+  P       0    3    0
+  C       0    3    0
+
+VERDICT : before=dragged  N=0/3  R=0/3  P=0/3  C=0/3   (held)  control 3/3

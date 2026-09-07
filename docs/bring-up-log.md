@@ -18,7 +18,7 @@ exist only to record a claim that later turned out to be false.
 
 ## How to read this file
 
-Sixty-one dated entries, newest first. **Do not treat any single entry as the
+Sixty-two dated entries, newest first. **Do not treat any single entry as the
 current answer.** Several are here only because they were wrong, and the
 discipline is that a retraction sits beside the table it retracts rather than
 replacing it — so an entry can be accurate about what was measured that day and
@@ -38,7 +38,8 @@ weeks.
 [09-06](#2026-09-06-the-board-had-been-flagging-a-broken-camera-for-weeks-and-no-scorer-read-the-line) — refuses two benches and takes a +21.7 and a +33.4 point result with them ·
 [09-07](#2026-09-07-the-sensor-answers--and-the-thing-that-kept-it-silent-was-never-the-question-being-asked) — the sensor becomes readable, and a third camera fault turns out to have been sitting under the other two ·
 [09-07 later](#2026-09-07-later-the-white-balance-bit-lands-on-the-die-and-the-cure-written-up-that-morning-cures-nothing) — the white-balance bit is found at `0x332b`, and the morning's cure for that third fault is retracted the same day ·
-[09-07 evening](#2026-09-07-evening-the-exposure-lock-fails-on-32-boots-in-33-and-the-check-written-to-catch-it-could-not-fail) — the third fault gets a rate, and it is not "some acquires".
+[09-07 evening](#2026-09-07-evening-the-exposure-lock-fails-on-32-boots-in-33-and-the-check-written-to-catch-it-could-not-fail) — the third fault gets a rate, and it is not "some acquires" ·
+[09-07 night](#2026-09-07-night-the-last-cure-loses-to-doing-nothing-and-the-fault-that-had-never-been-looked-for-is-the-unlock) — the last cure loses to a null arm, the other two loops turn out to lock fine, and a *fourth* fault appears facing the other way.
 
 **Drift, the auto loops, and #30.**
 [08-25 afternoon](#2026-08-25-afternoon-the-third-reference-on-the-board-and-the-band-that-could-not-have-fired) ·
@@ -89,6 +90,108 @@ the jumper, and M7 ending.
 Note [07-29, two boards](#2026-07-29--two-boards-one-alive-one-dead-corrected-2026-07-30): the "dead" board was never dead, and the strikethrough in that heading is the house style for a correction.
 
 [08-01 – 08-14](#2026-08-01--2026-08-14--where-this-logs-gap-went) explains the gap.
+
+---
+
+### 2026-09-07 night, the last cure loses to doing nothing, and the fault that had never been looked for is the unlock
+
+Three probes and a driver change, all downstream of the entry below. That one
+gave #33 a rate — 32 boots of 33 lose the exposure lock — and left three things
+open: one untried cure, two unasked loops, and no way for a scoring run to know
+any of it.
+
+**`0x02` is not a cure, and the null arm is the best of the four.** The
+passthrough is a read path, so nothing can reach the die's own AE enable; that
+argument is sound and says nothing about `0x02`, which is on the ArduChip and
+can reset, sleep or power-cycle the die on its own. `forgix_cam_cure` ran all
+three against a null arm inside one boot, twelve slots, four arms, three visits
+each in positions `N R P C  C P R N  R N C P`, over eighteen boots.
+
+| arm | `0x02` | held |
+|---|---|---|
+| **N** | nothing — the re-bring-up with the write left out | **10 / 54** |
+| P | sleep: set bit 1, wait, restore | 8 / 54 |
+| R | reset: clear bit 0, wait, restore | 6 / 54 |
+| C | power cycle: clear bits 2 and 0, wait, restore | 6 / 54 |
+
+The rule was written before the first boot: an arm is a cure if it comes back
+`held` more often than N, across boots. None does. The interleave is not
+decoration — the fault moves on its own, so an arm that does nothing still
+"cures" a boot about one time in seven, and a before-and-after pair around one
+intervention proves nothing.
+
+**The first boot of that probe was thrown away, and it is kept in the
+directory.** It printed `N=0/3 R=0/3 P=0/3 C=0/3`, which is worth nothing:
+four arms that all do nothing agree perfectly too. A positive control went in
+ahead of the arms — hold each line *down* rather than pulsing it, then take a
+picture — and it answers 3 of 3 on all 17 boots that carry it. The writes reach
+the die. They kill the camera three ways. They do not touch this.
+
+N is a full re-bring-up, so `cam_begin()` is now measured at 54 observations
+instead of the seven in the previous entry, and its 10-in-54 is not a recovery
+rate. It is the background: lockrate saw 15 `held` in 99 checks, this probe 30 in
+216. Fourteen to fifteen per cent either way, with or without a bring-up.
+
+**Gain and white balance both hold. Exposure is the one that fails.**
+`forgix_cam_hold` asked the same lock question of the other two loops
+`cam_image_auto_mask(0)` masks. Sweeping 1024 addresses from `0x3000` with
+`0x055` against `0x0aa` — complements, so a counter cannot pass by accident —
+`0x3001` echoed the written byte exactly, on all 8 boots. Polled the way the
+exposure check polls, **0 of 140 polls dragged over 7 boots**, four of which had
+their exposure dragging at the same moment under the same mask. The white
+balance held `18`/`41` on every locked visit of every boot across 40 seconds.
+So the mask reaches the sensor fine; whatever is wrong is specific to exposure.
+
+**And the thing nobody had been looking for is the unlock.** Stage W voided on
+its first boot, and the void is the finding. The pooled rule fired correctly but
+could not say which arm had failed — and it was the **free** arm, reading `18`
+`41` on five of its eight visits, with the blue channel at 89 instead of 133.
+`cam_image_auto_mask(CAM_AUTO_ALL)` had not switched the loop back on. Reporting
+was changed to a per-visit count, with the three outcomes written down before
+the next boot, and over the 7 boots that carried it the unlock failed **31 of 56
+attempts**. Every "camera free" control arm in this repo writes that value and
+assumes it took, and `cam_image_defaults()` ends by doing exactly that.
+
+**Then all of it had to reach `m9`, where 'L' actually gets pressed.**
+`cam_exposure_lock_check()` writes two manual exposures and leaves the second
+one on the sensor, so a scoring run cannot call it. What went in instead is a
+read-only witness — exposure, gain and white balance read off the die twice with
+frames in between — and it is nearly blind, which the run that installed it
+measured rather than assumed:
+
+```
+  windows where something moved inside the window    1
+  windows where nothing moved                       25
+```
+
+Twenty-six windows over seven boots, including presses that set all three loops
+**free**. A tracking AE loop on a still desk reads the same `00c4` eight frames
+apart, which is the wall the AWB probe's stage D hit from the other side. So
+stillness is reported as "not evidence either way" and never as a lock that
+took. What does carry information on a static scene is the register across the
+mask write — white balance `10` free, `18` locked — so each press also compares
+against the previous press's last sample, per loop, for loops that were standing
+still then. That fired on 11 of 17 windows.
+
+**`'K'` is the write-based check on a hotkey, and a `held` verdict is not good
+news.** It is a key and not something the boot path does, on the same argument
+`cam_image_defaults()` now carries: a build that perturbs every acquire makes
+every bench after it incomparable with every bench before it. On 3 of 8 presses
+the die was still sitting on the check's own `0x0400` twelve frames later,
+through `cam_image_defaults()` and through an 'L' — the unlock fault above,
+arriving where it costs a run its exposure. The witness can say that outright,
+because `0x0400` is a number the run wrote itself and a live AE loop would have
+moved off it.
+
+Two boots each gave both answers to `'K'` about twenty seconds apart, which is
+the previous entry's within-boot instability turning up in a scoring run rather
+than in a probe.
+
+[`bench/probe/20260907-cure/`](../bench/probe/20260907-cure/),
+[`bench/probe/20260907-hold/`](../bench/probe/20260907-hold/) and
+[`bench/probe/20260907-witness/`](../bench/probe/20260907-witness/) have the
+logs. What this does not settle: why exposure differs from gain when both are
+written through the same surface and both land on the die.
 
 ---
 

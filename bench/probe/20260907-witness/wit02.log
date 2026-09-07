@@ -1,0 +1,189 @@
+
+=== M9: fpga-open-vocab - describe it, the board spots it ===
+
+clock     : 320 MHz requested; BOOTSEL is reachable for 1.5 s
+clock     : 320 MHz system, core 1.25 V
+reset     : chip_reset 00010000  (scratch was cold: either the always-on domain went away - power, a brown-out - or this boot came through the bootrom, which clears it too)
+            new this boot: power-on reset - the supply arrived
+waiting for a bitstream on USB CDC (host/demo.py)
+bitstream : 173124 bytes announced, crc32 0a2e9953
+bitstream : received intact
+configure : configured, CDONE high   CDONE=1 nSTATUS=0
+crc       : DMA sniffer, calc=1 out_rev=1 out_inv=1
+model     : 9 layers, 512-d embedding, 131072 B/buffer
+weights   : 780720 B, crc32=0xF368CC6E  (126 ms to hash)
+
+reference : encoder_fast on the flash test vector  (1584 ms)
+
+link      : probing the wire by running the whole test vector over it
+probe     : 3 forward data lines -> 512/512 floats exact, 267 ms
+link      : configuration C, 3 forward data lines, 160.0 MHz
+
+camera    : exposure ramp 23 58 68 76 82 93 103 107 119 129 133 135 135 135 135 135
+camera    : live 128x128 RGB565, id 0x82, 16.0 MHz, expose 37 ms, read 16 ms, exposure settled after 16 frames
+            regs fmt 02 res 00 bri 00 ev 00 wb 00 auto 00 state 26 id 82 fpga 20
+            reset gate: polls 425, first state 21, busy yes   defaults polls: ae 10 ag 10 awb 10 wbmode 5
+            mean RGB 137 135 135  (tuned camera on a neutral scene: about 115 107 105)
+
+queries   : waiting for a query set on USB CDC (host/demo.py)
+queries   : 1 accepted, 512-d, crc ok
+            scored as z = (cos - background) / std, where the background is this room's
+            own mean over its first 30 frames and is then FROZEN - so a thing left in
+            shot keeps its score instead of decaying into the furniture. 'N' re-learns
+            it, 'H' switches to tracking. The COCO figures below are only the seed for
+            frame 0 and the fixed std.
+            std is THIS ROOM's, measured over the same 30 frames ('S' switches to COCO's).
+            The thresholds below still mean the 90th percentile of a background; the
+            background they now mean it against is this room empty, not 5000 COCO photos.
+            z is EMA-smoothed at 0.35 (~5 frames) before ranking, so a state has to
+            persist for about two seconds to be called.
+            a book               match above z 1.23   (COCO background -0.144 +- 0.028, so cos -0.110)
+
+loop      : capture, 8 convs on the T8, pool and head, then one cosine per query. 'B' for BOOTSEL, 'R' to restart,
+            'P' to dump the next frame for host/cam.py, 'V' to dump its 512 floats for host/caption.py,
+            'E' to provoke a fault so D1 shows its fault display, 'H' to freeze/unfreeze the background,
+            'S' to switch the spread between this room's and COCO's, 'W' to hang on purpose and see
+            the watchdog name the stage, 'C' to stall the camera bus on purpose and see it cost one frame,
+            'U' to drop off USB on purpose and watch it come back, 'I' to drop off and refuse to,
+            'N' to forget it and learn it again from now. 'P' and 'V' together describe the same frame.
+            'O' closes the timing window, prints it and flips the capture between overlapped and serial;
+            'D' does the same and flips the trigger between late and at-the-collect, which is #14's A/B.
+            'L' freezes exposure and gain, then on a second press the white balance too - which goes green,
+            and is the control. A third restores all three. Issue #30, and the one hotkey whose answer depends on when you press it.
+            'M' goes further and takes the sensor OUT of the loop: the ArduChip feeds a fixed pattern, so
+            the frame cannot drift for any reason. If the walk survives that, the walk is not the camera.
+            Run it with the background frozen and z smoothing OFF, or the flat column is a filter and not a
+            result. The pattern is not a photograph - judge the cosines it prints, not the z.
+            scores are z against this room's background, ranked; '*' means over its threshold.
+            '1'..'6' enrol the next 20 frames as that class, and press again on a LATER visit
+            to fold a second one in - 2 visits is what makes the enrolment guard mean
+            something. Two classes in and the board decides by nearest reference instead of
+            by threshold - see M21.
+            '0' ENROLS THE EMPTY SCENE the same way, and it is worth a visit: with one, a frame
+            is absent when the empty reference is the nearest of the three and no radius is
+            involved. Without one the board falls back to the band - absent beyond 2.0 sep
+            from every class - which scores 54.6% over 28 benches against the third reference's
+            79.1%, because with two queries that band is an interval the empty scene can sit
+            inside. #18.
+            The first 30 frames set the baseline and it is then frozen, so anything left in
+            shot KEEPS its score. Point the camera at the empty scene for those frames.
+            Send a new set at any time to re-query - that resets the baseline too.
+
+frame     0 :  a book +0.20   led   5/173 h0.16 lvl+0.20   -
+frame     1 :  a book +0.22   led   6/165 h0.18 lvl+0.22   -
+frame     2 :  a book +0.12   led   1/205 h0.09 lvl+0.12   -
+frame     3 :  a book +0.06   led   0/227 h0.05 lvl+0.06   -
+frame     4 :  a book +0.12   led   1/204 h0.10 lvl+0.12   -
+frame     5 :  a book +0.05   led   0/235 h0.04 lvl+0.05   -
+frame     6 :  a book +0.05   led   0/231 h0.04 lvl+0.05   -
+frame     7 :  a book -0.01   led   0/255 h0.00 lvl-0.01   -
+background: after 8 frames (warming up, room spread), this room reads  a book -0.125 +-0.0034 (COCO -0.144 +-0.0280)
+frame     8 :  a book +0.06   led   0/227 h0.05 lvl+0.06   -
+frame     9 :  a book +0.02   led   0/244 h0.02 lvl+0.02   -
+frame    10 :  a book -0.90   led   0/255 h0.00 lvl-0.90   -
+frame    11 :  a book -0.34   led   0/255 h0.00 lvl-0.34   -
+frame    12 :  a book -0.38   led   0/255 h0.00 lvl-0.38   -
+frame    13 :  a book +0.11   led   1/206 h0.09 lvl+0.11   -
+
+camera    : #33 lock check at frame 14 - dragged (wrote 0400, die said 030b). Frames either side of this line were taken under an exposure no rule asked for.
+frame    14 :  a book +0.42   led  24/101 h0.34 lvl+0.42   -
+frame    15 :  a book +0.52   led  39/ 75 h0.43 lvl+0.52   -
+frame    16 :  a book +0.06   led   0/228 h0.05 lvl+0.06   -
+frame    17 :  a book +0.34   led  15/126 h0.27 lvl+0.34   -
+frame    18 :  a book +0.33   led  14/129 h0.27 lvl+0.33   -
+frame    19 :  a book +0.03   led   0/243 h0.02 lvl+0.03   -
+frame    20 :  a book -0.03   led   0/255 h0.00 lvl-0.03   -
+frame    21 :  a book +0.72   led  79/ 37 h0.59 lvl+0.72   -
+frame    22 :  a book +0.09   led   1/214 h0.08 lvl+0.09   -
+frame    23 :  a book +0.08   led   1/220 h0.07 lvl+0.08   -
+frame    24 :  a book +0.07   led   1/223 h0.06 lvl+0.07   -
+frame    25 :  a book -0.11   led   0/255 h0.00 lvl-0.11   -
+camera    : die witness on the 'L' at frame 14, sampled 8 frames apart - exposure 030b 030b, gain 05 05, wb 00 00
+            did not move: exposure gain white-balance - WHICH IS NOT EVIDENCE EITHER WAY. A converged loop on a still scene reads like a locked one.
+frame    26 :  a book -0.08   led   0/255 h0.00 lvl-0.08   -
+frame    27 :  a book -0.38   led   0/255 h0.00 lvl-0.38   -
+frame    28 :  a book -0.06   led   0/255 h0.00 lvl-0.06   -
+frame    29 :  a book -1.07   led   0/255 h0.00 lvl-1.07   -
+frame    30 :  a book -0.85   led   0/255 h0.00 lvl-0.85   -
+frame    31 :  a book -0.67   led   0/255 h0.00 lvl-0.67   -
+frame    32 :  a book -0.96   led   0/255 h0.00 lvl-0.96   -
+frame    33 :  a book -0.24   led   0/255 h0.00 lvl-0.24   -
+frame    34 :  a book -0.54   led   0/255 h0.00 lvl-0.54   -
+frame    35 :  a book -0.39   led   0/255 h0.00 lvl-0.39   -
+
+camera    : frozen now exposure gain  at frame 36, mean RGB 137 134 137
+frame    36 :  a book -0.10   led   0/255 h0.00 lvl-0.10   -
+frame    37 :  a book -0.43   led   0/255 h0.00 lvl-0.43   -
+frame    38 :  a book -0.83   led   0/255 h0.00 lvl-0.83   -
+frame    39 :  a book -0.82   led   0/255 h0.00 lvl-0.82   -
+frame    40 :  a book -0.62   led   0/255 h0.00 lvl-0.62   -
+frame    41 :  a book -0.57   led   0/255 h0.00 lvl-0.57   -
+frame    42 :  a book -0.61   led   0/255 h0.00 lvl-0.61   -
+frame    43 :  a book -0.40   led   0/255 h0.00 lvl-0.40   -
+frame    44 :  a book +0.31   led  13/133 h0.26 lvl+0.31   -
+frame    45 :  a book +0.28   led  10/143 h0.23 lvl+0.28   -
+frame    46 :  a book +0.27   led   9/148 h0.22 lvl+0.27   -
+frame    47 :  a book +0.62   led  57/ 54 h0.51 lvl+0.62   -
+camera    : die witness on the 'L' at frame 36, sampled 8 frames apart - exposure 030b 030b, gain 05 05, wb 10 10
+            did not move: exposure gain white-balance - WHICH IS NOT EVIDENCE EITHER WAY. A converged loop on a still scene reads like a locked one.
+            changed across the mask write, after standing still under the previous one: white-balance - the write reached those loops.
+frame    48 :  a book +0.27   led   9/147 h0.22 lvl+0.27   -
+frame    49 :  a book +0.42   led  24/102 h0.34 lvl+0.42   -
+frame    50 :  a book +0.83   led 106/ 22 h0.67 lvl+0.83   -
+frame    51 :  a book +0.58   led  49/ 62 h0.47 lvl+0.58   -
+frame    52 :  a book +0.45   led  28/ 93 h0.37 lvl+0.45   -
+frame    53 :  a book -0.01   led   0/255 h0.00 lvl-0.01   -
+frame    54 :  a book +0.26   led   8/152 h0.21 lvl+0.26   -
+frame    55 :  a book +0.14   led   2/195 h0.11 lvl+0.14   -
+frame    56 :  a book +0.02   led   0/244 h0.02 lvl+0.02   -
+
+camera    : #33 lock check at frame 57 - held (wrote 0400, die said 0400). Frames either side of this line were taken under an exposure no rule asked for.
+frame    57 :  a book -0.12   led   0/255 h0.00 lvl-0.12   -
+frame    58 :  a book -0.96   led   0/255 h0.00 lvl-0.96   -
+frame    59 :  a book -0.62   led   0/255 h0.00 lvl-0.62   -
+frame    60 :  a book -0.94   led   0/255 h0.00 lvl-0.94   -
+frame    61 :  a book -0.50   led   0/255 h0.00 lvl-0.50   -
+frame    62 :  a book -0.86   led   0/255 h0.00 lvl-0.86   -
+frame    63 :  a book -0.39   led   0/255 h0.00 lvl-0.39   -
+frame    64 :  a book -0.43   led   0/255 h0.00 lvl-0.43   -
+frame    65 :  a book -0.56   led   0/255 h0.00 lvl-0.56   -
+frame    66 :  a book -0.36   led   0/255 h0.00 lvl-0.36   -
+frame    67 :  a book -0.71   led   0/255 h0.00 lvl-0.71   -
+frame    68 :  a book -0.46   led   0/255 h0.00 lvl-0.46   -
+camera    : die witness on the 'L' at frame 57, sampled 8 frames apart - exposure 0400 0400, gain 05 05, wb 00 00
+            did not move: exposure gain white-balance - WHICH IS NOT EVIDENCE EITHER WAY. A converged loop on a still scene reads like a locked one.
+            changed across the mask write, after standing still under the previous one: exposure white-balance - the write reached those loops.
+frame    69 :  a book -0.66   led   0/255 h0.00 lvl-0.66   -
+frame    70 :  a book -0.50   led   0/255 h0.00 lvl-0.50   -
+frame    71 :  a book -0.66   led   0/255 h0.00 lvl-0.66   -
+frame    72 :  a book -0.35   led   0/255 h0.00 lvl-0.35   -
+frame    73 :  a book -0.63   led   0/255 h0.00 lvl-0.63   -
+frame    74 :  a book -0.22   led   0/255 h0.00 lvl-0.22   -
+frame    75 :  a book -0.23   led   0/255 h0.00 lvl-0.23   -
+
+camera    : frozen now exposure gain  at frame 76, mean RGB 137 135 137
+frame    76 :  a book +0.11   led   1/207 h0.09 lvl+0.11   -
+frame    77 :  a book +0.22   led   6/165 h0.18 lvl+0.22   -
+frame    78 :  a book +0.19   led   4/174 h0.16 lvl+0.19   -
+frame    79 :  a book -0.26   led   0/255 h0.00 lvl-0.26   -
+frame    80 :  a book -0.28   led   0/255 h0.00 lvl-0.28   -
+frame    81 :  a book -0.25   led   0/255 h0.00 lvl-0.25   -
+frame    82 :  a book +0.13   led   2/201 h0.10 lvl+0.13   -
+frame    83 :  a book -0.63   led   0/255 h0.00 lvl-0.63   -
+frame    84 :  a book -0.53   led   0/255 h0.00 lvl-0.53   -
+frame    85 :  a book -0.84   led   0/255 h0.00 lvl-0.84   -
+frame    86 :  a book -0.92   led   0/255 h0.00 lvl-0.92   -
+frame    87 :  a book -0.85   led   0/255 h0.00 lvl-0.85   -
+camera    : die witness on the 'L' at frame 76, sampled 8 frames apart - exposure 0400 0400, gain 05 05, wb 00 00
+            did not move: exposure gain white-balance - WHICH IS NOT EVIDENCE EITHER WAY. A converged loop on a still scene reads like a locked one.
+frame    88 :  a book -0.33   led   0/255 h0.00 lvl-0.33   -
+frame    89 :  a book -0.29   led   0/255 h0.00 lvl-0.29   -
+frame    90 :  a book -0.07   led   0/255 h0.00 lvl-0.07   -
+
+stopped   : 91 frames, 91 good, capture overlapped with the compute, configuration C
+            91 frames timed, 282 ms/frame mean (capture included)
+            265 ms encode + 0 ms waiting for the sensor + 16 ms burst; 295 ms/frame by the clock
+            400 ms shutter to LED, arming with 97 ms of compute left
+            last frame mean RGB 137 135 137
+            camera bus: worst gap 15 us against the 2000 us deadline (#12)
+            usb: 0 outages, 0 ms off the bus, 0 re-attaches (#9)

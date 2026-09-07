@@ -674,6 +674,90 @@ static const uint8_t CAM_LOCK_STEPS[] = {
 };
 static uint8_t  cam_lock_step;
 
+// #33 AT THE 'L' PRESS, WHICH IS THE ONLY PLACE IN THIS FILE THAT CAN ASK.
+//
+// The press above is a write to a write-only register. Until 2026-09-07 nothing
+// could say whether it landed, and now that something can, the numbers say it
+// usually does not: the exposure lock fails on 32 boots of 33
+// (bench/probe/20260907-lockrate/) and the unlock back to CAM_AUTO_ALL fails on
+// 31 attempts of 56 (bench/probe/20260907-hold/). Both directions of this
+// keypress are unreliable, so a run that presses 'L' and writes down "camera
+// locked" is writing down an intention.
+//
+// IT IS THE WITNESS AND NOT cam_exposure_lock_check(). The check writes two
+// manual exposures and leaves the second one on the sensor. Calling it here
+// would mean the frames either side of the press were taken under an exposure
+// no rule asked for, in a run being scored - the witness reads three die
+// registers and writes nothing. cam.h has the full argument and, more
+// importantly, has the one direction the witness cannot answer in.
+//
+// TWO SAMPLES AFTER THE PRESS, NOT ONE BEFORE AND ONE AFTER. A pre-press sample
+// cannot enter the verdict: the die's value differs from it whether the loop is
+// live or was simply somewhere else when the key was hit. What separates a live
+// loop from a stopped one is movement WHILE FRAMES CLOCK, so both samples are
+// taken after the mask write, with frames in between.
+//
+// The two offsets are a schedule and not a threshold - nothing was fitted to
+// pick them, and the verdict is one-directional, so a spacing that is too short
+// costs sensitivity and can never manufacture a `live`. One frame was already
+// enough to catch a drag in the lockrate probe's one-frame control, so eight
+// looked like room to spare, and the first run on a static desk showed it is
+// not - see below.
+//
+// AND A THIRD SAMPLE, WHICH IS THE PREVIOUS PRESS'S LAST ONE. The two samples
+// above turned out to have almost no power on a still desk, and the first run
+// says so plainly: three presses, three "did not move", including the press
+// that set all three loops FREE. A tracking AE loop looking at an unchanging
+// room reads the same 00c4 eight frames apart. The instrument is not broken -
+// this is the row cam.h calls "no evidence either way" - it is just that on a
+// static scene that is every row.
+//
+// What did move, in that same run, was the register across the mask write:
+// white balance read 10 free and 18 locked, exposure 030b locked and 00c4 free.
+// So carry the previous press's last sample forward and compare it to this
+// press's first. A loop whose witness differs across the write, HAVING BEEN
+// STILL UNDER THE PREVIOUS MASK, is a loop the write reached.
+//
+// That is a weaker claim than the within-window one and it is deliberately kept
+// separate from it. The two samples it spans are separated by the whole gap
+// between presses, not by eight frames, so a loop that started revising for
+// scene reasons somewhere in that gap looks the same. The per-loop stillness
+// requirement is what keeps it worth printing; it is not what makes it proof.
+#define CAM_WITNESS_SETTLE   4u   // frames from the press to the first sample
+#define CAM_WITNESS_SPACING  8u   // frames between the two samples
+static uint8_t  cam_witness_phase;      // 0 idle, 1 first sample due, 2 second
+static uint8_t  cam_witness_left;       // frames until that sample
+static uint8_t  cam_witness_tracking;   // the mask the press asked for
+static uint32_t cam_witness_frame;      // the frame the press landed on
+static cam_die_sample_t cam_witness_a;
+static cam_die_sample_t cam_witness_prev;   // the previous press's second sample
+static bool     cam_witness_have_prev;
+static uint8_t  cam_witness_prev_live;      // and which loops were moving then
+static uint8_t  cam_witness_on_write;       // what changed across this write
+
+// AND ONE THING THE WITNESS CAN SAY OUTRIGHT, WHICH ONLY 'K' MAKES AVAILABLE.
+// After the write-based check, the die holds a value this run chose - 0x0400,
+// out of nowhere, nothing a light meter would land on. If it is STILL sitting
+// there once cam_image_defaults() has run and frames have gone by, the AE loop
+// is not running: a live loop would have moved off it. That is an equality
+// against a number the run wrote a moment earlier, not a constant fitted to
+// anything, and it is the one conclusive reading available on a still desk.
+//
+// It matters because it happened on the first run that had this key. 'K' at
+// frame 57 came back `held`, and the exposure read 0400 at frames 61, 69 and 84
+// - through the restore, through an 'L' press, to the end of the run. A `held`
+// verdict is not good news. It means the sensor is now parked on the check's
+// exposure and the rest of the run is lit by a keypress.
+static bool     cam_witness_from_k;
+
+static void print_loops(uint8_t m)
+{
+    printf("%s%s%s",
+           (m & CAM_AUTO_EXPOSURE) ? "exposure " : "",
+           (m & CAM_AUTO_GAIN)     ? "gain " : "",
+           (m & CAM_AUTO_WB)       ? "white-balance " : "");
+}
+
 // #30's synthetic-source arm. Both default false, so a boot that never receives
 // an 'M' behaves exactly as it did before this existed - the register is not
 // written at all on that path, which is what keeps every bench in the archive
@@ -2002,6 +2086,14 @@ static int poll_host(uint32_t dim, uint32_t us)
         // builds cannot answer it because the two runs would then differ in the
         // room and the hour as well as in the lock. One boot, both arms.
         if (c == 'L' || c == 'l') return 'L';
+        // #33's, and it is 'L''s instrument rather than another arm. 'L' writes
+        // a mask into a write-only register; this asks the die whether the write
+        // took, by the one method that answers on a still scene - writing an
+        // exposure and reading it back. That makes it a hotkey and NOT anything
+        // the boot path does: it perturbs the sensor, so the frames around it
+        // are not scoreable, and a run gets to choose when to spend them. Misses
+        // all four of F, G, X and Q, so a bare compare like 'L'.
+        if (c == 'K' || c == 'k') return 'K';
         // #30's other one, and the pair is the point. 'L' freezes the camera's
         // three loops and leaves the camera in the experiment; 'M' - for mock -
         // takes the sensor OUT of it, feeding the pipeline a fixed pattern from
@@ -2658,6 +2750,105 @@ static void report(uint32_t n, const float *cos, uint32_t frame)
                (bg_hold && bg_n >= bg_tau) ? "FROZEN, which is right"
                                            : "TRACKING, which is wrong for this");
     }
+
+    // #33's witness, landing on the two frames the 'L' press scheduled it for.
+    // Here rather than in the keypress handler for the same reason the synthetic
+    // source announces here: the press cannot see a frame taken after itself.
+    //
+    // It costs the frame it lands on 8 to 36 ms of passthrough reads, twice per
+    // press and never otherwise - a boot that does not press 'L' does not read
+    // the die at all and is bit for bit the run it was before this existed.
+    if (cam_witness_phase && --cam_witness_left == 0u) {
+        cam_die_sample_t s;
+        cam_die_sample(&s);
+        if (cam_witness_phase == 1u) {
+            // Per loop, and only for the loops that were standing still when the
+            // last press finished watching them: a loop already revising then
+            // would differ from its old sample whatever this write did.
+            cam_witness_on_write = cam_witness_have_prev
+                ? (uint8_t)(cam_die_live(&cam_witness_prev, &s) &
+                            ~cam_witness_prev_live)
+                : 0u;
+            cam_witness_a = s;
+            cam_witness_phase = 2u;
+            cam_witness_left = CAM_WITNESS_SPACING;
+        } else {
+            cam_witness_phase = 0u;
+            const uint8_t asked = cam_witness_tracking;
+            const uint8_t live  = cam_die_live(&cam_witness_a, &s);
+            printf("camera    : die witness on the '%c' at frame %u, sampled "
+                   "%u frames apart - exposure %04x %04x, gain %02x %02x, "
+                   "wb %02x %02x\n",
+                   cam_witness_from_k ? 'K' : 'L',
+                   (unsigned)cam_witness_frame, (unsigned)CAM_WITNESS_SPACING,
+                   cam_witness_a.exposure, s.exposure,
+                   cam_witness_a.gain, s.gain,
+                   cam_witness_a.awb, s.awb);
+            if (!cam_witness_a.ok || !s.ok) {
+                // Never seen: 0 of 144 checks over lockrate's 33 boots came back
+                // unreadable. Printed anyway, because the day it happens the
+                // alternative is a silent 0 mask reading as "nothing is live".
+                printf("            THE PASSTHROUGH DID NOT RETURN A STABLE "
+                       "EXPOSURE PAIR. No verdict, and the pair above is torn.\n");
+            } else {
+                // The conclusive half. A loop the press asked to freeze that is
+                // still revising is a lock that did not take, and every frame
+                // scored under it was scored under a rule the sensor ignored.
+                const uint8_t bad = (uint8_t)(live & ~asked);
+                if (bad) {
+                    printf("            STILL REVISING WITH THE MASK ASKING IT "
+                           "TO FREEZE: ");
+                    print_loops(bad);
+                    printf("- the lock did not take on this press (#33), and "
+                           "frames from here are not locked frames.\n");
+                }
+                // The other conclusive half, and the one nobody was looking for
+                // until bench/probe/20260907-hold/: switching a loop back ON
+                // fails about as often as it works. A loop asked to run that IS
+                // running is the only positive evidence the unlock took.
+                const uint8_t back = (uint8_t)(live & asked);
+                if (back) {
+                    printf("            running again, witnessed: ");
+                    print_loops(back);
+                    printf("\n");
+                }
+                // Everything else. Read cam.h before reading this as good news:
+                // a converged loop on a still scene sits exactly as still as a
+                // locked one, so silence here is silence and not a pass.
+                const uint8_t quiet = (uint8_t)(CAM_AUTO_ALL & ~live);
+                if (quiet) {
+                    printf("            did not move: ");
+                    print_loops(quiet);
+                    printf("- WHICH IS NOT EVIDENCE EITHER WAY. A converged "
+                           "loop on a still scene reads like a locked one.\n");
+                }
+                // The cross-press line, which on a static desk is usually the
+                // only one carrying information. Kept apart from the two above
+                // and worded for what it is: the write landed on that loop's
+                // register. Whether the loop then ran is the question the eight
+                // frames answer, or fail to.
+                if (cam_witness_on_write) {
+                    printf("            changed across the mask write, after "
+                           "standing still under the previous one: ");
+                    print_loops(cam_witness_on_write);
+                    printf("- the write reached those loops.\n");
+                }
+                if (cam_witness_from_k &&
+                    s.exposure == cam_exposure_lock_wrote) {
+                    printf("            AND THE DIE IS STILL ON THE CHECK'S "
+                           "OWN EXPOSURE %04x, %u frames on. The AE loop is "
+                           "not running: cam_image_defaults() did not get it "
+                           "back, and every frame from here is exposed by that "
+                           "keypress rather than by the room.\n",
+                           s.exposure,
+                           (unsigned)(CAM_WITNESS_SETTLE + CAM_WITNESS_SPACING));
+                }
+                cam_witness_prev      = s;
+                cam_witness_prev_live = live;
+                cam_witness_have_prev = true;
+            }
+        }
+    }
     stdio_flush();
 
     // Scored first, folded in second. A frame that contributed to its own
@@ -3049,6 +3240,14 @@ int main(void)
            "            and is the control. A third restores all three. Issue "
            "#30, and the one hotkey whose answer depends on when you press "
            "it.\n"
+           "            Every 'L' now prints what the sensor die did about it a "
+           "few frames later, which is usually\n"
+           "            'nothing moved' and means nothing either way. 'K' asks "
+           "the question that does answer, by\n"
+           "            writing an exposure and reading it back - it costs the "
+           "frames around it, and a verdict of\n"
+           "            'held' can leave the sensor parked on the exposure it "
+           "wrote. Issue #33.\n"
            "            'M' goes further and takes the sensor OUT of the loop: "
            "the ArduChip feeds a fixed pattern, so\n"
            "            the frame cannot drift for any reason. If the walk "
@@ -3372,6 +3571,62 @@ int main(void)
                    (tracking & CAM_AUTO_WB)       ? "" : "white-balance ",
                    tracking == CAM_AUTO_ALL ? "nothing - all three tracking" : "",
                    (unsigned)n, mn[0], mn[1], mn[2]);
+            // And now ask the die whether any of that happened. Arming rather
+            // than reading: the answer needs frames taken after this press, and
+            // this handler runs before any of them exist. report() takes it from
+            // here. Re-arming mid-flight is fine and deliberate - a second press
+            // before the first witness finishes replaces it, because the mask it
+            // was about to report on is no longer the mask in force.
+            cam_witness_tracking = tracking;
+            cam_witness_frame    = n;
+            cam_witness_phase    = 1u;
+            cam_witness_left     = CAM_WITNESS_SETTLE;
+            cam_witness_from_k   = false;
+            stdio_flush();
+            continue;
+        }
+        // #33. THE FRAMES AROUND THIS PRESS ARE NOT SCOREABLE, and that is the
+        // reason it is a separate key from 'L' rather than something 'L' does.
+        //
+        // cam_exposure_lock_check() masks all three loops, writes two manual
+        // exposures and reads them back off the die. It is the only instrument
+        // that answers on a still desk - the read-only witness above compares a
+        // register against itself, and an unchanging room holds a FREE loop as
+        // still as a locked one, which is what the first two runs of that
+        // witness measured. The price is that the sensor spends about 120 ms
+        // under two exposures nothing asked for, so anything scored across this
+        // press is scored under a rule that was not the run's.
+        //
+        // NOT ON THE BOOT PATH, for the reason cam_image_defaults() carries at
+        // length: a build that perturbs every acquire makes every bench after it
+        // incomparable with every bench before it, and this one would also have
+        // to put the loops back afterwards on a board where putting them back
+        // fails 31 times in 56 (bench/probe/20260907-hold/). One boot, on
+        // demand, with the boundary printed.
+        if (c == 'K') {
+            const cam_lock_state_t st = cam_exposure_lock_check();
+            printf("\ncamera    : #33 lock check at frame %u - %s "
+                   "(wrote %04x, die said %04x). Frames either side of this "
+                   "line were taken under an exposure no rule asked for.\n",
+                   (unsigned)n, cam_lock_state_name(st),
+                   cam_exposure_lock_wrote, cam_exposure_lock_read);
+            // Back to what ft_acquire() left, which is all three loops running -
+            // the same call the boot path ends with, and the manual exposure it
+            // does not clear gets overwritten by the AE loop within a frame or
+            // two IF that loop is live. Whether it is, is the question above.
+            cam_image_defaults();
+            // The step counter now disagrees with the sensor: the check masked
+            // everything and cam_image_defaults() freed everything, so the next
+            // 'L' has to start from CAM_AUTO_ALL or it would name a state the
+            // camera is not in.
+            cam_lock_step = 0u;
+            // And witness the restore, which is the half of this nobody was
+            // watching until 20260907-hold/. Same arming as 'L''s.
+            cam_witness_tracking = CAM_AUTO_ALL;
+            cam_witness_frame    = n;
+            cam_witness_phase    = 1u;
+            cam_witness_left     = CAM_WITNESS_SETTLE;
+            cam_witness_from_k   = true;
             stdio_flush();
             continue;
         }

@@ -156,6 +156,18 @@
 #define CAM_OV3640_PID_L             0x300B  // reads 0x4C
 #define CAM_OV3640_AEC_H             0x3002
 #define CAM_OV3640_AEC_L             0x3003
+// Gain. bench/probe/20260907-hold/ swept 1024 addresses from 0x3000 with 0x055
+// and 0x0aa - complements, so a counter cannot pass by accident - and this is
+// the one address that echoed the written byte, on all 8 boots. It gets a name
+// because it was measured twice over, once as the address the write lands on
+// and once as an address that holds what was written to it.
+#define CAM_OV3640_GAIN              0x3001
+// White balance, and NOT a name for what the register is. It is one of the two
+// addresses bench/probe/20260907-awb/ saw move when the WB bit moved, and
+// 20260907-hold/ watched read 18 locked and 10 free on every visit of every
+// boot. That makes it a usable witness for "is the AWB loop live" and nothing
+// more; what the die calls it is unknown and the repo does not guess.
+#define CAM_OV3640_AWB_WITNESS       0x332b
 
 // One byte out of the die. Sets the device address itself, so it does not
 // depend on what the last caller left in 0x0A.
@@ -200,6 +212,51 @@ extern uint16_t cam_exposure_lock_read;    // what the die said to it
 
 cam_lock_state_t cam_exposure_lock_check(void);
 const char *cam_lock_state_name(cam_lock_state_t s);
+
+// #33's witness, for the runs that cannot afford the check above.
+//
+// WHY A SECOND INSTRUMENT AT ALL. cam_exposure_lock_check() writes two manual
+// exposures into the sensor and leaves the second one there. That is fine in a
+// probe and unusable in a scoring run: the frames either side of it were taken
+// under an exposure nothing asked for, so a bench that called it mid-run would
+// be scoring a rule it changed and did not record. These three reads change
+// nothing. They are the only way to ask the question inside a run.
+//
+// WHAT IT ANSWERS, AND IN ONE DIRECTION ONLY. Take two samples with frames
+// clocked between them and compare: a witness that MOVED says that loop is
+// still revising, which is conclusive. A witness that did not move says
+// nothing - a converged loop on a still scene sits exactly as still as a
+// locked one, which is the wall bench/probe/20260907-awb/'s stage D hit and
+// could not get past without an operator changing the scene. So:
+//
+//   asked to freeze + moved   -> the lock did not take. #33, caught in the run
+//   asked to freeze + still   -> no evidence either way. NOT a passed lock
+//   asked to run    + moved   -> the unlock took
+//   asked to run    + still   -> no evidence either way. NOT a failed unlock
+//
+// The last row is worth as much attention as the first: 20260907-hold/ measured
+// cam_image_auto_mask(CAM_AUTO_ALL) failing to restore the AWB loop on 31 of 56
+// attempts, so "camera free" is a claim a run has to witness too, not assume.
+//
+// COST. Each sample is three passthrough transactions and cam_sensor_read()
+// sleeps 2 ms in each, with the 16-bit exposure read repeating until two pairs
+// agree - so 8 ms if the first pair agrees and up to about 36 ms if none does.
+// It stalls whatever calls it for that long. Do not put it on a per-frame path.
+typedef struct {
+    uint16_t exposure;   // 0x3002/0x3003
+    uint8_t  gain;       // 0x3001
+    uint8_t  awb;        // 0x332b
+    bool     ok;         // the exposure pair agreed; a false here voids the pair
+} cam_die_sample_t;
+
+void cam_die_sample(cam_die_sample_t *s);
+
+// Which loops moved between two samples, as a mask of CAM_AUTO_* bits - the
+// same bit space cam_image_auto_mask() takes, so it can be compared against
+// what the caller asked for directly. Any difference at all counts; there is no
+// magnitude here to threshold and inventing one would be fitting a constant to
+// the die's own noise. Returns 0 if either sample is !ok.
+uint8_t cam_die_live(const cam_die_sample_t *a, const cam_die_sample_t *b);
 
 #define CAM_REG_SENSOR_STATE_IDLE (1 << 1)
 

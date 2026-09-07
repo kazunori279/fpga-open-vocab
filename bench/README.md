@@ -35,6 +35,22 @@ six-rung ladder turned out to span a wider range than the sensor has.
 fault got a rate — 32 boots of 33, and 9 of them deaf and not deaf by turns
 inside ten seconds — and where the check written that afternoon to catch it
 turned out to answer `held` on every boot because it ran before the first frame.
+[`probe/20260907-cure/`](probe/20260907-cure/) is where the last untried cure for
+that fault — resetting, sleeping or power-cycling the sensor die on its own
+through `0x02` — was run against an interleaved null arm 54 times each and lost
+to it, and where a positive control proved the writes really do reach the die by
+killing the picture three ways.
+[`probe/20260907-hold/`](probe/20260907-hold/) is where the same lock question
+was asked of the other two loops and both held — gain landing at `0x3001` and
+staying put, white balance holding for forty seconds — and where switching the
+loops back ON turned out to fail 31 times in 56, which is a fault nobody had
+been looking for and which undermines every "camera free" control arm here.
+[`probe/20260907-witness/`](probe/20260907-witness/) is where all of that was
+carried into `m9` as a read-only witness on the 'L' press and a `'K'` key for the
+question it cannot answer — and where the witness turned out to be almost blind
+on a static desk, moving once in 26 windows, while a `'K'` verdict of `held` was
+found to leave the sensor parked on the check's own exposure for the rest of the
+run.
 
 **`stills/`** is neither, and is not a bench. It holds PNGs off the appliance's
 camera, shot so that the stages of the encoder chain can be asked about the same

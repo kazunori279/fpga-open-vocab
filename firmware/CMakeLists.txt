@@ -623,6 +623,32 @@ pico_enable_stdio_usb(forgix_cam_lockrate 1)
 pico_enable_stdio_uart(forgix_cam_lockrate 0)
 pico_add_extra_outputs(forgix_cam_lockrate)
 
+add_executable(forgix_cam_cure
+    cam_cure.c
+    cam.c
+    qspi_park.c)
+
+target_include_directories(forgix_cam_cure PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+pico_generate_pio_header(forgix_cam_cure ${CMAKE_CURRENT_LIST_DIR}/cam_spi.pio)
+target_link_libraries(forgix_cam_cure
+    pico_stdlib hardware_pio hardware_clocks hardware_vreg)
+pico_enable_stdio_usb(forgix_cam_cure 1)
+pico_enable_stdio_uart(forgix_cam_cure 0)
+pico_add_extra_outputs(forgix_cam_cure)
+
+add_executable(forgix_cam_hold
+    cam_hold.c
+    cam.c
+    qspi_park.c)
+
+target_include_directories(forgix_cam_hold PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+pico_generate_pio_header(forgix_cam_hold ${CMAKE_CURRENT_LIST_DIR}/cam_spi.pio)
+target_link_libraries(forgix_cam_hold
+    pico_stdlib hardware_pio hardware_clocks hardware_vreg)
+pico_enable_stdio_usb(forgix_cam_hold 1)
+pico_enable_stdio_uart(forgix_cam_hold 0)
+pico_add_extra_outputs(forgix_cam_hold)
+
 add_executable(forgix_diag
     diag.c
     fpga_config.c
