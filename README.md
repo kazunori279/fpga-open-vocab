@@ -39,9 +39,21 @@ uv run --script tools/fit_check.py --cat person \
     --neg-edit "the hand is closed into a tight fist"
 ```
 
-**Once it passes, the appliance is one command.** [`docs/monitor.md`](docs/monitor.md)
-is the five-minute version: enrol each state off the live camera, then get a
-line when the scene changes and nothing in between.
+**Once it passes, the appliance is one command.** Give `host/spot.py` two
+phrases and it walks the sequence the firmware needs — hold the first thing up
+and press Enter, then the second, then take everything out of shot — and from
+then on it prints what the board sees.
+
+```sh
+uv run --script host/spot.py "an opened book" "a closed book"
+```
+
+The walkthrough, and what it will and will not do, is
+[below](#getting-started-with-hostspotpy).
+
+To leave it running instead of watching it, [`docs/monitor.md`](docs/monitor.md)
+is the five-minute version of `host/watch.py` — the same enrolment, but a line
+only when the scene changes and nothing in between.
 
 ```sh
 uv run --script host/watch.py --enrol "a red cube" "a blue cube"
@@ -89,6 +101,86 @@ A contrast query asks for one thing *as against* the others, and needs nothing n
 
 Full instructions — toolchain, the Efinity container, flashing, recovery, every
 harness, and rebuilding the model — are in [`docs/building.md`](docs/building.md).
+
+## Getting started with `host/spot.py`
+
+The board is flashed and running, the camera is aimed at an empty desk, and you
+have two things to tell apart. That is the whole prerequisite.
+
+```sh
+uv run --script host/spot.py "an opened book" "a closed book"
+```
+
+Loading the teacher takes about a minute, and the run then goes like this:
+
+```
+LEAVE THE SCENE EMPTY. The board averages its first 30 frames into a
+background and then never revises it, so anything in shot now is
+subtracted out of every score for the rest of the run.
+
+============================================================
+>>> Show it: an opened book. Visit 1 of 2
+============================================================
+    press Enter when the scene is right (Ctrl-C to stop)
+key       : pressed '1'
+enrol     : an opened book, level +1.07, scatter 0.14 (20 frames, visit 1 of 2)
+```
+
+Each class twice, then `'0'` on an empty desk, then it goes live and prints the
+board's verdict as it lands. Ctrl-C ends it and leaves the board running, so the
+next start skips the flash.
+
+Three things about the sequence are not decoration. The scene has to be empty
+for the first thirty frames because the background freezes there and is never
+revised — anything in shot then keeps its score for the rest of the run. Each
+class is shown **twice** because one window measures how still your hand was,
+and what decides a run is where the same object lands when it is *staged again*
+([why](#nothing-measurable-at-enrolment-predicts-a-run)). And `'0'` is worth
+pressing: with an enrolled empty scene, "is anything there" is decided by which
+of the three references is nearest, which scored **79.4%** against the fallback
+band's **53.8%** over 33 benches.
+
+Nothing moves on until the board confirms the press by naming the class back.
+A press that did not land is silent from the host side, and an operator who
+assumes it landed enrols the second class against a first that does not exist.
+
+Useful flags: `--visits N` for more or fewer visits, `--no-empty` to skip the
+empty reference, `--quiet` for banners without the spoken cue, `--out PATH` for
+the full log. Up to six phrases work; two is what it is for.
+
+### What it can do
+
+- Tell apart things it has been **shown**, in the scene it was shown them in,
+  at about 3.5 frames a second.
+- Say *nothing there* when the desk is empty, and *something else* when there
+  is an object in frame that neither phrase fits. Those are three verdicts, not
+  two, and the third is often the interesting one.
+- Take new phrases at any time — the text tower runs on the host, so a new
+  query costs a second and no reflash. (It resets the background, so the desk
+  has to be empty again.)
+
+### What it cannot do
+
+- **It is not a detector.** It is a one-scene, enrolled discriminator. Move the
+  camera, change the light, or point it at a desk it was never shown, and the
+  references it learned no longer describe what it is looking at.
+- **It does not localise or count.** One verdict for the whole 128 × 128 frame:
+  no boxes, no positions, no "two of them".
+- **What it scores depends enormously on the pair.** Four pairs benched back to
+  back on one afternoon scored 95.8, 90.8, 50.0 and 34.2%. Run
+  [`tools/fit_check.py`](docs/fit.md) before you run the board.
+- **A contrast with an absence on one side can point backwards.** In the
+  `bench/cue/` segments, `an empty glass` was the board's winner on 6.7% of the
+  frames it was the truth for. That is not flicker, and no amount of holding the
+  scene still fixes it — see [`docs/fit.md`](docs/fit.md) Screen 0.
+- **Nothing it prints at enrolment forecasts the run.** The separation and
+  scatter on the console are worth reading, and eight prospective tests came out
+  backwards at both ends. Treat the numbers as a description of the enrolment,
+  not a prediction.
+- **It is not a measurement.** `spot.py` holds nothing out and archives nothing,
+  and its closing tally is what the board *said*, not what was there. A run you
+  can score afterwards is `host/cue.py` plus `tools/score_cue.py`
+  ([`bench/README.md`](bench/README.md)).
 
 ## Where it stands
 
@@ -302,7 +394,7 @@ the frictions, the rejected designs and what they taught are in
 |---|---|
 | **this file** | what the thing is and where it stands |
 | [`docs/fit.md`](docs/fit.md) | **will it work for what you want** — what the board is and is not, the three screens between an idea and an answer, and why the first two are free |
-| [`docs/monitor.md`](docs/monitor.md) | **using it** — `host/watch.py`, enrolment off the live camera, what it catches and what it misses, and how to hang an alert off it |
+| [`docs/monitor.md`](docs/monitor.md) | **using it** — `host/watch.py`, enrolment off the live camera, what it catches and what it misses, how to hang an alert off it, and where `host/spot.py` differs |
 | [`docs/architecture.md`](docs/architecture.md) | **how it works** — the board, the model, the decision rule, the pipeline, the link, the fabric, the two cores, and where each of them lives in the tree |
 | [`docs/building.md`](docs/building.md) | **how to build and run it** — toolchain, firmware, bitstream, tests, flashing, every harness |
 | [`docs/camera.md`](docs/camera.md) | the ArduCam Mega's register map against the driver — why the board cannot ask the camera what it is doing, and the four things it could do and does not |
@@ -381,6 +473,8 @@ fpga-open-vocab/
 ├── host/              # everything that talks to the board over USB CDC
 │   ├── demo.py        #   phrase -> text tower -> 512 floats -> USB (the demo)
 │   ├── cue.py         #   the same, run as a cued A/B scene experiment
+│   ├── spot.py        #   two phrases in, the board telling them apart — the
+│   │                  #     demonstration, paced by whoever holds the objects
 │   ├── watch.py       #   the appliance: enrol, then a line when it changes
 │   ├── m6/m7/m8.py    #   the per-milestone harness drivers
 │   ├── cam.py         #   render a dumped frame to PNG, or a live preview

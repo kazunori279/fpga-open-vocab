@@ -97,6 +97,58 @@ Note [07-29, two boards](#2026-07-29--two-boards-one-alive-one-dead-corrected-20
 
 ---
 
+### 2026-09-08 night, the enrolment key stopped being a schedule
+
+Everything on this bench that enrols does it against a **frame number**.
+`host/demo.py --enrol FRAME:KEY` presses `'1'` when the board's counter reaches
+a value worked out beforehand, and `host/watch.py --enrol` builds that schedule
+out of `--enrol-lead` seconds. For a bench that is correct and not a
+compromise: the schedule *is* the measurement, and a window that opened when
+the operator felt ready would be a boundary nobody recorded. For somebody
+holding a book it is a countdown to race, and a window that closes on a hand
+still in shot costs the reference without saying so.
+
+So `--ask` grew a second line form. It already read query sets off stdin; a
+line beginning `!` is now a **keypress** instead — `!1` enrols the first class,
+`!0` the empty scene, `!L` freezes the gain. Same press, same 20-frame window,
+same firmware path; only the timing moves, from a number computed in advance to
+whoever is looking at the desk. The prefix is `!` rather than a bare digit
+because a query can be one word, and a one-word query that happens to be `1`
+must not silently become an enrolment. Only the enrolment and camera keys are
+reachable: `'P'` and `'V'` dump 44 KB of base64 into the stream the caller is
+parsing and `'B'`/`'R'` end the run, and a typo should not be able to reach
+those.
+
+`host/spot.py` is what drives it, and it is the demonstration this repo did not
+have — two phrases in, the board telling them apart, paced by the operator:
+
+```sh
+uv run --script host/spot.py "an opened book" "a closed book"
+```
+
+It walks the order the firmware requires rather than assuming the operator
+knows it: leave the scene empty while the background freezes over 30 frames,
+then each class, then `'0'` on an empty desk, then live. **Every press waits
+for the board's own receipt** before the next prompt, and the wait earned its
+keep on the first night. Three smoke runs, and the one thing that broke was
+that receipt pattern: it matched the class form of the line and not the
+empty-scene form, which m9.c prints differently on purpose (`visit 1 - one is
+what the rule was measured on`, because `of 2` there would read as an
+instruction to press `'0'` again). Without the wait that would have been a
+missing third reference and a run quietly using the band.
+
+Two things it does that the timed path does not, and both are the reason it
+exists rather than a flag on `watch.py`: `--visits` defaults to 2, so each
+class is shown twice and the scatter starts measuring staging instead of hand
+tremor; and `'0'` gets pressed at all, so presence is #18's rule and not the
+fallback band. The visits are interleaved — every class once, then every class
+again — so that whatever the light does between them does not line up with
+which class it is, which is the confound the four runs above spent the day on.
+
+Nothing here is a measurement. `spot.py` holds nothing out, archives nothing,
+and prints a tally that is what the board *said* and not what was there;
+`host/cue.py` remains the only thing that produces a scoreable run.
+
 ### 2026-09-08 evening, the pair was run backwards and the lock stopped being the explanation
 
 Four minutes of board time answered the thing this morning's entry could not.

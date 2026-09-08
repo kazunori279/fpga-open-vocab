@@ -207,6 +207,13 @@ QUIET_PROBE_S = 10.0
 MAX_Q = 6
 NAME_LEN = 24
 
+# Keys `!K` on stdin is allowed to press, under --ask. Deliberately the enrolment
+# and camera keys and nothing else: 'P' and 'V' dump 44 KB of base64 into the
+# same stream a caller is parsing, and 'B'/'R' end the run. Those exist and are
+# reachable from a terminal on the port; they are not things an operator asks
+# for by name mid-scene, and letting a typo reach them would cost the run.
+KEYS_LIVE = frozenset("0123456"[:MAX_Q + 1]) | {"L", "M", "H", "K", "N"}
+
 # The background policy, mirroring FGX_BG_TAU_DEFAULT / FGX_BG_HOLD_DEFAULT.
 # Under hold, bg_tau is a warm-up length and not an averaging window, which is
 # why 30 (~27 s at 0.9 s/frame) replaced M9's 200: three minutes of standing
@@ -811,7 +818,12 @@ def main() -> int:
                          "Repeatable, and independent of --snap-every")
     ap.add_argument("--ask", action="store_true",
                     help="read new comma-separated query sets from stdin and "
-                         "send them to the running board")
+                         "send them to the running board. A line beginning "
+                         "'!' is a KEYPRESS instead - '!1' enrols the first "
+                         "class, '!0' the empty scene, '!L' freezes the gain - "
+                         "which is --enrol's press with the timing given back "
+                         "to whoever is holding the scene. host/spot.py is "
+                         "what drives it")
     ap.add_argument("--bootsel", action="store_true",
                     help="reboot the board into BOOTSEL and wait for the drive")
     ap.add_argument("--leave-running", action="store_true",
@@ -1180,11 +1192,39 @@ def main() -> int:
         try:
             while time.monotonic() - last < args.idle:
                 if not asked.empty():
+                    line_in = asked.get()
+
+                    # A KEY, NOT A QUERY. `--enrol FRAME:KEY` schedules a press
+                    # against a frame number the caller worked out in advance,
+                    # which is right for a bench - the schedule IS the
+                    # measurement there - and useless for an operator who is
+                    # holding a book and decides when it is steady. This is the
+                    # same press with the timing handed back: `!1` on stdin goes
+                    # to the board on the next pump.
+                    #
+                    # `!` rather than a bare digit because a query can be one
+                    # word and a one-word query that happens to be "1" must not
+                    # silently become an enrolment. The prefix cannot collide:
+                    # no phrase this teacher would be given starts with it.
+                    if line_in.startswith("!"):
+                        key = line_in[1:].strip()
+                        if key not in KEYS_LIVE:
+                            print(f"(no key '{key}' - one of "
+                                  f"{' '.join(sorted(KEYS_LIVE))})",
+                                  file=sys.stderr)
+                            continue
+                        s.write(key.encode())
+                        s.flush()
+                        print(f"key       : pressed '{key}'")
+                        sys.stdout.flush()
+                        last = time.monotonic()
+                        continue
+
                     # Commas separate queries, NEG_SEP separates the terms
                     # within one, so both syntaxes fit on the same line:
                     #   an opened book / a closed book / a book, a cup
                     want = [q.strip() for q in
-                            re.split(r"[,\n]", asked.get()) if q.strip()]
+                            re.split(r"[,\n]", line_in) if q.strip()]
                     if not want:
                         continue
                     if len(want) > MAX_Q:

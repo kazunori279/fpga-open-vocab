@@ -82,6 +82,39 @@ then on a match is against those references under the two-stage rule
 [`architecture.md`](architecture.md) describes, which is the rule every accuracy
 number in this repository is measured on.
 
+### Showing it to somebody, rather than leaving it running
+
+`host/spot.py` is the same board and the same rule with the timing handed back
+to whoever is holding the objects:
+
+```sh
+uv run --script host/spot.py "an opened book" "a closed book"
+```
+
+It prompts, you hold the thing up, you press Enter, and it does not move on
+until the board has confirmed the press by naming the class back. Mode 3
+above schedules its enrolment windows against a clock — `--enrol-lead` seconds,
+then one window per state — which is fine when you already know how long it
+takes you to walk to the scene, and is a window closing on your hand when you
+do not.
+
+Three other things follow from the operator being in the loop:
+
+* `--visits N` shows each class more than once. One visit measures how still
+  your hand was; the second is what starts measuring how much the thing moves
+  when it is staged again, and that is the term that decides runs.
+* `'0'` gets pressed, so the empty scene becomes a third reference and presence
+  is decided by nearest-reference rather than by the fitted band. That is the
+  difference issue #18's table in [the README](../README.md) quotes, and mode 3
+  never presses it.
+* Every frame's verdict is printed as it lands, unsmoothed. That is the wrong
+  thing for a monitor — hence `--confirm` — and the right thing when the point
+  is to watch the board think.
+
+Ctrl-C ends it and leaves the board running. Nothing is archived: if you want a
+run you can score afterwards, that is `host/cue.py` and
+[`bench/README.md`](../bench/README.md).
+
 ### The three states the board can report
 
 Your query names are not the whole vocabulary. Every frame ends in one of three
