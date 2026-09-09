@@ -1,0 +1,14 @@
+  log            axis                         lit             span  red/green         gate z
+  box2           an opened box                358   -29.0 .. +12.2      24/76  +0.6 .. +17.8
+  box3           an open cardboard box        242     -9.1 .. +1.6       3/97   +0.6 .. +7.0
+  cube           a red cube                   341  -14.7 .. +126.6       98/2  +0.6 .. +11.0
+  cup            a cup                       1800   -19.9 .. +17.9      25/75  +0.6 .. +11.4
+  cup2           a single cup                  51    -0.7 .. +17.5       92/8   +0.6 .. +3.8
+  cupdiff        one cup                      520     -6.1 .. +8.1      62/38  +0.6 .. +10.4
+  cupstate       one cup                      191     -9.2 .. +0.5       7/93   +0.6 .. +6.4
+  gated          an opened box                293   -13.7 .. +19.4      78/22  +0.6 .. +11.9
+  gatehunt       a red cube                   102     -1.4 .. +6.5       94/6   +0.6 .. +2.3
+  gatehunt2      a red cube                   273  -29.7 .. +102.8      30/70  +0.7 .. +11.5
+  glass          a glass                      689   -19.9 .. +27.3      38/62  +0.6 .. +12.1
+  hand           an open hand                 333   -41.5 .. +20.5      57/43  +0.6 .. +22.9
+  live           no state pair or never lit

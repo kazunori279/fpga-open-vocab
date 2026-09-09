@@ -89,6 +89,30 @@ reversing it, and the 1/2 group holding both the 100.0% run and the 0.0% one.
 The ninth enrolment-time predictor and the ninth failure. The reconstruction
 itself is good to 0.0007 against the board's own `'T'` dumps.
 
+[`probe/20260909-noenrol/`](probe/20260909-noenrol/) asks the obvious next thing
+of the same archive: what does the registration stage buy? Scored row for row on
+the same frames, the enrolled rule averages 69.2% and taking the highest-scoring
+query — no operator, no reference, no constant — averages 64.1%. The gap is 5.1
+points at p = 0.05. The number that matters is the third one: a cut chosen per
+run scores 85.8%, so the registration recovers 5.1 of the 21.7 points that a
+threshold is worth. It also raises the floor from 0.8% to 26.0%, and the two
+worst enrolled runs are an inverted axis and a collapsed `sep`.
+
+[`probe/20260909-pairs/`](probe/20260909-pairs/) takes that to the board:
+thirteen boots, nothing enrolled in any of them, seven phrase pairs. `led_two()`
+will map state to colour with no enrolment at all — it needs contrast queries
+plus a `--gate`, and without both the LED is a confidence meter rather than an
+answer. *a red cube* / *a green cube* and *an open hand* / *a closed hand* both
+swing red to green as the object changes. *an opened box* / *a closed box* is
+pinned: it reads *closed* on an open box and never turns red, while three plain
+phrases riding along in the spare slots of the same run get both states right.
+*a cup* / *two cups* is the interesting middle — right both ways but nine times
+weaker on the singular end, and five rewrites moved that asymmetry around
+without removing it, including one that anchored both classes to the shared noun
+and was right on 1 reading of 4. It also records what a background frozen over a
+moving desk costs — a factor of 16 on every score — and that the presence gate
+has about one `z` of headroom and drifts out of it over a long run.
+
 **`stills/`** is neither, and is not a bench. It holds PNGs off the appliance's
 camera, shot so that the stages of the encoder chain can be asked about the same
 pixels off the board. [`stills/20260821-bisect/`](stills/20260821-bisect/) is
