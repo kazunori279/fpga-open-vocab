@@ -145,15 +145,6 @@ def main() -> int:
                     help="demo.py's --bg-tau, forwarded. The desk must be "
                          "empty until this frame or the background absorbs "
                          "whatever is in shot. Default 30, demo.py's own")
-    ap.add_argument("--still", action="store_true",
-                    help="cue once, then never again: every round enrols the "
-                         "same untouched scene. This is the other half of the "
-                         "measurement - the staged run mixes the board's noise "
-                         "with how differently the operator placed the object, "
-                         "and only a run where nothing moves separates them. "
-                         "The classes come out on top of each other, so the "
-                         "run has no meaningful sep of its own and the staged "
-                         "run's is what its numbers get divided by")
     ap.add_argument("--no-empty", action="store_true",
                     help="skip the empty-scene reference each round. eref is a "
                          "reference like any other and #18's presence rule "
