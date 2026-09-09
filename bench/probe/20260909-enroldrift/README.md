@@ -98,12 +98,26 @@ length, same operator:
 | `sep` range across rounds | 0.229–4.255 (18×) | 19.3–29.5 (1.5×) |
 | median displacement, empty scene | 0.441 sep | **0.019 sep** |
 
-**So the implementation is not discarding the text embedding.** The axis works
-when the teacher can represent the distinction being asked for; SigLIP cannot
-tell this room's book open from the same book closed, and `c[]` then has nothing
-to place the two classes on opposite sides with. #35's first branch, and the
-drift measured above is a symptom of the pair rather than a property of the
-rule.
+**So the implementation is not discarding the text embedding.** The axis works,
+and #35's first branch is the right one: the rule is fine and what differs here
+is the pair.
+
+**The sentence that used to stand here was wrong, and the archive says so.** It
+read that SigLIP cannot tell this room's book open from the same book closed.
+Two pairs is not a sample, this README said as much, and the sample that
+existed all along disagrees: across 30 archived cue benches of the same book
+pair, `m9_cue-20260811-072207` scored **120/120 held out** with an AUC of 0.978
+on the `an opened book` query, and 2026-08-20 averaged 97.6% over two runs. A
+representation that cannot carry the distinction does not return 126 of 126.
+
+What the six rounds above actually sampled is the *unstable* regime of a pair
+that does work. Sorted by date, the same pair reads 100.0% on 08-11, 61.8% on
+08-17 with four of thirteen runs enrolling at `sep` below 1, 97.6% on 08-20 and
+82.2% over six runs on 08-25. The cube pair is not better represented so much as
+better behaved, and the difference this probe measured is enrolment variance
+rather than a ceiling in the teacher. See
+[`../20260909-straddle/`](../20260909-straddle/), which is where the archive got
+read.
 
 That also puts a floor back under issue #34. 0.144 sep, not 0.724, is what an
 across-boot number would be judged against on a pair worth shipping.

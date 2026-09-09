@@ -145,6 +145,25 @@ two references nearly coincide, `sep` in the denominator blows the ratio up to
 - **The two-pair contrast in #35 stands as far as it went** — the cube pair does
   behave differently from the book pair — but the mechanism proposed for it does
   not. Whatever separates those two pairs, it is not that one straddles.
+- **And the book pair is not undiscriminable, which the enroldrift README said
+  it was.** That sentence has been corrected. `m9_cue-20260811-072207` scores
+  **120/120 held out** with AUC 0.978 on the `an opened book` query, and 08-20
+  averages 97.6% over two runs. By date the same pair reads 100.0% (08-11),
+  56.7% (08-16), 61.8% (08-17), 97.6% (08-20), 76.0% (08-24), 82.2% (08-25),
+  71.9% (09-08). The pair is unstable, not impossible, and 08-17 is where the
+  instability lives — four of its thirteen runs enrolled with `sep` below 1.
+
+**One thing to be careful with in the row above.** Splitting those 30 runs at
+`sep = 1` separates them perfectly: 4 runs below at 25.5% mean and 50.0% max, 26
+above at 78.6% mean and 54.8% min. That is a cut chosen by looking at the
+answers, on the one pair, and this repo has burned a bar picked that way before.
+It is also not new. `sep` is already one of the four enrolment-time quantities
+[`docs/architecture.md`](../../../docs/architecture.md) records as having failed
+— its largest value across the nine benches that mattered belongs to a 76.7% run
+— and the board already declines to gate at `sep < 0.05`. What the split shows
+is the shape the repo already named: a **floor**, not a predictor. Below it the
+references have collapsed and the run is dead; above it `sep` says nothing
+(rho = −0.109 over the 26).
 
 Straddle joins the register in
 [`docs/bring-up-log.md`](../../../docs/bring-up-log.md#2026-08-17--the-two-visit-guards-first-prospective-test-rejects-the-best-run-of-the-day):
