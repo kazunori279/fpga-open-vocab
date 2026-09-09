@@ -80,6 +80,15 @@ land on the *same side* of the text axis in 6 rounds of 6, with the order
 flipping between rounds, which is issue #35 and is a larger question than the
 drift it was looking for.
 
+[`probe/20260909-straddle/`](probe/20260909-straddle/) answers the question that
+probe raised, and costs no board time at all: the enrolment window can be
+reconstructed out of any log that has frame lines and a receipt, so 31 archived
+runs of the book pair give straddle and accuracy from the same file. Straddle
+does not predict the run — 78.1% against 67.7% at p = 0.43, one query ordering
+reversing it, and the 1/2 group holding both the 100.0% run and the 0.0% one.
+The ninth enrolment-time predictor and the ninth failure. The reconstruction
+itself is good to 0.0007 against the board's own `'T'` dumps.
+
 **`stills/`** is neither, and is not a bench. It holds PNGs off the appliance's
 camera, shot so that the stages of the encoder chain can be asked about the same
 pixels off the board. [`stills/20260821-bisect/`](stills/20260821-bisect/) is
