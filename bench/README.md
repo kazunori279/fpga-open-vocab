@@ -59,6 +59,27 @@ costs 93% of eight singles, so what the register buys is the 8 MB of cache and
 not the time. `255` returns 1,892 bytes more than 8 MB and costs the capture
 after it, on 5 boots of 5.
 
+[`probe/20260909-enroldump/`](probe/20260909-enroldump/) is where issue #34's
+instrument was checked before it was used: the new `'T'` key prints the
+references, and the two dumps in that boot are 371 frames apart with
+character-identical `qbg` lines, which is the frozen background visible from
+outside for the first time. The references in it are meaningless — all three
+were enrolled against one unmoving scene — and the README says so.
+
+[`probe/20260909-cubes/`](probe/20260909-cubes/) is where "the LED brightness
+stopped changing" was traced to `led_map()` passing a literal `1.0f`: 2,550 of
+2,595 frames at a maximum channel of exactly 255, 38 distinct hues, and zero
+`b` fields against 413 in `cue/m9_cue-20260908-0733.log`. The classifier was
+never the problem.
+
+[`probe/20260909-enroldrift/`](probe/20260909-enroldrift/) is six enrolments of
+the same two objects inside one boot, with the background provably unmoved — and
+where the median reference moved by 0.724 of the gap it defends without a power
+cycle ever happening. It is also where the two class references turned out to
+land on the *same side* of the text axis in 6 rounds of 6, with the order
+flipping between rounds, which is issue #35 and is a larger question than the
+drift it was looking for.
+
 **`stills/`** is neither, and is not a bench. It holds PNGs off the appliance's
 camera, shot so that the stages of the encoder chain can be asked about the same
 pixels off the board. [`stills/20260821-bisect/`](stills/20260821-bisect/) is

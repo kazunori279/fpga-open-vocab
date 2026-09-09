@@ -212,7 +212,14 @@ NAME_LEN = 24
 # same stream a caller is parsing, and 'B'/'R' end the run. Those exist and are
 # reachable from a terminal on the port; they are not things an operator asks
 # for by name mid-scene, and letting a typo reach them would cost the run.
-KEYS_LIVE = frozenset("0123456"[:MAX_Q + 1]) | {"L", "M", "H", "K", "N"}
+#
+# 'T' is here rather than with 'P' and 'V' because the size argument does not
+# reach it: it prints about sixty floats, not 44 KB, and everything it prints
+# goes to the log through emit() while the frame loop ignores it. Pressing it
+# is also the whole of issue #34's method - enrol, then read back what the
+# enrolment actually was - so an operator does ask for it by name mid-scene.
+KEYS_LIVE = frozenset("0123456"[:MAX_Q + 1]) | {"L", "M", "H", "K", "N", "T",
+                                                "Y"}
 
 # The background policy, mirroring FGX_BG_TAU_DEFAULT / FGX_BG_HOLD_DEFAULT.
 # Under hold, bg_tau is a warm-up length and not an averaging window, which is

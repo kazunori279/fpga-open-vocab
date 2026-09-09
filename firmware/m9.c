@@ -1003,6 +1003,59 @@ static void bg_print(void)
     stdio_flush();
 }
 
+// #34's instrument, and it is DUMP ONLY on purpose. The question is whether a
+// reference saved in one boot means anything in the next one, and the honest
+// order is to measure that before there is a restore path that would let
+// something ship on the assumption. A key that can only read cannot be the way
+// a bad reference gets loaded.
+//
+// WHAT IT HAS TO CARRY, and why it is more than qref[]. A reference is a mean
+// of cz[], and cz is z centred, and z is (cos - qbg[i]) / bg_spread(i) with
+// BOTH terms frozen per boot and per query. So the reference alone does not
+// describe itself: qbg[] and bg_spread() are the coordinate system it was
+// written in, and a comparison across two boots that does not carry them is
+// comparing numbers from two different spaces without saying so. enrol_forget()
+// makes the same argument one scope smaller - it is why 'N' cannot reset the
+// background without also throwing the enrolment away.
+//
+// TEXT, NOT BASE64, and this is the one place that diverges from 'V'. The
+// embedding dump packs 512 floats through cam_dump_frame() because that emitter
+// was verified in M8 and a second one would be a second thing to be wrong. Here
+// the payload is about sixty floats and the constraint is the other way round:
+// the note above qref_sqsum records that this firmware has roughly twenty bytes
+// of headroom against RAM, so a contiguous staging buffer for crc32 and base64
+// is exactly what there is no room for. %.9e round-trips binary32 exactly, so
+// nothing is lost by printing it, and a probe script reads it with a split().
+//
+// No crc32 either, for the same reason - it needs the buffer. A truncated dump
+// is detectable instead by the trailing `end` line, which is why there is one.
+static void enrol_dump(void)
+{
+    printf("\nenroldump : nq %u, classes %u, empty %u\n",
+           (unsigned)nq, (unsigned)enrol_count(), eref_on ? 1u : 0u);
+    // The coordinate system first, so a reader who stops here still knows
+    // whether the references below are comparable to anything.
+    for (uint32_t i = 0; i < nq; i++)
+        printf("enroldump : bg %u qbg %.9e sd %.9e coco %.9e cocosd %.9e %s\n",
+               (unsigned)i, (double)qbg[i], (double)bg_spread(i),
+               (double)qmu[i], (double)qsd[i], qname[i]);
+    for (uint32_t i = 0; i < nq; i++) {
+        if (!qref_on[i]) continue;
+        printf("enroldump : ref %u vis %u scat %.9e", (unsigned)i,
+               (unsigned)qref_vis[i], (double)qref_scat[i]);
+        for (uint32_t j = 0; j < nq; j++) printf(" %.9e", (double)qref[i][j]);
+        printf(" %s\n", qname[i]);
+    }
+    if (eref_on) {
+        printf("enroldump : ref e vis %u scat %.9e", (unsigned)eref_vis,
+               (double)eref_scat);
+        for (uint32_t j = 0; j < nq; j++) printf(" %.9e", (double)eref[j]);
+        printf(" the empty scene\n");
+    }
+    printf("enroldump : end\n");
+    stdio_flush();
+}
+
 // ---------------------------------------------------------------------------
 // M11 stage 1. D1 as a score meter: green when nothing matches, red when the
 // board would say MATCH, continuously in between.
@@ -2186,6 +2239,25 @@ static int poll_host(uint32_t dim, uint32_t us)
         // overlap at all and 'D' asks where inside the overlap the trigger
         // belongs. Both are one-boot questions.
         if (c == 'D' || c == 'd') return 'D';
+        // #34's, and it is the read half of the enrolment keys below: 'T' for
+        // the transfer that is not implemented yet, because whether a reference
+        // survives a power cycle is the thing being measured and not something
+        // to assume by shipping a loader first. Misses all four of F, G, X and
+        // Q. Recoverable - a stray 0x54 costs about sixty printed floats in the
+        // middle of a log, not the run - so a bare compare like 'P' and 'V'.
+        if (c == 'T' || c == 't') return 'T';
+        // #34's step 2, and it is the half of 'N' that enrol_forget()'s comment
+        // does NOT argue against. That comment is one-directional: dropping the
+        // background while keeping references leaves them measured against a mu
+        // that no longer exists. Dropping the references while keeping the
+        // background throws away the only thing that could be stale, so it is
+        // safe in the direction 'N' is not. It exists because the within-boot
+        // noise floor needs independent re-enrolments of one class against ONE
+        // frozen qbg[], and pressing '1' twice folds a second visit into a
+        // running mean instead - that is a different measurement. Misses F, G,
+        // X and Q. Costs an enrolment if mistyped, never a background, so a
+        // bare compare.
+        if (c == 'Y' || c == 'y') return 'Y';
         // M21's enrolment keys. Digits miss all four of F, G, X and Q, which is
         // the constraint the note above exists to enforce.
         if (c >= '0' && c <= '0' + (int)FGX_MAX_Q) return c;
@@ -3349,11 +3421,26 @@ int main(void)
            "three and no radius is\n"
            "            involved. Without one the board falls back to the band - "
            "absent beyond %.1f sep\n"
-           "            from every class - which scores 54.6%% over 28 benches "
+           "            from every class - which scores 53.8%% over 33 benches "
            "against the third reference's\n"
-           "            79.1%%, because with two queries that band is an interval "
+           "            79.4%%, because with two queries that band is an interval "
            "the empty scene can sit\n"
-           "            inside. #18.\n",
+           "            inside. #18.\n"
+           "            'T' DUMPS THE ENROLMENT as text - the references, and the "
+           "qbg and spread they were\n"
+           "            written against, which are the coordinate system and are "
+           "re-measured every boot.\n"
+           "            Read-only: whether a saved reference means anything in "
+           "the next boot is #34, and\n"
+           "            it is being measured before there is a way to load one "
+           "back.\n"
+           "            'Y' FORGETS THE ENROLMENT AND KEEPS THE BACKGROUND, "
+           "which is the half of 'N' that\n"
+           "            is safe: re-enrolling after it lands in the same "
+           "coordinate system, so two\n"
+           "            references of one class become comparable. Pressing "
+           "'1' twice does NOT do this -\n"
+           "            it folds a second visit into a running mean. #34.\n",
            (unsigned)FGX_MAX_Q, (unsigned)FGX_ENROL_N, (unsigned)FGX_ENROL_V,
            (double)FGX_ABSENT_TRIP);
     if (bg_hold)
@@ -3822,6 +3909,25 @@ int main(void)
             timed = 0;
             sum_us = sum_enc_us = sum_wait_us = sum_wall_us = sum_age_us = 0;
             last_acc_us = 0;
+            stdio_flush();
+            continue;
+        }
+        // #34. Read-only, so it does not need the deferral 'P' and 'V' have -
+        // there is no frame to pair it with. What it prints is whatever the
+        // board holds at the moment the key lands, which for a measurement run
+        // is right after an enrolment receipt.
+        if (c == 'T') {
+            enrol_dump();
+            continue;
+        }
+        // #34 step 2. Deliberately says what it did NOT do, because the whole
+        // value of the key is that the coordinate system survived, and a log
+        // that does not record that cannot be told apart from an 'N' later.
+        if (c == 'Y') {
+            enrol_forget();
+            printf("\nenrolment : forgotten - %u queries, background KEPT "
+                   "(qbg frozen %u frames ago). Re-enrol into the same "
+                   "space.\n", (unsigned)nq, (unsigned)bg_n);
             stdio_flush();
             continue;
         }
