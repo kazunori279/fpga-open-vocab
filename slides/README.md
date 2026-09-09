@@ -3,16 +3,15 @@
 [`index.html`](index.html) is a self-contained 50-minute talk about this project:
 what CLIP is, what the board is, how the encoder was split between an MCU and an
 FPGA, how the frame came down from 3,359 ms, and how a 512-d embedding becomes
-an answer on an LED. 39 slides, eight sections, aimed at a general technical
+an answer on an LED. 40 slides, eight sections, aimed at a general technical
 audience — each domain is taught from scratch before the deep-dive.
 
-**The frame time and the shipped clock are current** — both decks say 282 ms,
-265 ms encode, 320 MHz sys / 160 MHz link, the same as the rest of the repo.
-What they do not yet say is that 282 ms is the sum of parts and the board's own
-clock reads **293**; the decks quote one number where the repo now quotes two.
+**The frame time and the shipped clock are current** — both decks say 282 ms as
+the sum of parts and **293 ms** by the board's own clock, 265 ms encode,
+320 MHz sys / 160 MHz link, the same as the rest of the repo.
 See [Keeping it true](#keeping-it-true) for which files to re-read from.
 
-[`index.ja.html`](index.ja.html) is the same 39 slides in Japanese. It is a
+[`index.ja.html`](index.ja.html) is the same 40 slides in Japanese. It is a
 translation, not a fork: the structure, the SVGs and every number are the same,
 and a link in the top-right corner of each deck switches to the other one. The
 type is set a few points smaller with the negative tracking relaxed, because
@@ -70,7 +69,12 @@ tables. **Those files are the source of truth.** When one of them changes, this
 deck is stale until someone says otherwise; it is not checked by
 `tools/check_links.py`, which only reads markdown.
 
-The last reconciliation was 2026-08-16, which is why the shipped 320/160 and the
-282 ms frame are in there. Don't trust that date in the abstract — `git log
-slides/` is the only honest answer to "how far behind is it", and the two decks
-have to be checked against each other as well as against the sources.
+The last reconciliation was 2026-09-08. It replaced the presence stage on two
+slides: the decks had taught the level-span rule with its `enter 0.50` /
+`leave 0.15` edges, and that rule was retired — presence is now the empty scene
+as a reference the classifier cannot pick, decided by `de > d`. A deck that
+teaches a threshold this project spent two milestones removing is worse than a
+stale number, because the audience cannot tell it is stale. Don't trust the date
+in the abstract either — `git log slides/` is the only honest answer to "how far
+behind is it", and the two decks have to be checked against each other as well
+as against the sources.
