@@ -1,0 +1,6 @@
+cubes.log: a red cube           rebuilt   +0.1080  dumped   +0.1082  err 1.78e-04
+cubes.log: a green cube         rebuilt  -13.5687  dumped  -13.5681  err 6.30e-04
+staged.log: an opened book       rebuilt   -3.4015  dumped   -3.4022  err 7.11e-04
+staged.log: a closed book        rebuilt   -3.5643  dumped   -3.5644  err 1.08e-04
+
+worst component error 7.110e-04
