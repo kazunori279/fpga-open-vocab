@@ -458,7 +458,8 @@ class Encoder:
         s = bank @ vec
         return float(s.mean()), float(s.std())
 
-    def encode(self, specs: list[str], gate_specs: list[str] | None = None):
+    def encode(self, specs: list[str], gate_specs: list[str] | None = None,
+               state_specs: list[str] | None = None):
         """(display names, vectors, calibration, roles), provenance each.
 
         A spec is either a plain query, which behaves exactly as it did before
@@ -477,14 +478,26 @@ class Encoder:
         they become the state queries that get ranked against each other. A
         bare query that is not a gate stays PLAIN and keeps its own threshold,
         which is the pre-M20 rule and the whole of the COCO object demos.
+
+        `state_specs` says the role outright, for the case the rule above gets
+        wrong. The role is a tag - one byte per query in pack_queries()'s
+        payload - and m9.c reads the tag, never how the vector was built, so a
+        bare phrase can be a state query. It has to be able to be: on
+        2026-09-09 the plain pair 'one cup'/'two cups' had the count right on
+        every reading taken while the contrast pair built from the same words
+        did not, and there was no way to put the working pair on the LED.
+        Contrast queries still become state queries on their own, which is the
+        recipe every pair in bench/probe/20260909-pairs/ was shot with.
         """
         import numpy as np
         import teacher
 
         model = self._clip()
         gate_specs = list(gate_specs or [])
-        specs = list(specs) + list(gate_specs)
-        n_plain = len(specs) - len(gate_specs)
+        state_specs = list(state_specs or [])
+        specs = list(specs) + state_specs + gate_specs
+        n_plain = len(specs) - len(state_specs) - len(gate_specs)
+        n_named = n_plain + len(state_specs)
 
         # One encode_queries() call for every prompt in every spec, rather than
         # one per spec. The prompt ensemble is seven forward passes per prompt
@@ -501,7 +514,8 @@ class Encoder:
         names, rows, cal, weak, synth, roles = [], [], [], [], [], []
         at = 0
         for k, (pos, negs) in enumerate(parsed):
-            roles.append(Q_GATE if k >= n_plain else
+            roles.append(Q_GATE if k >= n_named else
+                         Q_CLASS if k >= n_plain else
                          Q_CLASS if (negs and gate_specs) else Q_PLAIN)
             e_pos = enc[at]
             e_neg = enc[at + 1:at + 1 + len(negs)]
@@ -579,8 +593,19 @@ class Encoder:
         if idle:
             print(f"            {len(idle)} query in a two-stage set is neither "
                   f"presence nor state ({', '.join(idle)}) - it will be scored "
-                  f"and printed but cannot produce a MATCH. Give it a '/' to "
-                  f"make it a state query.", file=sys.stderr)
+                  f"and printed but cannot produce a MATCH. Pass it as --state "
+                  f"to rank it, or give it a '/' to contrast it first.",
+                  file=sys.stderr)
+        # The other way round, and worse, because it looks like it worked: a
+        # state query needs a gate to be ranked against anything. Without one
+        # m9.c takes neither the m21 branch nor the two-stage one and lands on
+        # led_map(), whose hue is the winner's confidence and not which state
+        # won - the trap bench/probe/20260909-pairs/ opens on.
+        if state_specs and not gate_specs:
+            print(f"            {len(state_specs)} --state query with no "
+                  f"--gate - the board has nothing to rank them behind, so "
+                  f"they fall back to their own thresholds and the LED shows "
+                  f"confidence, not state.", file=sys.stderr)
         return names, np.stack(rows), cal, roles
 
 
@@ -697,6 +722,15 @@ def main() -> int:
                          "all of them have to clear. Write it bare - 'a hand', "
                          "not 'a hand / a fist' - because what makes a good "
                          "gate is exactly what makes a bad discriminator")
+    ap.add_argument("--state", action="append", default=[], metavar="PHRASE",
+                    help="rank this query against the other states instead of "
+                         "against a threshold, without contrasting it. A "
+                         "contrast query becomes a state query on its own once "
+                         "a --gate exists; this is for the pair that is better "
+                         "left alone, because normalize(e_pos - e_neg) throws "
+                         "away whatever the two phrases share and sometimes "
+                         "that was the answer. Repeatable, needs a --gate, and "
+                         "the first one is the red end of the LED")
     ap.add_argument("--bg-tau", type=int, default=BG_TAU, metavar="N",
                     help=f"frames of warm-up before the background baseline "
                          f"freezes, or the averaging window under --no-bg-hold "
@@ -842,7 +876,7 @@ def main() -> int:
     if args.bootsel:
         return bootsel(args.port or pick_port())
 
-    if not args.queries:
+    if not args.queries and not args.state:
         raise SystemExit('nothing to look for - try: "cup" "person" "book"')
     # Parsed here rather than at the frame it fires on. A typo in --enrol would
     # otherwise surface two minutes into a run, after the teacher has loaded and
@@ -896,9 +930,10 @@ def main() -> int:
     # The gates occupy slots like anything else, and counting only --queries
     # here would push the overflow onto the board, which rejects the whole set
     # after a minute of teacher loading rather than before it.
-    if len(args.queries) + len(args.gate) > MAX_Q:
-        raise SystemExit(f"{len(args.queries)} queries and {len(args.gate)} "
-                         f"gates, and the board holds {MAX_Q} in total")
+    if len(args.queries) + len(args.state) + len(args.gate) > MAX_Q:
+        raise SystemExit(f"{len(args.queries)} queries, {len(args.state)} "
+                         f"states and {len(args.gate)} gates, and the board "
+                         f"holds {MAX_Q} in total")
     if not args.bitstream.exists():
         raise SystemExit(f"{args.bitstream}: not found - run ./rtl/build.sh")
     # Checked here as well as on the device. The device's rejection costs a
@@ -930,7 +965,7 @@ def main() -> int:
               f"{enc.meta.get('fpr', 0):.0%} FPR on "
               f"{enc.meta.get('geometry', '?')} geometry, median "
               f"z {enc.median['z_threshold']:.2f}", file=sys.stderr)
-    names, vecs, cal, roles = enc.encode(args.queries, args.gate)
+    names, vecs, cal, roles = enc.encode(args.queries, args.gate, args.state)
     bg_flags = ((BG_HOLD if args.bg_hold else 0)
                 | (BG_ROOM_SD if args.room_sd else 0)
                 | (BG_SMOOTH if args.smooth else 0))
@@ -1238,12 +1273,13 @@ def main() -> int:
                         print(f"(the board holds {MAX_Q} queries, not "
                               f"{len(want)})", file=sys.stderr)
                         continue
-                    # The gates ride along unchanged. Asking a new question at
-                    # runtime should not silently drop the presence stage and
-                    # switch the board back to the old rule mid-run - and
-                    # MAX_Q is checked above against `want` alone, so the
-                    # board's own count is what catches an overlong set.
-                    n, v, c, rl = enc.encode(want, args.gate)
+                    # The gates and the named states ride along unchanged.
+                    # Asking a new question at runtime should not silently drop
+                    # the presence stage and switch the board back to the old
+                    # rule mid-run - and MAX_Q is checked above against `want`
+                    # alone, so the board's own count is what catches an
+                    # overlong set.
+                    n, v, c, rl = enc.encode(want, args.gate, args.state)
                     # A re-send also restarts the warm-up, because
                     # recv_queries() resets the baseline on every accepted set.
                     # That is the documented escape from a background that froze
