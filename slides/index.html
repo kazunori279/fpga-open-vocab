@@ -438,8 +438,8 @@
 <pre><span class="cm"># rank four phrases against every frame</span>
 <span class="kw">uv run</span> host/demo.py <span class="ty">"cup" "person" "book" "laptop"</span>
 
-<span class="cm"># one thing *as against* the others</span>
-./ab.sh <span class="ty">"an opened book" "a closed book"</span> --enrol</pre>
+<span class="cm"># one thing *as against* the other, enrolment and all</span>
+<span class="kw">uv run --script</span> host/spot.py <span class="ty">"an opened book" "a closed book"</span></pre>
       </div>
     </div>
     <div class="body" style="margin-top:4px;">
@@ -1057,7 +1057,10 @@
   one clock</b>: <code>m7</code> takes its MCU baseline at its 150 MHz boot rate and then runs the
   ladder up. At <i>one</i> clock the appliance is 5.97×. Its camera frame is <b>282 ms</b> today —
   the last 56 ms of that came off by overlapping the capture with the compute, and 80 more by
-  switching on the M15 epilogue nobody had noticed was off.</div>
+  switching on the M15 epilogue nobody had noticed was off. <b>282 is a sum of measured parts;</b>
+  the board also times the interval between frames with its own clock and gets <b>293 ms</b>, over
+  300 of 300 frames. The 11 ms belongs to the LED and the CDC line, and a sum of parts is the one
+  thing an overlap can flatter, so the appliance now prints both.</div>
   </section>
 
 <!-- ============ INT4 ============ -->
@@ -1294,9 +1297,11 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
         <p><b>Drift lives in the common mode.</b> Subtracting <code>level</code> removes it from the
         state decision <i>for any query count</i> — the way differencing two queries removes it for
         two. Worth <b>44.2 → 84.2%</b> and <b>87.5 → 95.8%</b> on the two recorded runs.</p>
-        <p><b>And <code>level</code> is exactly what the centring throws away</b> — which is why it
-        becomes the presence axis rather than a third enrolled class. Enrolling "absent" as a class
-        instead scores 42.3% and 73.1%.</p>
+        <p><b>And <code>level</code> is exactly what the centring throws away</b> — which is why the
+        first design made it the presence axis rather than a third enrolled class. Enrolling
+        "absent" as a competing class scored 42.3% and 73.1%.</p>
+        <p><b>That presence axis has since been retired</b> — the empty desk is a reference again,
+        but one that never enters the classifier. Next slide.</p>
       </div>
     </div>
     <div>
@@ -1304,36 +1309,34 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
         <svg viewBox="0 0 400 350" fill="none" font-family="Roboto, sans-serif">
           <line x1="60" y1="300" x2="370" y2="300" stroke="#dadce0" stroke-width="2"/>
           <line x1="60" y1="30" x2="60" y2="300" stroke="#dadce0" stroke-width="2"/>
-          <text x="215" y="332" font-size="14" fill="#5f6368" text-anchor="middle">state — c[i], centred</text>
-          <text x="24" y="165" font-size="14" fill="#5f6368" text-anchor="middle" transform="rotate(-90 24 165)">presence — level</text>
+          <text x="215" y="332" font-size="14" fill="#5f6368" text-anchor="middle">c[] — z with the common mode subtracted</text>
 
-          <!-- present band -->
-          <rect x="62" y="40" width="306" height="120" fill="#e8f0fe"/>
-          <text x="356" y="58" font-size="12" fill="#1a73e8" text-anchor="end">present</text>
-          <rect x="62" y="230" width="306" height="68" fill="#f1f3f4"/>
-          <text x="356" y="248" font-size="12" fill="#9aa0a6" text-anchor="end">empty</text>
-
-          <line x1="60" y1="160" x2="370" y2="160" stroke="#1a73e8" stroke-width="1.8" stroke-dasharray="5 4"/>
-          <text x="364" y="176" font-size="11.5" fill="#1a73e8" text-anchor="end">enter 0.50</text>
-          <line x1="60" y1="230" x2="370" y2="230" stroke="#f9ab00" stroke-width="1.8" stroke-dasharray="5 4"/>
-          <text x="66" y="246" font-size="11.5" fill="#f9ab00">leave 0.15</text>
+          <!-- the three cells: perpendicular bisectors, meeting at one point -->
+          <g stroke="#9aa0a6" stroke-width="1.6" stroke-dasharray="5 4">
+            <line x1="205" y1="164" x2="201" y2="28"/>
+            <line x1="205" y1="164" x2="66" y2="224"/>
+            <line x1="205" y1="164" x2="366" y2="243"/>
+          </g>
+          <text x="356" y="44" font-size="12" fill="#9aa0a6" text-anchor="end">nearest wins</text>
 
           <!-- class A cluster -->
           <g fill="#188038"><circle cx="128" cy="76" r="5"/><circle cx="112" cy="96" r="5"/><circle cx="140" cy="104" r="5"/><circle cx="120" cy="118" r="5"/><circle cx="150" cy="86" r="5"/></g>
-          <circle cx="130" cy="96" r="34" stroke="#188038" stroke-width="1.8" stroke-dasharray="4 4"/>
-          <text x="130" y="150" font-size="12.5" fill="#188038" text-anchor="middle">"an opened book"</text>
+          <circle cx="130" cy="96" r="8.5" fill="#fff" stroke="#188038" stroke-width="3"/>
+          <text x="130" y="152" font-size="12.5" fill="#188038" text-anchor="middle">"an opened book"</text>
 
           <!-- class B cluster -->
           <g fill="#d93025"><circle cx="286" cy="84" r="5"/><circle cx="302" cy="102" r="5"/><circle cx="272" cy="108" r="5"/><circle cx="294" cy="122" r="5"/><circle cx="266" cy="90" r="5"/></g>
-          <circle cx="284" cy="100" r="34" stroke="#d93025" stroke-width="1.8" stroke-dasharray="4 4"/>
-          <text x="284" y="150" font-size="12.5" fill="#d93025" text-anchor="middle">"a closed book"</text>
+          <circle cx="284" cy="100" r="8.5" fill="#fff" stroke="#d93025" stroke-width="3"/>
+          <text x="284" y="152" font-size="12.5" fill="#d93025" text-anchor="middle">"a closed book"</text>
 
-          <!-- empty cluster -->
-          <g fill="#9aa0a6"><circle cx="200" cy="258" r="5"/><circle cx="216" cy="270" r="5"/><circle cx="188" cy="274" r="5"/><circle cx="206" cy="282" r="5"/></g>
-          <text x="203" y="298" font-size="12.5" fill="#9aa0a6" text-anchor="middle">empty desk</text>
+          <!-- empty reference -->
+          <g fill="#9aa0a6"><circle cx="182" cy="248" r="5"/><circle cx="222" cy="252" r="5"/><circle cx="196" cy="284" r="5"/><circle cx="226" cy="278" r="5"/></g>
+          <circle cx="203" cy="265" r="8.5" fill="#fff" stroke="#5f6368" stroke-width="3"/>
+          <text x="203" y="298" font-size="12.5" fill="#5f6368" text-anchor="middle">the empty desk</text>
         </svg>
       </div>
-      <div class="imgcap">Enrolled references, and the two edges between them</div>
+      <div class="imgcap">Three references, the cells they cut, and no radius anywhere. Schematic:
+      with two queries this space is a single line</div>
     </div>
   </div></section>
 
@@ -1346,8 +1349,12 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
     <div>
       <div class="body" style="margin-top:0; font-size:19px;">
         <p><b>Enrolment.</b> Press <code>'0'</code> for the empty scene and <code>'1'</code>…<code>'6'</code>
-        for each class. The board averages <b>20 frames</b> of <code>c[]</code> and of
-        <code>level</code> and keeps them as references.</p>
+        for each class. The board averages <b>20 frames</b> of <code>c[]</code> and keeps the mean as
+        a reference.</p>
+        <p><b>Then press the same digit again on a later visit</b> and both windows fold into one
+        reference. One window only says how still the operator held the scene; where the
+        <i>same object staged again</i> lands is the thing that decides a run, and it cannot be seen
+        inside a single window at all.</p>
       </div>
       <table class="gt tight" style="margin-top:26px;">
         <thead><tr><th>Frames averaged</th><th>1</th><th>5</th><th>12</th><th>16</th><th>20</th></tr></thead>
@@ -1361,22 +1368,26 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
     </div>
     <div>
       <div class="body" style="margin-top:0; font-size:19px;">
-        <p><b>Presence, with two edges.</b> The frame's <code>level</code> is placed on the enrolled
-        span as a fraction — 0 where empty read, 1 where the objects did — and the span is
-        <b>signed</b>, because the direction is the enrolment's to state, not the code's to assume.</p>
+        <p><b>Presence, in the end, is the same trick.</b> The empty scene is centred and stored like
+        any other reference — but it is left <i>out</i> of the classifier's list, so it can never win
+        a name. Presence is then one comparison between two distances already computed:</p>
+      </div>
+      <div class="codecard" style="margin-top:22px;">
+<pre><span class="cm">// d = to the nearest class, de = to the empty reference</span>
+present = (de &gt; d);</pre>
       </div>
       <table class="gt tight" style="margin-top:26px;">
-        <thead><tr><th>enter</th><th>leave</th><th>held out</th><th>false fire</th></tr></thead>
+        <thead><tr><th>Presence rule</th><th>33 benches</th></tr></thead>
         <tbody>
-          <tr><td class="nm">0.50</td><td class="nm">0.50</td><td>101/120 — 84.2%</td><td>0/26</td></tr>
-          <tr><td class="nm">0.50</td><td class="nm">0.25</td><td>105/120 — 87.5%</td><td>0/26</td></tr>
-          <tr class="hl"><td class="nm">0.50</td><td class="nm">0.15</td><td class="ok">120/120 — 100.0%</td><td>0/26</td></tr>
+          <tr class="hl"><td>nearest of the three <i>(ships)</i></td><td class="ok">79.4 %</td></tr>
+          <tr><td>best radius, fitted per bench</td><td>73.7 %</td></tr>
+          <tr><td>the level-span rule it replaced</td><td>53.8 %</td></tr>
         </tbody>
       </table>
       <div class="imgcap" style="text-align:left; margin-top:16px; line-height:1.6;">
-        One cut at 0.50 was the old failure in a new costume: it shut on <b>19 frames of "an opened
-        book"</b> — one of the two classes the stage exists to admit — because a later visit drifted
-        from 1.12 down to 0.25 of the span and crossed it.
+        <b>+25.6</b>, t = 8.16 on 32 df, better on 29 of 33 benches — and it beats the radius that was
+        <i>fitted to each bench</i> by 5.7. No radius can do what a cell does. There is no threshold
+        in the shipped rule and, deliberately, no hysteresis either.
       </div>
     </div>
   </div></section>
@@ -1390,8 +1401,58 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
   rule with no learned reference answers "opened" every time — and is right exactly half of it.
   The difference between the two columns is a <b>per-scene offset of ~1.7</b> that a learned
   reference measures and a fixed rule cannot absorb.
-  <b>The honest gap:</b> the presence stage's <i>benefit</i> is still unmeasured, because the only
-  empty desk in the bench schedule runs before the rule engages.</span></div></section>
+  <b>The gap that used to sit here is closed:</b> once the bench schedule revisited the empty desk
+  <i>after</i> the rule engages, the level-span stage held <b>16/90</b> and <b>22/90</b> — which is
+  why it is not the rule any more.</span></div></section>
+
+<!-- ============ SPOT.PY ============ -->
+<section class="slide">
+  <div class="h">Two phrases, one command</div>
+  <div class="hsub">Everything above ships as one script. It cues you, waits for you to press Enter,
+  and refuses to move on until the board has printed a receipt for the press.</div>
+  <div class="split" style="grid-template-columns: 620px 1fr; gap:52px; margin-top:30px;">
+    <div>
+      <div class="codecard" style="margin-top:0;">
+<pre>uv run --script host/spot.py \
+    <span class="fn">"an opened book"</span> <span class="fn">"a closed book"</span></pre>
+      </div>
+      <div class="codecard" style="margin-top:20px;">
+<pre><span class="cm">&gt;&gt;&gt; Show it: an opened book. Visit 1 of 2</span>
+    press Enter when the scene is right
+key   : pressed '1'
+enrol : an opened book, level +1.07, scatter 0.14
+        (20 frames, visit 1 of 2)
+<span class="cm">        ...</span>
+  frame   148   an opened book        by 1.90
+  frame   149   the empty scene
+  frame   150   something else</pre>
+      </div>
+      <div class="imgcap" style="text-align:left; margin-top:16px; line-height:1.6;">
+        <b>Three verdicts, not two.</b> A name, <i>the empty scene</i>, and <i>something else</i> —
+        the gate is open and none of the phrases fit. That third one is the easy one to lose;
+        <code>host/watch.py</code> carried it as a bug until August.
+      </div>
+    </div>
+    <div>
+      <div class="body" style="margin-top:0; font-size:19px;">
+        <p><b>What it does.</b> Anything you can show it at 3.5 fps, enrolled in about a minute. New
+        phrases cost a second and no reflash — they reset the background and the run starts over.</p>
+        <p><b>What it is not</b>, and the deck would be dishonest without this list:</p>
+      </div>
+      <ul class="dots" style="margin-top:18px;">
+        <li><b>Not a detector.</b> It is a discriminator between scenes you enrolled, in the room you
+        enrolled them in</li>
+        <li><b>No localisation, no counting.</b> One verdict per 128 × 128 frame</li>
+        <li><b>The pair decides the run.</b> Four pairs benched back to back:
+        <b>95.8 / 90.8 / 50.0 / 34.2 %</b></li>
+        <li><b>A contrast with an absence on one side can point backwards.</b>
+        <i>"an empty glass"</i> won only <b>6.7%</b> of the frames it was the truth for. Holding the
+        scene stiller does not fix that</li>
+        <li><b>Nothing at enrolment forecasts the run.</b> Tested prospectively eight times; came out
+        backwards at both ends</li>
+      </ul>
+    </div>
+  </div></section>
 
 <!-- ============ SECTION 06 · FRICTIONS ============ -->
 <section class="slide divider">
@@ -1509,6 +1570,7 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
       <li><span class="num">04</span><span class="txt" style="font-size:22px;">Measure the frame, not the component — and re-measure the baseline in the same boot</span></li>
       <li><span class="num">05</span><span class="txt" style="font-size:22px;">A measured pass is not a measured bound. The biggest win had no design work in it</span></li>
       <li><span class="num">06</span><span class="txt" style="font-size:22px;">Getting the embedding right was the easy half; turning it into a verdict took thirteen milestones</span></li>
+      <li><span class="num">07</span><span class="txt" style="font-size:22px;">Both rules that got retired were a constant fitted to a bench. What replaced them compares a run's own measurements</span></li>
     </ol>
   </div></section>
 
@@ -1525,6 +1587,8 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
       <li><code>docs/architecture.md</code> — the board, the model, the link, the two cores, the decision rule</li>
       <li><code>docs/building.md</code> — toolchain, firmware, bitstream, flashing, every harness</li>
       <li><code>docs/history.md</code> — the timeline, the frictions, the rejected designs, the learnings</li>
+      <li><code>docs/monitor.md</code> — the three ways to run it, and which one is scoreable</li>
+      <li><code>docs/fit.md</code> — what a pair has to look like before it is worth benching</li>
     </ul>
     <div class="lbl"><svg class="lico" width="26" height="26" viewBox="0 0 26 26" fill="none">
       <path d="M 5 2 h 11 l 5 5 v 17 H 5 Z" stroke="#188038" stroke-width="2" stroke-linejoin="round"/>

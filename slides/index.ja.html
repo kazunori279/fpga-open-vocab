@@ -446,8 +446,8 @@
 <pre><span class="cm"># 4つのフレーズを毎フレーム順位づけする</span>
 <span class="kw">uv run</span> host/demo.py <span class="ty">"cup" "person" "book" "laptop"</span>
 
-<span class="cm"># 一方を、他方 *との対比* で見る</span>
-./ab.sh <span class="ty">"an opened book" "a closed book"</span> --enrol</pre>
+<span class="cm"># 一方を、他方 *との対比* で見る（登録まで込み）</span>
+<span class="kw">uv run --script</span> host/spot.py <span class="ty">"an opened book" "a closed book"</span></pre>
       </div>
     </div>
     <div class="body" style="margin-top:4px;">
@@ -1049,7 +1049,10 @@
   <code>encoder_fast</code> 比です。ただし<b>最終行だけはクロックが揃っていません</b> — <code>m7</code> はMCUの
   ベースラインを起動時の150 MHzで測り、そこからラダーを上げていくためです。<i>同一クロック</i>で見たアプライアンスは5.97倍。
   カメラ1フレームは現在<b>282 ms</b>で、うち56 msはキャプチャを計算とオーバーラップさせて、
-  さらに80 msは誰も気づいていなかったM15のエピローグを有効にして削りました。</div>
+  さらに80 msは誰も気づいていなかったM15のエピローグを有効にして削りました。
+  <b>282は測定した各部の合計です。</b>ボードは自前のクロックでフレーム間隔も測っていて、そちらは
+  <b>293 ms</b>、300フレーム中300フレームでの値です。差の11 msはLEDとCDC行の分。
+  部分の合計は、オーバーラップによって見かけだけ良くなりうる唯一の量なので、アプライアンスは両方を印字します。</div>
   </section>
 
 <!-- ============ INT4 ============ -->
@@ -1279,8 +1282,10 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
         <p><b>ドリフトはコモンモードに乗っています。</b><code>level</code> を引くと、
         <i>クエリが何個であっても</i>状態判定からドリフトが消えます。2つのクエリの差を取れば2個の場合に消えるのと同じ理屈です。
         記録済みの2回の実行で <b>44.2 → 84.2%</b>、<b>87.5 → 95.8%</b> の効果がありました。</p>
-        <p><b>そして <code>level</code> は、まさに中心化が捨てている量です。</b>だからこれは、
-        3つ目の登録クラスではなく存在の軸になります。「不在」をクラスとして登録するやり方だと、42.3%と73.1%でした。</p>
+        <p><b>そして <code>level</code> は、まさに中心化が捨てている量です。</b>だから最初の設計では、
+        3つ目の登録クラスではなくこれを存在の軸にしました。「不在」を競合するクラスとして登録するやり方は、42.3%と73.1%でした。</p>
+        <p><b>その存在の軸は、すでに引退しています。</b>空の机はふたたび参照になりましたが、
+        分類器には決して入らない参照です。次のスライドで説明します。</p>
       </div>
     </div>
     <div>
@@ -1288,36 +1293,34 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
         <svg viewBox="0 0 400 350" fill="none" font-family="Roboto, sans-serif">
           <line x1="60" y1="300" x2="370" y2="300" stroke="#dadce0" stroke-width="2"/>
           <line x1="60" y1="30" x2="60" y2="300" stroke="#dadce0" stroke-width="2"/>
-          <text x="215" y="332" font-size="14" fill="#5f6368" text-anchor="middle">状態 — c[i]（中心化後）</text>
-          <text x="24" y="165" font-size="14" fill="#5f6368" text-anchor="middle" transform="rotate(-90 24 165)">存在 — level</text>
+          <text x="215" y="332" font-size="14" fill="#5f6368" text-anchor="middle">c[] — zからコモンモードを引いたもの</text>
 
-          <!-- present band -->
-          <rect x="62" y="40" width="306" height="120" fill="#e8f0fe"/>
-          <text x="356" y="58" font-size="12" fill="#1a73e8" text-anchor="end">在り</text>
-          <rect x="62" y="230" width="306" height="68" fill="#f1f3f4"/>
-          <text x="356" y="248" font-size="12" fill="#9aa0a6" text-anchor="end">空</text>
-
-          <line x1="60" y1="160" x2="370" y2="160" stroke="#1a73e8" stroke-width="1.8" stroke-dasharray="5 4"/>
-          <text x="364" y="176" font-size="11.5" fill="#1a73e8" text-anchor="end">入り 0.50</text>
-          <line x1="60" y1="230" x2="370" y2="230" stroke="#f9ab00" stroke-width="1.8" stroke-dasharray="5 4"/>
-          <text x="66" y="246" font-size="11.5" fill="#f9ab00">出 0.15</text>
+          <!-- the three cells: perpendicular bisectors, meeting at one point -->
+          <g stroke="#9aa0a6" stroke-width="1.6" stroke-dasharray="5 4">
+            <line x1="205" y1="164" x2="201" y2="28"/>
+            <line x1="205" y1="164" x2="66" y2="224"/>
+            <line x1="205" y1="164" x2="366" y2="243"/>
+          </g>
+          <text x="356" y="44" font-size="12" fill="#9aa0a6" text-anchor="end">最も近いものが勝つ</text>
 
           <!-- class A cluster -->
           <g fill="#188038"><circle cx="128" cy="76" r="5"/><circle cx="112" cy="96" r="5"/><circle cx="140" cy="104" r="5"/><circle cx="120" cy="118" r="5"/><circle cx="150" cy="86" r="5"/></g>
-          <circle cx="130" cy="96" r="34" stroke="#188038" stroke-width="1.8" stroke-dasharray="4 4"/>
-          <text x="130" y="150" font-size="12.5" fill="#188038" text-anchor="middle">"an opened book"</text>
+          <circle cx="130" cy="96" r="8.5" fill="#fff" stroke="#188038" stroke-width="3"/>
+          <text x="130" y="152" font-size="12.5" fill="#188038" text-anchor="middle">"an opened book"</text>
 
           <!-- class B cluster -->
           <g fill="#d93025"><circle cx="286" cy="84" r="5"/><circle cx="302" cy="102" r="5"/><circle cx="272" cy="108" r="5"/><circle cx="294" cy="122" r="5"/><circle cx="266" cy="90" r="5"/></g>
-          <circle cx="284" cy="100" r="34" stroke="#d93025" stroke-width="1.8" stroke-dasharray="4 4"/>
-          <text x="284" y="150" font-size="12.5" fill="#d93025" text-anchor="middle">"a closed book"</text>
+          <circle cx="284" cy="100" r="8.5" fill="#fff" stroke="#d93025" stroke-width="3"/>
+          <text x="284" y="152" font-size="12.5" fill="#d93025" text-anchor="middle">"a closed book"</text>
 
-          <!-- empty cluster -->
-          <g fill="#9aa0a6"><circle cx="200" cy="258" r="5"/><circle cx="216" cy="270" r="5"/><circle cx="188" cy="274" r="5"/><circle cx="206" cy="282" r="5"/></g>
-          <text x="203" y="298" font-size="12.5" fill="#9aa0a6" text-anchor="middle">空の机</text>
+          <!-- empty reference -->
+          <g fill="#9aa0a6"><circle cx="182" cy="248" r="5"/><circle cx="222" cy="252" r="5"/><circle cx="196" cy="284" r="5"/><circle cx="226" cy="278" r="5"/></g>
+          <circle cx="203" cy="265" r="8.5" fill="#fff" stroke="#5f6368" stroke-width="3"/>
+          <text x="203" y="298" font-size="12.5" fill="#5f6368" text-anchor="middle">空の机</text>
         </svg>
       </div>
-      <div class="imgcap">登録した参照と、その間にある2つの境界</div>
+      <div class="imgcap">3つの参照と、それが切り分けるセル。半径はどこにもありません。
+      模式図です。クエリが2個なら、この空間は1本の直線になります</div>
     </div>
   </div></section>
 
@@ -1330,7 +1333,10 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
     <div>
       <div class="body" style="margin-top:0; font-size:19px;">
         <p><b>登録。</b>空のシーンでは <code>'0'</code>、各クラスには <code>'1'</code>〜<code>'6'</code> を押します。
-        ボードは <code>c[]</code> と <code>level</code> を<b>20フレーム</b>平均して、参照として保持します。</p>
+        ボードは <code>c[]</code> を<b>20フレーム</b>平均し、その平均を参照として保持します。</p>
+        <p><b>そのあと、日を改めてもう一度同じ数字を押します。</b>2つのウィンドウは1つの参照にまとまります。
+        1回のウィンドウが測っているのは、シーンをどれだけ静止させて持てたかだけです。実行の成否を決めるのは
+        <i>同じ物体を置き直したとき</i>にどこへ落ちるかで、それは1回のウィンドウの中からは原理的に見えません。</p>
       </div>
       <table class="gt tight" style="margin-top:26px;">
         <thead><tr><th>平均フレーム数</th><th>1</th><th>5</th><th>12</th><th>16</th><th>20</th></tr></thead>
@@ -1344,22 +1350,26 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
     </div>
     <div>
       <div class="body" style="margin-top:0; font-size:19px;">
-        <p><b>存在判定には、境界を2つ。</b>そのフレームの <code>level</code> を、登録済みの区間上の割合として置きます。
-        空のときの値が0、対象があるときの値が1です。この区間には<b>符号があり</b>ます。
-        向きは登録が語るべきことであって、コードが決めてかかるものではないからです。</p>
+        <p><b>存在判定も、結局は同じ手です。</b>空のシーンも他の参照とまったく同じように中心化して保存します。
+        ただし分類器のリストからは<i>外して</i>あるので、名前を勝ち取ることは決してありません。
+        存在判定は、すでに計算済みの2つの距離を1回比べるだけです。</p>
+      </div>
+      <div class="codecard" style="margin-top:22px;">
+<pre><span class="cm">// d = 最も近いクラスまで、de = 空の参照まで</span>
+present = (de &gt; d);</pre>
       </div>
       <table class="gt tight" style="margin-top:26px;">
-        <thead><tr><th>入り</th><th>出</th><th>ホールドアウト</th><th>誤発火</th></tr></thead>
+        <thead><tr><th>存在判定のルール</th><th>33ベンチ</th></tr></thead>
         <tbody>
-          <tr><td class="nm">0.50</td><td class="nm">0.50</td><td>101/120 — 84.2%</td><td>0/26</td></tr>
-          <tr><td class="nm">0.50</td><td class="nm">0.25</td><td>105/120 — 87.5%</td><td>0/26</td></tr>
-          <tr class="hl"><td class="nm">0.50</td><td class="nm">0.15</td><td class="ok">120/120 — 100.0%</td><td>0/26</td></tr>
+          <tr class="hl"><td>3つのうち最も近いもの <i>（採用）</i></td><td class="ok">79.4 %</td></tr>
+          <tr><td>ベンチごとに当てはめた最良の半径</td><td>73.7 %</td></tr>
+          <tr><td>置き換えられた level 区間ルール</td><td>53.8 %</td></tr>
         </tbody>
       </table>
       <div class="imgcap" style="text-align:left; margin-top:16px; line-height:1.6;">
-        0.50の一本引きは、昔の失敗が衣装を変えたものでした。<b>「an opened book」の19フレーム</b> —
-        この段が通すために存在している2クラスのうちの1つ — を締め出してしまったのです。
-        あとの提示で区間上の位置が1.12から0.25まで下がり、線を越えたためでした。
+        <b>+25.6</b>、32自由度で t = 8.16、33ベンチ中29で上回りました。しかも
+        <i>各ベンチに合わせて当てはめた</i>半径にも5.7差で勝っています。セルにできることは、どんな半径にもできません。
+        採用したルールにしきい値はなく、ヒステリシスも意図的に入れていません。
       </div>
     </div>
   </div></section>
@@ -1372,8 +1382,55 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
   <i>「an opened book」</i>が<b>6セグメントすべて</b>で<i>「a closed book」</i>より高いスコアを出しました。
   つまり学習した参照を持たないルールは毎回「opened」と答え、ちょうど半分だけ正解する。
   2つの列の差は<b>シーンごとの約1.7のオフセット</b>で、学習した参照はそれを測れますが、固定ルールは吸収できません。
-  <b>正直に言えば穴もあります：</b>存在判定の段の<i>効果</i>はまだ測れていません。
-  ベンチ手順の中で空の机が現れるのは1回だけで、それはルールが効き始める前に流れてしまうからです。</span></div></section>
+  <b>ここにあった穴は塞がりました：</b>ベンチ手順がルールの効き始めた<i>あとに</i>空の机へ戻るようになると、
+  level区間の段が取れたのは <b>16/90</b> と <b>22/90</b> でした。だから今のルールではありません。</span></div></section>
+
+<!-- ============ SPOT.PY ============ -->
+<section class="slide">
+  <div class="h">2つのフレーズ、コマンドは1つ</div>
+  <div class="hsub">ここまでの話は1本のスクリプトになっています。合図を出し、Enterを待ち、
+  ボードがそのキー入力の受領を印字するまで先へ進みません。</div>
+  <div class="split" style="grid-template-columns: 620px 1fr; gap:52px; margin-top:30px;">
+    <div>
+      <div class="codecard" style="margin-top:0;">
+<pre>uv run --script host/spot.py \
+    <span class="fn">"an opened book"</span> <span class="fn">"a closed book"</span></pre>
+      </div>
+      <div class="codecard" style="margin-top:20px;">
+<pre><span class="cm">&gt;&gt;&gt; Show it: an opened book. Visit 1 of 2</span>
+    press Enter when the scene is right
+key   : pressed '1'
+enrol : an opened book, level +1.07, scatter 0.14
+        (20 frames, visit 1 of 2)
+<span class="cm">        ...</span>
+  frame   148   an opened book        by 1.90
+  frame   149   the empty scene
+  frame   150   something else</pre>
+      </div>
+      <div class="imgcap" style="text-align:left; margin-top:16px; line-height:1.6;">
+        <b>判定は2つではなく3つです。</b>名前、<i>the empty scene</i>、そして <i>something else</i> —
+        ゲートは開いているが、聞いたフレーズのどれにも当てはまらない、という意味です。この3つ目が落としやすく、
+        <code>host/watch.py</code> は8月までこれをバグとして抱えていました。
+      </div>
+    </div>
+    <div>
+      <div class="body" style="margin-top:0; font-size:19px;">
+        <p><b>できること。</b>3.5 fpsで見せられるものなら何でも、1分ほどで登録できます。
+        フレーズの入れ替えは1秒、再書き込みは不要です。ただし背景がリセットされ、実行はやり直しになります。</p>
+        <p><b>できないこと。</b>この一覧を省いたら、この発表は不誠実になります。</p>
+      </div>
+      <ul class="dots" style="margin-top:18px;">
+        <li><b>検出器ではありません。</b>登録したシーンどうしを、登録したその部屋で見分けるだけです</li>
+        <li><b>位置も個数も出しません。</b>128 × 128 のフレーム1枚につき判定1つです</li>
+        <li><b>ペアで結果が決まります。</b>同じ午後に連続して測った4ペアが
+        <b>95.8 / 90.8 / 50.0 / 34.2 %</b></li>
+        <li><b>片側が「不在」の対比は、軸が逆を向くことがあります。</b>
+        <i>「an empty glass」</i>が正解だったフレームのうち、それが勝ったのは<b>6.7%</b>だけ。
+        シーンをより静止させても直りません</li>
+        <li><b>登録時の数字は実行を予測しません。</b>事前に8回試して、両端とも逆に出ました</li>
+      </ul>
+    </div>
+  </div></section>
 
 <!-- ============ SECTION 06 · FRICTIONS ============ -->
 <section class="slide divider">
@@ -1491,6 +1548,7 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
       <li><span class="num">04</span><span class="txt" style="font-size:20px;">部品ではなくフレームを測る。ベースラインは同じブートの中で測り直す</span></li>
       <li><span class="num">05</span><span class="txt" style="font-size:20px;">測定された合格は、測定された上限ではない。最大の勝ちに設計作業は入っていなかった</span></li>
       <li><span class="num">06</span><span class="txt" style="font-size:20px;">埋め込みを正しく出すのは簡単なほうの半分。判定に変えるまでに13マイルストーンかかった</span></li>
+      <li><span class="num">07</span><span class="txt" style="font-size:20px;">引退した2つのルールは、どちらもベンチに当てはめた定数だった。置き換えたのは、その実行自身の測定値どうしを比べるルール</span></li>
     </ol>
   </div></section>
 
@@ -1507,6 +1565,8 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
       <li><code>docs/architecture.md</code> — ボード、モデル、リンク、2つのコア、判定ルール</li>
       <li><code>docs/building.md</code> — ツールチェーン、ファームウェア、ビットストリーム、書き込み、各種ハーネス</li>
       <li><code>docs/history.md</code> — 時系列、つまずき、却下した設計、学び</li>
+      <li><code>docs/monitor.md</code> — 動かし方は3通り、どれがスコアとして使えるか</li>
+      <li><code>docs/fit.md</code> — ベンチにかける価値のあるペアとは、どういう見た目か</li>
     </ul>
     <div class="lbl"><svg class="lico" width="26" height="26" viewBox="0 0 26 26" fill="none">
       <path d="M 5 2 h 11 l 5 5 v 17 H 5 Z" stroke="#188038" stroke-width="2" stroke-linejoin="round"/>
