@@ -8,5 +8,6 @@
   "wsearch": true,
   "ends8": true,
   "bytes": 780720,
-  "crc32": "0xF368CC6E"
+  "crc32": "0xF368CC6E",
+  "basis_sha256": "e665cbab6c0a67be3754d41a57db6c39da87caf6ed8391bc8a14a74c4e486a2b"
 }

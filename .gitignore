@@ -18,8 +18,8 @@ rtl/build/
 model/data/
 model/cache/
 
-# ...with one exception: the shipped export. 994 KB of weights.bin, testvec.bin
-# and export.json, and eleven defaults across firmware/CMakeLists.txt,
+# ...with one exception: the shipped export, including weights.bin, testvec.bin,
+# export.json and the exact frozen PCA basis. Eleven defaults across firmware/CMakeLists.txt,
 # rtl/Makefile, host/demo.py, host/cam.py, the four firmware/test_*.c harnesses
 # and tools/probe_prompts.py all point at this exact path. Without it in the
 # tree a fresh clone cannot build forgix_m5 or run the demo at all, which is a

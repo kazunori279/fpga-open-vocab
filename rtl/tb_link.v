@@ -300,7 +300,7 @@ module tb_link;
         @(posedge done_wide);
 
         if (fail_narrow + fail_wide == 0) $display("PASS");
-        else $display("FAIL (%0d checks)", fail_narrow + fail_wide);
+        else $fatal(1, "FAIL (%0d checks)", fail_narrow + fail_wide);
         $finish;
     end
 

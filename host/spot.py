@@ -78,11 +78,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 # Below the insert above, necessarily.
 import board
-
-# MUST MATCH host/demo.py. The board stores 23 bytes of name plus a terminator,
-# so a longer phrase comes back clipped on every line it prints and the match
-# below would never fire. Clipping the same way here is not cosmetic.
-NAME_LEN = 24
+from protocol import board_name
 
 # MUST MATCH demo.py's BG_TAU and firmware/m9.c's baseline window. This is the
 # only number in this file that gates anything, and it is not a threshold on a
@@ -118,11 +114,6 @@ ENROL_PAIR = re.compile(r"^enrol\s+:\s+\d+ classes, nearest pair")
 
 EMPTY_NAME = "the empty scene"
 UNKNOWN_NAME = "something else"
-
-
-def board_name(phrase: str) -> str:
-    """The phrase as the BOARD will print it, clipped to what fits in a slot."""
-    return phrase.encode("utf-8")[:NAME_LEN - 1].decode("utf-8", "ignore")
 
 
 def cue(text: str, *, speak: bool) -> None:

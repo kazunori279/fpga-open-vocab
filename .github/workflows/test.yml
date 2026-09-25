@@ -1,0 +1,43 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install host dependencies
+        run: python3 -m pip install pyserial==3.5 ruff==0.16.9
+      - name: Python lint
+        run: ruff check .
+      - name: Host regressions, encoder goldens, and documentation links
+        run: make test-host
+
+  rtl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        kpack: [0, 1]
+        target: [tb_gemm, tb_gemm_link, tb_gemm_link_wide]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install simulator
+        run: sudo apt-get update && sudo apt-get install -y iverilog
+      - name: Link simulation
+        if: matrix.kpack == 0 && matrix.target == 'tb_gemm'
+        run: make -C rtl sim
+      - name: GEMM simulation
+        run: make -C rtl ${{ matrix.target }} KPACK=${{ matrix.kpack }}
+      - name: Verify simulation failure exit codes
+        if: matrix.kpack == 0 && matrix.target == 'tb_gemm'
+        run: python3 tests/test_rtl.py

@@ -127,8 +127,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import contextlib
 
+from artifacts import load_export
 from board import RP2350_VID, find_port, pick_port, recover
 from board import ports as bus_ports
+from protocol import NAME_LEN, board_name
 
 MAGIC_B = b"FGXB"
 MAGIC_Q = b"FGXQ"
@@ -205,7 +207,6 @@ QUIET_PROBE_S = 10.0
 # length against nq and dim before accepting anything - but it is caught much
 # more legibly here.
 MAX_Q = 6
-NAME_LEN = 24
 
 # Keys `!K` on stdin is allowed to press, under --ask. Deliberately the enrolment
 # and camera keys and nothing else: 'P' and 'V' dump 44 KB of base64 into the
@@ -303,35 +304,6 @@ def parse_spec(spec: str) -> tuple[str, list[str]]:
     if not parts:
         raise SystemExit(f"{spec!r}: nothing but separators")
     return parts[0], parts[1:]
-
-
-def load_export(path: Path) -> dict:
-    """export.json, and the basis file it names, resolved to a usable pair.
-
-    The sidecar is the only thing that says which of the two 512-d spaces a blob
-    emits into, so a missing one is fatal rather than a default: the fallback
-    would be a guess, and a wrong guess here produces scores instead of errors.
-    Re-export the run to get one.
-    """
-    side = path / "export.json"
-    if not side.exists():
-        raise SystemExit(
-            f"{side}: not found. The query space cannot be guessed - both "
-            f"shipped teachers are 512-d, so the wrong one would score instead "
-            f"of failing. Re-export:\n  uv run model/export.py --run <RUN> "
-            f"--wbits 4 --wsearch --ends8")
-    blob = json.loads(side.read_text())
-    if blob.get("basis"):
-        import spaces
-        b = spaces.CACHE / blob["basis"]
-        if not b.exists():
-            raise SystemExit(
-                f"{b}: not found, and {blob['run']} emits into the projected "
-                f"space it defines. Rebuild it with tools/teacher_swap.py")
-        blob["basis_path"] = b
-    else:
-        blob["basis_path"] = None
-    return blob
 
 
 def check_run(what: str, path: Path, meta: dict, export: dict) -> None:
@@ -636,7 +608,7 @@ def pack_queries(names: list[str], vecs, cal, roles=None,
     if roles is None:
         roles = [Q_PLAIN] * len(names)
     for name, vec, (zthr, mu, sd), role in zip(names, vecs, cal, roles, strict=False):
-        raw = name.encode("utf-8")[:NAME_LEN - 1]
+        raw = board_name(name).encode("utf-8")
         body += raw + b"\0" * (NAME_LEN - len(raw))
         body += struct.pack("<fffI", zthr, mu, sd, role)
         body += vec.astype("<f4").tobytes()

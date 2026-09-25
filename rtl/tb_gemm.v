@@ -264,7 +264,7 @@ module tb;
         if (ncase !== `VEC_NCASE) begin
             $display("FAIL - %0s holds %0d cases, vecsizes.vh says %0d; regenerate",
                      `VECDIR, ncase, `VEC_NCASE);
-            $finish;
+            $fatal(1, "FAIL - invalid test coverage");
         end
 
         $display("gemm_tile vs fgx_conv_acc(), %0d cases from %0s", ncase, `VECDIR);
@@ -321,14 +321,14 @@ module tb;
         // assertion gen_gemm_vec.c makes on the other side of the file.
         if (nrq == 0) begin
             $display("\nFAIL - no case exercised rq; the vectors do not cover M15");
-            $finish;
+            $fatal(1, "FAIL - invalid test coverage");
         end
 
         if (errs == 0)
             $display("\nPASS (%0d words, all bit-exact; %0d of %0d cases also at rq)\n  KPACK=%0d, %0d busy cycles over all passes",
                      checks, nrq, ncase, KPACK, runcyc);
         else
-            $display("\nFAIL (%0d of %0d mismatched)", errs, checks);
+            $fatal(1, "FAIL (%0d of %0d mismatched)", errs, checks);
         $finish;
     end
 
@@ -336,8 +336,7 @@ module tb;
     // the real traffic pattern for Q=128 and not an artifact of the testbench.
     initial begin
         #400000000;
-        $display("FAIL (timeout)");
-        $finish;
+        $fatal(1, "FAIL (timeout)");
     end
 
 endmodule

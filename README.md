@@ -85,8 +85,8 @@ at, and only the banner says so.
 
 The model itself is in the tree: `model/runs/so400m-full-a05/export/` holds a
 780,720-byte blob — 768 KB of int4 weights and their headers — the test vector
-the firmware checks itself against, and the
-`export.json` that names the embedding space they belong to. It is the one thing
+the firmware checks itself against, the exact frozen PCA basis used by the host,
+and the `export.json` that names the embedding space they belong to. This bundle is
 committed under the otherwise-gitignored `model/runs/`, because without it none of
 the above builds. The board prints the blob's crc32 at boot; if that disagrees
 with `export.json`, the weights and the host's text tower are not in the same
@@ -457,7 +457,7 @@ fpga-open-vocab/
 │   ├── data.py        #   COCO fetch / resize / query lists
 │   ├── captions.py    #   caption embeddings, for host/caption.py
 │   └── runs/…/export/ #   the shipped blob — weights.bin, testvec.bin,
-│                      #     export.json. The only committed thing under runs/
+│                      #     export.json and frozen PCA basis; committed under runs/
 ├── firmware/          # RP2354A, Pico SDK
 │   ├── encoder.c      #   THE REFERENCE: the int8 encoder in plain, slow C
 │   ├── encoder_fast.c #   the same maths with an SMLAD inner loop, 7.4×

@@ -503,7 +503,7 @@ module tb;
         if (ncase !== `VEC_NCASE) begin
             $display("FAIL - %0s holds %0d cases, vecsizes.vh says %0d; regenerate",
                      `VECDIR, ncase, `VEC_NCASE);
-            $finish;
+            $fatal(1, "FAIL - invalid test coverage");
         end
 
         maxcase = ncase;
@@ -704,7 +704,7 @@ module tb;
             $display("\nPASS (%0d words over the wire, all bit-exact; %0d cases also at rq)",
                      checks, nrq);
         else
-            $display("\nFAIL (%0d errors, %0d words checked)", errs, checks);
+            $fatal(1, "FAIL (%0d errors, %0d words checked)", errs, checks);
         $finish;
     end
 
@@ -712,8 +712,7 @@ module tb;
     // on top of the same sweeps, so the ceiling is correspondingly higher.
     initial begin
         #4000000000;
-        $display("FAIL (timeout)");
-        $finish;
+        $fatal(1, "FAIL (timeout)");
     end
 
 endmodule

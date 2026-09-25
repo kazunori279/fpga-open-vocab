@@ -715,7 +715,7 @@ def supervise(args, sched: list[str], jsonl) -> int:
             # settling ones. Clearing it means the first real state is announced
             # again, which is correct: nobody watching the output knows the
             # board went away.
-            deb.state = None
+            deb = Debounce(args.confirm, args.floor)
             time.sleep(args.restart_wait)
     except KeyboardInterrupt:
         print("\nstopped.", file=sys.stderr)

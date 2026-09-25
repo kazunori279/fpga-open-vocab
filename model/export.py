@@ -82,6 +82,7 @@ import quantize as q_mod
 import spaces
 import student as student_mod
 import torch
+from artifacts import bundle_basis
 
 MAGIC = b"FGX5"
 # 2 spends the trailing `reserved` float on a per-layer weight width. See
@@ -539,7 +540,7 @@ def main() -> int:
         "run": args.run,
         "teacher": ckpt.get("teacher", ""),
         "spec": spec,
-        "basis": basis.name if basis else None,
+        **bundle_basis(basis, out_dir),
         "embed_dim": int(layers[-1].w_q.shape[0]),
         "wbits": args.wbits,
         "wsearch": bool(args.wsearch),

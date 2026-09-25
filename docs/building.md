@@ -152,6 +152,13 @@ guaranteed to give the same file back.
 All of these run on the laptop, and between them they are why a bench trip is
 rare:
 
+Run the complete hardware-independent suite with `uv run make test` (requires
+a C compiler and Icarus Verilog). `uv run make test-host` runs the Python
+regressions, documentation links, wire/planner checks, and encoder goldens
+including the DSP shim. `make test-rtl` runs both KPACK values over the direct,
+narrow and wide paths, and verifies nonzero exit status on simulation failures.
+GitHub Actions runs these checks on pushes and pull requests.
+
 ```sh
 make -C rtl sim                 # tb_link: both widths + a shorted-line control
 make -C rtl tb_gemm             # golden vectors straight into the tile
@@ -387,6 +394,12 @@ uv run model/quantize.py --run train2017
 uv run model/evaluate.py --split val2017 --emit-thresholds --emit-embeddings
 uv run model/export.py --run train2017            # -> the int4 blob + export.json
 ```
+
+The shipped export includes its exact frozen PCA `.npz` beside `weights.bin`.
+`export.json` records `basis_sha256`; the host verifies it before encoding
+queries, without reading `model/cache/`. Future exports copy their basis too.
+Older projected exports must be re-exported to add the bundled basis and hash.
+A refitted projection is not interchangeable with the one used for training.
 
 **`export.json` is not optional.** Two 512-d embedding spaces ship, and a query
 encoded by the wrong teacher produces a well-formed number that means nothing —
