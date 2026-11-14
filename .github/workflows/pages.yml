@@ -48,7 +48,7 @@ jobs:
           cp slides/index.html    _site/slides/
           cp slides/index.ja.html _site/slides/
           cp docs/img/wire.svg    _site/docs/img/
-          cp slides/assets/forgix-board.png slides/assets/logitech-streamcam.png _site/slides/assets/
+          cp slides/assets/forgix-board.png slides/assets/arducam-mega-3mp.jpg _site/slides/assets/
           cat > _site/index.html <<'HTML'
           <!doctype html>
           <meta charset="utf-8">

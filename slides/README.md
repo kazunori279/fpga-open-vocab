@@ -3,7 +3,7 @@
 [`index.html`](index.html) is a self-contained 50-minute talk about this project:
 what CLIP is, what the board is, how the encoder was split between an MCU and an
 FPGA, how the frame came down from 3,359 ms, and how a 512-d embedding becomes
-an answer on an LED. 42 slides, eight sections, aimed at readers with basic FPGA and machine-learning knowledge.
+an answer on an LED. 43 slides, eight sections, aimed at readers with basic FPGA and machine-learning knowledge.
 It introduces project-specific terms before explaining the implementation.
 
 **The frame time and the shipped clock are current** — both decks say 282 ms as
@@ -11,7 +11,7 @@ the sum of parts and **293 ms** by the board's own clock, 265 ms encode,
 320 MHz sys / 160 MHz link, the same as the rest of the repo.
 See [Keeping it true](#keeping-it-true) for which files to re-read from.
 
-[`index.ja.html`](index.ja.html) is the same 42 slides in Japanese. It is a
+[`index.ja.html`](index.ja.html) is the same 43 slides in Japanese. It is a
 translation, not a fork: the structure, the SVGs and every number are the same,
 and a link in the top-right corner of each deck switches to the other one. The
 type is set a few points smaller with the negative tracking relaxed, because
@@ -48,16 +48,20 @@ Required local images:
 - [`../docs/img/wire.svg`](../docs/img/wire.svg) — the WaveDrom timing diagram, on
   the "Link transaction format" slide. It is loaded by relative path, so the
   deck must stay at `slides/` for it to resolve.
-- `assets/forgix-board.png` and `assets/logitech-streamcam.png` — official product
+- `assets/forgix-board.png` and `assets/arducam-mega-3mp.jpg` — product
   images on the introduction slide. Sources are linked on the slide and recorded
-  in [`assets/README.md`](assets/README.md). The webcam records the current meter
-  during testing; ArduCam supplies inference images.
+  in [`assets/README.md`](assets/README.md). The Arducam Mega 3MP SPI supplies the demo’s inference images.
 
 Optional local image:
 
 - `assets/me.jpg` — the speaker photo on the self-intro slide. **Not committed.**
   Drop a square image there and it appears; without it the slide renders with the
   avatar hidden and nothing else moves.
+
+Slide 6 embeds the [35-second board demo](https://youtu.be/n6vrb4GZql0), immediately
+after the hardware photographs. YouTube playback requires a network connection;
+the slide also includes a direct watch link. Leaving the slide unloads the player
+to stop playback.
 
 Fonts come from Google Fonts over the network. Offline, the deck falls back to
 the system sans-serif and the layout still holds.
@@ -97,4 +101,8 @@ defined in context. Historical benchmark conditions are separated from current
 application performance. Registration repeats after restaging an object, not
 on a different day. The presence comparison labels 53.8% as the distance-band
 fallback, as documented in `tools/probe_third.py`. Core 1’s current 149 ms
-profile replaces the old 509 ms figure. The deck remains 42 slides.
+profile replaces the old 509 ms figure. That review covered 42 slides.
+
+On 2026-11-15, the hardware slide was updated to show the Arducam Mega 3MP SPI
+used in the demo, and the public YouTube demo was added immediately after it in
+both languages.

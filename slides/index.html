@@ -272,6 +272,11 @@
   .hardware-photos figcaption { margin-top:16px; font-size:20px; line-height:1.45; color:var(--ink-2); }
   .hardware-photos figcaption p { margin-top:8px; }
   .hardware-photos a { display:inline-block; margin-top:10px; font-size:15px; color:var(--blue); }
+  .demo-slide { padding-top:36px; }
+  .demo-video { width:880px; height:495px; margin:20px auto 0; background:#202124; }
+  .demo-video iframe { display:block; width:100%; height:100%; border:0; }
+  .demo-link { margin-top:12px; text-align:center; font-size:16px; }
+  .demo-link a { color:var(--blue); }
 </style>
 </head>
 <body>
@@ -338,19 +343,29 @@
   </div></section>
 
 <!-- ============ SECTION 01 · WHAT IS FPGA-OPEN-VOCAB ============ -->
-<section class="slide"><div class="h">Demo and test hardware</div>
-  <div class="hsub">Forgix and ArduCam run image recognition. A separate webcam records the current meter during testing.</div>
+<section class="slide"><div class="h">Demo hardware</div>
+  <div class="hsub">Arducam captures the images. The MCU and FPGA on Forgix run image recognition.</div>
   <div class="hardware-photos">
     <figure>
       <img src="assets/forgix-board.png" alt="Forgix RP2354 and Trion T8 board beside a US quarter for scale" width="1200" height="1026">
       <figcaption><b>Forgix</b><p>Forgix board for image inference.<br>The manufacturer’s photo includes a coin for scale.</p><a href="https://forgix.tech/">Image source: Forgix / Adiuvo</a></figcaption>
     </figure>
     <figure>
-      <img src="assets/logitech-streamcam.png" alt="Logitech StreamCam webcam used to document the current meter" width="1600" height="1374">
-      <figcaption><b>Logitech StreamCam</b><p>Logitech StreamCam records the meter display<br>while measuring the board’s current draw.</p><a href="https://www.logitech.com/en-us/shop/p/streamcam.960-001286">Image source: Logitech</a></figcaption>
+      <img src="assets/arducam-mega-3mp.jpg" alt="Arducam Mega 3MP SPI camera module, B0400" width="700" height="700">
+      <figcaption><b>Arducam Mega 3MP SPI</b><p>The demo’s camera input (B0400).<br>Sends images to the RP2354A over SPI.</p><a href="https://www.switch-science.com/products/8941">Image source: Arducam / Switch Science</a></figcaption>
     </figure>
   </div>
-  <div class="vnote" style="margin-top:24px;">Official product images, not a photograph of the measurement setup. Capture script: <code>host/meter_cam.py</code>.</div></section>
+  <div class="vnote" style="margin-top:24px;">Product images. The next slide shows the assembled hardware running the demo.</div></section>
+
+<!-- ============ LIVE BOARD DEMO ============ -->
+<section class="slide demo-slide">
+  <div class="h">Live demo: hand, towel and book</div>
+  <div class="hsub">35 seconds. Captions show the actual text labels and their red / green LED mapping.</div>
+  <div class="demo-video">
+    <iframe data-src="https://www.youtube.com/embed/n6vrb4GZql0?rel=0" title="FPGA Open-Vocabulary Vision Demo — Hand, Towel and Book" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+  </div>
+  <div class="demo-link"><a href="https://youtu.be/n6vrb4GZql0" target="_blank" rel="noopener">Watch on YouTube</a></div>
+</section>
 
 <!-- ============ WHAT IS FPGA-OPEN-VOCAB ============ -->
 <section class="slide">
@@ -1411,7 +1426,7 @@ enrol : an opened book, level +1.07, scatter 0.14
 </div></div>
 
 <div id="lang"><a href="index.ja.html" hreflang="ja">日本語</a></div>
-<div id="hud">1 / 42</div>
+<div id="hud">1 / 43</div>
 <div id="help"><kbd>←</kbd> <kbd>→</kbd> navigate &nbsp; <kbd>f</kbd> fullscreen</div>
 
 <script>
@@ -1419,7 +1434,7 @@ enrol : an opened book, level +1.07, scatter 0.14
   const slides = [...document.querySelectorAll('.slide')];
   const hud = document.getElementById('hud');
   const frame = document.getElementById('frame');
-  // The other deck's link. Both decks hold the same 42 slides in the same
+  // The other deck's link. Both decks hold the same 43 slides in the same
   // order, so the fragment means the same thing in either one - but the href
   // is written without it, and a bare filename drops the fragment rather than
   // keeping it, so switching language on slide 27 used to land on slide 1.
@@ -1431,7 +1446,14 @@ enrol : an opened book, level +1.07, scatter 0.14
 
   function show(i) {
     cur = Math.min(Math.max(i, 0), slides.length - 1);
-    slides.forEach((s, j) => s.classList.toggle('active', j === cur));
+    slides.forEach((s, j) => {
+      s.classList.toggle('active', j === cur);
+      // Load the player only on its slide; unload it when leaving to stop audio.
+      s.querySelectorAll('iframe[data-src]').forEach(player => {
+        if (j === cur && !player.hasAttribute('src')) player.src = player.dataset.src;
+        else if (j !== cur && player.hasAttribute('src')) player.removeAttribute('src');
+      });
+    });
     hud.textContent = (cur + 1) + ' / ' + slides.length;
     history.replaceState(null, '', '#' + (cur + 1));
     if (lang) lang.href = langHref + '#' + (cur + 1);
@@ -1457,7 +1479,7 @@ enrol : an opened book, level +1.07, scatter 0.14
   });
   addEventListener('click', e => {
     // Links own their clicks — don't page the deck out from under them.
-    if (e.target.closest('a')) return;
+    if (e.target.closest('a, button, iframe, video, .demo-video')) return;
     show(e.clientX > innerWidth / 2 ? cur + 1 : cur - 1);
   });
   addEventListener('resize', fit);
