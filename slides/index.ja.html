@@ -314,6 +314,30 @@
   .benefit-metrics p { font-size:20px; line-height:1.45; margin-top:9px; color:var(--ink-2); }
   .benefit-ai { margin-top:28px; padding-top:21px; border-top:1px solid var(--hairline); font-size:21px; line-height:1.5; color:var(--ink-2); }
   .benefit-note { margin-top:19px; font-size:16px; line-height:1.45; color:var(--ink-3); }
+
+  /* Concept pictograms, matching the existing diagram palette */
+  .concept-icon { display:inline-block; vertical-align:middle; flex:none; }
+  .concept-strip { display:flex; align-items:center; justify-content:space-around; gap:18px; margin-top:24px; }
+  .concept-strip > div { display:flex; align-items:center; gap:14px; font-size:19px; color:var(--ink-2); }
+  .concept-arrow { font-size:26px; color:#9aa0a6; }
+  .statement.visual-statement { flex-direction:column; gap:35px; }
+  .visual-statement .txt { font-size:40px; }
+  .visual-statement .cap { margin-top:24px; }
+  .visual-statement .concept-strip { width:100%; margin-top:0; }
+  .visual-statement .concept-strip > div { flex-direction:column; font-size:22px; }
+  .benefit-value .concept-icon { margin-right:12px; }
+  .benefit-ai > .concept-icon { float:left; margin:6px 18px 30px 0; }
+  .dgbox .concept-icon { float:left; margin-right:12px; }
+  .step .dot.picto { border:0; border-radius:0; width:48px; height:48px; }
+  .step .dot.picto .concept-icon { background:var(--bg); }
+  .visual-steps .steps::before { top:24px; }
+  .vcard .concept-icon { float:left; margin:0 12px 4px 0; }
+  .pictogram-table td:first-child .concept-icon { margin-right:10px; }
+  .cell-bar { display:inline-block; height:7px; background:#4285f4; vertical-align:middle; margin-left:12px; border-radius:2px; }
+  .takeaway-icons .num { min-width:44px; }
+  .column-concepts { gap:6px; margin-top:20px; }
+  .column-concepts > div { flex-direction:column; text-align:center; gap:5px; font-size:14px; }
+  .column-concepts .concept-icon { width:34px; height:34px; }
 </style>
 </head>
 <body>
@@ -412,11 +436,11 @@
   <div class="benefit-lead">検出したいシーンを、任意のテキストで指定</div>
   <div class="benefit-detail">CLIP系マルチモーダルモデルが、画像とテキストを共通の意味空間で照合。<br>通常の物体検出モデルと異なり、「開いた本」などの自由文でシーンを指定できます。<br>テキストと参照シーンを変えるだけで、画像モデルの再学習は不要。</div>
   <div class="benefit-metrics">
-    <div><div class="benefit-value">オフライン</div><p>画像の推論はボード内で完結。<br>クラウド通信・フレームごとの課金なし。</p></div>
-    <div><div class="benefit-value">約50米ドル</div><p>MCU＋FPGAボード。<br>低いハードウェア費用で試作。</p></div>
-    <div><div class="benefit-value">約6倍高速</div><p>FPGAの画像エンコード：265 ms<br>MCUのCPU単体では1,583 ms。</p></div>
+    <div><div class="benefit-value"><svg class="concept-icon" width="38" height="38" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 30a8 8 0 0 1-1-16 12 12 0 0 1 23-1 9 9 0 0 1 0 17H10M4 4l32 32"/></svg>オフライン</div><p>画像の推論はボード内で完結。<br>クラウド通信・フレームごとの課金なし。</p></div>
+    <div><div class="benefit-value"><svg class="concept-icon" width="38" height="38" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="20" r="16"/><path d="M25 12H18a5 5 0 0 0 0 10h4a5 5 0 0 1 0 10h-8M20 8v27"/></svg>約50米ドル</div><p>MCU＋FPGAボード。<br>低いハードウェア費用で試作。</p></div>
+    <div><div class="benefit-value"><svg class="concept-icon" width="38" height="38" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="22" r="14"/><path d="M20 22V12m0 10 8 4M15 3h10M20 3v5"/></svg>約6倍高速</div><p>FPGAの画像エンコード：265 ms<br>MCUのCPU単体では1,583 ms。</p></div>
   </div>
-  <div class="benefit-ai"><b>モデルから回路まで、AIがコードを作成</b><br>モデル蒸留・量子化・ファームウェア・FPGAデジタル回路設計（RTL）<br>人が方針を決め、実機で検証。</div>
+  <div class="benefit-ai"><svg class="concept-icon" width="44" height="44" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="12" width="28" height="23" rx="5"/><path d="M20 12V5M2 21h4m28 0h4M14 28h12"/><circle cx="20" cy="4" r="2"/><circle cx="13" cy="21" r="2"/><circle cx="27" cy="21" r="2"/></svg><b>モデルから回路まで、AIがコードを作成</b><br>モデル蒸留・量子化・ファームウェア・FPGAデジタル回路設計（RTL）<br>人が方針を決め、実機で検証。</div>
   <div class="benefit-note">シーン登録が必要。精度はクエリ・環境に依存。初期設定後、テキストはホストでローカルに処理。<br>価格はボード単体（カメラ・ホスト別）。速度比5.97倍：同一モデル、MCUクロック320 MHzで比較。</div>
 </section>
 
@@ -499,14 +523,14 @@
   <div class="split" style="grid-template-columns: 600px 1fr; margin-top: 42px;">
     <div>
       <div class="dgbox">
-        <div class="dgt">ノートPC <small>host/demo.py — Pythonスクリプト</small></div>
+        <div class="dgt"><svg class="concept-icon" width="34" height="34" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="6" width="30" height="23" rx="2"/><path d="M2 34h36l-3-5H5zM12 13h16M12 19h10"/></svg>ノートPC <small>host/demo.py — Pythonスクリプト</small></div>
         <div class="dgd">テキストクエリを最大6つ入力します。<b>教師モデルのテキストエンコーダ</b>が各クエリを512次元ベクトルに変換。ホストは起動時にFPGAのビットストリームも転送します。</div>
       </div>
       <div class="dgarr">
         <span class="dn">▼ 512次元のクエリベクトル</span><span class="md">USBシリアル</span><span class="up">スコア・判定 ▲</span>
       </div>
       <div class="dgbox">
-        <div class="dgt">Forgixボード <small>RP2354A + Trion T8</small></div>
+        <div class="dgt"><svg class="concept-icon" width="34" height="34" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="22" height="22" rx="3"/><path d="M15 2v7m10-7v7M15 31v7m10-7v7M2 15h7m-7 10h7m22-10h7m-7 10h7"/><rect x="15" y="15" width="10" height="10"/></svg>Forgixボード <small>RP2354A + Trion T8</small></div>
         <div class="dgd">カメラ画像からMCUとFPGAが埋め込みを計算し、クエリベクトルと比較してRGB LEDに結果を表示します。シーン登録で判定の基準となる例を与えます。</div>
       </div>
       <div class="codecard" style="margin-top:22px; padding:18px 22px;">
@@ -527,8 +551,8 @@ uv run --script host/spot.py \
   </div></section>
 
 <!-- ============ STATEMENT 1 ============ -->
-<section class="slide statement">
-  <div class="txt">テキストのエンコードはホストで、<br><span class="hl-b">画像のエンコードはボードで実行</span><span class="cap">両エンコーダは共通の埋め込み空間にベクトルを出力します。テキストベクトルはクエリを変えたときだけ、画像ベクトルは毎フレーム必要です。そのため、大きなテキストモデルをボードに載せずに運用できます。</span></div></section>
+<section class="slide statement visual-statement">
+  <div class="concept-strip "><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="6" width="30" height="23" rx="2"/><path d="M2 34h36l-3-5H5zM12 13h16M12 19h10"/></svg><span>ホスト：文章 → ベクトル</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#188038" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h32l-5-5m5 5-5 5M37 28H5l5-5m-5 5 5 5"/></svg><span>USB：クエリベクトル</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#b06000" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="22" height="22" rx="3"/><path d="M15 2v7m10-7v7M15 31v7m10-7v7M2 15h7m-7 10h7m22-10h7m-7 10h7"/><rect x="15" y="15" width="10" height="10"/></svg><span>ボード：画像 → ベクトル</span></div></div><div class="txt">テキストのエンコードはホストで、<br><span class="hl-b">画像のエンコードはボードで実行</span><span class="cap">両エンコーダは共通の埋め込み空間にベクトルを出力します。テキストベクトルはクエリを変えたときだけ、画像ベクトルは毎フレーム必要です。そのため、大きなテキストモデルをボードに載せずに運用できます。</span></div></section>
 
 <!-- ============ SECTION 02 · TECH STACK ============ -->
 <section class="slide divider">
@@ -869,27 +893,27 @@ uv run --script host/spot.py \
 </section>
 
 <!-- ============ ONE FRAME, IN ORDER ============ -->
-<section class="slide">
+<section class="slide visual-steps">
   <div class="h">画像推論の処理フロー</div>
   <div class="hsub">128 × 128のRGB画像から512次元の埋め込みを計算します。8層の畳み込みを、合計174個の計算ブロックに分割して処理します。</div>
   <div class="steps">
     <div class="step b">
-      <div class="dot"></div>
+      <div class="dot picto"><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h12v12H3zM25 4h12v12H25zM9 21l11 8 11-8M20 29v6"/><rect x="14" y="30" width="12" height="7"/></svg></div>
       <div class="t">量子化</div>
       <div class="d">[−1, 1]に正規化し、<code>in_scale</code>で割って丸め、±127に制限します。符号付き入力を使うのは<code>conv0</code>だけです。</div>
     </div>
     <div class="step y">
-      <div class="dot"></div>
+      <div class="dot picto"><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="32" height="32" rx="2"/><path d="M4 15h32M4 26h32M15 4v32M26 4v32"/></svg></div>
       <div class="t">畳み込み8段</div>
       <div class="d">3 × 3カーネル、パディング1、バイアスなし。出力時にバッチ正規化を重みに統合します。<b>174ブロック、1,856パス、6,264トランザクション。</b></div>
     </div>
     <div class="step g">
-      <div class="dot"></div>
+      <div class="dot picto"><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 17-8 17 8-17 8zM3 20l17 8 17-8M3 29l17 8 17-8"/></svg></div>
       <div class="t">プーリングとヘッド</div>
       <div class="d">4 × 4 × 256の出力を空間方向に平均し、256次元から512次元への線形層を適用します。131 KMACと小さいためMCUで処理します。</div>
     </div>
     <div class="step r">
-      <div class="dot"></div>
+      <div class="dot picto"><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="20" r="16"/><circle cx="20" cy="20" r="8"/><circle cx="20" cy="20" r="2"/></svg></div>
       <div class="t">判定</div>
       <div class="d">埋め込みをテキストベクトルと比較し、部屋の背景を基準にスコアを補正。物体の状態と有無を判定します。</div>
     </div>
@@ -965,7 +989,7 @@ uv run --script host/spot.py \
       <p class="mut">MCUは転送だけでなく演算用のクロックも供給します。リンククロックを上げると、通信と演算の両方が速くなります。</p>
     </div>
     <div>
-      <table class="gt tight" style="margin-top:0;">
+      <svg width="100%" height="120" viewBox="0 0 440 120" role="img" aria-label="MCU to FPGA: three data lines; FPGA to MCU: one data line"><g fill="none" stroke="#1a73e8" stroke-width="2"><rect x="4" y="20" width="85" height="80" rx="6"/><rect x="351" y="20" width="85" height="80" rx="6"/><path d="M100 30h238l-7-5m7 5-7 5"/><path d="M100 47h238l-7-5m7 5-7 5"/><path d="M100 64h238l-7-5m7 5-7 5"/><path d="M338 88H100l7-5m-7 5 7 5" stroke="#188038"/></g><g font-family="Roboto,sans-serif" font-size="19" text-anchor="middle" fill="#3c4043"><text x="46" y="65">MCU</text><text x="394" y="65">FPGA</text></g></svg><table class="gt tight" style="margin-top:0;">
         <thead><tr><th>信号</th><th>ビット</th><th>レート</th></tr></thead>
         <tbody>
           <tr><td>MCU → FPGA</td><td class="nm">3</td><td class="nm">26.4 MB/s</td></tr>
@@ -1046,19 +1070,19 @@ uv run --script host/spot.py \
 <section class="slide">
   <div class="h">高速化の結果</div>
   <div class="hsub">カメラなしのm7ベンチマーク。M番号は開発段階。各段階でC参照実装とビット単位で一致します。</div>
-  <table class="gt tight" style="margin-top:16px;">
-    <thead><tr><th style="width:152px;">マイルストーン</th><th>変えたこと</th><th style="width:110px;">フレーム</th><th style="width:90px;">MCU比</th></tr></thead>
+  <table class="gt tight pictogram-table" style="margin-top:16px;">
+    <thead><tr><th style="width:152px;">マイルストーン</th><th>変えたこと</th><th style="width:210px;">フレーム</th><th style="width:90px;">MCU比</th></tr></thead>
     <tbody>
-      <tr><td>ベースライン</td><td>最適化した生徒モデルをMCU単体で実行</td><td class="nm">3,359 ms</td><td class="nm">1.00×</td></tr>
-      <tr><td>M7c</td><td>8層すべての畳み込みを174ブロックに分けてFPGAで処理</td><td class="nm">2,164 ms</td><td class="nm">1.62×</td></tr>
-      <tr><td>M7d</td><td>DMA転送とハードウェアによるCRC計算</td><td class="nm">1,481 ms</td><td class="nm">2.35×</td></tr>
-      <tr><td>M7e</td><td>重みの準備と活性値の書き戻しをコア1へ移動</td><td class="nm">1,292 ms</td><td class="nm">2.71×</td></tr>
-      <tr><td>M7f/g</td><td>2本の処理キュー、主要コードのSRAM配置、3ビットリンク</td><td class="nm">975 ms</td><td class="nm">3.54×</td></tr>
-      <tr><td>M7h/i</td><td>重み準備のキャッシュと丸め・範囲制限の高速化</td><td class="nm">851 ms</td><td class="nm">3.94×</td></tr>
-      <tr><td>M14</td><td>int4で重みを転送し、1バイトに2個を格納</td><td class="nm">798 ms</td><td class="nm">4.32×</td></tr>
-      <tr><td>M15</td><td>FPGAで再量子化し、出力を4バイトから1バイトへ削減</td><td class="nm">631 ms</td><td class="nm">5.46×</td></tr>
-      <tr><td>M16</td><td>カーネル要素を並列化し、走査回数を9回から6回へ削減</td><td class="nm">569 ms</td><td class="nm">6.05×</td></tr>
-      <tr class="hl"><td>クロック</td><td><b>システム320 MHz / リンク160 MHz</b>へクロックを引き上げ</td><td class="nm"><b>270 ms</b></td><td class="nm"><b>12.76×</b></td></tr>
+      <tr><td>ベースライン</td><td>最適化した生徒モデルをMCU単体で実行</td><td class="nm">3,359 ms<span class="cell-bar" style="width:70.0px"></span></td><td class="nm">1.00×</td></tr>
+      <tr><td>M7c</td><td>8層すべての畳み込みを174ブロックに分けてFPGAで処理</td><td class="nm">2,164 ms<span class="cell-bar" style="width:45.1px"></span></td><td class="nm">1.62×</td></tr>
+      <tr><td>M7d</td><td>DMA転送とハードウェアによるCRC計算</td><td class="nm">1,481 ms<span class="cell-bar" style="width:30.9px"></span></td><td class="nm">2.35×</td></tr>
+      <tr><td>M7e</td><td>重みの準備と活性値の書き戻しをコア1へ移動</td><td class="nm">1,292 ms<span class="cell-bar" style="width:26.9px"></span></td><td class="nm">2.71×</td></tr>
+      <tr><td>M7f/g</td><td>2本の処理キュー、主要コードのSRAM配置、3ビットリンク</td><td class="nm">975 ms<span class="cell-bar" style="width:20.3px"></span></td><td class="nm">3.54×</td></tr>
+      <tr><td>M7h/i</td><td>重み準備のキャッシュと丸め・範囲制限の高速化</td><td class="nm">851 ms<span class="cell-bar" style="width:17.7px"></span></td><td class="nm">3.94×</td></tr>
+      <tr><td>M14</td><td>int4で重みを転送し、1バイトに2個を格納</td><td class="nm">798 ms<span class="cell-bar" style="width:16.6px"></span></td><td class="nm">4.32×</td></tr>
+      <tr><td>M15</td><td>FPGAで再量子化し、出力を4バイトから1バイトへ削減</td><td class="nm">631 ms<span class="cell-bar" style="width:13.1px"></span></td><td class="nm">5.46×</td></tr>
+      <tr><td>M16</td><td>カーネル要素を並列化し、走査回数を9回から6回へ削減</td><td class="nm">569 ms<span class="cell-bar" style="width:11.9px"></span></td><td class="nm">6.05×</td></tr>
+      <tr class="hl"><td>クロック</td><td><b>システム320 MHz / リンク160 MHz</b>へクロックを引き上げ</td><td class="nm">270 ms<span class="cell-bar" style="width:5.6px"></span></td><td class="nm"><b>12.76×</b></td></tr>
     </tbody>
   </table>
   <div class="vnote" style="margin-top:18px;"><b>比較クロックに注意：</b>最終行の12.76倍は、FPGA併用320 MHzとMCU単体150 MHzの比較です。同じ320 MHzでは<b>5.97倍</b>（1,583 ms / 265 ms）です。</div>
@@ -1140,8 +1164,8 @@ uv run --script host/spot.py \
   </div></section>
 
 <!-- ============ THE CLOCK STATEMENT ============ -->
-<section class="slide statement">
-  <div class="txt">動作したクロック周波数が<br><span class="hl-b">動作上限とは限らない</span><span class="cap">初期の試験はシステム150 MHz / リンク75 MHzから始め、失敗したときだけクロックを下げていました。これでは高い周波数を試していません。後から上方向も測定すると、<b>システム280 MHz / リンク140 MHz</b>で3回の起動すべてがビット単位で一致しました。上限を判断するには、動作する周波数と失敗する周波数の両方を測る必要があります。</span></div></section>
+<section class="slide statement visual-statement">
+  <div class="concept-strip "><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="22" r="14"/><path d="M20 22V12m0 10 8 4M15 3h10M20 3v5"/></svg><span>150 MHz：テスト済み</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#188038" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="30" height="30" rx="4"/><path d="m11 20 6 6 13-14"/></svg><span>280 MHzでも成功</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#b06000" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v32h32M10 29V20h5v9m6 0V12h5v17m6 0V7h4v22"/></svg><span>上下の周波数を走査</span></div></div><div class="txt">動作したクロック周波数が<br><span class="hl-b">動作上限とは限らない</span><span class="cap">初期の試験はシステム150 MHz / リンク75 MHzから始め、失敗したときだけクロックを下げていました。これでは高い周波数を試していません。後から上方向も測定すると、<b>システム280 MHz / リンク140 MHz</b>で3回の起動すべてがビット単位で一致しました。上限を判断するには、動作する周波数と失敗する周波数の両方を測る必要があります。</span></div></section>
 
 <!-- ============ THE DEAD BAND ============ -->
 <section class="slide">
@@ -1218,7 +1242,7 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
       </table>
       <div class="imgcap" style="text-align:left; margin-top:16px;">背景が8フレーム未満の間は推定したばらつきを使いません。標準偏差の下限0.001で、ほぼゼロの値による除算を防ぎます。</div>
     </div>
-  </div></section>
+  </div><div class="concept-strip "><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 35V7h32v28zM4 7l8 7h16l8-7M12 14v14h16V14M4 35l8-7m16 0 8 7"/></svg><span>空のシーン</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#188038" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 17-8 17 8-17 8zM3 20l17 8 17-8M3 29l17 8 17-8"/></svg><span>背景を30フレーム測定</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#b06000" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="20" r="16"/><circle cx="20" cy="20" r="8"/><circle cx="20" cy="20" r="2"/></svg><span>クエリごとに正規化</span></div></div></section>
 
 <!-- ============ TWO AXES ============ -->
 <section class="slide">
@@ -1286,6 +1310,7 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
         <tbody><tr><td>評価正解率（%）</td><td>90.0</td><td>89.2</td><td>96.7</td><td>99.2</td><td class="ok">100.0 %</td></tr></tbody>
       </table>
       <div class="imgcap" style="text-align:left; margin-top:16px; line-height:1.6;">平均フレーム数の表は、過去の1回の未登録データ評価です。物体を置く途中の動きは平均から除きます。</div>
+<div class="concept-strip column-concepts "><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="12" width="34" height="24" rx="3"/><path d="M10 12l4-7h12l4 7"/><circle cx="20" cy="24" r="7"/></svg><span>提示・配置し直す</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#188038" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 17-8 17 8-17 8zM3 20l17 8 17-8M3 29l17 8 17-8"/></svg><span>各訪問20フレームを平均</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#b06000" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="20" r="16"/><circle cx="20" cy="20" r="8"/><circle cx="20" cy="20" r="2"/></svg><span>参照との距離を比較</span></div></div>
     </div>
     <div>
       <div class="body" style="margin-top:0; font-size:19px;">
@@ -1311,7 +1336,7 @@ present = (de &gt; d);</pre>
 <section class="slide">
   <div class="h">シーン登録の有無による正解率の比較</div>
   <div class="hsub">記録済みの40試験を再評価。4組のフレーズ、物体がある4,821フレームを使用。表は試験ごとの正解率の平均です。</div>
-  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>ルール</th><th>40回の平均</th><th>本の33回の平均</th><th>本の33回の最低値</th></tr></thead><tbody><tr><td>参照を登録</td><td>68.9%</td><td>69.2%</td><td>0.8%</td></tr><tr><td>登録せず最大zスコアを選択</td><td>62.7%</td><td>64.1%</td><td>26.0%</td></tr><tr><td>正解を見て選んだ最良の境界</td><td>83.3%</td><td>85.8%</td><td>52.0%</td></tr></tbody></table>
+  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>ルール</th><th>40回の平均</th><th>本の33回の平均</th><th>本の33回の最低値</th></tr></thead><tbody><tr><td>参照を登録</td><td>68.9%<span class="cell-bar" style="width:68.9px"></span></td><td>69.2%<span class="cell-bar" style="width:69.2px"></span></td><td>0.8%<span class="cell-bar" style="width:0.8px"></span></td></tr><tr><td>登録せず最大zスコアを選択</td><td>62.7%<span class="cell-bar" style="width:62.7px"></span></td><td>64.1%<span class="cell-bar" style="width:64.1px"></span></td><td>26.0%<span class="cell-bar" style="width:26.0px"></span></td></tr><tr><td>正解を見て選んだ最良の境界</td><td>83.3%<span class="cell-bar" style="width:83.3px"></span></td><td>85.8%<span class="cell-bar" style="width:85.8px"></span></td><td>52.0%<span class="cell-bar" style="width:52.0px"></span></td></tr></tbody></table>
   <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><b>登録は平均を改善しますが、すべての試験で有利ではありません。</b>本の33試験では平均5.1ポイント改善しました。参照が近すぎたり、順序が逆転したりすると、正解率が下がる場合があります。</p><p>空のフレームは除外しています。最良の境界の行は、各試験の正解を見て境界を選んだ診断用の値です。そのまま運用できる方式ではありません。</p></div>
   <div class="imgcap" style="text-align:left; margin-top:20px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/probe/20260909-noenrol/README.md">出典：2026-09-09 ログ再集計</a></div>
 </section>
@@ -1351,6 +1376,7 @@ enrol : an opened book, level +1.07, scatter 0.14
         <li><b>表現にも依存：</b>ある評価では「an empty glass」が正解のフレームでも、そのクエリが勝った割合は<b>6.7%</b></li>
         <li><b>登録時の統計値だけでは品質を保証できない：</b>提案した品質しきい値は8回の事前予測試験で裏付けられなかった</li>
       </ul>
+<div class="concept-strip column-concepts "><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10Q12 4 3 7v25q9-3 17 3 8-6 17-3V7q-9-3-17 3v25"/></svg><span>開いた本を2回</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#188038" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 5h24v30H10a5 5 0 0 1 0-10h24M10 5a5 5 0 0 0-5 5v20M12 5v20"/></svg><span>閉じた本を2回</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#b06000" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 35V7h32v28zM4 7l8 7h16l8-7M12 14v14h16V14M4 35l8-7m16 0 8 7"/></svg><span>空のシーン</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#d93025" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 25V15a10 10 0 0 1 20 0v10zM7 29h26M15 29v9m10-9v9M2 12l4 2m28 0 4-2M20 1v3"/></svg><span>判定</span></div></div>
     </div>
   </div></section>
 
@@ -1361,14 +1387,14 @@ enrol : an opened book, level +1.07, scatter 0.14
   <table class="gt tight" style="margin-top:30px;"><thead><tr><th>対象</th><th>観察</th></tr></thead><tbody><tr><td>手の開閉 / 赤・緑のキューブ</td><td>提示した状態に合わせてLEDの色が変化</td></tr><tr><td>箱の開閉</td><td>テキストベクトルの差を使うクエリは、開いた箱にも「closed」を選択</td></tr><tr><td>カップ1個 / 2個</td><td>スコアは分かれたが、一方の状態で特に強く反応</td></tr></tbody></table>
   <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><code>--state</code>でフレーズを比較する状態として指定します。「a hand」などの別のゲートクエリで存在を判定。このモードではLEDの色が状態、明るさがゲートのスコアを表します。</p><p>登録も役割指定もない場合、LEDの明るさは固定で、色はマッチの強さを示します。選ばれたクラスを色で識別する表示ではありません。</p></div>
   <div class="imgcap" style="text-align:left; margin-top:20px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/probe/20260909-pairs/README.md">出典：7組の実機プローブ</a> / <a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/probe/20260909-cubes/README.md">LEDの表示経路</a></div>
-</section>
+<div class="concept-strip "><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10Q12 4 3 7v25q9-3 17 3 8-6 17-3V7q-9-3-17 3v25"/></svg><span>状態クエリ → 色</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#188038" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 25V15a10 10 0 0 1 20 0v10zM7 29h26M15 29v9m10-9v9M2 12l4 2m28 0 4-2M20 1v3"/></svg><span>ゲートクエリ → 明るさ</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#b06000" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="20" r="16"/><circle cx="20" cy="20" r="8"/><circle cx="20" cy="20" r="2"/></svg><span>挙動 ≠ 精度</span></div></div></section>
 
 <section class="slide">
   <div class="h">合成画像による家庭用品の予備評価</div>
   <div class="hsub">2026-09-26。現行Cエンコーダと簡略化した参照比較で評価。実機試験は未実施です。</div>
-  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>状態の組</th><th>元画像 /6</th><th>画質変動の最悪値 /6</th><th>空の参照を追加 /6</th></tr></thead><tbody><tr><td>タオル：畳む / 丸める</td><td>6</td><td>5</td><td>3</td></tr><tr><td>マグ：直立 / 横倒し</td><td>6</td><td>5</td><td>6</td></tr><tr><td>バナナ：皮あり / 皮なし</td><td>5</td><td>3</td><td>4</td></tr><tr><td>眼鏡：開く / 畳む</td><td>4</td><td>4</td><td>3</td></tr><tr><td>トレー：鍵 / 財布</td><td>3</td><td>3</td><td>3</td></tr><tr><td>バジル：直立 / しおれる</td><td>2</td><td>2</td><td>2</td></tr><tr><td>対照：開いた手 / 拳</td><td>5</td><td>3</td><td>4</td></tr></tbody></table>
-  <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><b>次の実機試験の候補はタオルとマグ。</b>各行は、1つの生成シーンから得た似た画像6枚の評価です。最終列は空の参照を加えた後の物体画像の正解数で、空シーンの検出率ではありません。</p><p>照明ごとに参照を登録しています。実機の背景補正や時系列処理は再現していません。</p></div>
-  <div class="imgcap" style="text-align:left; margin-top:20px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/stills/20260926-home-screen/README.md">合成画像と結果</a> / <a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/stills/20260926-home-screen/README.md">評価手法と制約</a></div>
+  <table class="gt tight pictogram-table" style="margin-top:24px;"><thead><tr><th>状態の組</th><th>元画像 /6</th><th>画質変動の最悪値 /6</th><th>空の参照を追加 /6</th></tr></thead><tbody><tr><td><svg class="concept-icon" width="20" height="20" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 10h29v24H5zM5 17h29M29 10v24M8 34v3m5-3v3m5-3v3m5-3v3"/></svg>タオル：畳む / 丸める</td><td>6</td><td>5</td><td>3</td></tr><tr><td><svg class="concept-icon" width="20" height="20" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h23v20a8 8 0 0 1-8 8h-7a8 8 0 0 1-8-8zM29 10h4a6 6 0 0 1 0 12h-4"/></svg>マグ：直立 / 横倒し</td><td>6</td><td>5</td><td>6</td></tr><tr><td><svg class="concept-icon" width="20" height="20" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 5c1 18 11 24 27 19-5 15-28 14-30-5zM7 5l4-2"/></svg>バナナ：皮あり / 皮なし</td><td>5</td><td>3</td><td>4</td></tr><tr><td><svg class="concept-icon" width="20" height="20" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="25" r="8"/><circle cx="29" cy="25" r="8"/><path d="M19 24h2M3 25l4-17h5M37 25 33 8h-5"/></svg>眼鏡：開く / 畳む</td><td>4</td><td>4</td><td>3</td></tr><tr><td><svg class="concept-icon" width="20" height="20" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="13" r="8"/><path d="m17 19 18 18m-7-7 5-5m-12-2 5-5"/></svg>トレー：鍵 / 財布</td><td>3</td><td>3</td><td>3</td></tr><tr><td><svg class="concept-icon" width="20" height="20" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 35V14M20 23C4 22 4 7 4 7c14 0 16 9 16 16M20 17C20 4 36 4 36 4s0 13-16 13M10 35h20"/></svg>バジル：直立 / しおれる</td><td>2</td><td>2</td><td>2</td></tr><tr><td><svg class="concept-icon" width="20" height="20" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 22V9a3 3 0 0 1 6 0v11-15a3 3 0 0 1 6 0v15-13a3 3 0 0 1 6 0v15-8a3 3 0 0 1 6 0v14c0 13-18 15-23 8L4 23a3 3 0 0 1 4-4z"/></svg>対照：開いた手 / 拳</td><td>5</td><td>3</td><td>4</td></tr></tbody></table>
+  <div class="body" style="margin-top:16px; max-width:1120px; font-size:20px;"><p><b>次の実機試験の候補はタオルとマグ。</b>各行は、1つの生成シーンから得た似た画像6枚の評価です。最終列は空の参照を加えた後の物体画像の正解数で、空シーンの検出率ではありません。</p><p>照明ごとに参照を登録しています。実機の背景補正や時系列処理は再現していません。</p></div>
+  <div class="imgcap" style="text-align:left; margin-top:12px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/stills/20260926-home-screen/README.md">合成画像と結果</a> / <a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/stills/20260926-home-screen/README.md">評価手法と制約</a></div>
 </section>
 
 <!-- ============ SECTION 06 · FRICTIONS ============ -->
@@ -1384,27 +1410,27 @@ enrol : an opened book, level +1.07, scatter 0.14
   <div class="vgrid" style="margin-top:36px;">
     <div class="vcard">
       <div class="vlbl"><span>使えなかった外部メモリ</span><span class="dur">M0 · M5b</span></div>
-      <div class="vcap">PSRAMチップ自体は実装されていますが、ID応答が<b>18ビット周期分ずれます</b>。そのため、すべての重みをMCUの2 MBフラッシュに保存しています。</div>
+      <div class="vcap"><svg class="concept-icon" width="42" height="42" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4h20v32H10zM15 4v8h10V4M15 23h10M15 29h10"/></svg>PSRAMチップ自体は実装されていますが、ID応答が<b>18ビット周期分ずれます</b>。そのため、すべての重みをMCUの2 MBフラッシュに保存しています。</div>
     </div>
     <div class="vcard">
       <div class="vlbl"><span>周辺設定の自動化</span><span class="dur">rtl/</span></div>
-      <div class="vcap">使用したEfinityフローでは、GUIで生成する周辺設定XMLが必要でした。自動ビルド用に<code>rtl/mk_peri.py</code>でインターフェース記述から生成します。</div>
+      <div class="vcap"><svg class="concept-icon" width="42" height="42" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="12" width="28" height="23" rx="5"/><path d="M20 12V5M2 21h4m28 0h4M14 28h12"/><circle cx="20" cy="4" r="2"/><circle cx="13" cy="21" r="2"/><circle cx="27" cy="21" r="2"/></svg>使用したEfinityフローでは、GUIで生成する周辺設定XMLが必要でした。自動ビルド用に<code>rtl/mk_peri.py</code>でインターフェース記述から生成します。</div>
     </div>
     <div class="vcard">
       <div class="vlbl"><span>配置配線結果のばらつき</span><span class="dur">M11</span></div>
-      <div class="vcap">あるネットリストで良かったシードが、別のネットリストでは4候補中最悪となり、<b>63.9 MHzに対して59.9 MHz</b>でした。検証済みビットストリームをASCII hexで保存しています。</div>
+      <div class="vcap"><svg class="concept-icon" width="42" height="42" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h15v24h15M5 32h7V8h23"/><circle cx="5" cy="8" r="3"/><circle cx="35" cy="8" r="3"/><circle cx="5" cy="32" r="3"/><circle cx="35" cy="32" r="3"/></svg>あるネットリストで良かったシードが、別のネットリストでは4候補中最悪となり、<b>63.9 MHzに対して59.9 MHz</b>でした。検証済みビットストリームをASCII hexで保存しています。</div>
     </div>
     <div class="vcard" style="margin-top:20px;">
       <div class="vlbl"><span>誤解を招いた測定カウンタ</span><span class="dur">M14 · M17</span></div>
-      <div class="vcap">2つのコールバックが同じカウンタに時間を加算し、別々の処理を混ぜていました。測定を分離して重み準備の<b>82 ms</b>を確認。測定範囲と処理の定義を揃える必要があります。</div>
+      <div class="vcap"><svg class="concept-icon" width="42" height="42" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="22" r="14"/><path d="M20 22V12m0 10 8 4M15 3h10M20 3v5"/></svg>2つのコールバックが同じカウンタに時間を加算し、別々の処理を混ぜていました。測定を分離して重み準備の<b>82 ms</b>を確認。測定範囲と処理の定義を揃える必要があります。</div>
     </div>
     <div class="vcard" style="margin-top:20px;">
       <div class="vlbl"><span>CRC表記の不一致</span><span class="dur">M18</span></div>
-      <div class="vcap">モデル照合で<code>0x…</code>と<code>0X…</code>を比較し、同じ重みを拒否していました。4つのオフライン試験は不一致だけを検証。一致する正常系の試験も必要でした。</div>
+      <div class="vcap"><svg class="concept-icon" width="42" height="42" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="30" height="30" rx="4"/><path d="m11 20 6 6 13-14"/></svg>モデル照合で<code>0x…</code>と<code>0X…</code>を比較し、同じ重みを拒否していました。4つのオフライン試験は不一致だけを検証。一致する正常系の試験も必要でした。</div>
     </div>
     <div class="vcard" style="margin-top:20px;">
       <div class="vlbl"><span>記録していなかった提示時刻</span><span class="dur">M19</span></div>
-      <div class="vcap">スコアからシーンの境界を推測したため、2回のA/B試験が食い違いました。13フレーム平均は±0.05でも、効果0.08に対し提示間の差は0.85。提示時刻の記録と置き直しの反復が必要です。</div>
+      <div class="vcap"><svg class="concept-icon" width="42" height="42" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="12" width="34" height="24" rx="3"/><path d="M10 12l4-7h12l4 7"/><circle cx="20" cy="24" r="7"/></svg>スコアからシーンの境界を推測したため、2回のA/B試験が食い違いました。13フレーム平均は±0.05でも、効果0.08に対し提示間の差は0.85。提示時刻の記録と置き直しの反復が必要です。</div>
     </div>
   </div></section>
 
@@ -1451,16 +1477,16 @@ enrol : an opened book, level +1.07, scatter 0.14
 
 <!-- ============ TAKEAWAYS ============ -->
 <section class="slide">
-  <div class="agenda">
+  <div class="agenda takeaway-icons">
     <div class="h-big">まとめ</div>
     <ol>
-      <li><span class="num">01</span><span class="txt" style="font-size:20px;">テキストはホストで、画像はMCUとFPGAでエンコードする</span></li>
-      <li><span class="num">02</span><span class="txt" style="font-size:20px;">140万パラメータの生徒は、評価タスクで教師が正解したクエリの91%を保持</span></li>
-      <li><span class="num">03</span><span class="txt" style="font-size:20px;">FPGAはRAM 24ブロック中21、ロジックエレメントの85%を使用</span></li>
-      <li><span class="num">04</span><span class="txt" style="font-size:20px;">エンコーダは265 ms、カメラの実測フレーム間隔は293 ms</span></li>
-      <li><span class="num">05</span><span class="txt" style="font-size:20px;">同じ320 MHzのMCU単体に比べ、エンコーダは5.97倍高速</span></li>
-      <li><span class="num">06</span><span class="txt" style="font-size:20px;">シーン登録は平均正解率を改善するが、対象の組と設置環境に強く依存</span></li>
-      <li><span class="num">07</span><span class="txt" style="font-size:20px;">登録に使わないシーンで、状態の正解率と空シーンの判定を両方評価する</span></li>
+      <li><span class="num"><svg class="concept-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="6" width="30" height="23" rx="2"/><path d="M2 34h36l-3-5H5zM12 13h16M12 19h10"/></svg></span><span class="txt" style="font-size:20px;">テキストはホストで、画像はMCUとFPGAでエンコードする</span></li>
+      <li><span class="num"><svg class="concept-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 17-8 17 8-17 8zM3 20l17 8 17-8M3 29l17 8 17-8"/></svg></span><span class="txt" style="font-size:20px;">140万パラメータの生徒は、評価タスクで教師が正解したクエリの91%を保持</span></li>
+      <li><span class="num"><svg class="concept-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="22" height="22" rx="3"/><path d="M15 2v7m10-7v7M15 31v7m10-7v7M2 15h7m-7 10h7m22-10h7m-7 10h7"/><rect x="15" y="15" width="10" height="10"/></svg></span><span class="txt" style="font-size:20px;">FPGAはRAM 24ブロック中21、ロジックエレメントの85%を使用</span></li>
+      <li><span class="num"><svg class="concept-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="22" r="14"/><path d="M20 22V12m0 10 8 4M15 3h10M20 3v5"/></svg></span><span class="txt" style="font-size:20px;">エンコーダは265 ms、カメラの実測フレーム間隔は293 ms</span></li>
+      <li><span class="num"><svg class="concept-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v32h32M10 29V20h5v9m6 0V12h5v17m6 0V7h4v22"/></svg></span><span class="txt" style="font-size:20px;">同じ320 MHzのMCU単体に比べ、エンコーダは5.97倍高速</span></li>
+      <li><span class="num"><svg class="concept-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="12" width="34" height="24" rx="3"/><path d="M10 12l4-7h12l4 7"/><circle cx="20" cy="24" r="7"/></svg></span><span class="txt" style="font-size:20px;">シーン登録は平均正解率を改善するが、対象の組と設置環境に強く依存</span></li>
+      <li><span class="num"><svg class="concept-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="30" height="30" rx="4"/><path d="m11 20 6 6 13-14"/></svg></span><span class="txt" style="font-size:20px;">登録に使わないシーンで、状態の正解率と空シーンの判定を両方評価する</span></li>
     </ol>
   </div></section>
 

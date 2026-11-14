@@ -306,6 +306,30 @@
   .benefit-metrics p { font-size:20px; line-height:1.45; margin-top:9px; color:var(--ink-2); }
   .benefit-ai { margin-top:28px; padding-top:21px; border-top:1px solid var(--hairline); font-size:21px; line-height:1.5; color:var(--ink-2); }
   .benefit-note { margin-top:19px; font-size:16px; line-height:1.45; color:var(--ink-3); }
+
+  /* Concept pictograms, matching the existing diagram palette */
+  .concept-icon { display:inline-block; vertical-align:middle; flex:none; }
+  .concept-strip { display:flex; align-items:center; justify-content:space-around; gap:18px; margin-top:24px; }
+  .concept-strip > div { display:flex; align-items:center; gap:14px; font-size:19px; color:var(--ink-2); }
+  .concept-arrow { font-size:26px; color:#9aa0a6; }
+  .statement.visual-statement { flex-direction:column; gap:35px; }
+  .visual-statement .txt { font-size:40px; }
+  .visual-statement .cap { margin-top:24px; }
+  .visual-statement .concept-strip { width:100%; margin-top:0; }
+  .visual-statement .concept-strip > div { flex-direction:column; font-size:22px; }
+  .benefit-value .concept-icon { margin-right:12px; }
+  .benefit-ai > .concept-icon { float:left; margin:6px 18px 30px 0; }
+  .dgbox .concept-icon { float:left; margin-right:12px; }
+  .step .dot.picto { border:0; border-radius:0; width:48px; height:48px; }
+  .step .dot.picto .concept-icon { background:var(--bg); }
+  .visual-steps .steps::before { top:24px; }
+  .vcard .concept-icon { float:left; margin:0 12px 4px 0; }
+  .pictogram-table td:first-child .concept-icon { margin-right:10px; }
+  .cell-bar { display:inline-block; height:7px; background:#4285f4; vertical-align:middle; margin-left:12px; border-radius:2px; }
+  .takeaway-icons .num { min-width:44px; }
+  .column-concepts { gap:6px; margin-top:20px; }
+  .column-concepts > div { flex-direction:column; text-align:center; gap:5px; font-size:14px; }
+  .column-concepts .concept-icon { width:34px; height:34px; }
 </style>
 </head>
 <body>
@@ -404,11 +428,11 @@
   <div class="benefit-lead">Describe a scene in text. Recognize its meaning.</div>
   <div class="benefit-detail">A CLIP-style multimodal model matches images and text in a shared semantic space.<br>Unlike typical object detectors, it accepts free-form descriptions such as “an opened book”.<br>Change the query and enroll scenes — no image-model retraining.</div>
   <div class="benefit-metrics">
-    <div><div class="benefit-value">Offline</div><p>Local image inference.<br>No cloud calls or per-frame fees.</p></div>
-    <div><div class="benefit-value">~US$50</div><p>MCU + FPGA board.<br>Low hardware cost for a prototype.</p></div>
-    <div><div class="benefit-value">~6× faster</div><p>FPGA image encoder: 265 ms<br>vs. 1,583 ms on the MCU CPU.</p></div>
+    <div><div class="benefit-value"><svg class="concept-icon" width="38" height="38" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 30a8 8 0 0 1-1-16 12 12 0 0 1 23-1 9 9 0 0 1 0 17H10M4 4l32 32"/></svg>Offline</div><p>Local image inference.<br>No cloud calls or per-frame fees.</p></div>
+    <div><div class="benefit-value"><svg class="concept-icon" width="38" height="38" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="20" r="16"/><path d="M25 12H18a5 5 0 0 0 0 10h4a5 5 0 0 1 0 10h-8M20 8v27"/></svg>~US$50</div><p>MCU + FPGA board.<br>Low hardware cost for a prototype.</p></div>
+    <div><div class="benefit-value"><svg class="concept-icon" width="38" height="38" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="22" r="14"/><path d="M20 22V12m0 10 8 4M15 3h10M20 3v5"/></svg>~6× faster</div><p>FPGA image encoder: 265 ms<br>vs. 1,583 ms on the MCU CPU.</p></div>
   </div>
-  <div class="benefit-ai"><b>AI-coded, from model to circuit</b><br>Distillation · quantization · firmware · FPGA digital circuit design (RTL)<br>Human direction and hardware validation.</div>
+  <div class="benefit-ai"><svg class="concept-icon" width="44" height="44" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="12" width="28" height="23" rx="5"/><path d="M20 12V5M2 21h4m28 0h4M14 28h12"/><circle cx="20" cy="4" r="2"/><circle cx="13" cy="21" r="2"/><circle cx="27" cy="21" r="2"/></svg><b>AI-coded, from model to circuit</b><br>Distillation · quantization · firmware · FPGA digital circuit design (RTL)<br>Human direction and hardware validation.</div>
   <div class="benefit-note">Scene enrollment required; accuracy varies by query and environment. Host encodes text locally after setup.<br>Board price excludes camera and host. Speedup: 5.97×, same model and 320 MHz MCU clock.</div>
 </section>
 
@@ -491,14 +515,14 @@
   <div class="split" style="grid-template-columns: 600px 1fr; margin-top: 42px;">
     <div>
       <div class="dgbox">
-        <div class="dgt">Laptop <small>host/demo.py — a Python script</small></div>
+        <div class="dgt"><svg class="concept-icon" width="34" height="34" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="6" width="30" height="23" rx="2"/><path d="M2 34h36l-3-5H5zM12 13h16M12 19h10"/></svg>Laptop <small>host/demo.py — a Python script</small></div>
         <div class="dgd">Enter up to six text queries. The <b>teacher model’s text encoder</b> converts each query to a 512-dimensional vector. The host also loads the FPGA bitstream at startup.</div>
       </div>
       <div class="dgarr">
         <span class="dn">▼ 512-d query vectors</span><span class="md">USB serial</span><span class="up">score · verdict ▲</span>
       </div>
       <div class="dgbox">
-        <div class="dgt">Forgix board <small>RP2354A + Trion T8</small></div>
+        <div class="dgt"><svg class="concept-icon" width="34" height="34" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="22" height="22" rx="3"/><path d="M15 2v7m10-7v7M15 31v7m10-7v7M2 15h7m-7 10h7m22-10h7m-7 10h7"/><rect x="15" y="15" width="10" height="10"/></svg>Forgix board <small>RP2354A + Trion T8</small></div>
         <div class="dgd">The camera provides images. The MCU and FPGA compute an embedding, compare it with the query vectors, and drive the RGB LED. Scene registration supplies the reference examples.</div>
       </div>
       <div class="codecard" style="margin-top:22px; padding:18px 22px;">
@@ -519,8 +543,8 @@ uv run --script host/spot.py \
   </div></section>
 
 <!-- ============ STATEMENT 1 ============ -->
-<section class="slide statement">
-  <div class="txt">Text encoding runs on the host.<br><span class="hl-b">Image encoding runs on the board.</span><span class="cap">Both encoders produce vectors in the same embedding space. A text vector is needed only when a query changes, while an image vector is needed for every frame. This separates the large text model from the device’s continuous inference workload.</span></div></section>
+<section class="slide statement visual-statement">
+  <div class="concept-strip "><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="6" width="30" height="23" rx="2"/><path d="M2 34h36l-3-5H5zM12 13h16M12 19h10"/></svg><span>Host · text → vector</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#188038" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h32l-5-5m5 5-5 5M37 28H5l5-5m-5 5 5 5"/></svg><span>USB · query vectors</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#b06000" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="22" height="22" rx="3"/><path d="M15 2v7m10-7v7M15 31v7m10-7v7M2 15h7m-7 10h7m22-10h7m-7 10h7"/><rect x="15" y="15" width="10" height="10"/></svg><span>Board · image → vector</span></div></div><div class="txt">Text encoding runs on the host.<br><span class="hl-b">Image encoding runs on the board.</span><span class="cap">Both encoders produce vectors in the same embedding space. A text vector is needed only when a query changes, while an image vector is needed for every frame. This separates the large text model from the device’s continuous inference workload.</span></div></section>
 
 <!-- ============ SECTION 02 · TECH STACK ============ -->
 <section class="slide divider">
@@ -861,27 +885,27 @@ uv run --script host/spot.py \
 </section>
 
 <!-- ============ ONE FRAME, IN ORDER ============ -->
-<section class="slide">
+<section class="slide visual-steps">
   <div class="h">Image inference pipeline</div>
   <div class="hsub">A 128 × 128 RGB image becomes a 512-dimensional embedding. The eight convolution layers require 174 computation blocks in total.</div>
   <div class="steps">
     <div class="step b">
-      <div class="dot"></div>
+      <div class="dot picto"><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h12v12H3zM25 4h12v12H25zM9 21l11 8 11-8M20 29v6"/><rect x="14" y="30" width="12" height="7"/></svg></div>
       <div class="t">Quantize</div>
       <div class="d">Normalize to [−1, 1], divide by <code>in_scale</code>, round and clip to ±127. Only <code>conv0</code> uses signed input activations.</div>
     </div>
     <div class="step y">
-      <div class="dot"></div>
+      <div class="dot picto"><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="32" height="32" rx="2"/><path d="M4 15h32M4 26h32M15 4v32M26 4v32"/></svg></div>
       <div class="t">Eight conv stages</div>
       <div class="d">3 × 3 kernels, padding 1, no bias. Export folds batch normalization into the weights. <b>174 blocks, 1,856 passes, 6,264 transactions.</b></div>
     </div>
     <div class="step g">
-      <div class="dot"></div>
+      <div class="dot picto"><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 17-8 17 8-17 8zM3 20l17 8 17-8M3 29l17 8 17-8"/></svg></div>
       <div class="t">Pool and head</div>
       <div class="d">Average the 4 × 4 × 256 output spatially, then apply a 256-to-512 linear layer. Its 131 KMAC workload stays on the MCU.</div>
     </div>
     <div class="step r">
-      <div class="dot"></div>
+      <div class="dot picto"><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="20" r="16"/><circle cx="20" cy="20" r="8"/><circle cx="20" cy="20" r="2"/></svg></div>
       <div class="t">Decide</div>
       <div class="d">Compare the embedding with the text vectors, normalize scores using the room background, and decide the object state and presence.</div>
     </div>
@@ -957,7 +981,7 @@ uv run --script host/spot.py \
       <p class="mut">The MCU supplies clock cycles for computation as well as transfer. Raising the link clock therefore speeds up both.</p>
     </div>
     <div>
-      <table class="gt tight" style="margin-top:0;">
+      <svg width="100%" height="120" viewBox="0 0 440 120" role="img" aria-label="MCU to FPGA: three data lines; FPGA to MCU: one data line"><g fill="none" stroke="#1a73e8" stroke-width="2"><rect x="4" y="20" width="85" height="80" rx="6"/><rect x="351" y="20" width="85" height="80" rx="6"/><path d="M100 30h238l-7-5m7 5-7 5"/><path d="M100 47h238l-7-5m7 5-7 5"/><path d="M100 64h238l-7-5m7 5-7 5"/><path d="M338 88H100l7-5m-7 5 7 5" stroke="#188038"/></g><g font-family="Roboto,sans-serif" font-size="19" text-anchor="middle" fill="#3c4043"><text x="46" y="65">MCU</text><text x="394" y="65">FPGA</text></g></svg><table class="gt tight" style="margin-top:0;">
         <thead><tr><th>Signal</th><th>Bits</th><th>Rate</th></tr></thead>
         <tbody>
           <tr><td>MCU → FPGA</td><td class="nm">3</td><td class="nm">26.4 MB/s</td></tr>
@@ -1038,19 +1062,19 @@ uv run --script host/spot.py \
 <section class="slide">
   <div class="h">Optimization results</div>
   <div class="hsub">Camera-free m7 benchmark. M-numbers identify development stages. All outputs match the C reference bit for bit.</div>
-  <table class="gt tight" style="margin-top:26px;">
-    <thead><tr><th style="width:130px;">Milestone</th><th>What changed</th><th style="width:110px;">Frame</th><th style="width:90px;">vs MCU</th></tr></thead>
+  <table class="gt tight pictogram-table" style="margin-top:26px;">
+    <thead><tr><th style="width:130px;">Milestone</th><th>What changed</th><th style="width:210px;">Frame</th><th style="width:90px;">vs MCU</th></tr></thead>
     <tbody>
-      <tr><td>baseline</td><td>Optimized student model on the MCU alone</td><td class="nm">3,359 ms</td><td class="nm">1.00×</td></tr>
-      <tr><td>M7c</td><td>All eight convolution layers on the FPGA, in 174 blocks</td><td class="nm">2,164 ms</td><td class="nm">1.62×</td></tr>
-      <tr><td>M7d</td><td>DMA data transfer and hardware CRC calculation</td><td class="nm">1,481 ms</td><td class="nm">2.35×</td></tr>
-      <tr><td>M7e</td><td>Core 1 prepares weights and writes output activations</td><td class="nm">1,292 ms</td><td class="nm">2.71×</td></tr>
-      <tr><td>M7f/g</td><td>Two work queues, critical code in SRAM, three-bit link</td><td class="nm">975 ms</td><td class="nm">3.54×</td></tr>
-      <tr><td>M7h/i</td><td>Cached weight preparation and faster rounding/clamping</td><td class="nm">851 ms</td><td class="nm">3.94×</td></tr>
-      <tr><td>M14</td><td>int4 weight transfer: two weights per byte</td><td class="nm">798 ms</td><td class="nm">4.32×</td></tr>
-      <tr><td>M15</td><td>FPGA requantization: one output byte instead of four</td><td class="nm">631 ms</td><td class="nm">5.46×</td></tr>
-      <tr><td>M16</td><td>Parallel kernel taps: six sweeps instead of nine</td><td class="nm">569 ms</td><td class="nm">6.05×</td></tr>
-      <tr class="hl"><td>the clock</td><td>Clock increase to <b>320 MHz system / 160 MHz link</b></td><td class="nm"><b>270 ms</b></td><td class="nm"><b>12.76×</b></td></tr>
+      <tr><td>baseline</td><td>Optimized student model on the MCU alone</td><td class="nm">3,359 ms<span class="cell-bar" style="width:70.0px"></span></td><td class="nm">1.00×</td></tr>
+      <tr><td>M7c</td><td>All eight convolution layers on the FPGA, in 174 blocks</td><td class="nm">2,164 ms<span class="cell-bar" style="width:45.1px"></span></td><td class="nm">1.62×</td></tr>
+      <tr><td>M7d</td><td>DMA data transfer and hardware CRC calculation</td><td class="nm">1,481 ms<span class="cell-bar" style="width:30.9px"></span></td><td class="nm">2.35×</td></tr>
+      <tr><td>M7e</td><td>Core 1 prepares weights and writes output activations</td><td class="nm">1,292 ms<span class="cell-bar" style="width:26.9px"></span></td><td class="nm">2.71×</td></tr>
+      <tr><td>M7f/g</td><td>Two work queues, critical code in SRAM, three-bit link</td><td class="nm">975 ms<span class="cell-bar" style="width:20.3px"></span></td><td class="nm">3.54×</td></tr>
+      <tr><td>M7h/i</td><td>Cached weight preparation and faster rounding/clamping</td><td class="nm">851 ms<span class="cell-bar" style="width:17.7px"></span></td><td class="nm">3.94×</td></tr>
+      <tr><td>M14</td><td>int4 weight transfer: two weights per byte</td><td class="nm">798 ms<span class="cell-bar" style="width:16.6px"></span></td><td class="nm">4.32×</td></tr>
+      <tr><td>M15</td><td>FPGA requantization: one output byte instead of four</td><td class="nm">631 ms<span class="cell-bar" style="width:13.1px"></span></td><td class="nm">5.46×</td></tr>
+      <tr><td>M16</td><td>Parallel kernel taps: six sweeps instead of nine</td><td class="nm">569 ms<span class="cell-bar" style="width:11.9px"></span></td><td class="nm">6.05×</td></tr>
+      <tr class="hl"><td>the clock</td><td>Clock increase to <b>320 MHz system / 160 MHz link</b></td><td class="nm">270 ms<span class="cell-bar" style="width:5.6px"></span></td><td class="nm"><b>12.76×</b></td></tr>
     </tbody>
   </table>
   <div class="vnote" style="margin-top:26px;"><b>Clock conditions:</b> the final 12.76× compares FPGA operation at 320 MHz with the MCU at 150 MHz. At the same 320 MHz, speedup is <b>5.97×</b> (1,583 ms / 265 ms).</div>
@@ -1132,8 +1156,8 @@ uv run --script host/spot.py \
   </div></section>
 
 <!-- ============ THE CLOCK STATEMENT ============ -->
-<section class="slide statement">
-  <div class="txt">A passing clock rate<br><span class="hl-b">does not establish the maximum</span><span class="cap">Early tests started at 150 MHz system / 75 MHz link and only lowered the clock after failure. That procedure never tested higher rates. Testing upward later reached <b>280 MHz system / 140 MHz link</b> with bit-exact results in three boots. Measure both passing and failing rates before treating a clock setting as a limit.</span></div></section>
+<section class="slide statement visual-statement">
+  <div class="concept-strip "><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="22" r="14"/><path d="M20 22V12m0 10 8 4M15 3h10M20 3v5"/></svg><span>150 MHz · tested</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#188038" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="30" height="30" rx="4"/><path d="m11 20 6 6 13-14"/></svg><span>280 MHz · also passes</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#b06000" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v32h32M10 29V20h5v9m6 0V12h5v17m6 0V7h4v22"/></svg><span>Sweep higher and lower</span></div></div><div class="txt">A passing clock rate<br><span class="hl-b">does not establish the maximum</span><span class="cap">Early tests started at 150 MHz system / 75 MHz link and only lowered the clock after failure. That procedure never tested higher rates. Testing upward later reached <b>280 MHz system / 140 MHz link</b> with bit-exact results in three boots. Measure both passing and failing rates before treating a clock setting as a limit.</span></div></section>
 
 <!-- ============ THE DEAD BAND ============ -->
 <section class="slide">
@@ -1210,7 +1234,7 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
       </table>
       <div class="imgcap" style="text-align:left; margin-top:16px;">Before eight background frames, the score does not use the estimated spread. A 0.001 lower bound prevents division by a near-zero value.</div>
     </div>
-  </div></section>
+  </div><div class="concept-strip "><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 35V7h32v28zM4 7l8 7h16l8-7M12 14v14h16V14M4 35l8-7m16 0 8 7"/></svg><span>Empty room</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#188038" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 17-8 17 8-17 8zM3 20l17 8 17-8M3 29l17 8 17-8"/></svg><span>30 background frames</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#b06000" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="20" r="16"/><circle cx="20" cy="20" r="8"/><circle cx="20" cy="20" r="2"/></svg><span>Normalize each query</span></div></div></section>
 
 <!-- ============ TWO AXES ============ -->
 <section class="slide">
@@ -1278,6 +1302,7 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
         <tbody><tr><td>Test accuracy (%)</td><td>90.0</td><td>89.2</td><td>96.7</td><td>99.2</td><td class="ok">100.0 %</td></tr></tbody>
       </table>
       <div class="imgcap" style="text-align:left; margin-top:16px; line-height:1.6;">The averaging table is one historical held-out test. Exclude movement while the object is being placed.</div>
+<div class="concept-strip column-concepts "><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="12" width="34" height="24" rx="3"/><path d="M10 12l4-7h12l4 7"/><circle cx="20" cy="24" r="7"/></svg><span>Show + restage</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#188038" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 17-8 17 8-17 8zM3 20l17 8 17-8M3 29l17 8 17-8"/></svg><span>Average 20 frames / visit</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#b06000" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="20" r="16"/><circle cx="20" cy="20" r="8"/><circle cx="20" cy="20" r="2"/></svg><span>Compare reference distances</span></div></div>
     </div>
     <div>
       <div class="body" style="margin-top:0; font-size:19px;">
@@ -1303,7 +1328,7 @@ present = (de &gt; d);</pre>
 <section class="slide">
   <div class="h">Accuracy with and without scene registration</div>
   <div class="hsub">Replay of 40 recorded tests: four phrase pairs, 4,821 frames containing an object. Values are mean per-test accuracies.</div>
-  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>Rule</th><th>Mean, all 40 runs</th><th>Mean, 33 book runs</th><th>Minimum, book runs</th></tr></thead><tbody><tr><td>Registered references</td><td>68.9%</td><td>69.2%</td><td>0.8%</td></tr><tr><td>Highest z-score, no registration</td><td>62.7%</td><td>64.1%</td><td>26.0%</td></tr><tr><td>Best cut using known answers</td><td>83.3%</td><td>85.8%</td><td>52.0%</td></tr></tbody></table>
+  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>Rule</th><th>Mean, all 40 runs</th><th>Mean, 33 book runs</th><th>Minimum, book runs</th></tr></thead><tbody><tr><td>Registered references</td><td>68.9%<span class="cell-bar" style="width:68.9px"></span></td><td>69.2%<span class="cell-bar" style="width:69.2px"></span></td><td>0.8%<span class="cell-bar" style="width:0.8px"></span></td></tr><tr><td>Highest z-score, no registration</td><td>62.7%<span class="cell-bar" style="width:62.7px"></span></td><td>64.1%<span class="cell-bar" style="width:64.1px"></span></td><td>26.0%<span class="cell-bar" style="width:26.0px"></span></td></tr><tr><td>Best cut using known answers</td><td>83.3%<span class="cell-bar" style="width:83.3px"></span></td><td>85.8%<span class="cell-bar" style="width:85.8px"></span></td><td>52.0%<span class="cell-bar" style="width:52.0px"></span></td></tr></tbody></table>
   <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><b>Registration improves the mean, but not every test.</b> It adds 5.1 percentage points on the 33 book tests. References that are too close or incorrectly ordered can reduce accuracy.</p><p>Empty frames are excluded. The best-cut row uses the correct answers to choose a boundary separately for each test, so it is a diagnostic comparison rather than a deployable method.</p></div>
   <div class="imgcap" style="text-align:left; margin-top:20px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/probe/20260909-noenrol/README.md">Source: archive replay, 2026-09-09</a></div>
 </section>
@@ -1343,6 +1368,7 @@ enrol : an opened book, level +1.07, scatter 0.14
         <li><b>Wording matters:</b> “an empty glass” won on only <b>6.7%</b> of frames labeled as that state in one evaluation</li>
         <li><b>Registration statistics do not certify accuracy:</b> eight prospective tests did not support the proposed quality thresholds</li>
       </ul>
+<div class="concept-strip column-concepts "><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10Q12 4 3 7v25q9-3 17 3 8-6 17-3V7q-9-3-17 3v25"/></svg><span>Open book × 2 visits</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#188038" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 5h24v30H10a5 5 0 0 1 0-10h24M10 5a5 5 0 0 0-5 5v20M12 5v20"/></svg><span>Closed book × 2 visits</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#b06000" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 35V7h32v28zM4 7l8 7h16l8-7M12 14v14h16V14M4 35l8-7m16 0 8 7"/></svg><span>Empty scene</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#d93025" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 25V15a10 10 0 0 1 20 0v10zM7 29h26M15 29v9m10-9v9M2 12l4 2m28 0 4-2M20 1v3"/></svg><span>Run</span></div></div>
     </div>
   </div></section>
 
@@ -1353,14 +1379,14 @@ enrol : an opened book, level +1.07, scatter 0.14
   <table class="gt tight" style="margin-top:30px;"><thead><tr><th>Pair</th><th>Observation</th></tr></thead><tbody><tr><td>Open / closed hand, red / green cube</td><td>LED colour changed with the presented state</td></tr><tr><td>Open / closed box</td><td>Difference-of-text-vectors query selected “closed” for an open box</td></tr><tr><td>One / two cups</td><td>Scores differed, but were much stronger for one state</td></tr></tbody></table>
   <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><code>--state</code> marks phrases as competing states. A separate gate query, such as “a hand”, controls presence. In this mode, LED colour represents state and brightness represents the gate score.</p><p>Without registration or these roles, LED brightness stays fixed and colour indicates match strength. It does not encode which class won.</p></div>
   <div class="imgcap" style="text-align:left; margin-top:20px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/probe/20260909-pairs/README.md">Source: seven-pair probe</a> / <a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/probe/20260909-cubes/README.md">LED paths</a></div>
-</section>
+<div class="concept-strip "><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10Q12 4 3 7v25q9-3 17 3 8-6 17-3V7q-9-3-17 3v25"/></svg><span>State query → color</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#188038" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 25V15a10 10 0 0 1 20 0v10zM7 29h26M15 29v9m10-9v9M2 12l4 2m28 0 4-2M20 1v3"/></svg><span>Gate query → brightness</span></div><span class="concept-arrow" aria-hidden="true">→</span><div><svg class="concept-icon" width="48" height="48" viewBox="0 0 40 40" fill="none" stroke="#b06000" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="20" r="16"/><circle cx="20" cy="20" r="8"/><circle cx="20" cy="20" r="2"/></svg><span>Behavior ≠ accuracy</span></div></div></section>
 
 <section class="slide">
   <div class="h">Screening household objects with synthetic images</div>
   <div class="hsub">2026-09-26. Current C encoder with a simplified reference rule. No board testing.</div>
-  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>State pair</th><th>Original images /6</th><th>Worst image change /6</th><th>With empty reference /6</th></tr></thead><tbody><tr><td>Towel: folded / crumpled</td><td>6</td><td>5</td><td>3</td></tr><tr><td>Mug: upright / tipped</td><td>6</td><td>5</td><td>6</td></tr><tr><td>Banana: unpeeled / peeled</td><td>5</td><td>3</td><td>4</td></tr><tr><td>Eyeglasses: unfolded / folded</td><td>4</td><td>4</td><td>3</td></tr><tr><td>Tray: keys / wallet</td><td>3</td><td>3</td><td>3</td></tr><tr><td>Basil: upright / drooping</td><td>2</td><td>2</td><td>2</td></tr><tr><td>Control: open hand / fist</td><td>5</td><td>3</td><td>4</td></tr></tbody></table>
-  <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><b>Towels and mugs are candidates for board testing.</b> Each row uses six similar images from one generated scene. The final column counts correct object images, not empty-scene detection.</p><p>References are fitted per lighting condition. Device background calibration and temporal processing are omitted.</p></div>
-  <div class="imgcap" style="text-align:left; margin-top:20px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/stills/20260926-home-screen/README.md">Synthetic images and results</a> / <a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/stills/20260926-home-screen/README.md">Method and limitations</a></div>
+  <table class="gt tight pictogram-table" style="margin-top:24px;"><thead><tr><th>State pair</th><th>Original images /6</th><th>Worst image change /6</th><th>With empty reference /6</th></tr></thead><tbody><tr><td><svg class="concept-icon" width="20" height="20" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 10h29v24H5zM5 17h29M29 10v24M8 34v3m5-3v3m5-3v3m5-3v3"/></svg>Towel: folded / crumpled</td><td>6</td><td>5</td><td>3</td></tr><tr><td><svg class="concept-icon" width="20" height="20" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h23v20a8 8 0 0 1-8 8h-7a8 8 0 0 1-8-8zM29 10h4a6 6 0 0 1 0 12h-4"/></svg>Mug: upright / tipped</td><td>6</td><td>5</td><td>6</td></tr><tr><td><svg class="concept-icon" width="20" height="20" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 5c1 18 11 24 27 19-5 15-28 14-30-5zM7 5l4-2"/></svg>Banana: unpeeled / peeled</td><td>5</td><td>3</td><td>4</td></tr><tr><td><svg class="concept-icon" width="20" height="20" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="25" r="8"/><circle cx="29" cy="25" r="8"/><path d="M19 24h2M3 25l4-17h5M37 25 33 8h-5"/></svg>Eyeglasses: unfolded / folded</td><td>4</td><td>4</td><td>3</td></tr><tr><td><svg class="concept-icon" width="20" height="20" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="13" r="8"/><path d="m17 19 18 18m-7-7 5-5m-12-2 5-5"/></svg>Tray: keys / wallet</td><td>3</td><td>3</td><td>3</td></tr><tr><td><svg class="concept-icon" width="20" height="20" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 35V14M20 23C4 22 4 7 4 7c14 0 16 9 16 16M20 17C20 4 36 4 36 4s0 13-16 13M10 35h20"/></svg>Basil: upright / drooping</td><td>2</td><td>2</td><td>2</td></tr><tr><td><svg class="concept-icon" width="20" height="20" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 22V9a3 3 0 0 1 6 0v11-15a3 3 0 0 1 6 0v15-13a3 3 0 0 1 6 0v15-8a3 3 0 0 1 6 0v14c0 13-18 15-23 8L4 23a3 3 0 0 1 4-4z"/></svg>Control: open hand / fist</td><td>5</td><td>3</td><td>4</td></tr></tbody></table>
+  <div class="body" style="margin-top:16px; max-width:1120px; font-size:20px;"><p><b>Towels and mugs are candidates for board testing.</b> Each row uses six similar images from one generated scene. The final column counts correct object images, not empty-scene detection.</p><p>References are fitted per lighting condition. Device background calibration and temporal processing are omitted.</p></div>
+  <div class="imgcap" style="text-align:left; margin-top:12px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/stills/20260926-home-screen/README.md">Synthetic images and results</a> / <a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/stills/20260926-home-screen/README.md">Method and limitations</a></div>
 </section>
 
 <!-- ============ SECTION 06 · FRICTIONS ============ -->
@@ -1376,27 +1402,27 @@ enrol : an opened book, level +1.07, scatter 0.14
   <div class="vgrid" style="margin-top:36px;">
     <div class="vcard">
       <div class="vlbl"><span>Unusable external memory</span><span class="dur">M0 · M5b</span></div>
-      <div class="vcap">The PSRAM chip is physically present, but its ID response arrives <b>18 bit periods out of position</b>. The design therefore stores all weights in the MCU’s 2 MB flash.</div>
+      <div class="vcap"><svg class="concept-icon" width="42" height="42" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4h20v32H10zM15 4v8h10V4M15 23h10M15 29h10"/></svg>The PSRAM chip is physically present, but its ID response arrives <b>18 bit periods out of position</b>. The design therefore stores all weights in the MCU’s 2 MB flash.</div>
     </div>
     <div class="vcard">
       <div class="vlbl"><span>Automating peripheral setup</span><span class="dur">rtl/</span></div>
-      <div class="vcap">The Efinity flow used here required peripheral XML normally produced through its GUI. <code>rtl/mk_peri.py</code> generates that file from the interface description for automated builds.</div>
+      <div class="vcap"><svg class="concept-icon" width="42" height="42" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="12" width="28" height="23" rx="5"/><path d="M20 12V5M2 21h4m28 0h4M14 28h12"/><circle cx="20" cy="4" r="2"/><circle cx="13" cy="21" r="2"/><circle cx="27" cy="21" r="2"/></svg>The Efinity flow used here required peripheral XML normally produced through its GUI. <code>rtl/mk_peri.py</code> generates that file from the interface description for automated builds.</div>
     </div>
     <div class="vcard">
       <div class="vlbl"><span>Place-and-route variability</span><span class="dur">M11</span></div>
-      <div class="vcap">A seed that performed well on one netlist became the worst of four on another: <b>59.9 MHz versus 63.9 MHz</b>. The repository preserves verified bitstreams as ASCII hex.</div>
+      <div class="vcap"><svg class="concept-icon" width="42" height="42" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h15v24h15M5 32h7V8h23"/><circle cx="5" cy="8" r="3"/><circle cx="35" cy="8" r="3"/><circle cx="5" cy="32" r="3"/><circle cx="35" cy="32" r="3"/></svg>A seed that performed well on one netlist became the worst of four on another: <b>59.9 MHz versus 63.9 MHz</b>. The repository preserves verified bitstreams as ASCII hex.</div>
     </div>
     <div class="vcard" style="margin-top:20px;">
       <div class="vlbl"><span>Misleading profiling counters</span><span class="dur">M14 · M17</span></div>
-      <div class="vcap">Two callbacks accumulated time in the same counter, mixing separate operations. Splitting the measurement exposed an <b>82 ms</b> weight-build cost. Counter scope must match the operation being measured.</div>
+      <div class="vcap"><svg class="concept-icon" width="42" height="42" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="22" r="14"/><path d="M20 22V12m0 10 8 4M15 3h10M20 3v5"/></svg>Two callbacks accumulated time in the same counter, mixing separate operations. Splitting the measurement exposed an <b>82 ms</b> weight-build cost. Counter scope must match the operation being measured.</div>
     </div>
     <div class="vcard" style="margin-top:20px;">
       <div class="vlbl"><span>CRC format mismatch</span><span class="dur">M18</span></div>
-      <div class="vcap">The model check compared <code>0x…</code> with <code>0X…</code> and rejected matching weights. All four offline tests covered only mismatches. Tests must include the valid path as well.</div>
+      <div class="vcap"><svg class="concept-icon" width="42" height="42" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="30" height="30" rx="4"/><path d="m11 20 6 6 13-14"/></svg>The model check compared <code>0x…</code> with <code>0X…</code> and rejected matching weights. All four offline tests covered only mismatches. Tests must include the valid path as well.</div>
     </div>
     <div class="vcard" style="margin-top:20px;">
       <div class="vlbl"><span>Uncontrolled scene timing</span><span class="dur">M19</span></div>
-      <div class="vcap">Inferring scene boundaries from scores made two A/B tests disagree. A 13-frame mean was stable to ±0.05, yet visits differed by 0.85 against an effect of 0.08. Record scene timing and repeat object placement.</div>
+      <div class="vcap"><svg class="concept-icon" width="42" height="42" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="12" width="34" height="24" rx="3"/><path d="M10 12l4-7h12l4 7"/><circle cx="20" cy="24" r="7"/></svg>Inferring scene boundaries from scores made two A/B tests disagree. A 13-frame mean was stable to ±0.05, yet visits differed by 0.85 against an effect of 0.08. Record scene timing and repeat object placement.</div>
     </div>
   </div></section>
 
@@ -1443,16 +1469,16 @@ enrol : an opened book, level +1.07, scatter 0.14
 
 <!-- ============ TAKEAWAYS ============ -->
 <section class="slide">
-  <div class="agenda">
+  <div class="agenda takeaway-icons">
     <div class="h-big">Takeaways</div>
     <ol>
-      <li><span class="num">01</span><span class="txt" style="font-size:22px;">Text encoding runs on the host. Image encoding runs on the MCU and FPGA.</span></li>
-      <li><span class="num">02</span><span class="txt" style="font-size:22px;">The 1.40 M-parameter student retains 91% of teacher-correct queries on the evaluation task.</span></li>
-      <li><span class="num">03</span><span class="txt" style="font-size:22px;">The FPGA uses 21 of 24 RAM blocks and 85% of logic elements.</span></li>
-      <li><span class="num">04</span><span class="txt" style="font-size:22px;">The encoder takes 265 ms. The measured camera-frame interval is 293 ms.</span></li>
-      <li><span class="num">05</span><span class="txt" style="font-size:22px;">The encoder is 5.97× faster than the MCU alone at the same 320 MHz.</span></li>
-      <li><span class="num">06</span><span class="txt" style="font-size:22px;">Scene registration improves average accuracy, but results depend strongly on the pair and environment.</span></li>
-      <li><span class="num">07</span><span class="txt" style="font-size:22px;">Use held-out scenes to evaluate both object-state accuracy and empty-scene rejection.</span></li>
+      <li><span class="num"><svg class="concept-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="6" width="30" height="23" rx="2"/><path d="M2 34h36l-3-5H5zM12 13h16M12 19h10"/></svg></span><span class="txt" style="font-size:22px;">Text encoding runs on the host. Image encoding runs on the MCU and FPGA.</span></li>
+      <li><span class="num"><svg class="concept-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 17-8 17 8-17 8zM3 20l17 8 17-8M3 29l17 8 17-8"/></svg></span><span class="txt" style="font-size:22px;">The 1.40 M-parameter student retains 91% of teacher-correct queries on the evaluation task.</span></li>
+      <li><span class="num"><svg class="concept-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="22" height="22" rx="3"/><path d="M15 2v7m10-7v7M15 31v7m10-7v7M2 15h7m-7 10h7m22-10h7m-7 10h7"/><rect x="15" y="15" width="10" height="10"/></svg></span><span class="txt" style="font-size:22px;">The FPGA uses 21 of 24 RAM blocks and 85% of logic elements.</span></li>
+      <li><span class="num"><svg class="concept-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="20" cy="22" r="14"/><path d="M20 22V12m0 10 8 4M15 3h10M20 3v5"/></svg></span><span class="txt" style="font-size:22px;">The encoder takes 265 ms. The measured camera-frame interval is 293 ms.</span></li>
+      <li><span class="num"><svg class="concept-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v32h32M10 29V20h5v9m6 0V12h5v17m6 0V7h4v22"/></svg></span><span class="txt" style="font-size:22px;">The encoder is 5.97× faster than the MCU alone at the same 320 MHz.</span></li>
+      <li><span class="num"><svg class="concept-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="12" width="34" height="24" rx="3"/><path d="M10 12l4-7h12l4 7"/><circle cx="20" cy="24" r="7"/></svg></span><span class="txt" style="font-size:22px;">Scene registration improves average accuracy, but results depend strongly on the pair and environment.</span></li>
+      <li><span class="num"><svg class="concept-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" stroke="#1a73e8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="30" height="30" rx="4"/><path d="m11 20 6 6 13-14"/></svg></span><span class="txt" style="font-size:22px;">Use held-out scenes to evaluate both object-state accuracy and empty-scene rejection.</span></li>
     </ol>
   </div></section>
 
