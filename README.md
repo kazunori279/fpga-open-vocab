@@ -8,6 +8,16 @@
 
 [Watch the full demo on YouTube](https://youtu.be/n6vrb4GZql0) · [Slides (English)](https://kazunori279.github.io/fpga-open-vocab/slides/?lang=en) · [スライド（日本語）](https://kazunori279.github.io/fpga-open-vocab/slides/index.ja.html?lang=ja)
 
+## Why it matters
+
+- **Describe the scene you care about.** Arbitrary text queries select scenes by their meaning — such as `an open hand`, `a crumpled towel` or `an opened book` — rather than a fixed list of object classes or bounding boxes. Change the query and register reference scenes without retraining the image encoder.
+- **Run without an internet connection.** Images are processed on the board, with no cloud inference or per-frame API charges. The host encodes new text queries locally; after the initial model downloads and setup, runtime needs no internet access.
+- **Start with a ~US$50 board.** The Forgix MCU + FPGA board makes local vision affordable to prototype. Camera and host computer are additional.
+- **Get ~6× faster image encoding with the FPGA.** The same model takes **265 ms vs. 1,583 ms** on the MCU CPU alone: **5.97×** acceleration, measured at the same 320 MHz MCU clock.
+- **AI-coded across the stack.** AI wrote the code for model distillation, quantization, firmware and FPGA digital circuit design (RTL), with human direction and hardware validation — extending AI-assisted development from software into custom acceleration hardware.
+
+The queries are open-ended; recognition is not universal. This prototype requires scene enrollment, and accuracy depends on the scene pair and environment. See [application fit and measured limitations](docs/fit.md).
+
 It is built and it runs. All eight convolution layers execute on the FPGA tile, off a live camera, and **bit-exact** against the plain-C reference — a whole camera frame in **282 ms**, of which **265 ms** is the encoder. Against the same model on the MCU alone, measured in the same boot and at the same 320 MHz, the tile is **5.97×** faster.
 
 ```

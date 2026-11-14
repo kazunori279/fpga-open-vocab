@@ -3,7 +3,7 @@
 [`index.html`](index.html) is a self-contained 50-minute talk about this project:
 what CLIP is, what the board is, how the encoder was split between an MCU and an
 FPGA, how the frame came down from 3,359 ms, and how a 512-d embedding becomes
-an answer on an LED. 44 slides, eight sections, aimed at readers with basic FPGA and machine-learning knowledge.
+an answer on an LED. 45 slides, eight sections, aimed at readers with basic FPGA and machine-learning knowledge.
 It introduces project-specific terms before explaining the implementation.
 
 **The frame time and the shipped clock are current** — both decks say 282 ms as
@@ -11,7 +11,7 @@ the sum of parts and **293 ms** by the board's own clock, 265 ms encode,
 320 MHz sys / 160 MHz link, the same as the rest of the repo.
 See [Keeping it true](#keeping-it-true) for which files to re-read from.
 
-[`index.ja.html`](index.ja.html) is the same 44 slides in Japanese. It is a
+[`index.ja.html`](index.ja.html) is the same 45 slides in Japanese. It is a
 translation, not a fork: the structure, the SVGs and every number are the same,
 and a link in the top-right corner of each deck switches to the other one. The
 type is set a few points smaller with the negative tracking relaxed, because

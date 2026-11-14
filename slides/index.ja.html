@@ -306,6 +306,14 @@
   .precision-example { margin-top:8px; font:500 34px var(--mono); color:#9a5300; }
   .precision-why { margin-top:14px; font-size:21px; line-height:1.55; color:var(--ink-2); }
   .precision-foot { margin-top:23px; font-size:16px; line-height:1.5; color:var(--ink-3); }
+  /* Intro: semantic flexibility and deployment benefits */
+  .benefit-lead { margin-top:26px; font-size:30px; line-height:1.3; color:var(--blue-bright); }
+  .benefit-detail { margin-top:10px; font-size:21px; line-height:1.45; color:var(--ink-2); }
+  .benefit-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:40px; margin-top:30px; padding-top:24px; border-top:1px solid var(--hairline); }
+  .benefit-value { font-size:44px; color:var(--blue-bright); font-weight:500; }
+  .benefit-metrics p { font-size:20px; line-height:1.45; margin-top:9px; color:var(--ink-2); }
+  .benefit-ai { margin-top:28px; padding-top:21px; border-top:1px solid var(--hairline); font-size:21px; line-height:1.5; color:var(--ink-2); }
+  .benefit-note { margin-top:19px; font-size:16px; line-height:1.45; color:var(--ink-3); }
 </style>
 </head>
 <body>
@@ -316,7 +324,7 @@
 <section class="slide">
   <div style="margin-top:186px;">
     <h1 class="cover">fpga-open-vocab：<br>50ドルのFPGAボードで画像認識</h1>
-    <div class="cover-sub">小型のCLIP系画像エンコーダをMCUとFPGAで実行。テキストで比較対象を指定し、登録したシーンを基準に判定します。</div>
+    <div class="cover-sub">検出したいシーンを言葉で指定。約50米ドルのボードでローカルに認識し、FPGAが画像エンコードをMCUのCPU単体より約6倍高速化。</div>
     <div class="cover-by">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.22-6.82-5.97 6.82H1.66l7.73-8.83L1.24 2.25h6.83l4.71 6.23zm-1.16 17.52h1.83L7.08 4.13H5.12z"/></svg>
       <a href="https://x.com/kazunori_279" target="_blank" rel="noopener">@kazunori_279</a>
@@ -326,6 +334,20 @@
     <span class="pill">fpga-open-vocab · Forgix RP2354A + Efinix Trion T8</span>
     <span>2026年11月更新 · 50分</span>
   </div>
+</section>
+
+<!-- ============ INTRO · BUSINESS BENEFITS ============ -->
+<section class="slide benefits-slide">
+  <div class="h">ビジネス上のメリット</div>
+  <div class="benefit-lead">検出したいシーンを、任意のテキストで指定</div>
+  <div class="benefit-detail">物体名だけでなく、「開いた手」「丸めたタオル」「開いた本」などの意味で判定。<br>テキストと参照シーンを変えるだけで、画像モデルの再学習は不要。</div>
+  <div class="benefit-metrics">
+    <div><div class="benefit-value">オフライン</div><p>画像の推論はボード内で完結。<br>クラウド通信・フレームごとの課金なし。</p></div>
+    <div><div class="benefit-value">約50米ドル</div><p>MCU＋FPGAボード。<br>低いハードウェア費用で試作。</p></div>
+    <div><div class="benefit-value">約6倍高速</div><p>FPGAの画像エンコード：265 ms<br>MCUのCPU単体では1,583 ms。</p></div>
+  </div>
+  <div class="benefit-ai"><b>モデルから回路まで、AIがコードを作成</b><br>モデル蒸留・量子化・ファームウェア・FPGAデジタル回路設計（RTL）<br>人が方針を決め、実機で検証。</div>
+  <div class="benefit-note">シーン登録が必要。精度はクエリ・環境に依存。初期設定後、テキストはホストでローカルに処理。<br>価格はボード単体（カメラ・ホスト別）。速度比5.97倍：同一モデル、MCUクロック320 MHzで比較。</div>
 </section>
 
 <!-- ============ 2 · AGENDA ============ -->
