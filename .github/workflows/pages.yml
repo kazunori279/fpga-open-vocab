@@ -32,9 +32,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # The deck is a self-contained HTML file with exactly one local asset: it
-      # loads ../docs/img/wire.svg by relative path. So slides/ has to stay one
-      # level below the site root and docs/img/ has to travel with it.
+      # The decks load local product photos and ../docs/img/wire.svg.
+      # Keep slides/ one level below the site root and copy all required assets.
       #
       # Flattening index.html to the site root would break that figure, and
       # break it silently -- the <img> carries an onerror handler that hides
@@ -45,10 +44,11 @@ jobs:
       # bare filename, so the pair has to ship together or the toggle 404s.
       - name: Assemble _site
         run: |
-          mkdir -p _site/slides _site/docs/img
+          mkdir -p _site/slides/assets _site/docs/img
           cp slides/index.html    _site/slides/
           cp slides/index.ja.html _site/slides/
           cp docs/img/wire.svg    _site/docs/img/
+          cp slides/assets/forgix-board.png slides/assets/logitech-streamcam.png _site/slides/assets/
           cat > _site/index.html <<'HTML'
           <!doctype html>
           <meta charset="utf-8">

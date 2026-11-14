@@ -3,8 +3,8 @@
 [`index.html`](index.html) is a self-contained 50-minute talk about this project:
 what CLIP is, what the board is, how the encoder was split between an MCU and an
 FPGA, how the frame came down from 3,359 ms, and how a 512-d embedding becomes
-an answer on an LED. 42 slides, eight sections, aimed at a general technical
-audience — each domain is taught from scratch before the deep-dive.
+an answer on an LED. 42 slides, eight sections, aimed at readers with basic FPGA and machine-learning knowledge.
+It introduces project-specific terms before explaining the implementation.
 
 **The frame time and the shipped clock are current** — both decks say 282 ms as
 the sum of parts and **293 ms** by the board's own clock, 265 ms encode,
@@ -43,11 +43,18 @@ when someone asks about a specific claim.
 
 ## What it depends on
 
-Two files outside this directory, both optional:
+Required local images:
 
 - [`../docs/img/wire.svg`](../docs/img/wire.svg) — the WaveDrom timing diagram, on
-  the "One transaction on the wire" slide. It is loaded by relative path, so the
+  the "Link transaction format" slide. It is loaded by relative path, so the
   deck must stay at `slides/` for it to resolve.
+- `assets/forgix-board.png` and `assets/logitech-streamcam.png` — official product
+  images on the introduction slide. Sources are linked on the slide and recorded
+  in [`assets/README.md`](assets/README.md). The webcam records the current meter
+  during testing; ArduCam supplies inference images.
+
+Optional local image:
+
 - `assets/me.jpg` — the speaker photo on the self-intro slide. **Not committed.**
   Drop a square image there and it appears; without it the slide renders with the
   avatar hidden and nothing else moves.
@@ -81,3 +88,13 @@ and `bench/stills/20260926-home-screen/README.md`. The synthetic screen is
 candidate selection, not board accuracy. The evidence links point to the repository, so the synthetic screen files must
 be committed alongside the deck before publishing. The latest experiment date is 2026-09-26; the November
 date records reconciliation, not a new hardware measurement.
+
+## Language review
+
+Both decks were revised on 2026-11-14 for readers with basic FPGA and ML
+knowledge. Terms such as tile, scene registration and room calibration are
+defined in context. Historical benchmark conditions are separated from current
+application performance. Registration repeats after restaging an object, not
+on a different day. The presence comparison labels 53.8% as the distance-band
+fallback, as documented in `tools/probe_third.py`. Core 1’s current 149 ms
+profile replaces the old 509 ms figure. The deck remains 42 slides.

@@ -131,7 +131,7 @@
                  padding: 0 2px 8px; font-family: var(--mono); font-size: 15px;
                  font-weight: 700; color: var(--blue-bright); }
   .vcard .vlbl .dur { font-family: var(--font); font-weight: 400; font-size: 13px; color: #80868b; }
-  .vcard .vcap { padding: 2px 2px 0; font-size: 14.5px; line-height: 1.5; color: var(--ink-2); }
+  .vcard .vcap { padding: 2px 2px 0; font-size: 17px; line-height: 1.5; color: var(--ink-2); }
   .vnote { margin-top: 26px; font-size: 17px; color: var(--ink-3); max-width: 1120px; line-height: 1.5; }
 
   /* big ideas — label rows */
@@ -264,6 +264,14 @@
   #lang a { color: #9aa0a6; text-decoration: none; border: 1px solid #5f6368;
             border-radius: 4px; padding: 3px 9px; }
   #lang a:hover { color: #e8eaed; border-color: #9aa0a6; }
+
+  /* Reference product photos in the project introduction. */
+  .hardware-photos { display:grid; grid-template-columns:1fr 1fr; gap:64px; margin-top:28px; }
+  .hardware-photos figure { margin:0; text-align:center; }
+  .hardware-photos img { display:block; width:100%; height:300px; object-fit:contain; }
+  .hardware-photos figcaption { margin-top:16px; font-size:20px; line-height:1.45; color:var(--ink-2); }
+  .hardware-photos figcaption p { margin-top:8px; }
+  .hardware-photos a { display:inline-block; margin-top:10px; font-size:15px; color:var(--blue); }
 </style>
 </head>
 <body>
@@ -273,9 +281,8 @@
 <!-- ============ 1 · COVER ============ -->
 <section class="slide">
   <div style="margin-top:186px;">
-    <h1 class="cover">fpga-open-vocab: describe it,<br>and a $50 board spots it</h1>
-    <div class="cover-sub">A distilled CLIP-style image encoder running on a tiny FPGA — 1.40 M parameters in 768 KB of
-    int4, all eight convolution layers in the fabric, 282 ms per camera frame, and bit-exact against the plain-C reference.</div>
+    <h1 class="cover">fpga-open-vocab:<br>vision on a $50 FPGA board</h1>
+    <div class="cover-sub">A compact CLIP-style image encoder on an MCU and FPGA. Text queries select what to compare, and registered scenes provide the decision references.</div>
     <div class="cover-by">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.22-6.82-5.97 6.82H1.66l7.73-8.83L1.24 2.25h6.83l4.71 6.23zm-1.16 17.52h1.83L7.08 4.13H5.12z"/></svg>
       <a href="https://x.com/kazunori_279" target="_blank" rel="noopener">@kazunori_279</a>
@@ -292,28 +299,27 @@
   <div class="agenda">
     <div class="h-big">Agenda</div>
     <ol>
-      <li><span class="num">00</span><span class="txt">Who's talking</span><span class="min">2 min</span></li>
-      <li><span class="num">01</span><span class="txt">What is fpga-open-vocab</span><span class="min">4 min</span></li>
-      <li><span class="num">02</span><span class="txt">The technology stack</span><span class="min">12 min</span></li>
-      <li><span class="num">03</span><span class="txt">Architecture deep-dive</span><span class="min">11 min</span></li>
-      <li><span class="num">04</span><span class="txt">3,359 ms &rarr; 270 ms</span><span class="min">7 min</span></li>
-      <li><span class="num">05</span><span class="txt">From 512 floats to an answer</span><span class="min">7 min</span></li>
-      <li><span class="num">06</span><span class="txt">Frictions &amp; learnings</span><span class="min">5 min</span></li>
-      <li><span class="num">07</span><span class="txt">Wrap-up + Q&amp;A</span><span class="min">2 min</span></li>
+      <li><span class="num">00</span><span class="txt">About the speaker</span><span class="min">2 min</span></li>
+      <li><span class="num">01</span><span class="txt">Project overview</span><span class="min">4 min</span></li>
+      <li><span class="num">02</span><span class="txt">Model and hardware</span><span class="min">12 min</span></li>
+      <li><span class="num">03</span><span class="txt">System architecture</span><span class="min">11 min</span></li>
+      <li><span class="num">04</span><span class="txt">Inference optimization</span><span class="min">7 min</span></li>
+      <li><span class="num">05</span><span class="txt">From embeddings to decisions</span><span class="min">7 min</span></li>
+      <li><span class="num">06</span><span class="txt">Implementation lessons</span><span class="min">5 min</span></li>
+      <li><span class="num">07</span><span class="txt">Summary and Q&amp;A</span><span class="min">2 min</span></li>
     </ol>
   </div></section>
 
 <!-- ============ SECTION 00 · WHO'S TALKING ============ -->
 <section class="slide divider">
   <div class="num">00</div>
-  <div class="name">Who's talking</div>
-  <div class="kick">Thirty seconds on me — and on why a developer advocate for cloud AI spent a summer
-  fitting a vision model into 7,384 logic elements.</div>
+  <div class="name">About the speaker</div>
+  <div class="kick">A cloud AI developer’s personal project: running a compact vision model on a small MCU and FPGA board.</div>
 </section>
 
 <!-- ============ SELF-INTRO ============ -->
 <section class="slide">
-  <div class="h">Hello</div>
+  <div class="h">About me</div>
   <div class="me">
     <img class="avatar" src="assets/me.jpg" alt="Kazunori Sato"
          onerror="this.onerror=null;this.style.visibility='hidden';">
@@ -323,39 +329,43 @@
       &nbsp;·&nbsp; Tokyo, Japan</div>
       <div class="mrole">Developer Advocate, Cloud AI — Google</div>
       <ul class="dots">
-        <li>Talks, demos, and a lot of sample code — mostly about AI</li>
-        <li><b>fpga-open-vocab</b> is a personal side project: an FPGA board that answers questions
-        about what it can see, with no cloud and no GPU</li>
-        <li>Its sibling project, an FPGA synthesizer, is at <code>github.com/kazunori279/xls32-fpga-synth</code></li>
+        <li>Talks, demos and sample code about AI development</li>
+        <li><b>fpga-open-vocab</b> is a personal project for image recognition on an MCU and FPGA, without cloud inference</li>
+        <li>FPGA audio synthesizer project: <code>github.com/kazunori279/xls32-fpga-synth</code></li>
       </ul>
       <div class="mdis">The opinions expressed here are my own, not those of my employer.</div>
     </div>
   </div></section>
 
 <!-- ============ SECTION 01 · WHAT IS FPGA-OPEN-VOCAB ============ -->
-<section class="slide divider">
-  <div class="num">01</div>
-  <div class="name">What is fpga-open-vocab</div>
-  <div class="kick">You type a phrase on a laptop. A board the size of a credit card, with no GPU
-  and no network, watches a room and tells you when it sees the thing you described.</div>
-</section>
+<section class="slide"><div class="h">Demo and test hardware</div>
+  <div class="hsub">Forgix and ArduCam run image recognition. A separate webcam records the current meter during testing.</div>
+  <div class="hardware-photos">
+    <figure>
+      <img src="assets/forgix-board.png" alt="Forgix RP2354 and Trion T8 board beside a US quarter for scale" width="1200" height="1026">
+      <figcaption><b>Forgix</b><p>Forgix board for image inference.<br>The manufacturer’s photo includes a coin for scale.</p><a href="https://forgix.tech/">Image source: Forgix / Adiuvo</a></figcaption>
+    </figure>
+    <figure>
+      <img src="assets/logitech-streamcam.png" alt="Logitech StreamCam webcam used to document the current meter" width="1600" height="1374">
+      <figcaption><b>Logitech StreamCam</b><p>Logitech StreamCam records the meter display<br>while measuring the board’s current draw.</p><a href="https://www.logitech.com/en-us/shop/p/streamcam.960-001286">Image source: Logitech</a></figcaption>
+    </figure>
+  </div>
+  <div class="vnote" style="margin-top:24px;">Official product images, not a photograph of the measurement setup. Capture script: <code>host/meter_cam.py</code>.</div></section>
 
 <!-- ============ WHAT IS FPGA-OPEN-VOCAB ============ -->
 <section class="slide">
-  <div class="h">What is fpga-open-vocab?</div>
+  <div class="h">Text-guided image recognition on a small board</div>
   <div class="split" style="grid-template-columns: 540px 1fr;">
     <div class="body">
-      <p>An <b>image-query appliance</b>: point it at something, type
-      <span class="em">"a person smiling"</span>, and it answers.</p>
+      <p>A <b>camera-based scene classifier</b>. Enter phrases such as <span class="em">“an opened book”</span> and “a closed book”, then register examples in the target environment.</p>
       <ul class="dots">
-        <li>Runs a <b>distilled CLIP-style image encoder</b> — 1.40 M int4 parameters, 159 MMAC per frame</li>
-        <li>On a <b>~$50 Forgix board</b>: an <b>RP2354A</b> MCU beside an <b>Efinix Trion T8</b> FPGA</li>
-        <li>All <b>eight convolution layers execute in the fabric</b>, off a live camera</li>
-        <li><b>282 ms per camera frame</b> — <b>265 ms</b> of it the encoder — and <b>bit-exact</b>: 512 of 512 embedding floats identical to the plain-C reference</li>
-        <li><b>5.97×</b> the same model on the MCU alone — both measured in one boot, both at 320 MHz</li>
+        <li><b>1.40 M parameters</b>, mostly int4, using 768 KB. Each frame requires 159 million multiply-accumulate operations (MACs)</li>
+        <li><b>~$50 Forgix board</b> with an RP2354A microcontroller (MCU) and Efinix Trion T8 FPGA</li>
+        <li>All <b>eight convolution layers</b> use the FPGA accelerator</li>
+        <li><b>265 ms</b> for the encoder. Camera frame: <b>282 ms</b> from component timings, <b>293 ms</b> measured end to end</li>
+        <li><b>5.97× faster</b> than the MCU alone at the same 320 MHz. All 512 output floats match the C reference bit for bit</li>
       </ul>
-      <p class="mut">No cloud, no GPU, no network. The answer comes out on an RGB LED,
-      so the laptop can be unplugged once it is running.</p>
+      <p class="mut">The board runs image inference locally and displays the result on an RGB LED. The host handles text encoding and setup.</p>
     </div>
     <div>
       <div class="imgcard" style="height:400px;">
@@ -363,7 +373,7 @@
           <!-- laptop -->
           <rect x="130" y="10" width="200" height="54" rx="9" stroke="#9aa0a6" stroke-width="2"/>
           <text x="230" y="33" font-size="14" fill="#5f6368" text-anchor="middle">Laptop · host/demo.py</text>
-          <text x="230" y="52" font-size="12" fill="#9aa0a6" text-anchor="middle">teacher text tower, once per query</text>
+          <text x="230" y="52" font-size="12" fill="#9aa0a6" text-anchor="middle">text encoder, once per query</text>
           <path d="M230 64 L230 96" stroke="#1a73e8" stroke-width="2"/>
           <path d="M230 102 l -5 -8 h 10 z" fill="#1a73e8"/>
           <text x="240" y="86" font-size="12" fill="#1a73e8">USB · 512 floats</text>
@@ -411,75 +421,60 @@
           <text x="230" y="360" font-size="13" fill="#5f6368" text-anchor="middle">RGB LED — the verdict</text>
         </svg>
       </div>
-      <div class="imgcap">One board, two chips, one 3-bit wire between them</div>
+      <div class="imgcap">The MCU stores the model and sends convolution blocks to the FPGA.</div>
     </div>
   </div></section>
 
 <!-- ============ DEMO ============ -->
 <section class="slide">
-  <div class="h">Demo: a phrase on the laptop, a colour on the board</div>
+  <div class="h">Demo workflow</div>
   <div class="split" style="grid-template-columns: 600px 1fr; margin-top: 42px;">
     <div>
       <div class="dgbox">
         <div class="dgt">Laptop <small>host/demo.py — a Python script</small></div>
-        <div class="dgd">You type up to six phrases. The <b>teacher's text tower</b> runs here, once
-        per query, and the resulting 512-d vectors go down the wire. The FPGA has no configuration
-        flash, so the host also pushes the 173 KB bitstream at every run</div>
+        <div class="dgd">Enter up to six text queries. The <b>teacher model’s text encoder</b> converts each query to a 512-dimensional vector. The host also loads the FPGA bitstream at startup.</div>
       </div>
       <div class="dgarr">
         <span class="dn">▼ 512-d query vectors</span><span class="md">USB serial</span><span class="up">score · verdict ▲</span>
       </div>
       <div class="dgbox">
         <div class="dgt">Forgix board <small>RP2354A + Trion T8</small></div>
-        <div class="dgd">Camera → eight conv layers on the FPGA tile → a 512-d embedding →
-        a verdict on the RGB LED. Once the scenes are enrolled the laptop can go away</div>
+        <div class="dgd">The camera provides images. The MCU and FPGA compute an embedding, compare it with the query vectors, and drive the RGB LED. Scene registration supplies the reference examples.</div>
       </div>
       <div class="codecard" style="margin-top:22px; padding:18px 22px;">
-<pre><span class="cm"># rank four phrases against every frame</span>
-<span class="kw">uv run</span> host/demo.py <span class="ty">"cup" "person" "book" "laptop"</span>
+<pre><span class="cm"># compare four text queries</span>
+uv run host/demo.py <span class="fn">"cup" "person" "book" "laptop"</span>
 
-<span class="cm"># one thing *as against* the other, enrolment and all</span>
-<span class="kw">uv run --script</span> host/spot.py <span class="ty">"an opened book" "a closed book"</span></pre>
+<span class="cm"># register examples of two scenes</span>
+uv run --script host/spot.py \
+    <span class="fn">"an opened book" "a closed book"</span></pre>
       </div>
     </div>
     <div class="body" style="margin-top:4px;">
-      <p><b>What you see in the room:</b> the LED sits green on an empty desk, swings toward red the
-      moment the described thing comes into shot, and holds there — it measures
-      <b>presence, not change</b>.</p>
-      <p><b>What you see on the console:</b> per-frame cosines, z-scores, the winning query, and
-      the frame time in milliseconds.</p>
-      <p class="mut">A new question can be sent to a <i>running</i> board with no reflash — the
-      weights never change, only the six vectors they are compared against.</p>
-      <p class="mut">In M9's first demo, <code>book</code> swung from last place to first in the
-      <b>single frame</b> the book came back into shot.</p>
+      <p><b>LED:</b> the meaning of colour and brightness depends on the mode. Registered scenes use reference-based decisions. Later slides explain the unregistered mode.</p>
+      <p><b>Console:</b> each frame reports cosine similarity, the room-normalized score (z-score), the selected query and processing time.</p>
+      <p class="mut"><b>Changing queries:</b> send new text vectors without reflashing the model. Start with an empty scene because the background calibration resets.</p>
+      <p class="mut"><b>Evaluation:</b> use a scripted test with known scene labels to measure accuracy. A changing LED alone does not establish accuracy.</p>
     </div>
   </div></section>
 
 <!-- ============ STATEMENT 1 ============ -->
 <section class="slide statement">
-  <div class="txt">The board never reads your words.<br>
-  It only ever sees <span class="hl-b">512 floats</span> and <span class="hl-g">an image</span>
-  <span class="cap">CLIP's two towers emit into one shared space, so the language half can run
-  anywhere — and the only half that has to be on the device is the one that runs
-  <b>once per frame</b> instead of <b>once per query</b>. Everything in this talk is a consequence
-  of that asymmetry.</span></div></section>
+  <div class="txt">Text encoding runs on the host.<br><span class="hl-b">Image encoding runs on the board.</span><span class="cap">Both encoders produce vectors in the same embedding space. A text vector is needed only when a query changes, while an image vector is needed for every frame. This separates the large text model from the device’s continuous inference workload.</span></div></section>
 
 <!-- ============ SECTION 02 · TECH STACK ============ -->
 <section class="slide divider">
   <div class="num">02</div>
-  <div class="name">The technology stack</div>
-  <div class="kick">Four things you need before the architecture makes sense: what CLIP is,
-  what distillation buys, what an FPGA actually is — and why this particular board forces
-  every decision that follows.</div>
+  <div class="name">Model and hardware</div>
+  <div class="kick">How CLIP-style embeddings, model distillation and FPGA resources determine the design.</div>
 </section>
 
 <!-- ============ CLIP 101 ============ -->
 <section class="slide">
-  <div class="h">CLIP 101</div>
-  <div class="hsub">Two encoders trained so that a photograph and its caption land in the same place.
-  Everything fpga-open-vocab does is a consequence of that one property.</div>
+  <div class="h">Image and text in a shared embedding space</div>
+  <div class="hsub">Image and text encoders learn compatible vector representations. Their similarity provides a score for each text query.</div>
   <div class="flow c4" style="margin-top:40px;">
-    <div class="fphase"><div class="pillhead">Two towers</div>
+    <div class="fphase"><div class="pillhead">Two encoders</div>
       <div class="viz"><svg viewBox="0 0 220 84" fill="none">
         <rect x="14" y="14" width="54" height="26" rx="5" stroke="#1a73e8" stroke-width="2.4"/>
         <text x="41" y="32" font-size="12" fill="#1a73e8" text-anchor="middle" font-family="Roboto">image</text>
@@ -492,9 +487,8 @@
         <circle cx="157" cy="40" r="3.5" fill="#188038"/>
         <circle cx="171" cy="52" r="3.5" fill="#9aa0a6"/>
       </svg></div>
-      <div class="fd">An <b>image encoder</b> and a <b>text encoder</b>, trained on hundreds of
-      millions of caption–photo pairs to agree.</div></div>
-    <div class="fphase"><div class="pillhead">One shared space</div>
+      <div class="fd">An <b>image encoder</b> and a <b>text encoder</b> learn from paired images and captions.</div></div>
+    <div class="fphase"><div class="pillhead">Similarity score</div>
       <div class="viz"><svg viewBox="0 0 220 84" fill="none">
         <line x1="20" y1="70" x2="200" y2="70" stroke="#dadce0" stroke-width="2"/>
         <line x1="20" y1="70" x2="20" y2="10" stroke="#dadce0" stroke-width="2"/>
@@ -503,9 +497,8 @@
         <path d="M 76 44 a 26 26 0 0 1 6 -6" stroke="#f9ab00" stroke-width="2.4" fill="none"/>
         <text x="98" y="60" font-size="12" fill="#f9ab00" font-family="Roboto">cos θ</text>
       </svg></div>
-      <div class="fd">Both emit a <b>512-d unit vector</b>. Similarity is one dot product —
-      no classifier, no labels, no head to retrain.</div></div>
-    <div class="fphase"><div class="pillhead">Zero-shot</div>
+      <div class="fd">Normalized vectors share an embedding space. Their dot product gives <b>cosine similarity</b>. This project uses 512 dimensions after projection.</div></div>
+    <div class="fphase"><div class="pillhead">Text-defined classes</div>
       <div class="viz"><svg viewBox="0 0 220 84" fill="none">
         <rect x="16" y="24" width="120" height="34" rx="17" stroke="#1a73e8" stroke-width="2.2" fill="#e8f0fe"/>
         <text x="76" y="46" font-size="12.5" fill="#174ea6" text-anchor="middle" font-family="Roboto">"a closed book"</text>
@@ -514,9 +507,8 @@
         <circle cx="200" cy="41" r="10" stroke="#188038" stroke-width="2.4"/>
         <path d="M195 41.5 l 3.6 3.6 L 206 37" stroke="#188038" stroke-width="2.4" stroke-linecap="round"/>
       </svg></div>
-      <div class="fd">The classes are <b>written at query time</b>. Change the question without
-      touching a weight — which is the whole appeal on a device.</div></div>
-    <div class="fphase"><div class="pillhead">The asymmetry</div>
+      <div class="fd">Text descriptions define candidate classes without retraining the encoder. This device still uses <b>scene registration</b> to improve decisions.</div></div>
+    <div class="fphase"><div class="pillhead">Execution frequency</div>
       <div class="viz"><svg viewBox="0 0 220 84" fill="none">
         <rect x="14" y="18" width="26" height="14" rx="3" fill="#188038" opacity=".8"/>
         <text x="52" y="30" font-size="11.5" fill="#188038" font-family="Roboto">text: 1× / query</text>
@@ -527,20 +519,16 @@
         <rect x="142" y="48" width="26" height="14" rx="3" fill="#1a73e8" opacity=".25"/>
         <text x="14" y="78" font-size="11.5" fill="#1a73e8" font-family="Roboto">image: 1× / frame, forever</text>
       </svg></div>
-      <div class="fd">Only the <b>image</b> tower is in the hot loop. So only the image tower has
-      to be shrunk down onto silicon this small.</div></div>
+      <div class="fd">The text encoder runs when a query changes. The compact image encoder runs for every camera frame.</div></div>
   </div>
   <div class="body" style="margin-top:34px; max-width:1150px; font-size:18px;">
-    <p class="mut">CLIP is <a style="color:#1a73e8;text-decoration:none" href="https://arxiv.org/abs/2103.00020">arXiv 2103.00020</a>
-    (OpenAI, 2021). The teacher used here is <b>SigLIP 2 SO400M</b> — same idea, a sigmoid loss
-    instead of a softmax over the batch, and a much stronger reading of word order.</p>
+    <p class="mut"><a style="color:#1a73e8;text-decoration:none" href="https://arxiv.org/abs/2103.00020">CLIP (OpenAI, 2021)</a> introduced this approach. The current teacher is <b>SigLIP 2 SO400M</b>, which uses a sigmoid-based training loss.</p>
   </div></section>
 
 <!-- ============ DISTILLATION 101 ============ -->
 <section class="slide">
-  <div class="h">Distillation 101 — and the trap it sets</div>
-  <div class="hsub">The teacher is a transformer orders of magnitude too large for this board.
-  The student is trained to imitate its <i>output vector</i>, not its labels.</div>
+  <div class="h">Distilling a model that fits the board</div>
+  <div class="hsub">A small CNN learns to approximate the large teacher model’s image embeddings. The host continues to use the teacher’s text encoder.</div>
   <div class="cols c3" style="margin-top:38px;">
     <div>
       <div class="cico"><svg width="52" height="42" viewBox="0 0 52 42" fill="none">
@@ -551,12 +539,9 @@
         <path d="M36 21 h 12" stroke="#9aa0a6" stroke-width="2.2"/>
         <path d="M52 21 l -8 -5 v 10 z" fill="#9aa0a6"/>
       </svg></div>
-      <div class="lbl">Teacher → student</div>
-      <p>The student sees the same images and is trained to <b>reproduce the teacher's 512-d
-      output</b>. What it inherits is the <b>embedding space</b> — which is exactly what the
-      text side needs it to share.</p>
-      <p class="small">1.40 M parameters · 159 MMAC · eight 3×3 conv stages, under a
-      1.5 M / 250 MMAC budget set by the board.</p>
+      <div class="lbl">Training the student</div>
+      <p>The student learns the teacher’s <b>512-dimensional projected output</b> for the same image. This lets its output be compared with the teacher’s text vectors.</p>
+      <p class="small"><b>1.40 M parameters, 159 MMAC</b>, eight 3×3 convolution stages. Design limits: 1.5 M parameters and 250 MMAC.</p>
     </div>
     <div>
       <div class="cico"><svg width="50" height="42" viewBox="0 0 50 42" fill="none">
@@ -565,11 +550,9 @@
         <rect x="28" y="20" width="9" height="16" rx="2" fill="#188038" opacity=".45"/>
         <rect x="41" y="27" width="7" height="9" rx="2" fill="#188038" opacity=".28"/>
       </svg></div>
-      <div class="lbl">What it costs</div>
-      <p>M4 measured the student retaining <b>94%</b> of the queries the original teacher itself
-      gets right. After the teacher swap and int4 weights, <b>91%</b>.</p>
-      <p class="small">Quantization is nearly free: the exported int8 model scores <b>0.896</b>
-      against fp32's <b>0.892</b> on the task — <i>not worse</i>, which is the only claim worth making.</p>
+      <div class="lbl">Measured task retention</div>
+      <p>The original student retained <b>94%</b> of queries that its teacher answered correctly. The current teacher and int4 model retain <b>91%</b>.</p>
+      <p class="small">These are retention results on the evaluation task. They are not the device’s accuracy in a new room.</p>
     </div>
     <div>
       <div class="cico"><svg width="46" height="42" viewBox="0 0 46 42" fill="none">
@@ -577,21 +560,16 @@
         <line x1="23" y1="17" x2="23" y2="27" stroke="#d93025" stroke-width="2.6" stroke-linecap="round"/>
         <circle cx="23" cy="32.5" r="1.9" fill="#d93025"/>
       </svg></div>
-      <div class="lbl">The trap</div>
-      <p>The teacher changed mid-project — CLIP ViT-B/16 → SigLIP 2 SO400M, squeezed 1152-d → 512-d
-      by a frozen PCA. <b>Both spaces are 512-d</b>, so pairing a query from one with a student
-      from the other <b>scores instead of failing</b>. No exception. No NaN.</p>
-      <p class="small">Guard: an <code>export.json</code> names the space beside the weights, and the
-      board prints a <b>crc32 of the weights it is actually running</b> so a stale flash is refused
-      before a query is sent.</p>
+      <div class="lbl">Matching the embedding space</div>
+      <p>The teacher changed from CLIP ViT-B/16 to SigLIP 2 SO400M. A fixed <b>principal component analysis (PCA)</b> projection reduces 1152 dimensions to 512.</p>
+      <p class="small">Two incompatible spaces can have the same dimension and still produce a numeric score. <code>export.json</code> identifies the space, and a weight CRC32 check detects the wrong model on the board.</p>
     </div>
   </div></section>
 
 <!-- ============ FPGA 101 ============ -->
 <section class="slide">
-  <div class="h">FPGA 101 — and why one this small</div>
-  <div class="hsub">A field-programmable gate array is a sheet of uncommitted logic you wire into a
-  circuit. You are not writing a program; you are describing a machine.</div>
+  <div class="h">FPGA resources and parallel computation</div>
+  <div class="hsub">The FPGA implements a dedicated convolution accelerator. Parallel arithmetic helps only when memory and data transfer can keep it supplied.</div>
   <div class="cols c3" style="margin-top:38px;">
     <div>
       <div class="cico"><svg width="52" height="42" viewBox="0 0 52 42" fill="none">
@@ -603,12 +581,9 @@
         <line x1="10.5" y1="19" x2="10.5" y2="23" stroke="#4285f4" stroke-width="2"/>
         <line x1="34" y1="29.5" x2="48" y2="29.5" stroke="#9aa0a6" stroke-width="2"/>
       </svg></div>
-      <div class="lbl">What is in one</div>
-      <p><b>Logic elements</b> (a small lookup table plus a flip-flop), a routing fabric between
-      them, a handful of <b>hard multipliers</b>, and some <b>block RAM</b>. You compile a hardware
-      description into a bitstream that configures all of it.</p>
-      <p class="small">It has no instruction pointer. Everything you describe happens
-      <i>every clock, at once</i>.</p>
+      <div class="lbl">Available resources</div>
+      <p><b>Logic elements (LEs)</b> contain lookup tables and registers. Dedicated multipliers and block RAM provide arithmetic and storage resources.</p>
+      <p class="small">A bitstream configures the circuit. In this accelerator, control logic schedules parallel operations instead of executing a CPU instruction stream.</p>
     </div>
     <div>
       <div class="cico"><svg width="52" height="42" viewBox="0 0 52 42" fill="none">
@@ -617,11 +592,9 @@
         <rect x="35" y="8" width="12" height="26" rx="3" fill="#188038" opacity=".35"/>
         <path d="M9 21 h 34" stroke="#fff" stroke-width="2" stroke-dasharray="3 4"/>
       </svg></div>
-      <div class="lbl">Why for this workload</div>
-      <p>A convolution is a wall of independent <b>int8 multiply-accumulates</b>. A CPU does them one
-      or two at a time; the fabric does <b>sixteen every clock</b>, for as long as you can feed it.</p>
-      <p class="small">And it is deterministic — the same 174 blocks take the same number of cycles
-      every frame, which is what makes "bit-exact against a C reference" a testable claim.</p>
+      <div class="lbl">Parallel multiply-accumulate</div>
+      <p>Convolution contains many multiply-accumulate operations. This tile performs <b>16 MACs per clock</b> when operands are available.</p>
+      <p class="small">Integer arithmetic makes exact comparison with the C reference possible. Tests check both intermediate sums and final embeddings.</p>
     </div>
     <div>
       <div class="cico"><svg width="52" height="42" viewBox="0 0 52 42" fill="none">
@@ -631,68 +604,64 @@
         <line x1="19" y1="6" x2="19" y2="36" stroke="#f9ab00" stroke-width="1.6"/>
         <line x1="33" y1="6" x2="33" y2="36" stroke="#f9ab00" stroke-width="1.6"/>
       </svg></div>
-      <div class="lbl">The T8 is <i>tiny</i></div>
-      <p><b>7,384 logic elements. Eight 18×18 multipliers. 24 blocks of 5 kbit — 15.4 KB of on-chip
-      memory, total.</b> A mid-range FPGA has a hundred times that.</p>
-      <p class="small">The design uses <b>6,265 LE (85%), 8 of 8 multipliers, and 21 of 24 memory
-      blocks (88%)</b>. It started at 33% of the logic and memory was the only thing running out;
-      three milestones of arithmetic later, both are nearly full.</p>
+      <div class="lbl">Trion T8 limits</div>
+      <p><b>7,384 LEs, eight 18×18 multipliers, and 24 blocks of 5 kbit RAM</b>. Total FPGA memory is 15.4 KB.</p>
+      <p class="small">The current design uses <b>6,265 LEs (85%), all eight multipliers, and 21 memory blocks (88%)</b>. Both logic and memory limit further expansion.</p>
     </div>
   </div></section>
 
 <!-- ============ THE BOARD, BY THE NUMBERS ============ -->
 <section class="slide">
-  <div class="h">The board, by the numbers</div>
+  <div class="h">Board specifications and constraints</div>
   <table class="gt tight">
-    <thead><tr><th style="width:240px;"></th><th>What it is</th><th style="width:420px;">Why it matters here</th></tr></thead>
+    <thead><tr><th style="width:240px;"></th><th>Specification</th><th style="width:420px;">Design impact</th></tr></thead>
     <tbody>
       <tr><td><svg class="ric" width="26" height="26" viewBox="0 0 28 28" fill="none">
         <rect x="5" y="5" width="18" height="18" rx="3" stroke="#4285f4" stroke-width="2.2"/>
         <rect x="10" y="10" width="8" height="8" rx="1.5" fill="#4285f4" opacity=".5"/>
         <line x1="2" y1="11" x2="5" y2="11" stroke="#4285f4" stroke-width="2"/><line x1="2" y1="17" x2="5" y2="17" stroke="#4285f4" stroke-width="2"/>
         <line x1="23" y1="11" x2="26" y2="11" stroke="#4285f4" stroke-width="2"/><line x1="23" y1="17" x2="26" y2="17" stroke="#4285f4" stroke-width="2"/>
-      </svg>MCU</td><td>RP2354A — 2 × Cortex-M33, 520 KB SRAM, <b>2 MB stacked flash</b></td><td>The flash holds <b>768 KB of int4 weights + a 173 KB bitstream</b>. Everything is resident; nothing streams</td></tr>
+      </svg>MCU</td><td>RP2354A — 2 × Cortex-M33, 520 KB SRAM, <b>2 MB stacked flash</b></td><td>The model weights and FPGA bitstream fit in MCU flash. No external model storage is required.</td></tr>
       <tr><td><svg class="ric" width="26" height="26" viewBox="0 0 28 28" fill="none">
         <rect x="4" y="4" width="20" height="20" rx="3" stroke="#188038" stroke-width="2.2"/>
         <line x1="14" y1="4" x2="14" y2="24" stroke="#188038" stroke-width="1.4"/>
         <line x1="4" y1="14" x2="24" y2="14" stroke="#188038" stroke-width="1.4"/>
-      </svg>FPGA</td><td>Efinix Trion T8F49 — 7,384 LE, 8 hard multipliers, 15.4 KB BRAM</td><td>Uses <b>6,265 LE (85%), 8/8 multipliers, 21/24 memory blocks</b>. Both are nearly spent</td></tr>
+      </svg>FPGA</td><td>Efinix Trion T8F49 — 7,384 LE, 8 hard multipliers, 15.4 KB BRAM</td><td><b>85% of LEs, 8/8 multipliers, 21/24 RAM blocks</b> are in use.</td></tr>
       <tr><td><svg class="ric" width="26" height="26" viewBox="0 0 28 28" fill="none">
         <path d="M4 9 h20 M4 14 h20 M4 19 h20" stroke="#f9ab00" stroke-width="2.2" stroke-linecap="round"/>
-      </svg>The link</td><td><b>3 bits out, 1 bit back.</b> 26.4 MB/s forward, 8.9 MB/s back — measured</td><td>The netlist allows no wider run anywhere. Asymmetric <i>by construction</i>, which suits an accelerator</td></tr>
+      </svg>The link</td><td><b>3 bits out, 1 bit back.</b> 26.4 MB/s forward, 8.9 MB/s back — measured</td><td>Available pins limit the bus width. More data travels toward the accelerator than returns from it.</td></tr>
       <tr><td><svg class="ric" width="26" height="26" viewBox="0 0 28 28" fill="none">
         <circle cx="14" cy="14" r="10" stroke="#4285f4" stroke-width="2.2"/>
         <path d="M14 8 v6 l4.5 3" stroke="#4285f4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>Clocks</td><td><b>320 MHz sys / 160 MHz link</b>, bit-exact there. 332 is bit-exact and 10 ms faster, and is deliberately left on the table: 340 is not a higher setting to try — the link stops answering</td><td><code>link_clk = sys_clk / 2</code> is hard-tied, and <b>the MCU is the tile's only clock</b> — one knob moves everything</td></tr>
+      </svg>Clocks</td><td><b>320 MHz system / 160 MHz link</b>, with bit-exact results. 332 MHz saves 10 ms, but the deployed design stops responding at 340 MHz.</td><td><code>link_clk = sys_clk / 2</code>. The MCU supplies the FPGA clock, so increasing the link rate also speeds up computation.</td></tr>
       <tr><td><svg class="ric" width="26" height="26" viewBox="0 0 28 28" fill="none">
         <rect x="3" y="8" width="22" height="15" rx="3" stroke="#d93025" stroke-width="2.2"/>
         <circle cx="14" cy="15.5" r="4.5" stroke="#d93025" stroke-width="2.2"/>
         <path d="M10 8 l 2 -3 h 4 l 2 3" stroke="#d93025" stroke-width="2.2" stroke-linejoin="round"/>
-      </svg>Camera</td><td>ArduCam Mega 3MP over SPI, six wires to the header</td><td>Native 128 × 128 costs <b>0.001 mean AUC</b> against the training framing — the model sees what it was trained on</td></tr>
+      </svg>Camera</td><td>ArduCam Mega 3MP over SPI, six wires to the header</td><td>Native 128 × 128 capture reduced mean AUC by only <b>0.001</b> in the framing comparison.</td></tr>
       <tr><td><svg class="ric" width="26" height="26" viewBox="0 0 28 28" fill="none">
         <circle cx="14" cy="14" r="8" stroke="#188038" stroke-width="2.2"/>
         <path d="M14 3 v3 M14 22 v3 M3 14 h3 M22 14 h3 M6.5 6.5 l2 2 M19.5 19.5 l2 2 M21.5 6.5 l-2 2 M8.5 19.5 l-2 2" stroke="#188038" stroke-width="2" stroke-linecap="round"/>
-      </svg>Output</td><td>One RGB LED, plus a serial log</td><td>The whole point of an appliance: it answers with the host unplugged</td></tr>
+      </svg>Output</td><td>One RGB LED, plus a serial log</td><td>The LED displays the result. USB serial provides scores and diagnostic logs.</td></tr>
       <tr><td><svg class="ric" width="26" height="26" viewBox="0 0 28 28" fill="none">
         <path d="M14 24 s -9 -6 -9 -12 a 5 5 0 0 1 9 -3 a 5 5 0 0 1 9 3 c 0 6 -9 12 -9 12 z" stroke="#f9ab00" stroke-width="2.2" stroke-linejoin="round"/>
-      </svg>Price</td><td><b>~$50</b>, one board, off the shelf</td><td>No GPU, no cloud, no network. That constraint is the project</td></tr>
+      </svg>Price</td><td><b>~$50</b>, one board, off the shelf</td><td>The board performs image inference without a GPU or network service.</td></tr>
     </tbody>
   </table></section>
 
 <!-- ============ WHY NOT JUST RUN CLIP ============ -->
 <section class="slide">
-  <div class="h">Why not just run CLIP on it?</div>
-  <div class="hsub">Five places the encoder could have lived. Three of them were rejected before a line
-  was written, and the reasons are the architecture.</div>
+  <div class="h">Encoder implementation options</div>
+  <div class="hsub">Memory capacity eliminates the large-model options. The compact student fits, and FPGA acceleration reduces its processing time.</div>
   <div class="ladder">
     <div class="opt">
       <div class="oico"><svg width="50" height="44" viewBox="0 0 50 44" fill="none">
         <rect x="4" y="6" width="42" height="32" rx="4" stroke="#9aa0a6" stroke-width="2.4"/>
         <text x="25" y="27" font-size="12" fill="#9aa0a6" text-anchor="middle" font-family="Roboto">86 M</text>
       </svg></div>
-      <div class="ot">Real CLIP on the MCU</div>
-      <div class="ou">ViT-B/16 as published, 86 M parameters, on a Cortex-M33</div>
-      <div class="om">− 86 MB at int8, against 2 MB of flash. Not a tradeoff, an impossibility</div>
+      <div class="ot">Original CLIP image encoder</div>
+      <div class="ou">ViT-B/16: 86 M parameters on Cortex-M33</div>
+      <div class="om">− Weights alone need 86 MB at int8. The board has 2 MB of flash.</div>
     </div>
     <div class="opt">
       <div class="oico"><svg width="50" height="44" viewBox="0 0 50 44" fill="none">
@@ -700,9 +669,9 @@
         <rect x="28" y="10" width="18" height="24" rx="3" stroke="#9aa0a6" stroke-width="2.4"/>
         <path d="M22 22 h 6" stroke="#d93025" stroke-width="2.4" stroke-dasharray="3 3"/>
       </svg></div>
-      <div class="ot">Stream from external RAM</div>
-      <div class="ou">Keep a big model off-chip, pull the weights in layer by layer</div>
-      <div class="om">− No usable external memory. The fitted PSRAM answers its ID <b>18 bit-times out of frame</b> and is unusable</div>
+      <div class="ot">Model in external RAM</div>
+      <div class="ou">Read weights from external memory for each layer</div>
+      <div class="om">− The installed PSRAM is unusable: its ID response is offset by <b>18 bit periods</b>.</div>
     </div>
     <div class="opt">
       <div class="oico"><svg width="50" height="44" viewBox="0 0 50 44" fill="none">
@@ -710,19 +679,19 @@
         <line x1="6" y1="16" x2="44" y2="16" stroke="#9aa0a6" stroke-width="1.6"/>
         <line x1="25" y1="16" x2="25" y2="38" stroke="#9aa0a6" stroke-width="1.6"/>
       </svg></div>
-      <div class="ot">FPGA alone + HyperRAM</div>
-      <div class="ou">Cut the MCU out; let the fabric own the whole encoder</div>
-      <div class="om">− 15.4 KB of BRAM, and no QSPI/HyperRAM breakout is buyable for this part</div>
+      <div class="ot">FPGA with external memory</div>
+      <div class="ou">Run the complete encoder under FPGA control</div>
+      <div class="om">− Only 15.4 KB of internal RAM, without a usable external-memory connection in this design.</div>
     </div>
     <div class="opt">
       <div class="oico"><svg width="50" height="44" viewBox="0 0 50 44" fill="none">
         <rect x="6" y="8" width="38" height="28" rx="4" stroke="#f9ab00" stroke-width="2.4"/>
         <path d="M14 30 v -8 M22 30 v -14 M30 30 v -5 M38 30 v -11" stroke="#f9ab00" stroke-width="2.4" stroke-linecap="round"/>
       </svg></div>
-      <div class="ot">Distilled student, MCU only</div>
-      <div class="ou">1.40 M params, hand-tuned C, no FPGA involved</div>
-      <div class="op">+ Works, bit-exact, and is the honest baseline every number is measured against</div>
-      <div class="om">− <b>1,583 ms per frame</b> at the 320 MHz the appliance ships at. Two thirds of a frame per second is not an appliance</div>
+      <div class="ot">Student on MCU only</div>
+      <div class="ou">1.40 M parameters, optimized C implementation</div>
+      <div class="op">+ Functional, bit-exact reference implementation for speed comparisons</div>
+      <div class="om">− <b>1,583 ms per frame</b> at 320 MHz, about 0.63 frames per second.</div>
     </div>
     <div class="opt hl">
       <div class="badge">SHIPPED</div>
@@ -732,29 +701,27 @@
         <path d="M22 18 h 6" stroke="#1a73e8" stroke-width="2.4"/>
         <path d="M28 27 h -6" stroke="#188038" stroke-width="2.4"/>
       </svg></div>
-      <div class="ot">Student, MCU + FPGA tile</div>
-      <div class="ou">MCU cuts each layer into blocks; the fabric does the multiplies</div>
-      <div class="op">+ <b>265 ms of inference, 5.97×</b> at the same clock, all 8 layers in fabric, bit-exact 512/512</div>
+      <div class="ot">Student on MCU and FPGA</div>
+      <div class="ou">MCU schedules blocks. FPGA computes convolutions.</div>
+      <div class="op">+ <b>265 ms encoder time, 5.97× speedup</b> at the same clock. All 512 output floats match.</div>
     </div>
   </div>
   <div class="lbar">
     <div class="grad"></div>
-    <div class="ends"><span>less work &nbsp;·&nbsp; wouldn't fit</span><span>more work &nbsp;·&nbsp; what the board actually runs</span></div>
+    <div class="ends"><span>Limited by memory capacity</span><span>Implemented on the board</span></div>
   </div></section>
 
 <!-- ============ SECTION 03 · ARCHITECTURE ============ -->
 <section class="slide divider">
   <div class="num">03</div>
-  <div class="name">Architecture deep-dive</div>
-  <div class="kick">Three machines, one wire, and 6,264 transactions per frame — who runs what,
-  how a convolution layer is cut into pieces small enough to fit, and where the milliseconds go.</div>
+  <div class="name">System architecture</div>
+  <div class="kick">The host encodes text. The MCU schedules image inference. The FPGA accelerates convolution through a narrow data link.</div>
 </section>
 
 <!-- ============ WHO RUNS WHAT ============ -->
 <section class="slide">
-  <div class="h">Who runs what</div>
-  <div class="hsub">Three machines and a wire. The split is forced: the model does not fit in the
-  fabric, and the multiplies do not fit in the time budget of the MCU.</div>
+  <div class="h">Host, MCU and FPGA responsibilities</div>
+  <div class="hsub">The FPGA accelerator, called the tile, stores one computation block at a time. The MCU holds the complete model and schedules those blocks.</div>
   <div class="cols c4" style="margin-top:44px;">
     <div>
       <div class="cico"><svg width="46" height="40" viewBox="0 0 46 40" fill="none">
@@ -762,10 +729,8 @@
         <path d="M1 36 h44" stroke="#9aa0a6" stroke-width="2.2" stroke-linecap="round"/>
       </svg></div>
       <div class="lbl">Host</div>
-      <p>Runs the <b>teacher's text tower</b>, once per query. Pushes 512 floats and the bitstream
-      over USB.</p>
-      <p class="small">It is also the only place the model is trained, quantized and exported —
-      and it can be unplugged afterwards.</p>
+      <p>Runs the <b>text encoder</b> when a query changes and sends its 512-dimensional vector over USB. Loads the FPGA bitstream at startup.</p>
+      <p class="small">Training, quantization and model export also run off-device.</p>
     </div>
     <div>
       <div class="cico"><svg width="46" height="40" viewBox="0 0 46 40" fill="none">
@@ -773,10 +738,8 @@
         <text x="23" y="25" font-size="13" fill="#4285f4" text-anchor="middle" font-family="Roboto" font-weight="700">0</text>
       </svg></div>
       <div class="lbl">MCU core 0</div>
-      <p>Owns <b>the wire</b>. Stages each block, drives the link with PIO + DMA, checksums as the
-      bytes go past, and decodes what comes back.</p>
-      <p class="small">Also the tile's <b>only clock</b> — the fabric ticks when core 0 pushes a bit
-      and not otherwise.</p>
+      <p>Controls transfers using <b>PIO</b> (programmable I/O) and <b>DMA</b> (direct memory access). Prepares commands and checks returned data.</p>
+      <p class="small">PIO supplies the FPGA clock during transactions, including the cycles needed for computation.</p>
     </div>
     <div>
       <div class="cico"><svg width="46" height="40" viewBox="0 0 46 40" fill="none">
@@ -784,10 +747,8 @@
         <text x="23" y="25" font-size="13" fill="#188038" text-anchor="middle" font-family="Roboto" font-weight="700">1</text>
       </svg></div>
       <div class="lbl">MCU core 1</div>
-      <p>Builds the next block's <b>weights and input strips</b>, and scatters results back into the
-      activation buffer — over two lock-free rings.</p>
-      <p class="small">509 ms of work per frame that mostly <b>hides inside the wire's shadow</b>.
-      Only what does not fit shows up as stall.</p>
+      <p>Prepares the next block’s weights and input data, then writes results to the activation buffer. Two lock-free ring buffers coordinate the cores.</p>
+      <p class="small">In the current 270 ms benchmark, core 1 is busy for <b>149 ms</b>. Most of that overlaps link activity, leaving <b>5 ms</b> of waiting on core 0.</p>
     </div>
     <div>
       <div class="cico"><svg width="46" height="40" viewBox="0 0 46 40" fill="none">
@@ -795,75 +756,55 @@
         <circle cx="20" cy="20" r="7" fill="#f9ab00" opacity=".35"/>
       </svg></div>
       <div class="lbl">FPGA tile</div>
-      <p><b>2,048 int32 accumulators, 16 MACs per clock</b> — eight hard multipliers and, since M16,
-      eight more built out of logic. Plus int4 unpacking (M14) and the requantize epilogue (M15).</p>
-      <p class="small">It holds no model. It is a very fast, very small dot-product engine that is
-      handed operands and asked for sums.</p>
+      <p><b>2,048 int32 accumulators and 16 MACs per clock</b>. Eight multipliers are dedicated hardware and eight use logic elements.</p>
+      <p class="small">The tile also unpacks int4 weights and requantizes outputs. The MCU supplies each block’s operands.</p>
     </div>
   </div>
-  <div class="vnote"><b>The one-line summary:</b> the MCU knows what the model is; the FPGA knows how
-  to multiply. Everything hard in this project is at the seam between them.</div>
+  <div class="vnote"><b>Design boundary:</b> the MCU manages the model and memory layout. The FPGA accelerates block-level arithmetic. Transfer scheduling connects the two.</div>
   </section>
 
 <!-- ============ ONE FRAME, IN ORDER ============ -->
 <section class="slide">
-  <div class="h">One frame, in order</div>
-  <div class="hsub">128 × 128 × 3 in, 512 floats out — and the middle step happens 174 times.</div>
+  <div class="h">Image inference pipeline</div>
+  <div class="hsub">A 128 × 128 RGB image becomes a 512-dimensional embedding. The eight convolution layers require 174 computation blocks in total.</div>
   <div class="steps">
     <div class="step b">
       <div class="dot"></div>
       <div class="t">Quantize</div>
-      <div class="d">Normalize to [−1, 1], divide by <code>in_scale</code>, round, clip to ±127.
-      <code>conv0</code> is the only stage that ever sees signed input.</div>
+      <div class="d">Normalize to [−1, 1], divide by <code>in_scale</code>, round and clip to ±127. Only <code>conv0</code> uses signed input activations.</div>
     </div>
     <div class="step y">
       <div class="dot"></div>
       <div class="t">Eight conv stages</div>
-      <div class="d">All 3 × 3, padding 1, no bias — batch norm folded into the weights at export,
-      so the hardware only ever sees a plain int8 convolution.
-      <b>174 blocks · 1,856 passes · 6,264 transactions.</b></div>
+      <div class="d">3 × 3 kernels, padding 1, no bias. Export folds batch normalization into the weights. <b>174 blocks, 1,856 passes, 6,264 transactions.</b></div>
     </div>
     <div class="step g">
       <div class="dot"></div>
       <div class="t">Pool and head</div>
-      <div class="d">4 × 4 × 256 averaged to 256 floats, requantized, then one 256 → 512 linear.
-      131 KMAC — small enough to stay on the MCU.</div>
+      <div class="d">Average the 4 × 4 × 256 output spatially, then apply a 256-to-512 linear layer. Its 131 KMAC workload stays on the MCU.</div>
     </div>
     <div class="step r">
       <div class="dot"></div>
       <div class="t">Decide</div>
-      <div class="d">The 512-d embedding is compared against each query, standardized against
-      <i>this room</i>, split into presence and state, and put on the LED. That is section 05.</div>
+      <div class="d">Compare the embedding with the text vectors, normalize scores using the room background, and decide the object state and presence.</div>
     </div>
   </div>
-  <div class="vnote" style="margin-top:64px;"><b>Two details are load-bearing later.</b> The
-  accumulator is <b>int32 and must stay int32</b> — it is the one value the FPGA is checked against,
-  and C will silently widen it the moment an <code>int64</code> creeps into the expression. And
-  <code>conv7</code> emits <b>float rather than codes</b>: its output is only 16 KB, and quantizing
-  immediately before an average pool would wash the codes out anyway.</div>
+  <div class="vnote" style="margin-top:64px;"><b>Numerical consistency:</b> accumulation uses int32 in both the FPGA and C reference. The final convolution output becomes float before average pooling, avoiding an extra integer rounding step.</div>
   </section>
 
 <!-- ============ CUTTING A LAYER INTO BLOCKS ============ -->
 <section class="slide">
-  <div class="h">Cutting a layer into blocks</div>
+  <div class="h">Block scheduling for limited FPGA memory</div>
   <div class="split" style="grid-template-columns: 600px 1fr;">
     <div class="body">
-      <p>A conv layer is far too big for 15.4 KB of block RAM. So the MCU <b>cuts it into pieces the
-      tile can hold</b> and streams them past.</p>
+      <p>A complete convolution layer exceeds the FPGA’s memory. The MCU divides it into blocks that fit, then sends them in sequence.</p>
       <ul class="dots">
-        <li>The tile holds <b>2,048 int32 accumulators</b> and a <b>2 KB slice of input</b> — that is
-        the entire working set</li>
-        <li>One frame becomes <b>174 blocks</b>, <b>1,856 passes</b> and <b>6,264 transactions</b></li>
-        <li>Four command types per block: <span class="em">ACT</span> (push activations),
-        <span class="em">WGT</span> (push weights), <span class="em">RUN</span> (compute — carries no
-        data at all), <span class="em">DRAIN</span> (read the answers back)</li>
+        <li>Each block uses up to <b>2,048 int32 accumulators</b> and a <b>2 KB input slice</b></li>
+        <li>Per frame: <b>174 blocks</b>, <b>1,856 passes</b> through channel/kernel groups, <b>6,264 transactions</b></li>
+        <li><code>ACT</code>: send inputs. <code>WGT</code>: send weights. <code>RUN</code>: compute. <code>DRAIN</code>: read results.</li>
       </ul>
-      <p><b>Weights are resident, not streamed.</b> All 768 KB live in the MCU's flash and are
-      pushed as the schedule needs them. The alternative — a big model in external memory — is the
-      option that does not exist on this board.</p>
-      <p class="mut">Since M15 the tile requantizes internally and <code>DRAIN</code> returns
-      <b>one byte per accumulator instead of four</b>, which took the return path from 153 ms to
-      41 ms on the board.</p>
+      <p><b>All model weights reside in MCU flash.</b> The MCU transfers only the weights needed for each block to the FPGA.</p>
+      <p class="mut">The tile can requantize outputs to one byte before <code>DRAIN</code>. In the M15 test, this reduced return-transfer time from <b>153 ms to 41 ms</b>.</p>
     </div>
     <div>
       <div class="imgcard" style="height:360px;">
@@ -899,32 +840,24 @@
           <line x1="34" y1="316" x2="366" y2="316" stroke="#dadce0" stroke-width="1.6"/>
         </svg>
       </div>
-      <div class="imgcap">The tile's whole working set is one block at a time</div>
+      <div class="imgcap">The FPGA reuses the same storage for each block.</div>
     </div>
   </div></section>
 
 <!-- ============ THE LINK ============ -->
 <section class="slide">
-  <div class="h">The link: 3 bits out, 1 bit back</div>
-  <div class="hsub">The plan was an 8-bit bus. The netlist said no — and the shape of everything above
-  follows from that one measurement.</div>
+  <div class="h">MCU–FPGA data link</div>
+  <div class="hsub">Board wiring limits the data bus to three bits toward the FPGA and one bit back to the MCU.</div>
   <div class="split" style="grid-template-columns: 620px 1fr; margin-top: 30px;">
     <div class="body">
       <ul class="dots">
-        <li><b>M0 extracted the pin map from the vendor's KiCad source.</b> Only 6 header pins reach
-        the MCU, 13 GPIO are unbonded, and the widest contiguous run anywhere is <b>3 bits</b></li>
-        <li>The return path is <b>1 bit and cannot be widened</b>: GPIO5 is <code>CDONE</code> and
-        GPIO7 has no pad, so GPIO6 has no neighbour</li>
-        <li>One soldered jumper moved the clock out of the data pins, buying the third data bit
-        <i>and</i> the only clock-capable ball the MCU can reach</li>
-        <li>Measured: <b>26.4 MB/s forward</b> (1.6% under the computed ceiling) and
-        <b>8.9 MB/s back</b></li>
+        <li><b>Pin-map check:</b> six header pins reach the MCU, 13 GPIOs are unbonded, and the widest usable consecutive group is three bits</li>
+        <li><b>Return path:</b> only GPIO6 is available. GPIO5 is <code>CDONE</code>, and GPIO7 has no package pad</li>
+        <li><b>Clock jumper:</b> moving the clock to a clock-capable FPGA pin frees the third data line</li>
+        <li><b>Measured throughput:</b> 26.4 MB/s toward the FPGA and 8.9 MB/s back</li>
       </ul>
-      <p><b>The asymmetry is a feature.</b> It suits an accelerator that is fed weights and
-      activations and asked for a much smaller answer — and it is why the design pushes whole layers
-      rather than shuttling operands.</p>
-      <p class="mut">Half of the wire time is the tile <i>computing</i>, not bytes moving. That is
-      why raising the link clock bought far more than the byte rate alone predicted.</p>
+      <p>The accelerator receives weights and input activations, then returns a smaller result. This workload suits the asymmetric link.</p>
+      <p class="mut">The MCU supplies clock cycles for computation as well as transfer. Raising the link clock therefore speeds up both.</p>
     </div>
     <div>
       <table class="gt tight" style="margin-top:0;">
@@ -935,24 +868,15 @@
           <tr><td>Clock</td><td class="nm">1</td><td>PIO side-set — <b>the MCU is the tile's only clock</b></td></tr>
         </tbody>
       </table>
-      <div class="imgcap" style="text-align:left; margin-top:22px; line-height:1.65;">
-        The forward path is <b>PIO + DMA</b>, and the DMA sniffer hashes the bytes as they go past, so
-        the CRC costs nothing. The return path is <b>one pin</b> and always will be — which is why M15
-        moved the requantize into the fabric so <code>DRAIN</code> returns a byte per accumulator
-        instead of four.
-      </div>
-      <div class="imgcap" style="text-align:left; margin-top:18px; line-height:1.65;">
-        And because the clock is side-set from the MCU's PIO, <b>the fabric only ticks while the MCU
-        is pushing</b>. There is no free-running tile to wait on.
-      </div>
+      <div class="imgcap" style="text-align:left; margin-top:22px; line-height:1.65;">PIO and DMA handle transfers. The DMA checksum unit computes CRC during transfer. Requantizing in the FPGA reduces return traffic.</div>
+      <div class="imgcap" style="text-align:left; margin-top:18px; line-height:1.65;">The FPGA clock comes from PIO side-set: an output pin controlled by each PIO instruction. The tile has no independent free-running clock.</div>
     </div>
   </div></section>
 
 <!-- ============ ONE TRANSACTION ON THE WIRE ============ -->
 <section class="slide">
-  <div class="h">One transaction on the wire</div>
-  <div class="hsub">Six thousand two hundred and sixty-four of these per frame. Cells are bytes,
-  not clocks.</div>
+  <div class="h">Link transaction format</div>
+  <div class="hsub">Each transaction carries a command, optional data and integrity checks. The diagram uses one cell per byte.</div>
   <div class="imgcard" style="margin-top:36px; padding:22px 16px;">
     <img src="../docs/img/wire.svg" alt="gemm_link transaction timing, configuration C"
          style="width:100%;" onerror="this.onerror=null;this.style.display='none';">
@@ -960,115 +884,85 @@
   <div class="cols c3" style="margin-top:40px;">
     <div>
       <div class="lbl" style="font-size:21px;">Framing</div>
-      <p style="font-size:17px;">A two-byte preamble <code>a5 5a</code>, then <code>cmd</code> and a
-      16-bit length. The receiver hunts for the preamble, so a resync costs one transaction rather
-      than a reset.</p>
+      <p style="font-size:17px;">The frame begins with <code>a5 5a</code>, followed by a command and a 16-bit length. The receiver searches for this preamble to recover synchronization.</p>
     </div>
     <div>
       <div class="lbl" style="font-size:21px;">Seven states</div>
-      <p style="font-size:17px;"><code>R_HUNT → R_HDR → R_PAY → R_EXEC → R_WAIT → R_TX → R_CHK</code>.
-      <code>R_WAIT</code> exists for <code>RUN</code> alone — the one command that carries no payload
-      and takes all the time.</p>
+      <p style="font-size:17px;">The receiver handles the header, payload, execution, response and checksum in seven states. <code>RUN</code> has no payload and waits for computation to finish.</p>
     </div>
     <div>
       <div class="lbl" style="font-size:21px;">Checked both ways</div>
-      <p style="font-size:17px;">A CRC over the payload each direction, plus a status byte. Every
-      "bit-exact" claim in this talk is <b>512 of 512 floats</b> on top of <b>zero non-exact
-      transactions</b>.</p>
+      <p style="font-size:17px;">CRC checks the payload in both directions. A status byte reports command results. Tests also compare the complete 512-float output with the C reference.</p>
     </div>
   </div></section>
 
 <!-- ============ WHERE THE MILLISECONDS GO ============ -->
 <section class="slide">
-  <div class="h">Where the milliseconds go</div>
-  <div class="hsub">The per-actor breakdown at the rate the appliance ships at — <b>320 MHz sys /
-  160 MHz link</b>, a 270 ms frame. Read it for <i>which actor waits on which</i>: <code>RUN</code>
-  is the only row that is arithmetic, and everything else is moving bytes to feed it.</div>
+  <div class="h">Processing time by component</div>
+  <div class="hsub">Camera-free benchmark at <b>320 MHz system / 160 MHz link</b>: 270 ms per frame. Values below are milliseconds. FPGA computation is included in link elapsed time.</div>
   <div class="bars" style="margin-top:44px;">
     <div class="bar">
-      <div class="bl">core 0 — the wire, elapsed<small>everything else hides in here</small></div>
+      <div class="bl">Core 0: link elapsed time<small>Includes FPGA computation</small></div>
       <div class="track"><div class="fill f-blue" style="width:100%"></div></div>
       <div class="pv">202</div>
     </div>
     <div class="bar">
-      <div class="bl" style="padding-left:26px; color:#5f6368;">…of which the tile computing<small>RUN — carries no data, just cycles</small></div>
+      <div class="bl" style="padding-left:26px; color:#5f6368;">FPGA computation<small>Subset of link time: RUN command</small></div>
       <div class="track"><div class="fill f-yellow" style="width:51%"></div></div>
       <div class="pv" style="font-size:22px; color:#5f6368;">103</div>
     </div>
     <div class="bar">
-      <div class="bl">core 0 — stage, locate, crc, decode<small>between transactions; cannot overlap</small></div>
+      <div class="bl">Core 0: command preparation<small>Staging, lookup, CRC and decoding</small></div>
       <div class="track"><div class="fill f-red" style="width:29.7%"></div></div>
       <div class="pv">60</div>
     </div>
     <div class="bar">
-      <div class="bl">core 0 — stalled on core 1<small>the part of core 1 that did <i>not</i> fit</small></div>
+      <div class="bl">Core 0: waiting for core 1<small>Work that did not finish during transfer</small></div>
       <div class="track"><div class="fill f-red" style="width:2.5%"></div></div>
       <div class="pv">5</div>
     </div>
     <div class="bar">
-      <div class="bl">core 1 — busy<small>weight builds, strips, DRAIN decode, scatter</small></div>
+      <div class="bl">Core 1: active processing<small>Input/weight preparation and result writes</small></div>
       <div class="track"><div class="fill f-green" style="width:73.8%"></div></div>
       <div class="pv">149</div>
     </div>
   </div>
-  <div class="vnote" style="margin-top:34px;">These are <b>totals per actor, not a timeline</b>.
-  Core 1's 149 ms runs <i>concurrently</i> with core 0's 202 ms of wire — that is the entire point of
-  having a second core, and the 5 ms of stall is all that did not fit. The core-0 rows sum to 267
-  against 270 measured. <b>This chart used to show the 851 ms frame of 2026-08-03</b>, at 8 MACs and
-  a 75 MHz link, because that was the only breakdown anyone had ever taken. Asking for it again at
-  the shipped rate is what found the appliance still draining int32 accumulators three milestones
-  after the tile learned to drain codes: <b>349 → 270 ms, from one line</b>.</div>
+  <div class="vnote" style="margin-top:34px;"><b>These bars overlap in time.</b> Core 1 performs 149 ms of work mostly during the 202 ms link interval. Core 0 waits only 5 ms. Its non-overlapping components total 202 + 60 + 5 = 267 ms, close to the measured 270 ms.</div>
   </section>
 
 <!-- ============ SECTION 04 · OPTIMIZATION ============ -->
 <section class="slide divider">
   <div class="num">04</div>
-  <div class="name">3,359 ms &rarr; 270 ms</div>
-  <div class="kick">Eleven milestones of making the same frame faster — and the two rules that came
-  out of measuring every one of them against a control in the same boot.</div>
+  <div class="name">Inference optimization</div>
+  <div class="kick">The camera-free benchmark improved from 3,359 ms on the MCU to 270 ms with the FPGA. The following measurements explain where the gains came from.</div>
 </section>
 
 <!-- ============ THE LADDER ============ -->
 <section class="slide">
-  <div class="h">The ladder</div>
-  <div class="hsub">Every row is bit-exact against <code>firmware/encoder.c</code>, and every "×" is
-  against the same model on the MCU alone — <b>re-measured in the same boot</b>, never against a
-  remembered constant.</div>
+  <div class="h">Optimization results</div>
+  <div class="hsub">Camera-free m7 benchmark. M-numbers identify development stages. All outputs match the C reference bit for bit.</div>
   <table class="gt tight" style="margin-top:26px;">
     <thead><tr><th style="width:130px;">Milestone</th><th>What changed</th><th style="width:110px;">Frame</th><th style="width:90px;">vs MCU</th></tr></thead>
     <tbody>
-      <tr><td>baseline</td><td>The student on the MCU alone, hand-tuned C, no FPGA</td><td class="nm">3,359 ms</td><td class="nm">1.00×</td></tr>
-      <tr><td>M7c</td><td>A whole frame on the tile — 174 blocks, 8 layers, 512/512 floats exact</td><td class="nm">2,164 ms</td><td class="nm">1.62×</td></tr>
-      <tr><td>M7d</td><td>DMA moves the bytes and the sniffer hashes them, so the checksum is free</td><td class="nm">1,481 ms</td><td class="nm">2.35×</td></tr>
-      <tr><td>M7e</td><td>Weight builds and scatter handed to core 1 over a lock-free ring</td><td class="nm">1,292 ms</td><td class="nm">2.71×</td></tr>
-      <tr><td>M7f/g</td><td>Two rings, the hot path off XIP flash, and the jumper soldered</td><td class="nm">975 ms</td><td class="nm">3.54×</td></tr>
-      <tr><td>M7h/i</td><td>Cache the weight build; one instruction each for round and clamp</td><td class="nm">851 ms</td><td class="nm">3.94×</td></tr>
-      <tr><td>M14</td><td>int4 weights — two per byte on the wire, one runtime config bit</td><td class="nm">798 ms</td><td class="nm">4.32×</td></tr>
-      <tr><td>M15</td><td>Requantize inside the tile — <code>DRAIN</code> returns 1 byte, not 4</td><td class="nm">631 ms</td><td class="nm">5.46×</td></tr>
-      <tr><td>M16</td><td>Pair kernel taps on <code>kx</code>: nine sweeps per channel block become six</td><td class="nm">569 ms</td><td class="nm">6.05×</td></tr>
-      <tr class="hl"><td>the clock</td><td><b>No RTL at all.</b> 150 → 220 → 280 → <b>320 MHz sys / 160 MHz link</b></td><td class="nm"><b>270 ms</b></td><td class="nm"><b>12.76×</b></td></tr>
+      <tr><td>baseline</td><td>Optimized student model on the MCU alone</td><td class="nm">3,359 ms</td><td class="nm">1.00×</td></tr>
+      <tr><td>M7c</td><td>All eight convolution layers on the FPGA, in 174 blocks</td><td class="nm">2,164 ms</td><td class="nm">1.62×</td></tr>
+      <tr><td>M7d</td><td>DMA data transfer and hardware CRC calculation</td><td class="nm">1,481 ms</td><td class="nm">2.35×</td></tr>
+      <tr><td>M7e</td><td>Core 1 prepares weights and writes output activations</td><td class="nm">1,292 ms</td><td class="nm">2.71×</td></tr>
+      <tr><td>M7f/g</td><td>Two work queues, critical code in SRAM, three-bit link</td><td class="nm">975 ms</td><td class="nm">3.54×</td></tr>
+      <tr><td>M7h/i</td><td>Cached weight preparation and faster rounding/clamping</td><td class="nm">851 ms</td><td class="nm">3.94×</td></tr>
+      <tr><td>M14</td><td>int4 weight transfer: two weights per byte</td><td class="nm">798 ms</td><td class="nm">4.32×</td></tr>
+      <tr><td>M15</td><td>FPGA requantization: one output byte instead of four</td><td class="nm">631 ms</td><td class="nm">5.46×</td></tr>
+      <tr><td>M16</td><td>Parallel kernel taps: six sweeps instead of nine</td><td class="nm">569 ms</td><td class="nm">6.05×</td></tr>
+      <tr class="hl"><td>the clock</td><td>Clock increase to <b>320 MHz system / 160 MHz link</b></td><td class="nm"><b>270 ms</b></td><td class="nm"><b>12.76×</b></td></tr>
     </tbody>
   </table>
-  <div class="vnote" style="margin-top:26px;"><b>851 ms was called the floor for this board.</b> The
-  claim rested on 313 ms of it being the tile computing against a fabric that "caps at 125 MHz". Both
-  halves turned out to be moveable — and the single largest win in the table is the one with no
-  design work in it. <b>Every row is the <code>m7</code> harness, which runs no camera</b>, and every
-  ratio is against <code>encoder_fast</code> measured in the same boot — but <b>the last row is not
-  one clock</b>: <code>m7</code> takes its MCU baseline at its 150 MHz boot rate and then runs the
-  ladder up. At <i>one</i> clock the appliance is 5.97×. Its camera frame is <b>282 ms</b> today —
-  the last 56 ms of that came off by overlapping the capture with the compute, and 80 more by
-  switching on the M15 epilogue nobody had noticed was off. <b>282 is a sum of measured parts;</b>
-  the board also times the interval between frames with its own clock and gets <b>293 ms</b>, over
-  300 of 300 frames. The 11 ms belongs to the LED and the CDC line, and a sum of parts is the one
-  thing an overlap can flatter, so the appliance now prints both.</div>
+  <div class="vnote" style="margin-top:26px;"><b>Clock conditions:</b> the final 12.76× compares FPGA operation at 320 MHz with the MCU at 150 MHz. At the same 320 MHz, speedup is <b>5.97×</b> (1,583 ms / 265 ms).</div>
   </section>
 
 <!-- ============ INT4 ============ -->
 <section class="slide">
-  <div class="h">Half the weight bytes, bit-exact</div>
-  <div class="hsub"><b>1,403,744 parameters in 767,840 bytes.</b> Seven of the nine layers are
-  nibbles, two per byte; <code>conv0</code> and the head stay 8-bit, which is why the ratio is 0.547
-  and not 0.5. The multiplier never finds out.</div>
+  <div class="h">int4 weight transfer with unchanged arithmetic</div>
+  <div class="hsub"><b>1,403,744 parameters in 767,840 bytes.</b> Seven layers use four-bit weights. The first convolution and final linear layer keep eight-bit weights, giving 54.7% of the all-int8 size.</div>
   <div class="cols c3" style="margin-top:24px;">
     <div>
       <div class="cico"><svg width="52" height="42" viewBox="0 0 52 42" fill="none">
@@ -1077,27 +971,18 @@
         <path d="M28 21 h9 M33 17 l4 4 -4 4" stroke="#9aa0a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         <rect x="40" y="12" width="9" height="18" rx="2.5" stroke="#4285f4" stroke-width="2.2"/>
       </svg></div>
-      <div class="lbl">Where the nibble is undone</div>
-      <p><b>At the write port, not at the multiplier.</b> Two weights per byte, <b>low nibble
-      first</b>, sign-extended to 8 bits on the way into <code>wbuf</code>.</p>
-      <p class="small">Low-nibble-first is not a convention, it is what makes byte <i>b</i> land on
-      lanes 2<i>b</i> and 2<i>b</i>+1 with no shuffle — the tile already reads
-      <code>wreg[4*j +: 4]</code>. Storage stays 8 bits wide, so <code>wreg</code>, the fan-out and
-      the multiplier operand are <b>bit-for-bit what M6b built</b>. The Logic-Level-0 path M10
-      measured never moved.</p>
+      <div class="lbl">Unpacking at the input</div>
+      <p>Each byte contains two signed four-bit weights. The tile reads the low nibble first and sign-extends each weight to eight bits before storing it in <code>wbuf</code>.</p>
+      <p class="small">Weight-buffer width and multiplier inputs remain unchanged. Packing reduces transfer size without changing the stored numeric values.</p>
     </div>
     <div>
       <div class="cico"><svg width="52" height="42" viewBox="0 0 52 42" fill="none">
         <circle cx="26" cy="21" r="13" stroke="#188038" stroke-width="2.2"/>
         <path d="M19 21.5 l5 5 L34 15" stroke="#188038" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
       </svg></div>
-      <div class="lbl">The product does not change</div>
-      <p>Same 10×8 DSP, same shape, <b>identical product</b> — so <code>tb_gemm</code>'s golden
-      values needed no separate arm and no wire format moved.</p>
-      <p class="small"><code>cfg_w4</code> is a <b>runtime input per block</b>, not a bitstream
-      parameter — <code>--ends8</code> pins <code>conv0</code> to 8 bits while <code>frame.c</code>
-      runs all eight convolutions on one tile, so both widths have to be live at once. Width belongs
-      to the exported blob (<code>d-&gt;wbits</code>), never to the host.</p>
+      <div class="lbl">Same multiplier inputs</div>
+      <p>The existing multiplier computes the same products. The same golden values verify both packed and unpacked weight transfer.</p>
+      <p class="small"><code>cfg_w4</code> selects weight width for each block at runtime. The exported model specifies each layer’s width, so one bitstream handles both formats.</p>
     </div>
     <div>
       <div class="cico"><svg width="52" height="42" viewBox="0 0 52 42" fill="none">
@@ -1106,81 +991,57 @@
         <rect x="24" y="21" width="10" height="11" fill="#f9ab00" opacity=".4"/>
         <path d="M38 16 l7 -7 M45 9 v6 M45 9 h-6" stroke="#188038" stroke-width="2" stroke-linecap="round"/>
       </svg></div>
-      <div class="lbl">What it bought</div>
-      <p>Weight payload <b>2,230,272 → 1,142,784 B</b> a frame. <code>WGT</code> <b>6.66 → 3.76
-      Mclk</b>; <code>ACT</code>, <code>RUN</code> and <code>DRAIN</code> identical to the digit,
-      which is what says only the width moved.</p>
-      <p class="small"><b>121 ms of frame in configuration A, 35 in C</b> — the narrow link is where
-      it pays, because what it deletes is wire bytes. The 2.90 Mclk over 1,087,488 bytes is
-      <b>2.667 clocks per byte, which is 8 bits over three data lines exactly</b>. Nothing is
-      unaccounted for.</p>
+      <div class="lbl">Measured transfer reduction</div>
+      <p>Weight traffic falls from <b>2,230,272 to 1,142,784 bytes per frame</b>. Weight-transfer cycles fall from <b>6.66 to 3.76 million</b>.</p>
+      <p class="small">Other commands are unchanged. Saving 1,087,488 bytes removes 2.90 million link clocks, consistent with eight bits per byte over three data lines.</p>
     </div>
   </div>
-  <div class="vnote" style="margin-top:24px;"><b>And the non-result is the useful half.</b> Core 1's
-  weight builds measured <b>284 against 290 ms</b> across a doubling of the weight bytes. The builder
-  is charged per <i>weight</i>, not per byte — it reads half as much flash and does an unpack the
-  8-bit arm does not, and the two cancel. Which is the next slide, three milestones early.</div>
+  <div class="vnote" style="margin-top:24px;"><b>Transfer reduction does not guarantee equal CPU savings.</b> Core 1’s weight preparation measured 284 ms versus 290 ms. It reads fewer bytes but must unpack each weight, so its processing time changes little.</div>
   </section>
 
 <!-- ============ THE CONVERSION LESSON ============ -->
 <section class="slide">
-  <div class="h">A component saving is not a frame saving</div>
-  <div class="hsub">Five consecutive milestones predicted a component saving correctly and then
-  collected less than face value at the frame — by a <i>different mechanism every time</i>.</div>
+  <div class="h">How overlap affects frame time</div>
+  <div class="hsub">Reducing one operation helps the frame only when that operation delays other work. These historical experiments show the effect of overlap and waiting.</div>
   <div class="rows tight" style="margin-top:26px; grid-template-columns: 300px 1fr;">
     <div class="lbl"><svg class="lico" width="26" height="24" viewBox="0 0 28 26" fill="none">
       <path d="M3 22 h22" stroke="#4285f4" stroke-width="2" stroke-linecap="round"/>
       <rect x="5" y="10" width="6" height="10" fill="#4285f4"/>
       <rect x="14" y="4" width="6" height="16" fill="#4285f4" opacity=".45"/>
-    </svg>The pattern</div>
+    </svg>Smaller gains than predicted</div>
     <ul class="dots">
-      <li><b>M7d</b> left 563 ms of CPU outside the wire it thought it had covered</li>
-      <li><b>M7e</b> projected 380 ms from the second core and got 193 — work already hidden in a DMA window costs nothing whichever core runs it</li>
-      <li><b>M7f</b> moved 157 ms off core 0 and bought 59, with 101 coming back as stall behind one FIFO</li>
-      <li><b>the jumper</b> saved 286 ms of <i>wire</i> and <b>0 ms of frame</b>, until three reasons were found and 165 recovered</li>
-      <li><b>M10</b> was scoped around ~450 ms and measured 32 — so it was closed without being built</li>
+      <li><b>M7d:</b> 563 ms of CPU work remained outside the DMA transfer interval</li>
+      <li><b>M7e:</b> moving work to core 1 saved 193 ms, versus 380 ms predicted. Some work already overlapped DMA</li>
+      <li><b>M7f:</b> removing 157 ms from core 0 saved 59 ms overall because FIFO waiting increased</li>
+      <li><b>Three-bit link:</b> 286 ms less transfer time initially saved no frame time. Removing other bottlenecks later recovered 165 ms</li>
+      <li><b>M10:</b> the expected ~450 ms bottleneck measured only 32 ms, so the proposed optimization was dropped</li>
     </ul>
     <div class="lbl"><svg class="lico" width="26" height="26" viewBox="0 0 26 26" fill="none">
       <circle cx="13" cy="13" r="10" stroke="#188038" stroke-width="2"/>
       <path d="M8 13.5 l3.6 3.6 L19 9.5" stroke="#188038" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>The exception</div>
+    </svg>When savings reach the frame</div>
     <ul class="dots">
-      <li><b>M7i converted at 79%</b>, and the reason proves the rule: all 84 ms came out of the one
-      queue whose overruns <i>become</i> core 0's stall instead of hiding in the wire's shadow.
-      The same 84 ms taken from the other queue would have collected far less</li>
-      <li><b>M16 converted at 100% and 66% simultaneously</b>, same board, same run, same 16.30 Mclk
-      in the tile. What differed is what was standing behind it — the faster link configuration runs
-      out of shadow first</li>
+      <li><b>M7i:</b> an 84 ms reduction in a queue that blocked core 0 produced 79% of that reduction in frame time</li>
+      <li><b>M16:</b> the same 16.30 million FPGA-clock reduction produced 100% or 66% of the expected frame saving, depending on link configuration</li>
     </ul>
     <div class="lbl"><svg class="lico" width="26" height="26" viewBox="0 0 26 26" fill="none">
       <path d="M4 20 L 13 5 L 22 20 Z" stroke="#f9ab00" stroke-width="2.2" stroke-linejoin="round"/>
       <line x1="13" y1="11" x2="13" y2="15.5" stroke="#f9ab00" stroke-width="2.2" stroke-linecap="round"/>
       <circle cx="13" cy="18" r="1.4" fill="#f9ab00"/>
-    </svg>And the mirror</div>
+    </svg>CPU time versus waiting time</div>
     <ul class="dots">
-      <li><b>A component <i>cost</i> is worth face value only if something is actually waiting on it.</b>
-      Core 1 spends 82 ms building weights, but it is only 56% busy — core 0 waits about
-      <b>20 ms</b>, not 82. Two milestones were planned against a cost nothing was blocked on</li>
+      <li><b>Waiting determines the critical path.</b> In one profile, core 1 spent 82 ms preparing weights, but core 0 waited about 20 ms. Eliminating all 82 ms would not save 82 ms per frame.</li>
     </ul>
   </div></section>
 
 <!-- ============ THE CLOCK STATEMENT ============ -->
 <section class="slide statement">
-  <div class="txt">A ladder that only steps down<br>
-  <span class="hl-b">cannot find a ceiling</span> —<br>it can only confirm the rung it starts on
-  <span class="cap">Every clock sweep in this project descended from 150 MHz and stopped at the first
-  rung that passed. So the logs said <b>"bit-exact at 75.0 MHz"</b> and everyone read
-  <b>"bit-exact <i>up to</i> 75.0 MHz"</b>. Two milestones' worth of plans were written around a limit
-  that had never been measured — including one milestone's own statement that the tile "is the one
-  line no link change can touch". Asking for more got <b>280 MHz sys / 140 MHz link</b>, three boots,
-  every cycle count identical to the digit. <b>Worth auditing anywhere a measured <i>pass</i> has been
-  quietly read as a measured <i>bound</i>.</b></span></div></section>
+  <div class="txt">A passing clock rate<br><span class="hl-b">does not establish the maximum</span><span class="cap">Early tests started at 150 MHz system / 75 MHz link and only lowered the clock after failure. That procedure never tested higher rates. Testing upward later reached <b>280 MHz system / 140 MHz link</b> with bit-exact results in three boots. Measure both passing and failing rates before treating a clock setting as a limit.</span></div></section>
 
 <!-- ============ THE DEAD BAND ============ -->
 <section class="slide">
-  <div class="h">The ladder is not monotonic</div>
-  <div class="hsub">Filling the clock sweep in at 4 MHz found something better than a faster rate:
-  a repeatable physical measurement, taken with a firmware constant and a stopwatch.</div>
+  <div class="h">Clock frequencies that fail between passing rates</div>
+  <div class="hsub">The diagnostic test found two failing link-frequency bands, with passing rates on either side. Higher frequency did not always mean failure.</div>
   <div class="cols c3" style="margin-top:38px;">
     <div>
       <div class="cico"><svg width="90" height="42" viewBox="0 0 90 42" fill="none">
@@ -1190,12 +1051,9 @@
         <rect x="24" y="24" width="30" height="10" fill="#188038" opacity=".35"/>
         <rect x="78" y="24" width="8" height="10" fill="#188038" opacity=".35"/>
       </svg></div>
-      <div class="lbl">Two dead bands</div>
-      <p>Not one bad rung but <b>two contiguous bands</b> — link <b>39–41</b> and <b>122–130 MHz</b> —
-      with passing rates on both sides of each, in three boots.</p>
-      <p class="small">They are spaced <b>86 MHz</b> apart, which is a round-trip delay of
-      <b>τ = 11.7 ns</b>. Their widths grow linearly with frequency, exactly as a fixed
-      setup-and-hold window must.</p>
+      <div class="lbl">Observed failure bands</div>
+      <p>Failures occurred at link frequencies of <b>39–41 MHz and 122–130 MHz</b>. Tests reproduced both bands across three boots.</p>
+      <p class="small">The band centers are about <b>86 MHz</b> apart. A round-trip timing model estimates a delay of <b>11.7 ns</b> from that spacing.</p>
     </div>
     <div>
       <div class="cico"><svg width="70" height="42" viewBox="0 0 70 42" fill="none">
@@ -1203,105 +1061,74 @@
         <line x1="25" y1="4" x2="25" y2="38" stroke="#f9ab00" stroke-width="2" stroke-dasharray="3 3"/>
         <line x1="31" y1="4" x2="31" y2="38" stroke="#f9ab00" stroke-width="2" stroke-dasharray="3 3"/>
       </svg></div>
-      <div class="lbl">Solved twice, independently</div>
-      <p>Solving each band separately for that window gives <b>0.73 ns and 0.83 ns</b> — two
-      measurements 13% apart, from data that never touched each other.</p>
-      <p class="small">Sweeping core voltage moves the band <b>+1 MHz per 0.05 V</b>, upward, exactly
-      as faster silicon and a smaller τ require. Cold versus warm shows nothing.</p>
+      <div class="lbl">Timing-model interpretation</div>
+      <p>Fitting each band separately gives a setup/hold window of <b>0.73 ns and 0.83 ns</b>. These are estimates from the model, not direct oscilloscope measurements.</p>
+      <p class="small">Increasing core voltage shifts the band upward by about <b>1 MHz per 0.05 V</b>. This is consistent with a reduced propagation delay.</p>
     </div>
     <div>
       <div class="cico"><svg width="70" height="42" viewBox="0 0 70 42" fill="none">
         <path d="M4 36 C 20 36 26 14 40 10 C 52 7 60 7 66 7" stroke="#188038" stroke-width="2.6" fill="none" stroke-linecap="round"/>
         <circle cx="40" cy="10" r="3.2" fill="#188038"/>
       </svg></div>
-      <div class="lbl">The ceiling, and its price</div>
-      <p><b>344 MHz sys / 172 MHz link is bit-exact</b> — the Trion closing paths at <b>2.65× its
-      signed-off Fmax</b> — and 348 hangs the MCU with no link error, so it is the core, not the fabric.</p>
-      <p class="small">Bit-exact to 344 at 1.30 V, 340 at 1.25, <b>332 at 1.20</b>, 312 at 1.15.
-      <b>Not one non-exact transaction at any rail</b> — every failure up there is the core going
-      quiet. <b>This is an <code>m6</code> sweep, and it does not transfer</b> — the appliance ships
-      <b>320 MHz at 1.25 V</b>, wedges unrecoverably at 1.15, and its link is dead at the 340 this
-      table calls bit-exact.</p>
+      <div class="lbl">Diagnostic versus full application</div>
+      <p>The <code>m6</code> diagnostic passed at <b>344 MHz system / 172 MHz link</b> with 1.30 V core voltage. At 348 MHz the MCU hung.</p>
+      <p class="small">These limits do not transfer to the full application. It uses <b>320 MHz at 1.25 V</b>, and its link stops responding at 340 MHz.</p>
     </div>
   </div>
-  <div class="vnote" style="margin-top:34px;"><b>The story this replaced was clean, published, and
-  wrong.</b> The first explanation blamed the PLL's VCO selection; forcing the same rate through a
-  half-rate VCO fails identically, and a higher VCO passes. <b>A hole in a coarse sweep is not a hole
-  until the sweep is fine enough to see its edges — measure the width before explaining the cause.</b></div>
+  <div class="vnote" style="margin-top:34px;">An initial explanation blamed the PLL configuration. Tests that changed the PLL’s internal oscillator setting did not support it. <b>Measure the failure band in detail before assigning a cause.</b></div>
   </section>
 
 <!-- ============ SECTION 05 · THE DECISION RULE ============ -->
 <section class="slide divider">
   <div class="num">05</div>
-  <div class="name">From 512 floats to an answer</div>
-  <div class="kick">The part that took the longest and looked easiest. Thirteen milestones between
-  a working encoder and a device that is right about what it is looking at — with two rules retired
-  along the way.</div>
+  <div class="name">From embeddings to decisions</div>
+  <div class="kick">A correct embedding is only the input to the decision rule. The device also needs room calibration, scene references and an empty-scene decision.</div>
 </section>
 
 <!-- ============ THE PROBLEM ============ -->
 <section class="slide">
-  <div class="h">A cosine of 0.27 means nothing</div>
+  <div class="h">Calibrating similarity scores to the room</div>
   <div class="split" style="grid-template-columns: 600px 1fr;">
     <div class="body">
-      <p>The encoder is finished and bit-exact, and the board still cannot answer a question. Three
-      reasons, all of them measured on the bench:</p>
+      <p>Raw cosine similarity is not a calibrated detection score. Tests found query bias, background bias and temporal drift.</p>
       <ul class="dots">
-        <li><b>0.27 is large for one phrase and small for another.</b> There is no shared scale
-        across queries</li>
-        <li><b>This room is not the dataset.</b> Across five bench scenes — a whiteboard, a book's
-        two covers, a wine glass, a covered lens — the query <code>laptop</code> led <i>every one of
-        them</i> on the raw cosine, with no laptop anywhere in shot</li>
-        <li><b>A device pointed at a desk drifts.</b> 500 static frames: all four queries fall
-        together by ~1.5 z over four minutes as the camera's own exposure creeps</li>
+        <li><b>Query bias:</b> a cosine of 0.27 can be high for one phrase and low for another</li>
+        <li><b>Background bias:</b> <code>laptop</code> ranked first in all five test scenes, even though none contained a laptop</li>
+        <li><b>Drift:</b> across 500 static frames, four queries fell together by about 1.5 z-score units over four minutes</li>
       </ul>
-      <p><b>Why the room wins:</b> the training negatives are averaged over fields and food and dogs,
-      while every frame this camera has ever taken is an indoor desk in front of a window. The residue
-      is a property of the room — and the room is the only place it can be measured.</p>
+      <p><b>Room calibration:</b> measure each query on an empty scene, then express its score relative to that background. This reduces background bias but does not eliminate every source of drift.</p>
     </div>
     <div>
       <div class="codecard" style="margin-top:0;">
 <pre><span class="cm">// the score is not the cosine</span>
 z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread</span>(i);</pre>
       </div>
-      <div class="imgcap" style="text-align:left; margin-top:14px; line-height:1.6;">
-        Both terms are learned <b>in this room</b>: a running mean of each query's own cosine, plus a
-        Welford variance for its spread, over the first 30 frames — <i>then frozen</i>.
-      </div>
+      <div class="imgcap" style="text-align:left; margin-top:14px; line-height:1.6;"><code>qbg</code> is the mean background cosine. <code>bg_spread</code> is its standard deviation with a lower bound. Estimate both over the first <b>30 empty-scene frames</b>, then freeze them.</div>
       <table class="gt tight" style="margin-top:24px;">
-        <thead><tr><th>Freeze?</th><th>What it measures</th></tr></thead>
+        <thead><tr><th>Background</th><th>Effect</th></tr></thead>
         <tbody>
-          <tr class="hl"><td>yes <i>(default)</i></td><td><b>Presence.</b> "Has this state appeared, and is it still there" — right for a fixed installation</td></tr>
-          <tr><td>no</td><td><b>Change.</b> Leave the same book in shot and it becomes the background — which, on an LED, looks exactly like a bug</td></tr>
+          <tr class="hl"><td>Frozen (default)</td><td>Persistent objects remain different from the initial background.</td></tr>
+          <tr><td>Continuously updated</td><td>A stationary object gradually becomes part of the background.</td></tr>
         </tbody>
       </table>
-      <div class="imgcap" style="text-align:left; margin-top:16px;">
-        Two guards, neither a tuning knob: under 8 frames the room's spread is not used at all, and a
-        floor of 0.001 catches the lens cap that would otherwise send every z to infinity.
-      </div>
+      <div class="imgcap" style="text-align:left; margin-top:16px;">Before eight background frames, the score does not use the estimated spread. A 0.001 lower bound prevents division by a near-zero value.</div>
     </div>
   </div></section>
 
 <!-- ============ TWO AXES ============ -->
 <section class="slide">
-  <div class="h">Two axes, not one</div>
-  <div class="hsub">The previous design gated on a <i>query</i> and ranked in raw z. It scored
-  <b>16.1%</b>. The fix was to stop asking one number to answer two questions.</div>
+  <div class="h">State classification and presence detection</div>
+  <div class="hsub">The device must decide both <b>which registered state is closest</b> and <b>whether an object is present</b>. These decisions use different comparisons.</div>
   <div class="split" style="grid-template-columns: 560px 1fr; margin-top:34px;">
     <div>
       <div class="codecard">
-<pre><span class="fn">level</span> = mean(z)        <span class="cm">// is anything here at all?</span>
-<span class="fn">c</span>[i]  = z[i] − level   <span class="cm">// and which one of them?</span></pre>
+<pre><span class="fn">level</span> = mean(z)       <span class="cm">// shared score component</span>
+<span class="fn">c</span>[i]  = z[i] − level  <span class="cm">// centered query scores</span></pre>
       </div>
       <div class="body" style="margin-top:28px; font-size:19px;">
-        <p><b>Drift lives in the common mode.</b> Subtracting <code>level</code> removes it from the
-        state decision <i>for any query count</i> — the way differencing two queries removes it for
-        two. Worth <b>44.2 → 84.2%</b> and <b>87.5 → 95.8%</b> on the two recorded runs.</p>
-        <p><b>And <code>level</code> is exactly what the centring throws away</b> — which is why the
-        first design made it the presence axis rather than a third enrolled class. Enrolling
-        "absent" as a competing class scored 42.3% and 73.1%.</p>
-        <p><b>That presence axis has since been retired</b> — the empty desk is a reference again,
-        but one that never enters the classifier. Next slide.</p>
+        <p><b>State:</b> subtract the mean across queries. This removes score changes shared equally by all queries. Compare the resulting vector <code>c[]</code> with registered class references.</p>
+        <p>On two recorded runs, the revised state rule improved accuracy from <b>44.2% to 84.2%</b> and <b>87.5% to 95.8%</b>.</p>
+        <p><b>Presence:</b> using <code>level</code> failed because it retained the common drift. The current rule instead compares distance to the closest class with distance to an empty-scene reference.</p>
       </div>
     </div>
     <div>
@@ -1309,7 +1136,7 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
         <svg viewBox="0 0 400 350" fill="none" font-family="Roboto, sans-serif">
           <line x1="60" y1="300" x2="370" y2="300" stroke="#dadce0" stroke-width="2"/>
           <line x1="60" y1="30" x2="60" y2="300" stroke="#dadce0" stroke-width="2"/>
-          <text x="215" y="332" font-size="14" fill="#5f6368" text-anchor="middle">c[] — z with the common mode subtracted</text>
+          <text x="215" y="332" font-size="14" fill="#5f6368" text-anchor="middle">c[]: z minus the mean across queries</text>
 
           <!-- the three cells: perpendicular bisectors, meeting at one point -->
           <g stroke="#9aa0a6" stroke-width="1.6" stroke-dasharray="5 4">
@@ -1335,77 +1162,59 @@ z[i] = (cos[i] − <span class="fn">qbg</span>[i]) / <span class="fn">bg_spread<
           <text x="203" y="298" font-size="12.5" fill="#5f6368" text-anchor="middle">the empty desk</text>
         </svg>
       </div>
-      <div class="imgcap">Three references, the cells they cut, and no radius anywhere. Schematic:
-      with two queries this space is a single line</div>
+      <div class="imgcap">Conceptual nearest-reference regions. With two queries, the centered scores lie on a single line.</div>
     </div>
   </div></section>
 
 <!-- ============ SHOW, DON'T THRESHOLD ============ -->
 <section class="slide">
-  <div class="h">Show it, don't threshold it</div>
-  <div class="hsub">Neither axis carries a number the operator has to invent. You press a key and
-  hold the scene up; the board keeps what it saw.</div>
+  <div class="h">Scene registration and nearest-reference decisions</div>
+  <div class="hsub">Registration stores measured score vectors for each scene. It does not retrain the neural network.</div>
   <div class="split" style="grid-template-columns: 1fr 1fr; gap:52px; margin-top:34px;">
     <div>
       <div class="body" style="margin-top:0; font-size:19px;">
-        <p><b>Enrolment.</b> Press <code>'0'</code> for the empty scene and <code>'1'</code>…<code>'6'</code>
-        for each class. The board averages <b>20 frames</b> of <code>c[]</code> and keeps the mean as
-        a reference.</p>
-        <p><b>Then press the same digit again on a later visit</b> and both windows fold into one
-        reference. One window only says how still the operator held the scene; where the
-        <i>same object staged again</i> lands is the thing that decides a run, and it cannot be seen
-        inside a single window at all.</p>
+        <p><b>Register a class:</b> show the scene and press its key, <code>1</code> to <code>6</code>. The board averages <b>20 frames</b> of <code>c[]</code>.</p>
+        <p><b>Restage the object and repeat.</b> A second visit samples placement variation. Both visits contribute to the class reference. Register the empty scene with <code>0</code>.</p>
       </div>
       <table class="gt tight" style="margin-top:26px;">
         <thead><tr><th>Frames averaged</th><th>1</th><th>5</th><th>12</th><th>16</th><th>20</th></tr></thead>
-        <tbody><tr><td>held out</td><td>90.0</td><td>89.2</td><td>96.7</td><td>99.2</td><td class="ok">100.0 %</td></tr></tbody>
+        <tbody><tr><td>Test accuracy (%)</td><td>90.0</td><td>89.2</td><td>96.7</td><td>99.2</td><td class="ok">100.0 %</td></tr></tbody>
       </table>
-      <div class="imgcap" style="text-align:left; margin-top:16px; line-height:1.6;">
-        An earlier probe had "one frame beating thirty". The disagreement is about <i>which</i>
-        frames: its thirty-frame mean spanned a whole visit including the part where the operator's
-        hand was still leaving.
-      </div>
+      <div class="imgcap" style="text-align:left; margin-top:16px; line-height:1.6;">The averaging table is one historical held-out test. Exclude movement while the object is being placed.</div>
     </div>
     <div>
       <div class="body" style="margin-top:0; font-size:19px;">
-        <p><b>Presence, in the end, is the same trick.</b> The empty scene is centred and stored like
-        any other reference — but it is left <i>out</i> of the classifier's list, so it can never win
-        a name. Presence is then one comparison between two distances already computed:</p>
+        <p><b>Detect presence:</b> find the closest object reference. Call the object present if it is closer than the empty-scene reference. The empty reference is used for this check, not as an object label.</p>
       </div>
       <div class="codecard" style="margin-top:22px;">
 <pre><span class="cm">// d = to the nearest class, de = to the empty reference</span>
 present = (de &gt; d);</pre>
       </div>
       <table class="gt tight" style="margin-top:26px;">
-        <thead><tr><th>Presence rule</th><th>33 benches</th></tr></thead>
+        <thead><tr><th>Presence rule</th><th>Mean balanced accuracy</th></tr></thead>
         <tbody>
-          <tr class="hl"><td>nearest of the three <i>(ships)</i></td><td class="ok">79.4 %</td></tr>
-          <tr><td>best radius, fitted per bench</td><td>73.7 %</td></tr>
-          <tr><td>the level-span rule it replaced</td><td>53.8 %</td></tr>
+          <tr class="hl"><td>Nearest reference (current)</td><td class="ok">79.4 %</td></tr>
+          <tr><td>Radius fitted to test answers</td><td>73.7 %</td></tr>
+          <tr><td>Distance band (fallback)</td><td>53.8 %</td></tr>
         </tbody>
       </table>
-      <div class="imgcap" style="text-align:left; margin-top:16px; line-height:1.6;">
-        <b>+25.6</b>, t = 8.16 on 32 df, better on 29 of 33 benches — and it beats the radius that was
-        <i>fitted to each bench</i> by 5.7. No radius can do what a cell does. There is no threshold
-        in the shipped rule and, deliberately, no hysteresis either.
-      </div>
+      <div class="imgcap" style="text-align:left; margin-top:16px; line-height:1.6;"><b>Mean over 33 tests.</b> Balanced accuracy gives equal weight to present and absent recall. The current rule gains <b>25.6 percentage points</b> over the fallback, winning 29 tests. An empty reference removes the need for a manually selected radius.</div>
     </div>
   </div></section>
 
 <!-- ============ REGISTRATION REPLAY ============ -->
 <section class="slide">
-  <div class="h">Registration across 40 archived runs</div>
-  <div class="hsub">2026-09-09 replay. Both rules score the same 4,821 frames across four phrase pairs.</div>
-  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>Rule</th><th>Mean, all 40 runs</th><th>Mean, 33 book runs</th><th>Minimum, book runs</th></tr></thead><tbody><tr><td>Enrolled</td><td>68.9%</td><td>69.2%</td><td>0.8%</td></tr><tr><td>No registration: argmax(z)</td><td>62.7%</td><td>64.1%</td><td>26.0%</td></tr><tr><td>Oracle cut fitted to answers</td><td>83.3%</td><td>85.8%</td><td>52.0%</td></tr></tbody></table>
-  <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><b>Registration improves the mean but can fail badly.</b> It adds 5.1 points on the 33 book runs. Collapsed or inverted references can make it worse than argmax.</p><p>Only object-present frames count here. This does not test empty-scene detection. The oracle uses each run’s answers after the fact and cannot ship.</p></div>
+  <div class="h">Accuracy with and without scene registration</div>
+  <div class="hsub">Replay of 40 recorded tests: four phrase pairs, 4,821 frames containing an object. Values are mean per-test accuracies.</div>
+  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>Rule</th><th>Mean, all 40 runs</th><th>Mean, 33 book runs</th><th>Minimum, book runs</th></tr></thead><tbody><tr><td>Registered references</td><td>68.9%</td><td>69.2%</td><td>0.8%</td></tr><tr><td>Highest z-score, no registration</td><td>62.7%</td><td>64.1%</td><td>26.0%</td></tr><tr><td>Best cut using known answers</td><td>83.3%</td><td>85.8%</td><td>52.0%</td></tr></tbody></table>
+  <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><b>Registration improves the mean, but not every test.</b> It adds 5.1 percentage points on the 33 book tests. References that are too close or incorrectly ordered can reduce accuracy.</p><p>Empty frames are excluded. The best-cut row uses the correct answers to choose a boundary separately for each test, so it is a diagnostic comparison rather than a deployable method.</p></div>
   <div class="imgcap" style="text-align:left; margin-top:20px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/probe/20260909-noenrol/README.md">Source: archive replay, 2026-09-09</a></div>
 </section>
 
 <!-- ============ SPOT.PY ============ -->
 <section class="slide">
-  <div class="h">Two phrases, one command</div>
-  <div class="hsub">Everything above ships as one script. It cues you, waits for you to press Enter,
-  and refuses to move on until the board has printed a receipt for the press.</div>
+  <div class="h">Registering scenes with host/spot.py</div>
+  <div class="hsub">The script guides scene registration and waits for the board to confirm each operation before continuing.</div>
   <div class="split" style="grid-template-columns: 620px 1fr; gap:52px; margin-top:30px;">
     <div>
       <div class="codecard" style="margin-top:0;">
@@ -1423,153 +1232,116 @@ enrol : an opened book, level +1.07, scatter 0.14
   frame   149   the empty scene
   frame   150   something else</pre>
       </div>
-      <div class="imgcap" style="text-align:left; margin-top:16px; line-height:1.6;">
-        <b>Three verdicts, not two.</b> A name, <i>the empty scene</i>, and <i>something else</i> —
-        the gate is open and none of the phrases fit. That third one is the easy one to lose;
-        <code>host/watch.py</code> carried it as a bug until August.
-      </div>
+      <div class="imgcap" style="text-align:left; margin-top:16px; line-height:1.6;"><b>Outputs:</b> a registered class name, <i>the empty scene</i>, or <i>something else</i> when an object is present but no class is accepted.</div>
     </div>
     <div>
       <div class="body" style="margin-top:0; font-size:19px;">
-        <p><b>What it does.</b> Anything you can show it at 3.5 fps, enrolled in about a minute. New
-        phrases cost a second and no reflash — they reset the background and the run starts over.</p>
-        <p><b>What it is not</b>, and the deck would be dishonest without this list:</p>
+        <p><b>Operation:</b> about 3.5 frames per second, after roughly a minute of registration. Query changes require fresh background calibration.</p>
+        <p><b>Limits of the current device:</b></p>
       </div>
       <ul class="dots" style="margin-top:18px;">
-        <li><b>Not a detector.</b> It is a discriminator between scenes you enrolled, in the room you
-        enrolled them in</li>
-        <li><b>No localisation, no counting.</b> One verdict per 128 × 128 frame</li>
-        <li><b>The pair decides the run.</b> Four pairs benched back to back:
-        <b>95.8 / 90.8 / 50.0 / 34.2 %</b></li>
-        <li><b>A contrast with an absence on one side can point backwards.</b>
-        <i>"an empty glass"</i> won only <b>6.7%</b> of the frames it was the truth for. Holding the
-        scene stiller does not fix that</li>
-        <li><b>Nothing at enrolment forecasts the run.</b> Tested prospectively eight times; came out
-        backwards at both ends</li>
+        <li><b>Environment-specific:</b> it distinguishes scenes registered in that room and lighting</li>
+        <li><b>One result per image:</b> no bounding boxes or validated object counts</li>
+        <li><b>Pair-dependent accuracy:</b> four successive tests scored <b>95.8 / 90.8 / 50.0 / 34.2%</b></li>
+        <li><b>Wording matters:</b> “an empty glass” won on only <b>6.7%</b> of frames labeled as that state in one evaluation</li>
+        <li><b>Registration statistics do not certify accuracy:</b> eight prospective tests did not support the proposed quality thresholds</li>
       </ul>
     </div>
   </div></section>
 
 <!-- ============ CURRENT PROBES ============ -->
 <section class="slide">
-  <div class="h">State on the LED without registration</div>
-  <div class="hsub">Seven pairs across 13 boots on 2026-09-09. Spot observations, without a held-out accuracy test.</div>
-  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>Pair</th><th>Observation</th></tr></thead><tbody><tr><td>Open / closed hand, red / green cube</td><td>LED switched with the state</td></tr><tr><td>Open / closed box</td><td>Contrast axis called the open box “closed”</td></tr><tr><td>One / two cups</td><td>Asymmetric readings. Counting remains unvalidated</td></tr></tbody></table>
-  <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><code>host/demo.py --state</code> tags a bare phrase as a state query. With a gate, <code>led_two()</code> maps state to hue and the gate to brightness.</p><p>Without registration or gate/class roles, the default path fixes brightness. Its hue indicates match strength, so it does not identify the winning class.</p></div>
+  <div class="h">LED output without scene registration</div>
+  <div class="hsub">Seven phrase pairs in 13 boots on 2026-09-09. These observations demonstrate behavior, not measured accuracy on an independent test set.</div>
+  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>Pair</th><th>Observation</th></tr></thead><tbody><tr><td>Open / closed hand, red / green cube</td><td>LED colour changed with the presented state</td></tr><tr><td>Open / closed box</td><td>Difference-of-text-vectors query selected “closed” for an open box</td></tr><tr><td>One / two cups</td><td>Scores differed, but were much stronger for one state</td></tr></tbody></table>
+  <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><code>--state</code> marks phrases as competing states. A separate gate query, such as “a hand”, controls presence. In this mode, LED colour represents state and brightness represents the gate score.</p><p>Without registration or these roles, LED brightness stays fixed and colour indicates match strength. It does not encode which class won.</p></div>
   <div class="imgcap" style="text-align:left; margin-top:20px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/probe/20260909-pairs/README.md">Source: seven-pair probe</a> / <a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/probe/20260909-cubes/README.md">LED paths</a></div>
 </section>
 
 <section class="slide">
-  <div class="h">Household candidates on synthetic images</div>
-  <div class="hsub">2026-09-26. Shipped int4 model and C encoder with a simplified nearest-reference rule. No board validation.</div>
-  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>State pair</th><th>Native /6</th><th>Worst perturbation /6</th><th>With empty reference /6</th></tr></thead><tbody><tr><td>Towel: folded / crumpled</td><td>6</td><td>5</td><td>3</td></tr><tr><td>Mug: upright / tipped</td><td>6</td><td>5</td><td>6</td></tr><tr><td>Banana: unpeeled / peeled</td><td>5</td><td>3</td><td>4</td></tr><tr><td>Eyeglasses: unfolded / folded</td><td>4</td><td>4</td><td>3</td></tr><tr><td>Tray: keys / wallet</td><td>3</td><td>3</td><td>3</td></tr><tr><td>Basil: upright / drooping</td><td>2</td><td>2</td><td>2</td></tr><tr><td>Control: open hand / fist</td><td>5</td><td>3</td><td>4</td></tr></tbody></table>
-  <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><b>Towels and mugs are candidates for the next board test.</b> Each case is one generated scene with six correlated test images. The empty-reference column counts correct object images, not empty-scene recall.</p><p>Native references are fitted per lighting condition. Room standardization, temporal smoothing and the full presence rule are omitted.</p></div>
+  <div class="h">Screening household objects with synthetic images</div>
+  <div class="hsub">2026-09-26. Current C encoder with a simplified reference rule. No board testing.</div>
+  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>State pair</th><th>Original images /6</th><th>Worst image change /6</th><th>With empty reference /6</th></tr></thead><tbody><tr><td>Towel: folded / crumpled</td><td>6</td><td>5</td><td>3</td></tr><tr><td>Mug: upright / tipped</td><td>6</td><td>5</td><td>6</td></tr><tr><td>Banana: unpeeled / peeled</td><td>5</td><td>3</td><td>4</td></tr><tr><td>Eyeglasses: unfolded / folded</td><td>4</td><td>4</td><td>3</td></tr><tr><td>Tray: keys / wallet</td><td>3</td><td>3</td><td>3</td></tr><tr><td>Basil: upright / drooping</td><td>2</td><td>2</td><td>2</td></tr><tr><td>Control: open hand / fist</td><td>5</td><td>3</td><td>4</td></tr></tbody></table>
+  <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><b>Towels and mugs are candidates for board testing.</b> Each row uses six similar images from one generated scene. The final column counts correct object images, not empty-scene detection.</p><p>References are fitted per lighting condition. Device background calibration and temporal processing are omitted.</p></div>
   <div class="imgcap" style="text-align:left; margin-top:20px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/stills/20260926-home-screen/README.md">Synthetic images and results</a> / <a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/stills/20260926-home-screen/README.md">Method and limitations</a></div>
 </section>
 
 <!-- ============ SECTION 06 · FRICTIONS ============ -->
 <section class="slide divider">
   <div class="num">06</div>
-  <div class="name">Frictions &amp; learnings</div>
-  <div class="kick">The things that cost days, and the handful of rules that came out of them —
-  which are the reason the project keeps a history file rather than deleting one.</div>
+  <div class="name">Implementation lessons</div>
+  <div class="kick">Hardware limits, build tools and measurement errors that affected the implementation.</div>
 </section>
 
 <!-- ============ HARDWARE FRICTIONS ============ -->
 <section class="slide">
-  <div class="h">Frictions worth the airfare</div>
+  <div class="h">Implementation problems and fixes</div>
   <div class="vgrid" style="margin-top:36px;">
     <div class="vcard">
-      <div class="vlbl"><span>The memory that isn't</span><span class="dur">M0 · M5b</span></div>
-      <div class="vcap">The board has a PSRAM footprint, and it is <b>populated by accident</b>. It
-      answers its own ID <b>18 bit-times out of frame</b> and is unusable at any rate. Every
-      "just stream the weights from external memory" plan dies here — which is <i>why</i> every
-      weight has to fit in a 2 MB stacked flash.</div>
+      <div class="vlbl"><span>Unusable external memory</span><span class="dur">M0 · M5b</span></div>
+      <div class="vcap">The PSRAM chip is physically present, but its ID response arrives <b>18 bit periods out of position</b>. The design therefore stores all weights in the MCU’s 2 MB flash.</div>
     </div>
     <div class="vcard">
-      <div class="vlbl"><span>A GUI in the build</span><span class="dur">rtl/</span></div>
-      <div class="vcap">Efinity generates the peripheral XML that the placer needs, and it ships
-      <b>that step as a GUI only</b> — no <code>DesignAPI.create()</code>. So the repo carries
-      <code>rtl/mk_peri.py</code>, which writes the file itself from the interface source, because a
-      build that needs a mouse cannot run in a container.</div>
+      <div class="vlbl"><span>Automating peripheral setup</span><span class="dur">rtl/</span></div>
+      <div class="vcap">The Efinity flow used here required peripheral XML normally produced through its GUI. <code>rtl/mk_peri.py</code> generates that file from the interface description for automated builds.</div>
     </div>
     <div class="vcard">
-      <div class="vlbl"><span>Seeds don't travel</span><span class="dur">M11</span></div>
-      <div class="vcap">Place-and-route seeds are <b>not portable across netlists</b>: the seed that
-      produced the shipped image became the <i>worst</i> of four on the next one — 59.9 MHz against
-      63.9. Every verified bitstream is therefore committed as ASCII hex, because re-running the
-      build at the recorded settings is not guaranteed to hand back the same file.</div>
+      <div class="vlbl"><span>Place-and-route variability</span><span class="dur">M11</span></div>
+      <div class="vcap">A seed that performed well on one netlist became the worst of four on another: <b>59.9 MHz versus 63.9 MHz</b>. The repository preserves verified bitstreams as ASCII hex.</div>
     </div>
     <div class="vcard" style="margin-top:20px;">
-      <div class="vlbl"><span>The counter that lied</span><span class="dur">M14 · M17</span></div>
-      <div class="vcap">One profiling counter had <b>two callbacks summing into it</b>. Both
-      milestones correctly measured a number that was not the number they thought, and one of them
-      was <i>named after the wrong function</i>. Split, it is 82 ms against 124.
-      <b>Audit shared accumulators before believing a component is immovable.</b></div>
+      <div class="vlbl"><span>Misleading profiling counters</span><span class="dur">M14 · M17</span></div>
+      <div class="vcap">Two callbacks accumulated time in the same counter, mixing separate operations. Splitting the measurement exposed an <b>82 ms</b> weight-build cost. Counter scope must match the operation being measured.</div>
     </div>
     <div class="vcard" style="margin-top:20px;">
-      <div class="vlbl"><span>A check that couldn't pass</span><span class="dur">M18</span></div>
-      <div class="vcap">The weight-CRC guard compared <code>0x…</code> against an upper-cased
-      <code>0X…</code>, so it refused a board that <i>matched</i>. Fail-closed, so nothing wrong
-      shipped — but <b>a check that cannot pass is not a check</b>, and all four offline tests had
-      exercised only the mismatch path.</div>
+      <div class="vlbl"><span>CRC format mismatch</span><span class="dur">M18</span></div>
+      <div class="vcap">The model check compared <code>0x…</code> with <code>0X…</code> and rejected matching weights. All four offline tests covered only mismatches. Tests must include the valid path as well.</div>
     </div>
     <div class="vcard" style="margin-top:20px;">
-      <div class="vlbl"><span>The bench wasn't calibrated</span><span class="dur">M19</span></div>
-      <div class="vcap">Two A/B runs <b>disagreed about the sign of the effect</b>, and the board was
-      not the reason — segment boundaries were being reverse-engineered from the score trace by eye.
-      13 frames pin a segment mean to ±0.05, while two runs an hour apart disagreed by 0.85 on an
-      effect of 0.08. <b>The variance was between visits, not inside them.</b></div>
+      <div class="vlbl"><span>Uncontrolled scene timing</span><span class="dur">M19</span></div>
+      <div class="vcap">Inferring scene boundaries from scores made two A/B tests disagree. A 13-frame mean was stable to ±0.05, yet visits differed by 0.85 against an effect of 0.08. Record scene timing and repeat object placement.</div>
     </div>
   </div></section>
 
 <!-- ============ THE RULES ============ -->
 <section class="slide">
-  <div class="h">The transferable part</div>
+  <div class="h">Lessons for similar projects</div>
   <div class="rows" style="margin-top:46px; grid-template-columns: 360px 1fr; row-gap: 30px;">
     <div class="lbl"><svg class="lico" width="26" height="26" viewBox="0 0 26 26" fill="none">
       <path d="M3 21 h20" stroke="#4285f4" stroke-width="2" stroke-linecap="round"/>
       <rect x="5" y="12" width="5" height="9" fill="#4285f4"/><rect x="13" y="6" width="5" height="15" fill="#4285f4" opacity=".45"/>
-    </svg>Measure the whole, not the part</div>
+    </svg>End-to-end measurement</div>
     <ul class="dots">
-      <li>A component saving is worth face value only until it uncovers the next thing — and a
-      component <i>cost</i> only if something is actually waiting on it. Nothing here is claimed
-      until it is measured <b>in the same boot as its control</b></li>
+      <li>Profile both computation and waiting. Compare optimized and baseline runs in the same boot, and keep clock settings explicit.</li>
     </ul>
     <div class="lbl"><svg class="lico" width="26" height="26" viewBox="0 0 26 26" fill="none">
       <path d="M5 22 v-6 M12 22 v-11 M19 22 v-16" stroke="#188038" stroke-width="2.4" stroke-linecap="round"/>
       <path d="M19 6 l -4 4 M19 6 l 4 4" stroke="#188038" stroke-width="2.2" stroke-linecap="round"/>
-    </svg>A pass is not a bound</div>
+    </svg>Measured clock limits</div>
     <ul class="dots">
-      <li>"Bit-exact at 75 MHz" was read as "bit-exact <i>up to</i> 75 MHz" for three milestones.
-      A ladder that only steps down can only confirm the rung it starts on — the single largest
-      speed-up in the project was sitting there the whole time</li>
+      <li>A passing rate confirms that setting only. Test higher and lower rates, and distinguish a diagnostic benchmark from the full application.</li>
     </ul>
     <div class="lbl"><svg class="lico" width="26" height="26" viewBox="0 0 26 26" fill="none">
       <circle cx="11" cy="11" r="8" stroke="#f9ab00" stroke-width="2"/>
       <line x1="17" y1="17" x2="24" y2="24" stroke="#f9ab00" stroke-width="2.4" stroke-linecap="round"/>
-    </svg>Measure the width before explaining the cause</div>
+    </svg>Failure-band characterization</div>
     <ul class="dots">
-      <li>A clean, falsifiable, published explanation of the dead band was refuted by the next
-      sweep. <b>A hole in a coarse sweep is not a hole until the sweep is fine enough to see its
-      edges</b> — and the finer sweep turned a bug report into τ = 11.7 ns</li>
+      <li>Use a fine frequency sweep to find the edges of a failing band. Treat a physical explanation as a hypothesis until further tests support it.</li>
     </ul>
     <div class="lbl"><svg class="lico" width="26" height="26" viewBox="0 0 26 26" fill="none">
       <path d="M13 2 L 24 8 L 13 14 L 2 8 Z" stroke="#d93025" stroke-width="2" stroke-linejoin="round"/>
       <path d="M2 14 l 11 6 l 11 -6" stroke="#d93025" stroke-width="2" stroke-linejoin="round" fill="none"/>
-    </svg>When two things share a shape, guard the pairing</div>
+    </svg>Embedding compatibility</div>
     <ul class="dots">
-      <li>Two different 512-d embedding spaces cannot be told apart by a type system. A wrong pairing
-      <b>scores instead of failing</b> — so the space is named in the export and the board prints a
-      crc32 of the weights it is actually running</li>
+      <li>Equal vector dimensions do not guarantee compatible embeddings. Record the model and projection identity, and verify the weights on the device.</li>
     </ul>
   </div></section>
 
 <!-- ============ SECTION 07 · WRAP-UP ============ -->
 <section class="slide divider">
   <div class="num">07</div>
-  <div class="name">Wrap-up &amp; Q&amp;A</div>
-  <div class="kick">Takeaways, where to find everything — and your questions.</div>
+  <div class="name">Summary and Q&amp;A</div>
+  <div class="kick">Main results, remaining limitations and links to the implementation and measurements.</div>
 </section>
 
 <!-- ============ TAKEAWAYS ============ -->
@@ -1577,31 +1349,31 @@ enrol : an opened book, level +1.07, scatter 0.14
   <div class="agenda">
     <div class="h-big">Takeaways</div>
     <ol>
-      <li><span class="num">01</span><span class="txt" style="font-size:22px;">CLIP's two towers are separable — only the image half has to be on the device</span></li>
-      <li><span class="num">02</span><span class="txt" style="font-size:22px;">A 1.40 M-parameter student fits in $50 of silicon and keeps 91% of the teacher's queries</span></li>
-      <li><span class="num">03</span><span class="txt" style="font-size:22px;">The shipped tile uses 21 of 24 memory blocks and 6,265 of 7,384 LEs (85%)</span></li>
-      <li><span class="num">04</span><span class="txt" style="font-size:22px;">Measure the frame, not the component — and re-measure the baseline in the same boot</span></li>
-      <li><span class="num">05</span><span class="txt" style="font-size:22px;">A measured pass is not a measured bound. The biggest win had no design work in it</span></li>
-      <li><span class="num">06</span><span class="txt" style="font-size:22px;">Decision quality depends on the pair and the scene. Registration improves the mean but can fail</span></li>
-      <li><span class="num">07</span><span class="txt" style="font-size:22px;">Both rules that got retired were a constant fitted to a bench. What replaced them compares a run's own measurements</span></li>
+      <li><span class="num">01</span><span class="txt" style="font-size:22px;">Text encoding runs on the host. Image encoding runs on the MCU and FPGA.</span></li>
+      <li><span class="num">02</span><span class="txt" style="font-size:22px;">The 1.40 M-parameter student retains 91% of teacher-correct queries on the evaluation task.</span></li>
+      <li><span class="num">03</span><span class="txt" style="font-size:22px;">The FPGA uses 21 of 24 RAM blocks and 85% of logic elements.</span></li>
+      <li><span class="num">04</span><span class="txt" style="font-size:22px;">The encoder takes 265 ms. The measured camera-frame interval is 293 ms.</span></li>
+      <li><span class="num">05</span><span class="txt" style="font-size:22px;">The encoder is 5.97× faster than the MCU alone at the same 320 MHz.</span></li>
+      <li><span class="num">06</span><span class="txt" style="font-size:22px;">Scene registration improves average accuracy, but results depend strongly on the pair and environment.</span></li>
+      <li><span class="num">07</span><span class="txt" style="font-size:22px;">Use held-out scenes to evaluate both object-state accuracy and empty-scene rejection.</span></li>
     </ol>
   </div></section>
 
 <!-- ============ RESOURCES ============ -->
 <section class="slide">
-  <div class="h">Resources</div>
+  <div class="h">Documentation and source code</div>
   <div class="rows" style="margin-top:56px; grid-template-columns: 320px 1fr;">
     <div class="lbl"><svg class="lico" width="26" height="26" viewBox="0 0 26 26" fill="none">
       <path d="M 2 8 a 2 2 0 0 1 2 -2 h 6 l 3 3 h 9 a 2 2 0 0 1 2 2 v 9 a 2 2 0 0 1 -2 2 H 4 a 2 2 0 0 1 -2 -2 Z"
         stroke="#4285f4" stroke-width="2" stroke-linejoin="round"/>
     </svg>Docs in the repo</div>
     <ul class="dots">
-      <li><code>README.md</code> — what it is, where it stands, and how to run it in four commands</li>
-      <li><code>docs/architecture.md</code> — the board, the model, the link, the two cores, the decision rule</li>
-      <li><code>docs/building.md</code> — toolchain, firmware, bitstream, flashing, every harness</li>
-      <li><code>docs/history.md</code> — the timeline, the frictions, the rejected designs, the learnings</li>
-      <li><code>docs/monitor.md</code> — the three ways to run it, and which one is scoreable</li>
-      <li><code>docs/fit.md</code> — what a pair has to look like before it is worth benching</li>
+      <li><code>README.md</code>: project status and getting started</li>
+      <li><code>docs/architecture.md</code>: model, hardware, scheduling and decision rules</li>
+      <li><code>docs/building.md</code>: build tools, flashing and test programs</li>
+      <li><code>docs/history.md</code>: design changes and lessons from earlier implementations</li>
+      <li><code>docs/monitor.md</code>: running the device as a scene monitor</li>
+      <li><code>docs/fit.md</code>: evaluating whether a proposed use case is suitable</li>
     </ul>
     <div class="lbl"><svg class="lico" width="26" height="26" viewBox="0 0 26 26" fill="none">
       <path d="M 5 2 h 11 l 5 5 v 17 H 5 Z" stroke="#188038" stroke-width="2" stroke-linejoin="round"/>
@@ -1610,8 +1382,8 @@ enrol : an opened book, level +1.07, scatter 0.14
       <line x1="9" y1="19" x2="17" y2="19" stroke="#188038" stroke-width="2" stroke-linecap="round"/>
     </svg>The raw logs</div>
     <ul class="dots">
-      <li><code>docs/milestones.md</code> — M0 through M21, append-only, including the projections that were wrong</li>
-      <li><code>docs/bring-up-log.md</code> — dated bench entries, several of which exist only to record a claim that later turned out to be false</li>
+      <li><code>docs/milestones.md</code>: development stages M0–M21, including original measurements</li>
+      <li><code>docs/bring-up-log.md</code>: dated hardware tests, findings and later corrections</li>
     </ul>
     <div class="lbl"><svg class="lico" width="26" height="26" viewBox="0 0 26 26" fill="none">
       <path d="M 13 2 L 24 8 L 13 14 L 2 8 Z" stroke="#f9ab00" stroke-width="2" stroke-linejoin="round"/>
@@ -1619,9 +1391,9 @@ enrol : an opened book, level +1.07, scatter 0.14
       <path d="M 2 18 l 11 6 l 11 -6" stroke="#f9ab00" stroke-width="2" stroke-linejoin="round" fill="none"/>
     </svg>The stack</div>
     <ul class="dots">
-      <li>CLIP — arxiv.org/abs/2103.00020 · SigLIP 2 — the teacher since M18</li>
-      <li>Forgix — forgix.tech · Efinix Trion T8 &amp; Efinity · Raspberry Pi RP2350</li>
-      <li>Sibling project: github.com/kazunori279/xls32-fpga-synth</li>
+      <li>CLIP: arxiv.org/abs/2103.00020. Current teacher: SigLIP 2 SO400M</li>
+      <li>Forgix: forgix.tech. FPGA: Efinix Trion T8. MCU: Raspberry Pi RP2354A</li>
+      <li>FPGA audio synthesizer: github.com/kazunori279/xls32-fpga-synth</li>
     </ul>
   </div></section>
 
