@@ -105,14 +105,14 @@ uv run --script tools/fit_check.py --pos "an open hand" --neg "a fist"
 This generates a set of paired scenes, runs the **teacher** over them, and
 prints a GO or a NO-GO.
 
-**It can only say no.** That is deliberate and it is the only thing that makes
-it cheap. If the teacher — the full SigLIP 2 SO400M tower, unquantised, before
-any of this project's compression — cannot separate your two states across
-scenes, then nothing downstream recovers it, and you have saved a morning. If
-the teacher *can*, you have learned nothing about the board: generated scenes
-carry edit artefacts that inflate every score, and the student's number on them
-does not predict the appliance in either direction. **A high reading is not
-permission to skip Screen 2.**
+**Use it to deprioritise ideas, not to certify or rule out a real-world use
+case.** It measures the full SigLIP 2 SO400M teacher on generated scenes. A low
+score is evidence against spending the next bench on that wording and image
+set; it is not proof that a real object cannot work. Generation artefacts can
+help or obscure the distinction, and the student's response need not track the
+teacher's. A high score also does not predict the appliance. **Neither outcome
+replaces Screen 2.** The camera-referenced experiment below illustrates that
+gap even on the hand control.
 
 The ten contrasts already measured, as a calibration for reading your own
 (pooled cross-scene AUC, teacher at 1152-d):
@@ -131,7 +131,8 @@ The ten contrasts already measured, as a calibration for reading your own
 | a toilet with the lid up / lid down | **.579** | **stop** |
 | *a X on the left / a X on the right* | **.499** | **the floor — this is what a coin looks like** |
 
-Under about **0.75, do not bench it.** At 0.579 the teacher is barely above a
+Under about **0.75, deprioritise it in this screen.** This is a screening
+heuristic from these sets, not a universal detection limit. At 0.579 the teacher is barely above a
 coin, and every student ever distilled from it came back at or below chance on
 that contrast — 0.448 for the shipped one, 0.382 to 0.435 across the others —
 which is an axis pointing backwards rather than a weak one.
@@ -141,6 +142,63 @@ table has a bottom. It is the mean over eleven objects and it is what a
 distinction the encoder does not carry reads like.
 
 ---
+
+### Household candidates from the 2026-09-26 synthetic screen
+
+To search for uses without another board session, this experiment generated
+household objects against a real camera frame's background and visual style.
+Panels were reduced to 128×128 RGB565 and passed through the **shipped int4
+weights and firmware C encoder**. Its 2,048 golden output floats matched
+bit for bit before evaluation. The final decision was a simplified nearest
+reference on the two text-query cosine difference, not the full firmware rule.
+
+| Possible use | States | Native correct /6 | Worst perturbation /6 | With empty reference /6 |
+| --- | --- | ---: | ---: | ---: |
+| Laundry tidiness | Folded / crumpled towel | 6 | 5 | 3 |
+| Mug orientation | Upright / tipped mug | 6 | 5 | 6 |
+| Food-preparation progress | Unpeeled / peeled banana | 5 | 3 | 4 |
+| Glasses storage | Unfolded / folded eyeglasses | 4 | 4 | 3 |
+| Entryway belongings | Keys / wallet on a tray | 3 | 3 | 3 |
+| Visible leaf posture | Upright / drooping basil leaves | 2 | 2 | 2 |
+| Known-use control | Open hand / fist | 5 | 3 | 4 |
+
+Each case is **one generated scene**, with three lighting conditions and
+repeated state images. Each lighting condition contributes one registration
+image and one withheld image per state. The six withheld images are correlated
+samples from the same generation, not six independent trials. Perturbations
+change exposure, colour balance, blur or noise after registration; they do not
+add independent samples. The empty-reference column counts correct **object**
+images after adding the empty desk as a third reference, not empty-scene recall.
+
+**Towels and mugs are candidates to try, not established applications.**
+The towel's 6/6 becomes 3/6 with the empty reference. The mug reaches 6/6 with
+that reference but drops to 4/6 under some perturbations. A brightness-only
+baseline already gets 4/6 on both. Raw text ranking on the hand control is only
+1/6 for the student, against 6/6 for the teacher, despite hands reportedly
+working on the board. Registration recovers 5/6. That discrepancy prevents
+treating the synthetic ranking as a calibrated prediction of board performance.
+
+Camera matching was also incomplete: the generated empty frames were smoother
+than the real references. RGB565 conversion reproduces the pixel format, not
+the sensor's exposure history or drift. The decision surrogate omits room
+standardisation, temporal smoothing, registration windows and presence
+hysteresis. It does not establish a spill detector, a missing-keys alert or a
+plant-watering decision.
+
+Fourteen pairs were planned; eight sheets were generated, and scissors were
+excluded before scoring because they stood unnaturally upright. Six further
+sheets failed at the generation service: box open/shut, whole/halved apple,
+intact/crushed bottle, fork/spoon, rice-filled/empty jar and the cube control.
+Those remain **untested**.
+
+The [experiment report](../bench/stills/20260926-home-screen/README.md),
+[image gallery](../bench/stills/20260926-home-screen/index.html) and
+[raw results](../bench/stills/20260926-home-screen/results.json) retain the
+prompts, exclusions, camera diagnostics and all scores. To rerun without a board:
+
+```sh
+uv run --script tools/screen_home.py --set bench/stills/20260926-home-screen
+```
 
 ## Screen 2 — a bench. A morning of daylight, and you need more than one.
 
@@ -210,7 +268,9 @@ collected 60% of a 67.5% ceiling has a scene problem, not a rule problem.
 
 1. Phrase both sides as things that are present. If one side is an absence,
    rewrite it or drop the idea.
-2. `tools/fit_check.py`. Under 0.75, stop.
+2. Use `tools/fit_check.py` to screen ideas; under 0.75, deprioritise that
+   wording and set. The household synthetic screen can suggest candidates,
+   but neither screen establishes real-world success or impossibility.
 3. Bench it three times on three days. Believe the low end.
 
 Everything above rests on `bench/cue/`, which is the only place in this

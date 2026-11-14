@@ -113,12 +113,21 @@ and was right on 1 reading of 4. It also records what a background frozen over a
 moving desk costs — a factor of 16 on every score — and that the presence gate
 has about one `z` of headroom and drifts out of it over a long run.
 
-**`stills/`** is neither, and is not a bench. It holds PNGs off the appliance's
-camera, shot so that the stages of the encoder chain can be asked about the same
-pixels off the board. [`stills/20260821-bisect/`](stills/20260821-bisect/) is
+**`stills/`** is neither, and is not a bench. It holds camera PNGs and generated
+comparison sets for asking questions about the encoder off the board.
+[`stills/20260821-bisect/`](stills/20260821-bisect/) is
 where the glass pair's axis was found to be lost at the student and nowhere
 earlier. Nothing in there is comparable to a row in the manifest below: no cue
-schedule, no enrolment, no held-out set, no sidecar.
+schedule or `.cues` sidecar, and no held-out appliance accuracy. Some sets fit
+offline references and withhold images; those are explicitly separate metrics.
+
+The [2026-09-26 home-object screen](stills/20260926-home-screen/README.md)
+shortlists folded/crumpled towels and upright/tipped mugs from six synthetic
+household pairs, using the shipped C encoder and a simplified reference rule.
+Both reached 6/6 natively, but the towel fell to 3/6 when an empty reference was
+added. The hand control also failed to reproduce reported real-board behavior.
+The [gallery](stills/20260926-home-screen/index.html) and raw results remain
+under `stills/`; none of these counts is added to the cue accuracy manifest.
 
 Every number in this repository that says how well the appliance recognises
 anything came out of one of the logs in `cue/`. The enrolment guard's constant

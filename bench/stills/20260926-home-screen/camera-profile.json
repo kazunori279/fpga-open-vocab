@@ -1,0 +1,367 @@
+{
+  "reference_empty_frames": [
+    {
+      "path": "bench/cue/m9_cue-20260908-0602-f0286.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        132.74432373046875,
+        127.4713134765625,
+        138.65985107421875
+      ],
+      "mean_luma": 130.3234368286133,
+      "luma_sd": 44.47638124002497,
+      "neighbor_difference_sum": 6.259549089566928
+    },
+    {
+      "path": "bench/cue/m9_cue-20260908-0610-f0286.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        127.41241455078125,
+        121.8609619140625,
+        135.29229736328125
+      ],
+      "mean_luma": 125.05201849365234,
+      "luma_sd": 43.62382706226255,
+      "neighbor_difference_sum": 5.946926427165353
+    },
+    {
+      "path": "bench/cue/m9_cue-20260908-0615-f0286.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        133.92657470703125,
+        126.5797119140625,
+        139.00738525390625
+      ],
+      "mean_luma": 130.19317864990234,
+      "luma_sd": 42.79162102172713,
+      "neighbor_difference_sum": 7.49281053149606
+    }
+  ],
+  "generated_empty_frames": [
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/banana-r3-c0.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        126.59130859375,
+        121.18145751953125,
+        134.1407470703125
+      ],
+      "mean_luma": 124.27636199951172,
+      "luma_sd": 42.646172675864555,
+      "neighbor_difference_sum": 4.8202854330708655
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/banana-r3-c1.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        115.46630859375,
+        100.62945556640625,
+        99.7330322265625
+      ],
+      "mean_luma": 104.96348236083983,
+      "luma_sd": 37.67841147999173,
+      "neighbor_difference_sum": 4.04308716781496
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/banana-r3-c2.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        152.58087158203125,
+        153.31536865234375,
+        171.37701416015625
+      ],
+      "mean_luma": 155.15478161621093,
+      "luma_sd": 45.813266383526326,
+      "neighbor_difference_sum": 5.389304810531495
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/glasses-r3-c0.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        118.13665771484375,
+        111.39654541015625,
+        123.95025634765625
+      ],
+      "mean_luma": 114.8429620361328,
+      "luma_sd": 43.721259727585796,
+      "neighbor_difference_sum": 5.236871186023622
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/glasses-r3-c1.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        105.739501953125,
+        88.04833984375,
+        86.72381591796875
+      ],
+      "mean_luma": 93.18700158691406,
+      "luma_sd": 36.2298567082788,
+      "neighbor_difference_sum": 4.471593626968504
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/glasses-r3-c2.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        132.85791015625,
+        132.67462158203125,
+        150.871337890625
+      ],
+      "mean_luma": 134.80385052490234,
+      "luma_sd": 46.10441370176111,
+      "neighbor_difference_sum": 5.73336940206693
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/hand_control-r3-c0.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        122.75408935546875,
+        117.1192626953125,
+        130.90802001953125
+      ],
+      "mean_luma": 120.37599420166015,
+      "luma_sd": 40.830981420797976,
+      "neighbor_difference_sum": 5.051925073818897
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/hand_control-r3-c1.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        109.4820556640625,
+        96.01068115234375,
+        96.0264892578125
+      ],
+      "mean_luma": 100.04042425537108,
+      "luma_sd": 36.168165455037034,
+      "neighbor_difference_sum": 4.528566313976377
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/hand_control-r3-c2.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        139.96795654296875,
+        141.47998046875,
+        162.00146484375
+      ],
+      "mean_luma": 143.3673345336914,
+      "luma_sd": 45.361127830952725,
+      "neighbor_difference_sum": 5.214009288877953
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/mug-r3-c0.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        128.7576904296875,
+        124.49224853515625,
+        139.3143310546875
+      ],
+      "mean_luma": 127.45733306884765,
+      "luma_sd": 42.29376740006396,
+      "neighbor_difference_sum": 5.060939283956693
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/mug-r3-c1.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        107.07196044921875,
+        88.38507080078125,
+        85.6455078125
+      ],
+      "mean_luma": 93.660140625,
+      "luma_sd": 34.70081650342179,
+      "neighbor_difference_sum": 4.328458292322835
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/mug-r3-c2.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        140.81597900390625,
+        143.125244140625,
+        164.56756591796875
+      ],
+      "mean_luma": 144.87919854736327,
+      "luma_sd": 46.7491134626048,
+      "neighbor_difference_sum": 5.692088152066928
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/plant-r3-c0.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        121.9993896484375,
+        117.59832763671875,
+        132.725341796875
+      ],
+      "mean_luma": 120.63872479248047,
+      "luma_sd": 40.69502837356876,
+      "neighbor_difference_sum": 4.727466843011811
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/plant-r3-c1.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        106.16082763671875,
+        92.5684814453125,
+        89.2843017578125
+      ],
+      "mean_luma": 96.25819647216797,
+      "luma_sd": 33.62175609824925,
+      "neighbor_difference_sum": 3.9002265625
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/plant-r3-c2.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        149.20648193359375,
+        153.36236572265625,
+        178.431884765625
+      ],
+      "mean_luma": 154.977681640625,
+      "luma_sd": 44.49078583695159,
+      "neighbor_difference_sum": 5.234562438484252
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/towel-r3-c0.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        120.1705322265625,
+        115.702880859375,
+        128.54217529296875
+      ],
+      "mean_luma": 118.50238818359375,
+      "luma_sd": 41.779457707401285,
+      "neighbor_difference_sum": 4.691130413385826
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/towel-r3-c1.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        112.08587646484375,
+        98.34332275390625,
+        97.59619140625
+      ],
+      "mean_luma": 102.36717333984376,
+      "luma_sd": 38.00513567123234,
+      "neighbor_difference_sum": 4.295640809547244
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/towel-r3-c2.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        158.3182373046875,
+        157.4947509765625,
+        174.99298095703125
+      ],
+      "mean_luma": 159.73577160644533,
+      "luma_sd": 47.68840764770144,
+      "neighbor_difference_sum": 5.351048228346457
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/tray-r3-c0.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        124.71881103515625,
+        120.14495849609375,
+        135.28875732421875
+      ],
+      "mean_luma": 123.23893347167969,
+      "luma_sd": 42.20022960994609,
+      "neighbor_difference_sum": 4.994916646161417
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/tray-r3-c1.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        120.50445556640625,
+        104.97003173828125,
+        100.619140625
+      ],
+      "mean_luma": 109.11882287597656,
+      "luma_sd": 37.3861089904695,
+      "neighbor_difference_sum": 4.473636687992126
+    },
+    {
+      "path": "bench/stills/20260926-home-screen/inputs/tray-r3-c2.png",
+      "size": [
+        128,
+        128
+      ],
+      "mean_rgb": [
+        147.63592529296875,
+        150.3221435546875,
+        169.6905517578125
+      ],
+      "mean_luma": 151.72696282958984,
+      "luma_sd": 45.67398107955357,
+      "neighbor_difference_sum": 5.200770853838582
+    }
+  ],
+  "note": "Neighbor differences mix real scene texture, blur and noise; they are NOT an estimate of sensor noise. These are image-quality diagnostics, not camera calibration."
+}

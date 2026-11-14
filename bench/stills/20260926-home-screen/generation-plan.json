@@ -1,0 +1,62 @@
+{
+  "reference": "bench/cue/m9_cue-20260908-0610-f0286.png",
+  "base_prompt": "Use case: photorealistic-natural.\nAsset type: a 4 by 4 experimental photographic contact sheet, exactly sixteen equal square panels, no gutters, borders, text, numbers, labels or watermark. Output 2048x2048 if possible.\nReference image: the attached real 128x128 embedded-camera frame is the visual reference for ALL panels: a low viewpoint facing the same pale vertically ribbed wall, a narrow brown wooden tabletop strip at the bottom, cool uneven indoor illumination, darker right edge, soft focus, visible fine sensor noise, low contrast and cheap low-resolution camera texture. Do NOT turn this into crisp studio photography. Each panel must look like a separate native low-resolution 128x128 frame, enlarged. Keep the wall and desk architecture unchanged.\nExperimental layout: Rows 1-3 are three capture conditions in this SAME room. Row 1 uses the reference lighting, row 2 a slightly warmer dimmer exposure, row 3 a slightly brighter cooler exposure. Lighting must match across every panel within a row and must not encode state. Keep the same physical object identity, material and color across all 12 object panels. Object occupies about 50-65 percent of the panel's width, entirely visible and centered near the tabletop, not cropped.\nRows 1 and 3: columns from left to right depict states A, B, B, A.\nRow 2: columns depict states B, A, A, B.\nThe duplicate states are independent re-stagings, subtly shifted a few pixels or rotated a few degrees; do not copy identical pixels, and do not give either state a consistent left/right offset or different background.\nRow 4: column 1 is the completely empty reference desk under row-1 lighting, column 2 empty desk under row-2 lighting, column 3 empty desk under row-3 lighting, column 4 a plain small white cereal bowl standing alone on the same desk under row-1 lighting (a distractor).\nNo human hands, no extra props, except when the requested subject is itself a human hand.\nSubject and states: ",
+  "cases": [
+    [
+      "towel",
+      "A is a neatly folded pale blue cotton hand towel, a compact rectangle with visible folded edges. B is the EXACT SAME pale blue towel crumpled in a loose irregular heap. Avoid making B a different textile or color."
+    ],
+    [
+      "mug",
+      "A is a plain yellow ceramic mug standing upright with its opening at the top. B is the EXACT SAME yellow mug lying on its side with its handle and opening visible. Its color, size, and material stay identical."
+    ],
+    [
+      "scissors",
+      "A is a pair of black-handled household scissors with the two metal blades spread widely open in a clear V. B is the EXACT SAME scissors with blades together, closed. Photograph from a slightly downward angle so blade geometry is visible; no hands."
+    ],
+    [
+      "box",
+      "A is a small plain brown cardboard parcel box with its four top flaps spread open, revealing the interior. B is the EXACT SAME box with its top flaps neatly folded shut. Same box dimensions, brown material, no tape, no printed words."
+    ],
+    [
+      "banana",
+      "A is one whole unpeeled yellow banana lying naturally on the desk. B is the SAME banana with its yellow peel pulled halfway down in three strips revealing the pale fruit. Keep the banana's position, approximate occupied area and identity stable."
+    ],
+    [
+      "apple",
+      "A is one whole red apple resting on the desk. B is that red apple cut into two halves, both halves side by side with pale cut faces visible. No knife. Same apple variety and size; genuine home food preparation."
+    ],
+    [
+      "bottle",
+      "A is a clear empty plastic beverage bottle with a blue cap, standing upright intact. B is the EXACT SAME blue-capped bottle compressed/crushed into a short wrinkled form for recycling, resting on its base. No label, no text, no water; preserve transparent plastic."
+    ],
+    [
+      "cutlery",
+      "A is a single plain stainless steel dinner fork, four tines clearly visible. B is a single plain stainless steel tablespoon of similar length. Both lie naturally on the desk viewed from a sufficiently downward angle to see their heads; no impossible standing cutlery. Same camera viewpoint and metal finish."
+    ],
+    [
+      "jar",
+      "A is a transparent cylindrical glass storage jar filled three-quarters with uncooked white rice. B is the EXACT SAME transparent jar completely empty. Same lid screwed on in both, no labels. Camera sees the sides and contents clearly."
+    ],
+    [
+      "glasses",
+      "A is a pair of black rectangular eyeglasses with temples unfolded, resting naturally on the desk. B is the EXACT SAME eyeglasses with temples folded behind the lenses. Same lens shape and orientation; no hands."
+    ],
+    [
+      "tray",
+      "A is a simple shallow wooden tray holding a small set of silver house keys on a key ring. B is the SAME tray holding a plain black leather wallet and NO keys. Keep the tray position exactly matched. This is a household entryway belongings check."
+    ],
+    [
+      "plant",
+      "A is a small terracotta pot containing a healthy small basil plant with upright green leaves. B is the EXACT SAME basil plant and pot with distinctly drooping wilted leaves. Same number of leaves, same green color, no brown or yellow leaves; only posture/turgor changes. Do not change plant species."
+    ],
+    [
+      "hand_control",
+      "A is one adult human hand raised in front of the wall, palm facing camera, all five fingers fully spread. B is the SAME person's hand in a clenched fist, knuckles facing the camera. Same skin tone, same wrist entering from bottom of frame, similar occupied area. No face."
+    ],
+    [
+      "cube_control",
+      "A is one plain red wooden toy cube on the desk. B is an identically shaped and sized green wooden toy cube in exactly the same position. Only color differs. No symbols or text."
+    ]
+  ]
+}

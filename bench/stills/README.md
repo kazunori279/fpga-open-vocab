@@ -1,13 +1,37 @@
 # Stills, and why they are not benches
 
-PNGs off the appliance's own camera, shot so that a question about the *encoder*
-can be asked without spending a morning of daylight on a bench.
+Camera stills and generated comparison sets, kept so that questions about the
+*encoder* can be asked without another session on the board. Each set records
+where its images came from; generated images are not camera captures.
 
 **Nothing in here is comparable to a row in [`../README.md`](../README.md)'s
-manifest.** No cue schedule, no enrolment, no held-out set, no `.cues` sidecar,
-no held-out percentage. A bench measures the whole appliance — camera, staging,
-enrolment, decision rule — and costs a morning. A set in here measures one thing
-about the model and costs about four minutes.
+manifest.** Offline reference fitting and withheld-image tests in some sets are
+not on-device enrolment or held-out appliance accuracy. A bench measures the
+whole appliance — camera, staging, enrolment, decision rule. A set in here
+measures a narrower question about the model or an offline decision surrogate.
+
+## Household candidates, 2026-09-26
+
+The [camera-referenced synthetic screen](20260926-home-screen/README.md)
+evaluated six household state pairs and an open-hand/fist control through the
+shipped int4 C encoder, without hardware. **Folded/crumpled towels and
+upright/tipped mugs** both reached 6/6 on withheld synthetic images under a
+simplified nearest-reference rule, falling to 5/6 in the worst image
+perturbation. Adding an empty reference reduced the towel result to 3/6; the
+mug remained 6/6 natively, but fell to 4/6 in some perturbed inputs.
+
+The other native results were banana preparation 5/6, glasses folding 4/6,
+keys/wallet on a tray 3/6, and leaf posture 2/6. These are correlated images
+from one generation per case, not independent trials. The hand control's raw
+student ranking was only 1/6, with registration recovering 5/6, so the screen
+does not reliably reproduce the reported real-board behavior.
+
+The [gallery](20260926-home-screen/index.html),
+[results](20260926-home-screen/results.json) and
+[generation plan](20260926-home-screen/generation-plan.json) retain the full
+evidence. Scissors were excluded before scoring for an unnatural pose; six
+other planned pairs failed at the image-generation service and remain untested.
+These findings are candidate selection, not new rows in the appliance manifest.
 
 ## The standing answers, and where each one lives
 

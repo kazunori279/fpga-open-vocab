@@ -291,7 +291,7 @@
   </div>
   <div class="footerbar">
     <span class="pill">fpga-open-vocab · Forgix RP2354A + Efinix Trion T8</span>
-    <span>2026年8月 · 50分</span>
+    <span>2026年11月更新 · 50分</span>
   </div>
 </section>
 
@@ -1374,16 +1374,14 @@ present = (de &gt; d);</pre>
     </div>
   </div></section>
 
-<!-- ============ 120/120 ============ -->
-<section class="slide statement">
-  <div class="txt">実機のホールドアウトで <span class="hl-g">120 / 120</span> —<br>
-  同じフレームを順位づけした場合は <span class="hl-b">90 / 180</span>
-  <span class="cap">そして要点を突いているのは90/180のほうです。その実行では
-  <i>「an opened book」</i>が<b>6セグメントすべて</b>で<i>「a closed book」</i>より高いスコアを出しました。
-  つまり学習した参照を持たないルールは毎回「opened」と答え、ちょうど半分だけ正解する。
-  2つの列の差は<b>シーンごとの約1.7のオフセット</b>で、学習した参照はそれを測れますが、固定ルールは吸収できません。
-  <b>ここにあった穴は塞がりました：</b>ベンチ手順がルールの効き始めた<i>あとに</i>空の机へ戻るようになると、
-  level区間の段が取れたのは <b>16/90</b> と <b>22/90</b> でした。だから今のルールではありません。</span></div></section>
+<!-- ============ REGISTRATION REPLAY ============ -->
+<section class="slide">
+  <div class="h">登録の効果を40回のログで比較</div>
+  <div class="hsub">2026-09-09の再集計。同じ4,821フレーム、4組のフレーズを両ルールで採点。</div>
+  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>ルール</th><th>40回の平均</th><th>本の33回の平均</th><th>本の33回の最低値</th></tr></thead><tbody><tr><td>登録あり</td><td>68.9%</td><td>69.2%</td><td>0.8%</td></tr><tr><td>登録なし argmax(z)</td><td>62.7%</td><td>64.1%</td><td>26.0%</td></tr><tr><td>正解を見て選んだ境界</td><td>83.3%</td><td>85.8%</td><td>52.0%</td></tr></tbody></table>
+  <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><b>登録は平均を改善しても、失敗を防ぎません。</b>本の33回では平均+5.1ポイント。一方、参照の崩壊や反転で登録なしを下回る実行もありました。</p><p>物体があるフレームだけの比較です。空の机の検出能力は測っていません。Oracleは正解を使った事後的な参考値で、実装可能な成績ではありません。</p></div>
+  <div class="imgcap" style="text-align:left; margin-top:20px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/probe/20260909-noenrol/README.md">出典：2026-09-09 ログ再集計</a></div>
+</section>
 
 <!-- ============ SPOT.PY ============ -->
 <section class="slide">
@@ -1431,6 +1429,23 @@ enrol : an opened book, level +1.07, scatter 0.14
       </ul>
     </div>
   </div></section>
+
+<!-- ============ CURRENT PROBES ============ -->
+<section class="slide">
+  <div class="h">登録なしで状態をLEDに表示</div>
+  <div class="hsub">2026-09-09、13回の起動で7組を試行。正解率を測るホールドアウト試験ではありません。</div>
+  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>対象</th><th>観察</th></tr></thead><tbody><tr><td>手の開閉 / 赤・緑のキューブ</td><td>状態に応じてLEDが切り替わる</td></tr><tr><td>箱の開閉</td><td>コントラスト軸は開いた箱にも「closed」</td></tr><tr><td>カップ1個 / 2個</td><td>読み値は分かれるが非対称。数える能力は未検証</td></tr></tbody></table>
+  <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><code>host/demo.py --state</code> は通常のフレーズにも状態の役割を付けます。ゲートと組み合わせると、<code>led_two()</code> が状態を色、ゲートを明るさに割り当てます。</p><p>登録も役割指定もない既定の経路では、明るさは固定です。色は勝ったクラスの識別ではなく、マッチの強さを示します。</p></div>
+  <div class="imgcap" style="text-align:left; margin-top:20px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/probe/20260909-pairs/README.md">出典：7組の実機プローブ</a> / <a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/probe/20260909-cubes/README.md">LEDの表示経路</a></div>
+</section>
+
+<section class="slide">
+  <div class="h">家庭用品の候補を合成画像で絞る</div>
+  <div class="hsub">2026-09-26。出荷済みint4モデルとCエンコーダ、簡略化した最近傍参照ルールを使用。実機では未検証。</div>
+  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>状態の組</th><th>通常 /6</th><th>最悪の画像変化 /6</th><th>空の参照を追加 /6</th></tr></thead><tbody><tr><td>タオル：畳む / 丸める</td><td>6</td><td>5</td><td>3</td></tr><tr><td>マグ：直立 / 横倒し</td><td>6</td><td>5</td><td>6</td></tr><tr><td>バナナ：皮あり / 皮なし</td><td>5</td><td>3</td><td>4</td></tr><tr><td>眼鏡：開く / 畳む</td><td>4</td><td>4</td><td>3</td></tr><tr><td>トレー：鍵 / 財布</td><td>3</td><td>3</td><td>3</td></tr><tr><td>バジル：直立 / しおれる</td><td>2</td><td>2</td><td>2</td></tr><tr><td>対照：開いた手 / 拳</td><td>5</td><td>3</td><td>4</td></tr></tbody></table>
+  <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><b>タオルとマグが次の実機試験の候補。</b>各候補は1つの生成シーンで、6枚は互いに相関した画像です。空の参照列は物体画像の正解数で、空シーンの再現率ではありません。</p><p>通常列は照明ごとに参照を登録。部屋の標準化・時間平滑化・存在判定の全体は再現していません。</p></div>
+  <div class="imgcap" style="text-align:left; margin-top:20px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/stills/20260926-home-screen/README.md">合成画像と結果</a> / <a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/stills/20260926-home-screen/README.md">評価手法と制約</a></div>
+</section>
 
 <!-- ============ SECTION 06 · FRICTIONS ============ -->
 <section class="slide divider">
@@ -1544,10 +1559,10 @@ enrol : an opened book, level +1.07, scatter 0.14
     <ol>
       <li><span class="num">01</span><span class="txt" style="font-size:20px;">CLIPの2つの塔は切り離せる。デバイスに載せる必要があるのは画像側だけ</span></li>
       <li><span class="num">02</span><span class="txt" style="font-size:20px;">140万パラメータの生徒は50ドルのシリコンに収まり、教師のクエリの91%を保持する</span></li>
-      <li><span class="num">03</span><span class="txt" style="font-size:20px;">これだけ小さいFPGAでは、ロジックより先にメモリが尽きる — 24ブロック中21、LEは33%</span></li>
+      <li><span class="num">03</span><span class="txt" style="font-size:20px;">現在のタイルはメモリ24ブロック中21、LE 7,384個中6,265個（85%）を使用</span></li>
       <li><span class="num">04</span><span class="txt" style="font-size:20px;">部品ではなくフレームを測る。ベースラインは同じブートの中で測り直す</span></li>
       <li><span class="num">05</span><span class="txt" style="font-size:20px;">測定された合格は、測定された上限ではない。最大の勝ちに設計作業は入っていなかった</span></li>
-      <li><span class="num">06</span><span class="txt" style="font-size:20px;">埋め込みを正しく出すのは簡単なほうの半分。判定に変えるまでに13マイルストーンかかった</span></li>
+      <li><span class="num">06</span><span class="txt" style="font-size:20px;">判定品質は対象の組とシーンに依存する。登録は平均を改善するが、失敗もある</span></li>
       <li><span class="num">07</span><span class="txt" style="font-size:20px;">引退した2つのルールは、どちらもベンチに当てはめた定数だった。置き換えたのは、その実行自身の測定値どうしを比べるルール</span></li>
     </ol>
   </div></section>
@@ -1604,7 +1619,7 @@ enrol : an opened book, level +1.07, scatter 0.14
 </div></div>
 
 <div id="lang"><a href="index.html" hreflang="en">English</a></div>
-<div id="hud">1 / 38</div>
+<div id="hud">1 / 42</div>
 <div id="help"><kbd>←</kbd> <kbd>→</kbd> ページ送り &nbsp; <kbd>f</kbd> 全画面</div>
 
 <script>
@@ -1612,7 +1627,7 @@ enrol : an opened book, level +1.07, scatter 0.14
   const slides = [...document.querySelectorAll('.slide')];
   const hud = document.getElementById('hud');
   const frame = document.getElementById('frame');
-  // The other deck's link. Both decks hold the same 39 slides in the same
+  // The other deck's link. Both decks hold the same 42 slides in the same
   // order, so the fragment means the same thing in either one - but the href
   // is written without it, and a bare filename drops the fragment rather than
   // keeping it, so switching language on slide 27 used to land on slide 1.

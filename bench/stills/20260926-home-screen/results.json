@@ -1,0 +1,323 @@
+{
+  "model": "so400m-full-a05",
+  "versions": {
+    "numpy": "2.5.3",
+    "pillow": "12.3.0",
+    "torch": "2.14.0",
+    "torchvision": "0.29.0",
+    "open_clip_torch": "3.3.0",
+    "transformers": "5.17.0"
+  },
+  "basis_sha256": "e665cbab6c0a67be3754d41a57db6c39da87caf6ed8391bc8a14a74c4e486a2b",
+  "encoder": "firmware/encoder_fast.c with FGX_DSP_SHIM; 2048/2048 golden floats exact",
+  "scope": "Exploratory synthetic screen; nearest-reference surrogate, not full firmware replay",
+  "input": "128x128 RGB565, upright, cam_frame_to_chw; teacher receives 128px RGB888 diagnostic images",
+  "synthetic_scene_count_per_case": 1,
+  "capture_conditions_per_case": 3,
+  "weights_crc32": "0xF368CC6E",
+  "profiles": [
+    "native",
+    "dim",
+    "bright",
+    "warm",
+    "cool",
+    "blur",
+    "noise"
+  ],
+  "results": [
+    {
+      "case": "towel",
+      "queries": [
+        "a neatly folded towel",
+        "a crumpled towel"
+      ],
+      "held_out_n": 6,
+      "teacher_raw_correct": 6,
+      "student_raw_correct": 6,
+      "heldout_pair_direction_correct_of_3": 3,
+      "enrolled_correct": {
+        "native": 6,
+        "dim": 5,
+        "bright": 5,
+        "warm": 5,
+        "cool": 6,
+        "blur": 6,
+        "noise": 6
+      },
+      "enrolled_with_empty_correct": {
+        "native": 3,
+        "dim": 2,
+        "bright": 3,
+        "warm": 2,
+        "cool": 3,
+        "blur": 3,
+        "noise": 5
+      },
+      "brightness_baseline_correct": 4,
+      "enrolment_margin_gaps": [
+        0.04127198085188866,
+        0.036538995802402496,
+        0.050074197351932526
+      ],
+      "restaging_margin_drift": [
+        0.011993702501058578,
+        0.013398427516222,
+        0.02292945608496666
+      ],
+      "fixed_enrolment_lighting_correct_of_8": 8,
+      "quality_note": "State labels and shared object/background pass visual review. Near-duplicate restagings; one generated sheet, not independent scenes."
+    },
+    {
+      "case": "mug",
+      "queries": [
+        "an upright mug",
+        "a mug lying on its side"
+      ],
+      "held_out_n": 6,
+      "teacher_raw_correct": 6,
+      "student_raw_correct": 5,
+      "heldout_pair_direction_correct_of_3": 3,
+      "enrolled_correct": {
+        "native": 6,
+        "dim": 5,
+        "bright": 5,
+        "warm": 5,
+        "cool": 5,
+        "blur": 6,
+        "noise": 5
+      },
+      "enrolled_with_empty_correct": {
+        "native": 6,
+        "dim": 4,
+        "bright": 4,
+        "warm": 4,
+        "cool": 5,
+        "blur": 6,
+        "noise": 4
+      },
+      "brightness_baseline_correct": 4,
+      "enrolment_margin_gaps": [
+        0.01757214218378067,
+        0.003290262073278427,
+        0.016577672213315964
+      ],
+      "restaging_margin_drift": [
+        0.005384556949138641,
+        0.0067260414361953735,
+        0.007472462952136993
+      ],
+      "fixed_enrolment_lighting_correct_of_8": 6,
+      "quality_note": "State labels and mug identity pass. Slight framing/size changes remain; no real spill is being detected."
+    },
+    {
+      "case": "banana",
+      "queries": [
+        "an unpeeled banana",
+        "a peeled banana"
+      ],
+      "held_out_n": 6,
+      "teacher_raw_correct": 6,
+      "student_raw_correct": 4,
+      "heldout_pair_direction_correct_of_3": 2,
+      "enrolled_correct": {
+        "native": 5,
+        "dim": 4,
+        "bright": 4,
+        "warm": 5,
+        "cool": 4,
+        "blur": 3,
+        "noise": 3
+      },
+      "enrolled_with_empty_correct": {
+        "native": 4,
+        "dim": 4,
+        "bright": 4,
+        "warm": 4,
+        "cool": 3,
+        "blur": 1,
+        "noise": 1
+      },
+      "brightness_baseline_correct": 3,
+      "enrolment_margin_gaps": [
+        0.012602556496858597,
+        0.01292756199836731,
+        0.0025477707386016846
+      ],
+      "restaging_margin_drift": [
+        0.005328655242919922,
+        0.0045534297823905945,
+        0.006177986040711403
+      ],
+      "fixed_enrolment_lighting_correct_of_8": 4,
+      "quality_note": "State labels pass; peeling also changes orientation/shape substantially. This screens preparation state, not ripeness or food safety."
+    },
+    {
+      "case": "glasses",
+      "queries": [
+        "a pair of unfolded eyeglasses",
+        "a pair of folded eyeglasses"
+      ],
+      "held_out_n": 6,
+      "teacher_raw_correct": 3,
+      "student_raw_correct": 3,
+      "heldout_pair_direction_correct_of_3": 1,
+      "enrolled_correct": {
+        "native": 4,
+        "dim": 4,
+        "bright": 5,
+        "warm": 5,
+        "cool": 4,
+        "blur": 4,
+        "noise": 4
+      },
+      "enrolled_with_empty_correct": {
+        "native": 3,
+        "dim": 4,
+        "bright": 4,
+        "warm": 5,
+        "cool": 4,
+        "blur": 3,
+        "noise": 3
+      },
+      "brightness_baseline_correct": 4,
+      "enrolment_margin_gaps": [
+        -0.009906895458698273,
+        -0.003119520843029022,
+        -0.010559305548667908
+      ],
+      "restaging_margin_drift": [
+        0.0022000670433044434,
+        0.010847054421901703,
+        0.0020902305841445923
+      ],
+      "fixed_enrolment_lighting_correct_of_8": 6,
+      "quality_note": "Folded/unfolded temples are visible; small geometric cue at 128px. Stable frame color/background."
+    },
+    {
+      "case": "tray",
+      "queries": [
+        "a tray with keys",
+        "a tray with a wallet"
+      ],
+      "held_out_n": 6,
+      "teacher_raw_correct": 6,
+      "student_raw_correct": 3,
+      "heldout_pair_direction_correct_of_3": 3,
+      "enrolled_correct": {
+        "native": 3,
+        "dim": 4,
+        "bright": 3,
+        "warm": 3,
+        "cool": 3,
+        "blur": 3,
+        "noise": 3
+      },
+      "enrolled_with_empty_correct": {
+        "native": 3,
+        "dim": 2,
+        "bright": 3,
+        "warm": 2,
+        "cool": 3,
+        "blur": 2,
+        "noise": 2
+      },
+      "brightness_baseline_correct": 3,
+      "enrolment_margin_gaps": [
+        0.006043389439582825,
+        0.017995961010456085,
+        0.009229697287082672
+      ],
+      "restaging_margin_drift": [
+        0.011543340981006622,
+        0.01863792911171913,
+        0.007159393280744553
+      ],
+      "fixed_enrolment_lighting_correct_of_8": 5,
+      "quality_note": "Keys/wallet states pass. Object identity and dark occupied area differ; not a presence/forgotten-keys benchmark."
+    },
+    {
+      "case": "plant",
+      "queries": [
+        "a healthy basil plant",
+        "a wilted basil plant"
+      ],
+      "held_out_n": 6,
+      "teacher_raw_correct": 3,
+      "student_raw_correct": 3,
+      "heldout_pair_direction_correct_of_3": 2,
+      "enrolled_correct": {
+        "native": 2,
+        "dim": 2,
+        "bright": 4,
+        "warm": 3,
+        "cool": 2,
+        "blur": 2,
+        "noise": 3
+      },
+      "enrolled_with_empty_correct": {
+        "native": 2,
+        "dim": 2,
+        "bright": 4,
+        "warm": 3,
+        "cool": 2,
+        "blur": 2,
+        "noise": 3
+      },
+      "brightness_baseline_correct": 5,
+      "enrolment_margin_gaps": [
+        0.0031302087008953094,
+        0.0007393583655357361,
+        0.0077037811279296875
+      ],
+      "restaging_margin_drift": [
+        0.011279039084911346,
+        0.01195908710360527,
+        0.008192561566829681
+      ],
+      "fixed_enrolment_lighting_correct_of_8": 5,
+      "quality_note": "Upright/drooping leaves pass visual review. This does not establish watering need or plant health diagnosis."
+    },
+    {
+      "case": "hand_control",
+      "queries": [
+        "an open hand",
+        "a fist"
+      ],
+      "held_out_n": 6,
+      "teacher_raw_correct": 6,
+      "student_raw_correct": 1,
+      "heldout_pair_direction_correct_of_3": 0,
+      "enrolled_correct": {
+        "native": 5,
+        "dim": 3,
+        "bright": 5,
+        "warm": 5,
+        "cool": 5,
+        "blur": 5,
+        "noise": 5
+      },
+      "enrolled_with_empty_correct": {
+        "native": 4,
+        "dim": 3,
+        "bright": 4,
+        "warm": 5,
+        "cool": 5,
+        "blur": 4,
+        "noise": 5
+      },
+      "brightness_baseline_correct": 2,
+      "enrolment_margin_gaps": [
+        -0.008711587637662888,
+        -0.01146872341632843,
+        -0.013011850416660309
+      ],
+      "restaging_margin_drift": [
+        0.0034950152039527893,
+        0.005763448774814606,
+        0.004006925970315933
+      ],
+      "fixed_enrolment_lighting_correct_of_8": 8,
+      "quality_note": "Positive control. Generated hands switch handedness in some repeats, but both states include both orientations; not real camera evidence."
+    }
+  ]
+}

@@ -283,7 +283,7 @@
   </div>
   <div class="footerbar">
     <span class="pill">fpga-open-vocab · Forgix RP2354A + Efinix Trion T8</span>
-    <span>Aug 2026 · 50 min</span>
+    <span>Updated Nov 2026 · 50 min</span>
   </div>
 </section>
 
@@ -1392,18 +1392,14 @@ present = (de &gt; d);</pre>
     </div>
   </div></section>
 
-<!-- ============ 120/120 ============ -->
-<section class="slide statement">
-  <div class="txt"><span class="hl-g">120 / 120</span> held out on the board —<br>
-  against <span class="hl-b">90 / 180</span> for ranking the same frames
-  <span class="cap">And 90/180 is the number that makes the point. On that run
-  <i>"an opened book"</i> scores higher than <i>"a closed book"</i> in <b>all six segments</b>, so a
-  rule with no learned reference answers "opened" every time — and is right exactly half of it.
-  The difference between the two columns is a <b>per-scene offset of ~1.7</b> that a learned
-  reference measures and a fixed rule cannot absorb.
-  <b>The gap that used to sit here is closed:</b> once the bench schedule revisited the empty desk
-  <i>after</i> the rule engages, the level-span stage held <b>16/90</b> and <b>22/90</b> — which is
-  why it is not the rule any more.</span></div></section>
+<!-- ============ REGISTRATION REPLAY ============ -->
+<section class="slide">
+  <div class="h">Registration across 40 archived runs</div>
+  <div class="hsub">2026-09-09 replay. Both rules score the same 4,821 frames across four phrase pairs.</div>
+  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>Rule</th><th>Mean, all 40 runs</th><th>Mean, 33 book runs</th><th>Minimum, book runs</th></tr></thead><tbody><tr><td>Enrolled</td><td>68.9%</td><td>69.2%</td><td>0.8%</td></tr><tr><td>No registration: argmax(z)</td><td>62.7%</td><td>64.1%</td><td>26.0%</td></tr><tr><td>Oracle cut fitted to answers</td><td>83.3%</td><td>85.8%</td><td>52.0%</td></tr></tbody></table>
+  <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><b>Registration improves the mean but can fail badly.</b> It adds 5.1 points on the 33 book runs. Collapsed or inverted references can make it worse than argmax.</p><p>Only object-present frames count here. This does not test empty-scene detection. The oracle uses each run’s answers after the fact and cannot ship.</p></div>
+  <div class="imgcap" style="text-align:left; margin-top:20px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/probe/20260909-noenrol/README.md">Source: archive replay, 2026-09-09</a></div>
+</section>
 
 <!-- ============ SPOT.PY ============ -->
 <section class="slide">
@@ -1453,6 +1449,23 @@ enrol : an opened book, level +1.07, scatter 0.14
       </ul>
     </div>
   </div></section>
+
+<!-- ============ CURRENT PROBES ============ -->
+<section class="slide">
+  <div class="h">State on the LED without registration</div>
+  <div class="hsub">Seven pairs across 13 boots on 2026-09-09. Spot observations, without a held-out accuracy test.</div>
+  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>Pair</th><th>Observation</th></tr></thead><tbody><tr><td>Open / closed hand, red / green cube</td><td>LED switched with the state</td></tr><tr><td>Open / closed box</td><td>Contrast axis called the open box “closed”</td></tr><tr><td>One / two cups</td><td>Asymmetric readings. Counting remains unvalidated</td></tr></tbody></table>
+  <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><code>host/demo.py --state</code> tags a bare phrase as a state query. With a gate, <code>led_two()</code> maps state to hue and the gate to brightness.</p><p>Without registration or gate/class roles, the default path fixes brightness. Its hue indicates match strength, so it does not identify the winning class.</p></div>
+  <div class="imgcap" style="text-align:left; margin-top:20px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/probe/20260909-pairs/README.md">Source: seven-pair probe</a> / <a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/probe/20260909-cubes/README.md">LED paths</a></div>
+</section>
+
+<section class="slide">
+  <div class="h">Household candidates on synthetic images</div>
+  <div class="hsub">2026-09-26. Shipped int4 model and C encoder with a simplified nearest-reference rule. No board validation.</div>
+  <table class="gt tight" style="margin-top:30px;"><thead><tr><th>State pair</th><th>Native /6</th><th>Worst perturbation /6</th><th>With empty reference /6</th></tr></thead><tbody><tr><td>Towel: folded / crumpled</td><td>6</td><td>5</td><td>3</td></tr><tr><td>Mug: upright / tipped</td><td>6</td><td>5</td><td>6</td></tr><tr><td>Banana: unpeeled / peeled</td><td>5</td><td>3</td><td>4</td></tr><tr><td>Eyeglasses: unfolded / folded</td><td>4</td><td>4</td><td>3</td></tr><tr><td>Tray: keys / wallet</td><td>3</td><td>3</td><td>3</td></tr><tr><td>Basil: upright / drooping</td><td>2</td><td>2</td><td>2</td></tr><tr><td>Control: open hand / fist</td><td>5</td><td>3</td><td>4</td></tr></tbody></table>
+  <div class="body" style="margin-top:24px; max-width:1120px; font-size:20px;"><p><b>Towels and mugs are candidates for the next board test.</b> Each case is one generated scene with six correlated test images. The empty-reference column counts correct object images, not empty-scene recall.</p><p>Native references are fitted per lighting condition. Room standardization, temporal smoothing and the full presence rule are omitted.</p></div>
+  <div class="imgcap" style="text-align:left; margin-top:20px;"><a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/stills/20260926-home-screen/README.md">Synthetic images and results</a> / <a href="https://github.com/kazunori279/fpga-open-vocab/blob/main/bench/stills/20260926-home-screen/README.md">Method and limitations</a></div>
+</section>
 
 <!-- ============ SECTION 06 · FRICTIONS ============ -->
 <section class="slide divider">
@@ -1566,10 +1579,10 @@ enrol : an opened book, level +1.07, scatter 0.14
     <ol>
       <li><span class="num">01</span><span class="txt" style="font-size:22px;">CLIP's two towers are separable — only the image half has to be on the device</span></li>
       <li><span class="num">02</span><span class="txt" style="font-size:22px;">A 1.40 M-parameter student fits in $50 of silicon and keeps 91% of the teacher's queries</span></li>
-      <li><span class="num">03</span><span class="txt" style="font-size:22px;">On an FPGA this small, memory runs out before logic does — 21 of 24 blocks, 33% of the LEs</span></li>
+      <li><span class="num">03</span><span class="txt" style="font-size:22px;">The shipped tile uses 21 of 24 memory blocks and 6,265 of 7,384 LEs (85%)</span></li>
       <li><span class="num">04</span><span class="txt" style="font-size:22px;">Measure the frame, not the component — and re-measure the baseline in the same boot</span></li>
       <li><span class="num">05</span><span class="txt" style="font-size:22px;">A measured pass is not a measured bound. The biggest win had no design work in it</span></li>
-      <li><span class="num">06</span><span class="txt" style="font-size:22px;">Getting the embedding right was the easy half; turning it into a verdict took thirteen milestones</span></li>
+      <li><span class="num">06</span><span class="txt" style="font-size:22px;">Decision quality depends on the pair and the scene. Registration improves the mean but can fail</span></li>
       <li><span class="num">07</span><span class="txt" style="font-size:22px;">Both rules that got retired were a constant fitted to a bench. What replaced them compares a run's own measurements</span></li>
     </ol>
   </div></section>
@@ -1626,7 +1639,7 @@ enrol : an opened book, level +1.07, scatter 0.14
 </div></div>
 
 <div id="lang"><a href="index.ja.html" hreflang="ja">日本語</a></div>
-<div id="hud">1 / 38</div>
+<div id="hud">1 / 42</div>
 <div id="help"><kbd>←</kbd> <kbd>→</kbd> navigate &nbsp; <kbd>f</kbd> fullscreen</div>
 
 <script>
@@ -1634,7 +1647,7 @@ enrol : an opened book, level +1.07, scatter 0.14
   const slides = [...document.querySelectorAll('.slide')];
   const hud = document.getElementById('hud');
   const frame = document.getElementById('frame');
-  // The other deck's link. Both decks hold the same 39 slides in the same
+  // The other deck's link. Both decks hold the same 42 slides in the same
   // order, so the fragment means the same thing in either one - but the href
   // is written without it, and a bare filename drops the fragment rather than
   // keeping it, so switching language on slide 27 used to land on slide 1.

@@ -39,7 +39,16 @@ uv run --script tools/fit_check.py --cat person \
     --neg-edit "the hand is closed into a tight fist"
 ```
 
-**Once it passes, the appliance is one command.** Give `host/spot.py` two
+**Looking for household use cases?** The
+[2026-09-26 synthetic screen](docs/fit.md#household-candidates-from-the-2026-09-26-synthetic-screen)
+shortlists **folded/crumpled towels** and **upright/tipped mugs** for further
+testing. Both separated 6/6 withheld synthetic images using the shipped encoder
+and a simplified reference rule; neither has been validated on the board.
+Adding an empty-scene reference reduced the towel result to 3/6, and lighting
+changes exposed weaknesses in both. The [image gallery](bench/stills/20260926-home-screen/index.html)
+shows all six household candidates and the hand control, including the failures.
+
+**To try a screened pair, the appliance is one command.** Give `host/spot.py` two
 phrases and it walks the sequence the firmware needs — hold the first thing up
 and press Enter, then the second, then take everything out of shot — and from
 then on it prints what the board sees.

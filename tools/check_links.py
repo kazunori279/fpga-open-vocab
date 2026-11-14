@@ -54,6 +54,7 @@ MD_FILES = ['README.md', 'docs/architecture.md', 'docs/building.md',
             'docs/pinmap.md', 'docs/fit.md', 'docs/monitor.md', 'rtl/README.md',
             'slides/README.md', 'bench/README.md', 'bench/stills/README.md',
             'bench/stills/20260822-synth-book-crop2/README.md',
+            'bench/stills/20260926-home-screen/README.md',
             'bench/soak/README.md', 'bench/soak/20260822-settle/README.md',
             'bench/soak/20260825-fmtcache/README.md',
             'bench/labelled/README.md']
