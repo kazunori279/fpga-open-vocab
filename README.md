@@ -2,6 +2,12 @@
 
 **fpga-open-vocab** points a camera at something, you type **"a person smiling"** on the host, and a $50 board answers — by running a distilled [CLIP-style](https://arxiv.org/abs/2103.00020) image encoder on a [Forgix](https://forgix.tech/) board, which pairs an [RP2354A](https://www.raspberrypi.com/products/rp2350/) MCU with an [Efinix Trion T8](https://www.efinixinc.com/products-trion.html) FPGA.
 
+[![Open-hand and closed-fist demo on the Forgix board, with red and green LED labels](docs/img/hand-demo.gif)](https://youtu.be/n6vrb4GZql0)
+
+**Hand demo:** red LED = `an open hand`; green LED = `a fist`.
+
+[Watch the full demo on YouTube](https://youtu.be/n6vrb4GZql0) · [Slides (English)](https://kazunori279.github.io/fpga-open-vocab/slides/) · [スライド（日本語）](https://kazunori279.github.io/fpga-open-vocab/slides/index.ja.html)
+
 It is built and it runs. All eight convolution layers execute on the FPGA tile, off a live camera, and **bit-exact** against the plain-C reference — a whole camera frame in **282 ms**, of which **265 ms** is the encoder. Against the same model on the MCU alone, measured in the same boot and at the same 320 MHz, the tile is **5.97×** faster.
 
 ```
