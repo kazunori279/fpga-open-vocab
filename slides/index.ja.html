@@ -336,19 +336,7 @@
   </div>
 </section>
 
-<!-- ============ INTRO · BUSINESS BENEFITS ============ -->
-<section class="slide benefits-slide">
-  <div class="h">ビジネス上のメリット</div>
-  <div class="benefit-lead">検出したいシーンを、任意のテキストで指定</div>
-  <div class="benefit-detail">物体名だけでなく、「開いた手」「丸めたタオル」「開いた本」などの意味で判定。<br>テキストと参照シーンを変えるだけで、画像モデルの再学習は不要。</div>
-  <div class="benefit-metrics">
-    <div><div class="benefit-value">オフライン</div><p>画像の推論はボード内で完結。<br>クラウド通信・フレームごとの課金なし。</p></div>
-    <div><div class="benefit-value">約50米ドル</div><p>MCU＋FPGAボード。<br>低いハードウェア費用で試作。</p></div>
-    <div><div class="benefit-value">約6倍高速</div><p>FPGAの画像エンコード：265 ms<br>MCUのCPU単体では1,583 ms。</p></div>
-  </div>
-  <div class="benefit-ai"><b>モデルから回路まで、AIがコードを作成</b><br>モデル蒸留・量子化・ファームウェア・FPGAデジタル回路設計（RTL）<br>人が方針を決め、実機で検証。</div>
-  <div class="benefit-note">シーン登録が必要。精度はクエリ・環境に依存。初期設定後、テキストはホストでローカルに処理。<br>価格はボード単体（カメラ・ホスト別）。速度比5.97倍：同一モデル、MCUクロック320 MHzで比較。</div>
-</section>
+
 
 <!-- ============ 2 · AGENDA ============ -->
 <section class="slide">
@@ -416,6 +404,20 @@
     <iframe data-src="https://www.youtube.com/embed/n6vrb4GZql0?rel=0" title="FPGA Open-Vocabulary Vision Demo — Hand, Towel and Book" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
   </div>
   <div class="demo-link"><a href="https://youtu.be/n6vrb4GZql0" target="_blank" rel="noopener">YouTubeで見る</a></div>
+</section>
+
+<!-- ============ INTRO · BUSINESS BENEFITS ============ -->
+<section class="slide benefits-slide">
+  <div class="h">ビジネス上のメリット</div>
+  <div class="benefit-lead">検出したいシーンを、任意のテキストで指定</div>
+  <div class="benefit-detail">CLIP系マルチモーダルモデルが、画像とテキストを共通の意味空間で照合。<br>通常の物体検出モデルと異なり、「開いた本」などの自由文でシーンを指定できます。<br>テキストと参照シーンを変えるだけで、画像モデルの再学習は不要。</div>
+  <div class="benefit-metrics">
+    <div><div class="benefit-value">オフライン</div><p>画像の推論はボード内で完結。<br>クラウド通信・フレームごとの課金なし。</p></div>
+    <div><div class="benefit-value">約50米ドル</div><p>MCU＋FPGAボード。<br>低いハードウェア費用で試作。</p></div>
+    <div><div class="benefit-value">約6倍高速</div><p>FPGAの画像エンコード：265 ms<br>MCUのCPU単体では1,583 ms。</p></div>
+  </div>
+  <div class="benefit-ai"><b>モデルから回路まで、AIがコードを作成</b><br>モデル蒸留・量子化・ファームウェア・FPGAデジタル回路設計（RTL）<br>人が方針を決め、実機で検証。</div>
+  <div class="benefit-note">シーン登録が必要。精度はクエリ・環境に依存。初期設定後、テキストはホストでローカルに処理。<br>価格はボード単体（カメラ・ホスト別）。速度比5.97倍：同一モデル、MCUクロック320 MHzで比較。</div>
 </section>
 
 <!-- ============ WHAT IS FPGA-OPEN-VOCAB ============ -->

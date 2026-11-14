@@ -328,19 +328,7 @@
   </div>
 </section>
 
-<!-- ============ INTRO · BUSINESS BENEFITS ============ -->
-<section class="slide benefits-slide">
-  <div class="h">Business benefits</div>
-  <div class="benefit-lead">Describe a scene in text. Recognize its meaning.</div>
-  <div class="benefit-detail">Beyond fixed object classes: “an open hand”, “a crumpled towel”, “an opened book”.<br>Change the query and enroll scenes — no image-model retraining.</div>
-  <div class="benefit-metrics">
-    <div><div class="benefit-value">Offline</div><p>Local image inference.<br>No cloud calls or per-frame fees.</p></div>
-    <div><div class="benefit-value">~US$50</div><p>MCU + FPGA board.<br>Low hardware cost for a prototype.</p></div>
-    <div><div class="benefit-value">~6× faster</div><p>FPGA image encoder: 265 ms<br>vs. 1,583 ms on the MCU CPU.</p></div>
-  </div>
-  <div class="benefit-ai"><b>AI-coded, from model to circuit</b><br>Distillation · quantization · firmware · FPGA digital circuit design (RTL)<br>Human direction and hardware validation.</div>
-  <div class="benefit-note">Scene enrollment required; accuracy varies by query and environment. Host encodes text locally after setup.<br>Board price excludes camera and host. Speedup: 5.97×, same model and 320 MHz MCU clock.</div>
-</section>
+
 
 <!-- ============ 2 · AGENDA ============ -->
 <section class="slide">
@@ -408,6 +396,20 @@
     <iframe data-src="https://www.youtube.com/embed/n6vrb4GZql0?rel=0" title="FPGA Open-Vocabulary Vision Demo — Hand, Towel and Book" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
   </div>
   <div class="demo-link"><a href="https://youtu.be/n6vrb4GZql0" target="_blank" rel="noopener">Watch on YouTube</a></div>
+</section>
+
+<!-- ============ INTRO · BUSINESS BENEFITS ============ -->
+<section class="slide benefits-slide">
+  <div class="h">Business benefits</div>
+  <div class="benefit-lead">Describe a scene in text. Recognize its meaning.</div>
+  <div class="benefit-detail">A CLIP-style multimodal model matches images and text in a shared semantic space.<br>Unlike typical object detectors, it accepts free-form descriptions such as “an opened book”.<br>Change the query and enroll scenes — no image-model retraining.</div>
+  <div class="benefit-metrics">
+    <div><div class="benefit-value">Offline</div><p>Local image inference.<br>No cloud calls or per-frame fees.</p></div>
+    <div><div class="benefit-value">~US$50</div><p>MCU + FPGA board.<br>Low hardware cost for a prototype.</p></div>
+    <div><div class="benefit-value">~6× faster</div><p>FPGA image encoder: 265 ms<br>vs. 1,583 ms on the MCU CPU.</p></div>
+  </div>
+  <div class="benefit-ai"><b>AI-coded, from model to circuit</b><br>Distillation · quantization · firmware · FPGA digital circuit design (RTL)<br>Human direction and hardware validation.</div>
+  <div class="benefit-note">Scene enrollment required; accuracy varies by query and environment. Host encodes text locally after setup.<br>Board price excludes camera and host. Speedup: 5.97×, same model and 320 MHz MCU clock.</div>
 </section>
 
 <!-- ============ WHAT IS FPGA-OPEN-VOCAB ============ -->

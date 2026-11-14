@@ -10,7 +10,7 @@
 
 ## Why it matters
 
-- **Describe the scene you care about.** Arbitrary text queries select scenes by their meaning — such as `an open hand`, `a crumpled towel` or `an opened book` — rather than a fixed list of object classes or bounding boxes. Change the query and register reference scenes without retraining the image encoder.
+- **Describe the scene you care about.** A **CLIP-style multimodal model** maps images and text into a shared semantic space, unlike a typical object detection model trained on fixed object classes. Arbitrary text queries select scenes by their meaning — such as `an open hand`, `a crumpled towel` or `an opened book` — rather than a fixed list of object classes or bounding boxes. Change the query and register reference scenes without retraining the image encoder.
 - **Run without an internet connection.** Images are processed on the board, with no cloud inference or per-frame API charges. The host encodes new text queries locally; after the initial model downloads and setup, runtime needs no internet access.
 - **Start with a ~US$50 board.** The Forgix MCU + FPGA board makes local vision affordable to prototype. Camera and host computer are additional.
 - **Get ~6× faster image encoding with the FPGA.** The same model takes **265 ms vs. 1,583 ms** on the MCU CPU alone: **5.97×** acceleration, measured at the same 320 MHz MCU clock.
