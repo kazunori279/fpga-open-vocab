@@ -285,6 +285,10 @@
   .demo-video iframe { display:block; width:100%; height:100%; border:0; }
   .demo-link { margin-top:12px; text-align:center; font-size:16px; }
   .demo-link a { color:var(--blue); }
+  .precision-flow { display:block; width:100%; height:285px; margin-top:26px; }
+  .precision-example { margin-top:8px; font:500 34px var(--mono); color:#9a5300; }
+  .precision-why { margin-top:14px; font-size:21px; line-height:1.55; color:var(--ink-2); }
+  .precision-foot { margin-top:23px; font-size:16px; line-height:1.5; color:var(--ink-3); }
 </style>
 </head>
 <body>
@@ -779,12 +783,49 @@ uv run --script host/spot.py \
         <circle cx="20" cy="20" r="7" fill="#f9ab00" opacity=".35"/>
       </svg></div>
       <div class="lbl">FPGAタイル</div>
-      <p><b>int32累積器2,048個、1クロックあたり16 MAC</b>。専用乗算器8個とロジックで構成した乗算器8個を使います。</p>
+      <p><b>int32の途中結果を2,048個保持。1クロックあたり16 MAC</b>。専用乗算器8個とロジックで構成した乗算器8個を使います。</p>
       <p class="small">int4重みの展開と出力の再量子化も行います。MCUがブロックごとに演算データを供給します。</p>
     </div>
   </div>
   <div class="vnote"><b>役割分担：</b>MCUはモデルとメモリ配置を管理し、FPGAはブロック単位の演算を高速化します。両者をつなぐ転送スケジュールが性能を左右します。</div>
   </section>
+
+<!-- ============ WEIGHTS AND ACCUMULATION PRECISION ============ -->
+<section class="slide precision-slide">
+  <div class="h">重みは4ビット、積和の累積は32ビット</div>
+  <div class="hsub">int4は重みの表現です。タイルは積和の途中結果をint32で保持します。</div>
+  <svg class="precision-flow" viewBox="0 0 1152 285" role="img" aria-labelledby="precision-title precision-desc">
+    <title id="precision-title">重みは4ビット、積和の累積は32ビット</title>
+    <desc id="precision-desc">入力の活性値: 8ビット; 重み: int4; 積和の累積値: int32; 次の層への出力: 8ビット.</desc>
+    <defs><marker id="precision-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#80868b"/></marker></defs>
+    <g font-family="Roboto, Arial, sans-serif" text-anchor="middle">
+      <rect x="2" y="16" width="220" height="94" rx="10" fill="#e6f4ea" stroke="#188038" stroke-width="2"/>
+      <text x="112" y="50" font-size="21" fill="#137333">入力の活性値</text>
+      <text x="112" y="87" font-size="32" font-weight="700" fill="#137333">8ビット</text>
+      <rect x="2" y="162" width="220" height="94" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/>
+      <text x="112" y="196" font-size="21" fill="#174ea6">重み</text>
+      <text x="112" y="233" font-size="32" font-weight="700" fill="#174ea6">int4</text>
+      <path d="M222 63 H292 V135 M222 209 H292 V135" fill="none" stroke="#80868b" stroke-width="2"/>
+      <path d="M292 135 H316" stroke="#80868b" stroke-width="2" marker-end="url(#precision-arrow)"/>
+      <text x="352" y="150" font-size="49" fill="#3c4043">×</text>
+      <text x="352" y="197" font-size="21" fill="#5f6368">掛け算</text>
+      <path d="M387 135 H432" stroke="#80868b" stroke-width="2" marker-end="url(#precision-arrow)"/>
+      <rect x="444" y="49" width="280" height="172" rx="10" fill="#fef3e0" stroke="#b06000" stroke-width="2"/>
+      <text x="584" y="88" font-size="23" fill="#9a5300">積和の累積値</text>
+      <text x="584" y="141" font-size="42" font-weight="700" fill="#9a5300">int32</text>
+      <text x="584" y="186" font-size="20" fill="#9a5300">タイル内に2,048個</text>
+      <path d="M724 135 H928" stroke="#80868b" stroke-width="2" marker-end="url(#precision-arrow)"/>
+      <text x="825" y="108" font-size="22" fill="#3c4043">再量子化</text>
+      <text x="825" y="178" font-size="17" fill="#5f6368">スケール変換・丸め</text>
+      <rect x="940" y="79" width="210" height="112" rx="10" fill="#e6f4ea" stroke="#188038" stroke-width="2"/>
+      <text x="1045" y="115" font-size="19" fill="#137333">次の層への出力</text>
+      <text x="1045" y="161" font-size="34" font-weight="700" fill="#137333">8ビット</text>
+    </g>
+  </svg>
+  <div class="precision-example">255 × 7 = 1,785</div>
+  <div class="precision-why">1回の積だけでも、int4の範囲（−8〜7）に収まりません。<br>3 × 3の位置と入力チャネル全体の積を、広い累積器で加算します。</div>
+  <div class="precision-foot">通常の中間層はFPGA内で8ビットに再量子化して転送。最終畳み込みはMCU側でfloatに変換します。</div>
+</section>
 
 <!-- ============ ONE FRAME, IN ORDER ============ -->
 <section class="slide">
@@ -1434,7 +1475,7 @@ enrol : an opened book, level +1.07, scatter 0.14
 </div></div>
 
 <div id="lang"><a href="index.html" hreflang="en">English</a></div>
-<div id="hud">1 / 43</div>
+<div id="hud">1 / 44</div>
 <div id="help"><kbd>←</kbd> <kbd>→</kbd> ページ送り &nbsp; <kbd>f</kbd> 全画面</div>
 
 <script>
@@ -1442,7 +1483,7 @@ enrol : an opened book, level +1.07, scatter 0.14
   const slides = [...document.querySelectorAll('.slide')];
   const hud = document.getElementById('hud');
   const frame = document.getElementById('frame');
-  // The other deck's link. Both decks hold the same 43 slides in the same
+  // The other deck's link. Both decks hold the same 44 slides in the same
   // order, so the fragment means the same thing in either one - but the href
   // is written without it, and a bare filename drops the fragment rather than
   // keeping it, so switching language on slide 27 used to land on slide 1.

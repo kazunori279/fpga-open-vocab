@@ -277,6 +277,10 @@
   .demo-video iframe { display:block; width:100%; height:100%; border:0; }
   .demo-link { margin-top:12px; text-align:center; font-size:16px; }
   .demo-link a { color:var(--blue); }
+  .precision-flow { display:block; width:100%; height:285px; margin-top:26px; }
+  .precision-example { margin-top:8px; font:500 34px var(--mono); color:#9a5300; }
+  .precision-why { margin-top:14px; font-size:21px; line-height:1.55; color:var(--ink-2); }
+  .precision-foot { margin-top:23px; font-size:16px; line-height:1.5; color:var(--ink-3); }
 </style>
 </head>
 <body>
@@ -771,12 +775,49 @@ uv run --script host/spot.py \
         <circle cx="20" cy="20" r="7" fill="#f9ab00" opacity=".35"/>
       </svg></div>
       <div class="lbl">FPGA tile</div>
-      <p><b>2,048 int32 accumulators and 16 MACs per clock</b>. Eight multipliers are dedicated hardware and eight use logic elements.</p>
+      <p><b>Stores 2,048 running sums in int32; 16 MACs per clock</b>. Eight multipliers are dedicated hardware and eight use logic elements.</p>
       <p class="small">The tile also unpacks int4 weights and requantizes outputs. The MCU supplies each block’s operands.</p>
     </div>
   </div>
   <div class="vnote"><b>Design boundary:</b> the MCU manages the model and memory layout. The FPGA accelerates block-level arithmetic. Transfer scheduling connects the two.</div>
   </section>
+
+<!-- ============ WEIGHTS AND ACCUMULATION PRECISION ============ -->
+<section class="slide precision-slide">
+  <div class="h">4-bit weights, 32-bit accumulation</div>
+  <div class="hsub">int4 describes the weights. The tile holds running sums in int32.</div>
+  <svg class="precision-flow" viewBox="0 0 1152 285" role="img" aria-labelledby="precision-title precision-desc">
+    <title id="precision-title">4-bit weights, 32-bit accumulation</title>
+    <desc id="precision-desc">Input activations: 8-bit; Weights: int4; Running sums: int32; Next-layer activations: 8-bit.</desc>
+    <defs><marker id="precision-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#80868b"/></marker></defs>
+    <g font-family="Roboto, Arial, sans-serif" text-anchor="middle">
+      <rect x="2" y="16" width="220" height="94" rx="10" fill="#e6f4ea" stroke="#188038" stroke-width="2"/>
+      <text x="112" y="50" font-size="21" fill="#137333">Input activations</text>
+      <text x="112" y="87" font-size="32" font-weight="700" fill="#137333">8-bit</text>
+      <rect x="2" y="162" width="220" height="94" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/>
+      <text x="112" y="196" font-size="21" fill="#174ea6">Weights</text>
+      <text x="112" y="233" font-size="32" font-weight="700" fill="#174ea6">int4</text>
+      <path d="M222 63 H292 V135 M222 209 H292 V135" fill="none" stroke="#80868b" stroke-width="2"/>
+      <path d="M292 135 H316" stroke="#80868b" stroke-width="2" marker-end="url(#precision-arrow)"/>
+      <text x="352" y="150" font-size="49" fill="#3c4043">×</text>
+      <text x="352" y="197" font-size="21" fill="#5f6368">Multiply</text>
+      <path d="M387 135 H432" stroke="#80868b" stroke-width="2" marker-end="url(#precision-arrow)"/>
+      <rect x="444" y="49" width="280" height="172" rx="10" fill="#fef3e0" stroke="#b06000" stroke-width="2"/>
+      <text x="584" y="88" font-size="23" fill="#9a5300">Running sums</text>
+      <text x="584" y="141" font-size="42" font-weight="700" fill="#9a5300">int32</text>
+      <text x="584" y="186" font-size="20" fill="#9a5300">2,048 values in the tile</text>
+      <path d="M724 135 H928" stroke="#80868b" stroke-width="2" marker-end="url(#precision-arrow)"/>
+      <text x="825" y="108" font-size="22" fill="#3c4043">Requantize</text>
+      <text x="825" y="178" font-size="17" fill="#5f6368">Scale and round</text>
+      <rect x="940" y="79" width="210" height="112" rx="10" fill="#e6f4ea" stroke="#188038" stroke-width="2"/>
+      <text x="1045" y="115" font-size="19" fill="#137333">Next-layer activations</text>
+      <text x="1045" y="161" font-size="34" font-weight="700" fill="#137333">8-bit</text>
+    </g>
+  </svg>
+  <div class="precision-example">255 × 7 = 1,785</div>
+  <div class="precision-why">Even one product exceeds the int4 range (−8 to 7).<br>A wide accumulator adds products across all 3 × 3 taps and input channels.</div>
+  <div class="precision-foot">Typical intermediate layers return 8-bit codes after FPGA requantization. The final convolution converts to float on the MCU.</div>
+</section>
 
 <!-- ============ ONE FRAME, IN ORDER ============ -->
 <section class="slide">
@@ -1426,7 +1467,7 @@ enrol : an opened book, level +1.07, scatter 0.14
 </div></div>
 
 <div id="lang"><a href="index.ja.html" hreflang="ja">日本語</a></div>
-<div id="hud">1 / 43</div>
+<div id="hud">1 / 44</div>
 <div id="help"><kbd>←</kbd> <kbd>→</kbd> navigate &nbsp; <kbd>f</kbd> fullscreen</div>
 
 <script>
@@ -1434,7 +1475,7 @@ enrol : an opened book, level +1.07, scatter 0.14
   const slides = [...document.querySelectorAll('.slide')];
   const hud = document.getElementById('hud');
   const frame = document.getElementById('frame');
-  // The other deck's link. Both decks hold the same 43 slides in the same
+  // The other deck's link. Both decks hold the same 44 slides in the same
   // order, so the fragment means the same thing in either one - but the href
   // is written without it, and a bare filename drops the fragment rather than
   // keeping it, so switching language on slide 27 used to land on slide 1.
