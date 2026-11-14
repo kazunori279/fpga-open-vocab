@@ -6,7 +6,7 @@
 
 **Hand demo:** red LED = `an open hand`; green LED = `a fist`.
 
-[Watch the full demo on YouTube](https://youtu.be/n6vrb4GZql0) · [Slides (English)](https://kazunori279.github.io/fpga-open-vocab/slides/) · [スライド（日本語）](https://kazunori279.github.io/fpga-open-vocab/slides/index.ja.html)
+[Watch the full demo on YouTube](https://youtu.be/n6vrb4GZql0) · [Slides (English)](https://kazunori279.github.io/fpga-open-vocab/slides/?lang=en) · [スライド（日本語）](https://kazunori279.github.io/fpga-open-vocab/slides/index.ja.html?lang=ja)
 
 It is built and it runs. All eight convolution layers execute on the FPGA tile, off a live camera, and **bit-exact** against the plain-C reference — a whole camera frame in **282 ms**, of which **265 ms** is the encoder. Against the same model on the MCU alone, measured in the same boot and at the same 320 MHz, the tile is **5.97×** faster.
 

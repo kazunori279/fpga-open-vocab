@@ -23,6 +23,12 @@ on every push to `main`:
 - <https://kazunori279.github.io/fpga-open-vocab/slides/>
 - <https://kazunori279.github.io/fpga-open-vocab/slides/index.ja.html>
 
+The deck detects the browser’s primary language on entry: Japanese (`ja` or
+`ja-*`) opens the Japanese deck; other languages open the English deck. Both
+entry files apply the same rule and preserve the query string and slide number.
+The language toggle uses `?lang=en` or `?lang=ja` to override detection, so a
+manual selection remains in effect on reload and when sharing that URL.
+
 Or open either in a browser. There is no build step and no server:
 
 ```

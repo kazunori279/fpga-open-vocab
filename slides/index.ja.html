@@ -2,6 +2,23 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<script>
+// Browser language selects the initial deck; explicit links keep manual choices.
+(() => {
+  const params = new URLSearchParams(location.search);
+  const requested = params.get('lang');
+  const browserLanguage = (navigator.languages && navigator.languages[0]) || navigator.language || 'en';
+  const language = requested === 'en' || requested === 'ja'
+    ? requested : (/^ja(?:-|$)/i.test(browserLanguage) ? 'ja' : 'en');
+  if (document.documentElement.lang !== language) {
+    const target = new URL(language === 'ja' ? 'index.ja.html' : 'index.html', location.href);
+    target.search = location.search;
+    target.hash = location.hash;
+    location.replace(target.href);
+  }
+})();
+</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>fpga-open-vocab — 言葉で指定すると、50ドルのFPGAボードが見つける</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1474,7 +1491,7 @@ enrol : an opened book, level +1.07, scatter 0.14
 
 </div></div>
 
-<div id="lang"><a href="index.html" hreflang="en">English</a></div>
+<div id="lang"><a href="index.html?lang=en" hreflang="en">English</a></div>
 <div id="hud">1 / 44</div>
 <div id="help"><kbd>←</kbd> <kbd>→</kbd> ページ送り &nbsp; <kbd>f</kbd> 全画面</div>
 
