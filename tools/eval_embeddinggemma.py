@@ -82,16 +82,46 @@ def dataset(names):
     return records
 
 
+def home_dataset():
+    """Existing synthetic home screen: correlated panels, not new held-out scenes.
+
+    Use all seven pre-approved cases, exact archived prompts and native pixels.
+    Empty/distractor panels (row 3) are excluded from binary state AUC.
+    """
+    directory = ROOT / "bench/stills/20260926-home-screen"
+    approved = [c for c in json.loads((directory / "manifest.json").read_text())
+                if c["quality"] == "keep"]
+    prompts = json.loads((directory / "text_vectors.json").read_text())["queries"]
+    if len(prompts) != 2 * len(approved):
+        raise ValueError("Archived home-screen prompt count mismatch")
+    layout = [[0, 1, 1, 0], [1, 0, 0, 1], [0, 1, 1, 0]]
+    records = []
+    for index, case in enumerate(approved):
+        groups = [[], []]
+        for row, labels in enumerate(layout):
+            for col, label in enumerate(labels):
+                path = directory / "inputs" / f"{case['id']}-r{row}-c{col}.png"
+                if not path.is_file():
+                    raise ValueError(f"Missing native panel: {path}")
+                groups[label].append(path)
+        records.append((case["id"], groups[0] + groups[1], len(groups[0]),
+                        prompts[2 * index:2 * index + 2]))
+    return records
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--backend", required=True, choices=["gemma", "siglip"])
+    ap.add_argument("--suite", choices=["cross-scene", "home"], default="cross-scene")
     ap.add_argument("--sets", nargs="+", help="Selection-set subset for smoke runs")
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--batch", type=int, default=4)
     ap.add_argument("--out", type=Path)
     ap.add_argument("--manifest-only", action="store_true")
     args = ap.parse_args()
-    records = dataset(args.sets)
+    if args.suite == "home" and args.sets:
+        ap.error("--sets is only supported for cross-scene; home scores all approved cases")
+    records = home_dataset() if args.suite == "home" else dataset(args.sets)
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     out = args.out or ROOT / "model/runs" / f"eg2-{args.backend}-{stamp}"
     out.mkdir(parents=True, exist_ok=False)
@@ -99,7 +129,11 @@ def main():
               "device": args.device, "dtype": "float32", "batch": args.batch,
               "model": MODEL if args.backend == "gemma" else SPEC,
               "revision": REVISION if args.backend == "gemma" else None,
-              "selection_only": True, "status": "prepared", "contrasts": {}}
+              "selection_only": True, "suite": args.suite,
+              "limitations": ("Correlated synthetic panels from one generation per case; "
+                              "not independent scenes or a deployment accuracy estimate"
+                              if args.suite == "home" else "Previously used selection data"),
+              "status": "prepared", "contrasts": {}}
     for name, paths, npos, prompts in records:
         report["contrasts"][name] = {
             "prompts": prompts, "npos": npos,

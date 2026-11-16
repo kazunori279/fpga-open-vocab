@@ -1,0 +1,976 @@
+{
+  "backend": "gemma",
+  "created_utc": "20261116T053622Z",
+  "device": "mps",
+  "dtype": "float32",
+  "batch": 4,
+  "model": "google/embeddinggemma-2",
+  "revision": "f9972ac22e696a105c482202646979e33e4b5a1e",
+  "selection_only": true,
+  "suite": "home",
+  "limitations": "Correlated synthetic panels from one generation per case; not independent scenes or a deployment accuracy estimate",
+  "status": "complete",
+  "contrasts": {
+    "towel": {
+      "prompts": [
+        "a neatly folded towel",
+        "a crumpled towel"
+      ],
+      "npos": 6,
+      "images": [
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/towel-r0-c0.png",
+          "sha256": "417ce854ee886b50e86283570a04976f863b4ecd2aae1166a8c843697ff9bb39"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/towel-r0-c3.png",
+          "sha256": "e01d2daa202e2ac95aae6d2f8e89960d291e7c4ee84b7e501fdaa4e16dfac483"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/towel-r1-c1.png",
+          "sha256": "b70f5649444f9c18b97cb02997744e733040efb3e375535db3962fdc35035c42"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/towel-r1-c2.png",
+          "sha256": "7b57aa157c95724c779bf57cd340fc64be94daf96a0a9f4578acf72354b31f3c"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/towel-r2-c0.png",
+          "sha256": "acaef976143bd609e83d4512ef5a51f56444d050fa4115b86dfd0ae9ea323098"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/towel-r2-c3.png",
+          "sha256": "27f6f9fa613a0d52485573397f1a3f551e66f1b8ce5c21fc66c9be1ecacb0d0b"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/towel-r0-c1.png",
+          "sha256": "07ee84ee3cd532990f21d333a89baa6a9901dddb2531aa4b2de04f82f7671974"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/towel-r0-c2.png",
+          "sha256": "3f22a607459a168063167242d28a8ebb394eff641f3e3388cb1dd560a99297ce"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/towel-r1-c0.png",
+          "sha256": "5798cd43df0faaadf2c294057279d3856134d4a44d89c406107e12681c4da2c2"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/towel-r1-c3.png",
+          "sha256": "01e76580fff8684b36456f6125297d67ff7949254f57c4fbc3fba954110a2ba4"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/towel-r2-c1.png",
+          "sha256": "71b5f95390b086285ca05481ce2b787bbdc580b32e579c3b817d0078e82b0fab"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/towel-r2-c2.png",
+          "sha256": "8190dd6b2da98ae26900ad5be5517f7e25222073c2c83567c62577944c3abc86"
+        }
+      ],
+      "encode_seconds": 8.21267083287239,
+      "rows": {
+        "gemma-768-bare": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              0.012174725532531738,
+              0.011838078498840332,
+              0.006802499294281006,
+              0.01587355136871338,
+              0.004359066486358643,
+              0.009078025817871094,
+              -0.04061532020568848,
+              -0.03818237781524658,
+              -0.03276491165161133,
+              -0.045005202293395996,
+              -0.041770339012145996,
+              -0.054324448108673096
+            ]
+          },
+          "standardized": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              1.5882034301757812,
+              1.4487563371658325,
+              1.1392021179199219,
+              1.8676557540893555,
+              1.0334724187850952,
+              1.2635177373886108,
+              -1.756508708000183,
+              -1.2156717777252197,
+              -0.6602701544761658,
+              -1.334915280342102,
+              -1.4648483991622925,
+              -1.9085427522659302
+            ]
+          }
+        },
+        "gemma-512-bare": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              0.01745593547821045,
+              0.01629006862640381,
+              0.012229442596435547,
+              0.02080678939819336,
+              0.010527193546295166,
+              0.014953672885894775,
+              -0.037170588970184326,
+              -0.034949660301208496,
+              -0.028733670711517334,
+              -0.043073177337646484,
+              -0.039913833141326904,
+              -0.05218988656997681
+            ]
+          },
+          "standardized": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              1.6188080310821533,
+              1.463414192199707,
+              1.19788658618927,
+              1.9017674922943115,
+              1.0981789827346802,
+              1.3757870197296143,
+              -1.812687873840332,
+              -1.2337331771850586,
+              -0.6330422759056091,
+              -1.425248146057129,
+              -1.5546897649765015,
+              -1.9964807033538818
+            ]
+          }
+        }
+      }
+    },
+    "mug": {
+      "prompts": [
+        "an upright mug",
+        "a mug lying on its side"
+      ],
+      "npos": 6,
+      "images": [
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/mug-r0-c0.png",
+          "sha256": "eff944f6830042f9e9c7ef31084257e5db124be12d5789d400d6164678c8ebe2"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/mug-r0-c3.png",
+          "sha256": "3b0f8946f6ef34bba0aaa2937443c4478a5bc78b4a53f0e72721a2fed32a9d6e"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/mug-r1-c1.png",
+          "sha256": "5d42e8a97aff9c23351e7150639774e5bf7f1d08c5a70abc6365d83bfb15f16b"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/mug-r1-c2.png",
+          "sha256": "a9baa533acdea0db88cab7b7457ee23854f3d63a760b055d547b06d4d3608fff"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/mug-r2-c0.png",
+          "sha256": "fe04be30cb5ff2c4c2f61a8da1d634a5cfa016240adcf750d204192e50e246aa"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/mug-r2-c3.png",
+          "sha256": "6326d2f01c326d2d15288768744a32353956a121d4a95f3d8255026d74791a9d"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/mug-r0-c1.png",
+          "sha256": "da4f6158def2ebca32ded6875c8a7540b6ed081de9109a056e6a4193cbf22e32"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/mug-r0-c2.png",
+          "sha256": "1ec6829a133f989ee8e87b2246dc41bcc89295a5cffc675cd01e631e2dfcfc42"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/mug-r1-c0.png",
+          "sha256": "620a87807401f59c19778e1034e3157dae180caeb5d62d36c4b0bfce187c6a89"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/mug-r1-c3.png",
+          "sha256": "8169cca6d947ec1bd4f06ef67dd2439d796421498e153f9257225d69ee7add67"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/mug-r2-c1.png",
+          "sha256": "28b810c0f821f492f1fd0d44442008e897ce48ddef092d36b5eaa7adaf4acbc8"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/mug-r2-c2.png",
+          "sha256": "c63bf820e2d6165fa183fa513b6df49f2e7ca1af021e6f26cfeb9eb1c78a1268"
+        }
+      ],
+      "encode_seconds": 7.7828569589182734,
+      "rows": {
+        "gemma-768-bare": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              0.061458587646484375,
+              0.06337893009185791,
+              0.05973023176193237,
+              0.06050848960876465,
+              0.062363624572753906,
+              0.06259697675704956,
+              0.004076600074768066,
+              0.010434091091156006,
+              0.010769069194793701,
+              0.007116138935089111,
+              -0.004580140113830566,
+              0.001619577407836914
+            ]
+          },
+          "standardized": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              1.736302375793457,
+              1.7208422422409058,
+              1.3014177083969116,
+              1.6114548444747925,
+              1.7685229778289795,
+              1.4515352249145508,
+              -1.5096722841262817,
+              -0.5756215453147888,
+              -0.7752333283424377,
+              -2.12600040435791,
+              -3.0342512130737305,
+              -1.5693821907043457
+            ]
+          }
+        },
+        "gemma-512-bare": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              0.05334186553955078,
+              0.054956138134002686,
+              0.05227768421173096,
+              0.054022371768951416,
+              0.05373603105545044,
+              0.055322885513305664,
+              -0.003639698028564453,
+              0.0039042234420776367,
+              0.0048212409019470215,
+              -0.00029277801513671875,
+              -0.013342499732971191,
+              -0.0061879754066467285
+            ]
+          },
+          "standardized": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              1.6192874908447266,
+              1.5830354690551758,
+              1.2687528133392334,
+              1.5639415979385376,
+              1.6853009462356567,
+              1.4397897720336914,
+              -1.4619174003601074,
+              -0.3537008762359619,
+              -0.5881786942481995,
+              -2.138413667678833,
+              -3.076078176498413,
+              -1.541904330253601
+            ]
+          }
+        }
+      }
+    },
+    "banana": {
+      "prompts": [
+        "an unpeeled banana",
+        "a peeled banana"
+      ],
+      "npos": 6,
+      "images": [
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/banana-r0-c0.png",
+          "sha256": "f42ff52bfc00e6d40b32b0d64c262a48843c40d77f8332f68fd2f7e8478e9d7d"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/banana-r0-c3.png",
+          "sha256": "28502b62e43b23b1ca8cfc4d6586c6b8e2ce09b1be759b4ab86c1fac80a3fcc5"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/banana-r1-c1.png",
+          "sha256": "7ed9da543b45da70cfff63e24752c623e594465da74da4c3e83ef0b0c474ce53"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/banana-r1-c2.png",
+          "sha256": "4c275e142b3761bd511a9da238f88d612be9f25cb080266cf1f08eaf3ddc98d9"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/banana-r2-c0.png",
+          "sha256": "c54753c1e54a9d1fc6c9997cce8212e8e7753d01ea45da3676b9ec454495d379"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/banana-r2-c3.png",
+          "sha256": "1ae92c9d74ce2f49b317806c784dd985f2bb07f76f4457e8eac1af8df18d6d05"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/banana-r0-c1.png",
+          "sha256": "70980e1eb8e9f406056680992c4c61e12b982049bc746b9de0ea2d658a118b31"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/banana-r0-c2.png",
+          "sha256": "0954fab478d0a7b943cdd73acc0139506fa07a55796be24a9e4f673a56d79386"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/banana-r1-c0.png",
+          "sha256": "05bdb56aa56686fe625aa0280a6daf3eda63769f36b4eb18c93f37d2dacdd92d"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/banana-r1-c3.png",
+          "sha256": "dedad0adc05444e62b720c629c046d0d69e2946b9632d3c7d050fa3ba6e8cba0"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/banana-r2-c1.png",
+          "sha256": "ea1932c515700e1497fdbc5db3d13ae0315b667c2f0d2f3e8495d129c0541cf1"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/banana-r2-c2.png",
+          "sha256": "01a4b498a79b2f178ae16d04d7cf9f875420e759237f6a0d166ca6d828f55c78"
+        }
+      ],
+      "encode_seconds": 7.671259333379567,
+      "rows": {
+        "gemma-768-bare": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              0.02164745330810547,
+              0.019716918468475342,
+              0.02053391933441162,
+              0.023142576217651367,
+              0.023488640785217285,
+              0.020938515663146973,
+              -0.00568920373916626,
+              -0.007077038288116455,
+              -0.0032134652137756348,
+              -2.0384788513183594e-05,
+              -0.006196379661560059,
+              -0.0015462040901184082
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.6666666666666666,
+            "folded_auc": 0.6666666666666666,
+            "margins": [
+              -0.029432952404022217,
+              0.05418360233306885,
+              -0.21669042110443115,
+              0.31999099254608154,
+              -0.05585682392120361,
+              0.13980281352996826,
+              0.11081910133361816,
+              -0.10221624374389648,
+              -0.3212711215019226,
+              0.5272454619407654,
+              -0.12390279769897461,
+              -0.30257248878479004
+            ]
+          }
+        },
+        "gemma-512-bare": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              0.023313820362091064,
+              0.02182990312576294,
+              0.0224381685256958,
+              0.02583414316177368,
+              0.025318920612335205,
+              0.02246767282485962,
+              -0.002792835235595703,
+              -0.004871368408203125,
+              -0.0011137127876281738,
+              0.002480447292327881,
+              -0.0037422776222229004,
+              0.0007064342498779297
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.6111111111111112,
+            "folded_auc": 0.6111111111111112,
+            "margins": [
+              0.014583826065063477,
+              0.04660141468048096,
+              -0.28955239057540894,
+              0.2542530298233032,
+              0.08512026071548462,
+              0.052825927734375,
+              0.23721766471862793,
+              -0.2670344114303589,
+              -0.1290486454963684,
+              0.4935804009437561,
+              -0.20728164911270142,
+              -0.2911650836467743
+            ]
+          }
+        }
+      }
+    },
+    "glasses": {
+      "prompts": [
+        "a pair of unfolded eyeglasses",
+        "a pair of folded eyeglasses"
+      ],
+      "npos": 6,
+      "images": [
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/glasses-r0-c0.png",
+          "sha256": "f49f39532f39fcc3449f2fa8ac6a46161d74f99d8d665576bf15a3077dead8ba"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/glasses-r0-c3.png",
+          "sha256": "220d5bfbe914a0133fac96a62aff64ca898e704b6a78a64e3633bb7b06fc9a5d"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/glasses-r1-c1.png",
+          "sha256": "77504e9dbc23f00c48fdfb19baf8082da70f95ec7e63c42e786fa101535814b8"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/glasses-r1-c2.png",
+          "sha256": "83a68cd2dd213500bb240736866ca94d21ef1ece1b2b69c2dfc06e4f94a94637"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/glasses-r2-c0.png",
+          "sha256": "6adfd1fbe060958e1204e627c0f0e4ae48231c451ec57f8722f6f96a4c38bb9d"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/glasses-r2-c3.png",
+          "sha256": "d206fa9679c8f1a0eb731ed2666ab684bc11dbfddb5b3ca0a3e20bbaf3e8dd58"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/glasses-r0-c1.png",
+          "sha256": "69586252fcf0cd0b10053a08850b8ef4054c7c840dc068f30d9de4252f283415"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/glasses-r0-c2.png",
+          "sha256": "05c16093fa5778f7bf35a264acd065d60ef6b8464fa3cc5845fd2b0040932132"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/glasses-r1-c0.png",
+          "sha256": "a64c166488bf389cde2d95acee520935705a227b3005a9cd039fc8ec47dbe3a9"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/glasses-r1-c3.png",
+          "sha256": "7b42c077e85ad25ca104bd871f70ce096085eb736c97afc216117cc9833f1adc"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/glasses-r2-c1.png",
+          "sha256": "92d5d3a0e1bd0280e1f0d5993d8791a3df395b9f5690b3eea71dacf1e02fd84e"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/glasses-r2-c2.png",
+          "sha256": "ff8383a55d694a51988f20834eff94d3e574b02f007f28edf965a071482ef7be"
+        }
+      ],
+      "encode_seconds": 7.711764541454613,
+      "rows": {
+        "gemma-768-bare": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              -0.007204115390777588,
+              -0.006094694137573242,
+              -0.0034384727478027344,
+              -0.002263486385345459,
+              -0.0055353641510009766,
+              -0.004562437534332275,
+              -0.01575988531112671,
+              -0.013210654258728027,
+              -0.011528611183166504,
+              -0.011732280254364014,
+              -0.01222449541091919,
+              -0.01002877950668335
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.9722222222222222,
+            "folded_auc": 0.9722222222222222,
+            "margins": [
+              -0.10927343368530273,
+              0.1928199976682663,
+              0.3477427363395691,
+              0.7928918600082397,
+              0.17178875207901,
+              0.15073919296264648,
+              -0.5670420527458191,
+              -0.2351786494255066,
+              0.009070158004760742,
+              -0.16181057691574097,
+              -0.46365728974342346,
+              -0.12815247476100922
+            ]
+          }
+        },
+        "gemma-512-bare": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              -0.0030406713485717773,
+              -0.002140045166015625,
+              0.000646054744720459,
+              0.0003254413604736328,
+              -0.0016984343528747559,
+              -0.0001239180564880371,
+              -0.013459920883178711,
+              -0.010746657848358154,
+              -0.008533835411071777,
+              -0.00927746295928955,
+              -0.009650349617004395,
+              -0.0072789788246154785
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.9722222222222222,
+            "folded_auc": 0.9722222222222222,
+            "margins": [
+              -0.05953037738800049,
+              0.29765838384628296,
+              0.3295818567276001,
+              0.8879557847976685,
+              0.17795807123184204,
+              0.22083532810211182,
+              -0.5827789902687073,
+              -0.288669228553772,
+              0.12635564804077148,
+              -0.22816425561904907,
+              -0.6693093180656433,
+              -0.21202173829078674
+            ]
+          }
+        }
+      }
+    },
+    "tray": {
+      "prompts": [
+        "a tray with keys",
+        "a tray with a wallet"
+      ],
+      "npos": 6,
+      "images": [
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/tray-r0-c0.png",
+          "sha256": "2752d41e2e19e36a32a3b1cf7205442a5ffc76d84f5f703f7d6118f81aecf9ea"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/tray-r0-c3.png",
+          "sha256": "5e50dd0bf930cce30d67d89bf0be9ab687f7f4fafb0183032bbf91a82fb95491"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/tray-r1-c1.png",
+          "sha256": "970b38fc4360df610ac59e728e36f41a4d7084707707889527c3a7c5c7c654ff"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/tray-r1-c2.png",
+          "sha256": "38c510c9ed24dd9b1d53ae759b32cce04cbfad12ece010dacb61e23739b23b77"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/tray-r2-c0.png",
+          "sha256": "f6383535ccca5d94eb3c184670562818d730caaafd679d870737d4a5ba767eef"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/tray-r2-c3.png",
+          "sha256": "2e0089d7ee80db143e4ba4592c26c064d320de7c650c491bb436af6f6b1c987c"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/tray-r0-c1.png",
+          "sha256": "4affc880ef25a516bd4da6ce5dfe64bb03f5b6a01dd71bbbb97fa7fa2145e639"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/tray-r0-c2.png",
+          "sha256": "937aebd854809fc2aaff44681ba4d5174ae4ac6aa83a265daa81e88d6ef85868"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/tray-r1-c0.png",
+          "sha256": "d017c4e8971cf39c1a839b24366a5512a4e2058044d1211afefd7edacf2db7bc"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/tray-r1-c3.png",
+          "sha256": "5c840536875028470c320258bfbdb7ac0ce221558397feae4943e8a8f0944875"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/tray-r2-c1.png",
+          "sha256": "ed42bfa76dc71a918b64186472804eef877ed5d83ffffd28dbac910a6f815da7"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/tray-r2-c2.png",
+          "sha256": "8e7da938a82cac0c6a45a34016d1c1fb8b7ea5390ff6207c358922353a35addd"
+        }
+      ],
+      "encode_seconds": 8.038409125059843,
+      "rows": {
+        "gemma-768-bare": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              0.057395339012145996,
+              0.06431657075881958,
+              0.06089383363723755,
+              0.0604633092880249,
+              0.06567370891571045,
+              0.06366997957229614,
+              -0.08069789409637451,
+              -0.0963471531867981,
+              -0.08777421712875366,
+              -0.08574652671813965,
+              -0.08127337694168091,
+              -0.09632837772369385
+            ]
+          },
+          "standardized": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              1.753067970275879,
+              2.070502281188965,
+              1.83456289768219,
+              1.8241207599639893,
+              1.9809927940368652,
+              1.9150855541229248,
+              -1.633967638015747,
+              -2.1113593578338623,
+              -1.9100828170776367,
+              -1.8047080039978027,
+              -1.8653488159179688,
+              -2.052870750427246
+            ]
+          }
+        },
+        "gemma-512-bare": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              0.053839027881622314,
+              0.05903893709182739,
+              0.05701488256454468,
+              0.05499225854873657,
+              0.06064021587371826,
+              0.05938553810119629,
+              -0.08109837770462036,
+              -0.0952836275100708,
+              -0.088717520236969,
+              -0.08618313074111938,
+              -0.08011215925216675,
+              -0.09545028209686279
+            ]
+          },
+          "standardized": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              1.7674195766448975,
+              2.0696160793304443,
+              1.845971941947937,
+              1.7806053161621094,
+              1.9743766784667969,
+              1.9400683641433716,
+              -1.6292755603790283,
+              -2.104649066925049,
+              -1.9513736963272095,
+              -1.816169023513794,
+              -1.8480000495910645,
+              -2.02858567237854
+            ]
+          }
+        }
+      }
+    },
+    "plant": {
+      "prompts": [
+        "a healthy basil plant",
+        "a wilted basil plant"
+      ],
+      "npos": 6,
+      "images": [
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/plant-r0-c0.png",
+          "sha256": "ec5e34e4a94b3c8a0739793044b8ecf1d17d24a547f9a7381e27a8f539a5fbd4"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/plant-r0-c3.png",
+          "sha256": "b6f1135b5678a20f25905dad2c43b582e07bf88456bdf7c4294434ac4678d75d"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/plant-r1-c1.png",
+          "sha256": "15de5b97759aeb2379634938a2ea40390d634b66a28bad17147464f95a0f4130"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/plant-r1-c2.png",
+          "sha256": "d49db73b3d04d1ef682413a0cb8f3977e2441034c4901ac115aa5bec4d18c904"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/plant-r2-c0.png",
+          "sha256": "30a652ca1dc7d7b0939ba88211051777223075a0e58d5ebeb4b7a92e73804e4e"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/plant-r2-c3.png",
+          "sha256": "9eccfc4647d35c5ff89f5d809b6fa88e1372492d2843c6e30fbd9f2e653877ff"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/plant-r0-c1.png",
+          "sha256": "16de15b0b80d83b1710f3b3a5ef3d636c18678c5a0f8100add61e2f3a219cdd5"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/plant-r0-c2.png",
+          "sha256": "afbec02dbc9f8cd1d3995e59587d87ed090c2cd5c998ca03530c148eab20915c"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/plant-r1-c0.png",
+          "sha256": "9667a0b037bb16dc37a3790cf52bb2efb886e9b13ae0192ffb5c372886aca7ad"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/plant-r1-c3.png",
+          "sha256": "8208c5ad75df982e22bc5e88c66494bd719bb6b9f294922616c6615da09f5452"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/plant-r2-c1.png",
+          "sha256": "3d34ffbb261fef852ce479348e2db1538834b78658670880230906ee29aa936f"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/plant-r2-c2.png",
+          "sha256": "a25b14378ebbdb9c5f0fecee65b47841ceb99580e22e4df39a311beecc50a2a7"
+        }
+      ],
+      "encode_seconds": 7.903306125663221,
+      "rows": {
+        "gemma-768-bare": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              0.05225628614425659,
+              0.05427074432373047,
+              0.05765986442565918,
+              0.05976581573486328,
+              0.05423241853713989,
+              0.0549086332321167,
+              0.01393967866897583,
+              0.02797776460647583,
+              0.0217779278755188,
+              0.014992952346801758,
+              0.009953200817108154,
+              0.01888364553451538
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.4722222222222222,
+            "folded_auc": 0.5277777777777778,
+            "margins": [
+              -0.0987851619720459,
+              0.21102774143218994,
+              -0.017746448516845703,
+              0.13488280773162842,
+              -0.02909785509109497,
+              -0.08972734212875366,
+              0.12099266052246094,
+              0.09112006425857544,
+              0.25800102949142456,
+              -0.012410759925842285,
+              -0.4702434539794922,
+              -0.09798532724380493
+            ]
+          }
+        },
+        "gemma-512-bare": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              0.05825275182723999,
+              0.059250712394714355,
+              0.06241637468338013,
+              0.06351286172866821,
+              0.059343934059143066,
+              0.05901986360549927,
+              0.01791602373123169,
+              0.03239023685455322,
+              0.025983154773712158,
+              0.01821446418762207,
+              0.012807488441467285,
+              0.022768676280975342
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.5277777777777778,
+            "folded_auc": 0.5277777777777778,
+            "margins": [
+              -0.015719354152679443,
+              0.2417445182800293,
+              0.006403803825378418,
+              0.13702887296676636,
+              -0.017260849475860596,
+              -0.17524302005767822,
+              0.08747553825378418,
+              0.19744831323623657,
+              0.2988627552986145,
+              -0.07485580444335938,
+              -0.6570672988891602,
+              -0.028850793838500977
+            ]
+          }
+        }
+      }
+    },
+    "hand_control": {
+      "prompts": [
+        "an open hand",
+        "a fist"
+      ],
+      "npos": 6,
+      "images": [
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/hand_control-r0-c0.png",
+          "sha256": "d07bb703b2ec1d8a4307b437135377c8c7886133b93220461538da6699783985"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/hand_control-r0-c3.png",
+          "sha256": "47ba792c588dd2cdd9ff6581f32815e236569cfce257d9aaf8d483ba18e3147a"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/hand_control-r1-c1.png",
+          "sha256": "6cbf3f939faf798c056e5798db0fd7c842cfb1527b31d914a481071e08a68728"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/hand_control-r1-c2.png",
+          "sha256": "a10906c387ce5f90df842cfad6879f038a96b09be784dfeefde4679f7530a37b"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/hand_control-r2-c0.png",
+          "sha256": "f78d1d5bf3dfa7d0210380c9802d00cac9de1eb2c05d6c663da33e56214b1eb2"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/hand_control-r2-c3.png",
+          "sha256": "204072e5a9f59ffb0f9fc60e0dc07306023b1d9be4e8f133528dddc777f9979d"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/hand_control-r0-c1.png",
+          "sha256": "f99c98a87af0010a42e2966442d639f43a92713969d88e4bd13bf3e6580f9541"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/hand_control-r0-c2.png",
+          "sha256": "6dd5af24362e6f8a3d7df50a5bbe695fc0d3eca3c6dce00e200867aa56155c16"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/hand_control-r1-c0.png",
+          "sha256": "3b26ebee9587ac4b45b53f9f5d3fc61b1b1c7c1ffa93620ed693f2c7506a70f7"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/hand_control-r1-c3.png",
+          "sha256": "2692f470e704e07067b9a33b61f5e60371ae21a2436faee9d61e7012906f9846"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/hand_control-r2-c1.png",
+          "sha256": "4415480a3ae06b2b44bcff234dbdd67e3b54b1ad9539a95bf75b468e07f0769d"
+        },
+        {
+          "path": "bench/stills/20260926-home-screen/inputs/hand_control-r2-c2.png",
+          "sha256": "bcd27706730cf368eb7a8b4771eb1dc8809b004b7712688bb4ed68ed65c3a53f"
+        }
+      ],
+      "encode_seconds": 8.862276791594923,
+      "rows": {
+        "gemma-768-bare": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              0.03118354082107544,
+              0.03507542610168457,
+              0.03631025552749634,
+              0.030694782733917236,
+              0.027082860469818115,
+              0.02970707416534424,
+              -0.0887153148651123,
+              -0.08796262741088867,
+              -0.08689254522323608,
+              -0.08383536338806152,
+              -0.08984047174453735,
+              -0.09001898765563965
+            ]
+          },
+          "standardized": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              1.9433774948120117,
+              2.0510969161987305,
+              1.8761389255523682,
+              1.9046533107757568,
+              1.8457560539245605,
+              1.7982792854309082,
+              -1.9565320014953613,
+              -1.8389365673065186,
+              -1.8728405237197876,
+              -1.6827753782272339,
+              -2.01393985748291,
+              -2.0543289184570312
+            ]
+          }
+        },
+        "gemma-512-bare": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              0.02753382921218872,
+              0.03304398059844971,
+              0.032005250453948975,
+              0.027020156383514404,
+              0.02422153949737549,
+              0.02798992395401001,
+              -0.0854063630104065,
+              -0.08515101671218872,
+              -0.08497560024261475,
+              -0.08306765556335449,
+              -0.08763128519058228,
+              -0.08704638481140137
+            ]
+          },
+          "standardized": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              1.9299135208129883,
+              2.111825704574585,
+              1.7776703834533691,
+              1.8962740898132324,
+              1.8571741580963135,
+              1.827643632888794,
+              -1.9164637327194214,
+              -1.8068549633026123,
+              -1.8712689876556396,
+              -1.7320384979248047,
+              -2.0408506393432617,
+              -2.0330214500427246
+            ]
+          }
+        }
+      }
+    }
+  },
+  "packages": {
+    "torch": "2.15.0",
+    "transformers": "5.23.0",
+    "sentence-transformers": "6.3.0",
+    "open_clip_torch": "4.2.2"
+  },
+  "preprocessing": "SentenceTransformer(\n  (0): Transformer({'transformer_task': 'feature-extraction', 'modality_config': {'text': {'method': 'forward', 'method_output_name': 'last_hidden_state'}, 'image': {'method': 'forward', 'method_output_name': 'last_hidden_state'}, 'audio': {'method': 'forward', 'method_output_name': 'last_hidden_state'}, 'video': {'method': 'forward', 'method_output_name': 'last_hidden_state'}, 'message': {'method': 'forward', 'method_output_name': 'last_hidden_state', 'format': 'structured'}}, 'module_output_name': 'token_embeddings', 'architecture': 'EmbeddingGemma2Model'})\n  (1): Pooling({'embedding_dimension': 768, 'pooling_mode': 'mean', 'include_prompt': True})\n  (2): Normalize({'module_input_name': 'sentence_embedding', 'module_output_name': 'sentence_embedding'})\n)",
+  "load_seconds": 6.451995791867375,
+  "peak_rss_bytes": 3098591232
+}

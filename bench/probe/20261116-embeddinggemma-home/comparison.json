@@ -1,0 +1,54 @@
+{
+  "issue": 43,
+  "metric": "standardized signed margin AUC",
+  "limitations": "Seven synthetic cases; 12 correlated panels each. Not independent scenes, new held-out confirmation or deployment accuracy. Prompt and image hashes matched across backends. Timings overlap across processes and are not a throughput benchmark.",
+  "rows": [
+    {
+      "case": "towel",
+      "gemma512": 1.0,
+      "siglip512_bare": 1.0,
+      "siglip512_shipped": 0.9166666666666666
+    },
+    {
+      "case": "mug",
+      "gemma512": 1.0,
+      "siglip512_bare": 0.8333333333333334,
+      "siglip512_shipped": 0.8611111111111112
+    },
+    {
+      "case": "banana",
+      "gemma512": 0.6111111111111112,
+      "siglip512_bare": 0.6944444444444444,
+      "siglip512_shipped": 1.0
+    },
+    {
+      "case": "glasses",
+      "gemma512": 0.9722222222222222,
+      "siglip512_bare": 0.8611111111111112,
+      "siglip512_shipped": 0.8055555555555556
+    },
+    {
+      "case": "tray",
+      "gemma512": 1.0,
+      "siglip512_bare": 1.0,
+      "siglip512_shipped": 1.0
+    },
+    {
+      "case": "plant",
+      "gemma512": 0.5277777777777778,
+      "siglip512_bare": 0.9722222222222222,
+      "siglip512_shipped": 1.0
+    },
+    {
+      "case": "hand_control",
+      "gemma512": 1.0,
+      "siglip512_bare": 1.0,
+      "siglip512_shipped": 1.0
+    }
+  ],
+  "means": {
+    "gemma512": 0.8730158730158729,
+    "siglip512_bare": 0.9087301587301587,
+    "siglip512_shipped": 0.9404761904761905
+  }
+}
