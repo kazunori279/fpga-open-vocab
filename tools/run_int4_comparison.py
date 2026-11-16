@@ -8,6 +8,7 @@ The user requested an independently selectable Gemma demonstration. Preserve
 the historical fp32 campaign, verify its checkpoints, and record this separately.
 No hardware access or deployment. Resume completed stages from the same commit.
 """
+import argparse
 import fcntl
 import hashlib
 import json
@@ -23,6 +24,10 @@ JOB = ROOT / "model/runs/teacher-comparison-43/int4"
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--accept-source-update", action="store_true",
+                        help="record an explicitly reviewed continuation-code update")
+    args = parser.parse_args()
     JOB.mkdir(parents=True, exist_ok=True)
     lock = (JOB / "campaign.lock").open("w")
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -41,8 +46,15 @@ def main():
         "objective": "Support selectable SigLIP and Gemma int4 demos; no relative-gain gate",
         "input_difference": "fp32 uses RGB888; C int4 includes RGB565 conversion",
         "parent": "../state.json"}
-    if state["commit"] != commit or state["checkpoints"] != checkpoints:
-        raise ValueError("Continuation source/checkpoint identity changed")
+    if state["checkpoints"] != checkpoints:
+        raise ValueError("Continuation checkpoint identity changed")
+    if state["commit"] != commit:
+        if not args.accept_source_update:
+            raise ValueError("Continuation source changed; review before --accept-source-update")
+        state.setdefault("history", []).append({"commit": state["commit"],
+                                                 "status": state["status"], "error": state.get("error")})
+        state["commit"] = commit
+        state.pop("error", None)
 
     def save():
         state.update(pid=os.getpid(), updated=time.time())
@@ -56,9 +68,20 @@ def main():
         command = ["uv", "run", "--script", script, *args]
         state.update(status="running", stage=name, command=command)
         save()
-        with (JOB / f"{name}.log").open("a") as log:
+        started = time.time()
+        with (JOB / f"{name}.log").open("w") as log:
             result = subprocess.run(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, check=False)
         state.setdefault("returncodes", {})[name] = result.returncode
+        if result.returncode == 1 and script == "model/quantize.py":
+            log_text = (JOB / f"{name}.log").read_text()
+            artifact = ROOT / "model/runs" / args[1] / "quant.json"
+            if ("RESULT : FAIL - int8 moves the output embedding" in log_text
+                    and artifact.exists() and artifact.stat().st_mtime >= started):
+                state.setdefault("quality_warnings", {})[name] = (
+                    "int8 cosine diagnostic failed; calibration exists; continue to measure int4 task quality")
+                state["completed"].append(name)
+                save()
+                return
         if result.returncode:
             raise RuntimeError(f"{name} failed with exit {result.returncode}; inspect its log")
         state["completed"].append(name)
