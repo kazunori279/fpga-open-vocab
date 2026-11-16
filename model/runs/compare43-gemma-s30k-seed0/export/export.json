@@ -1,0 +1,14 @@
+{
+  "run": "compare43-gemma-s30k-seed0",
+  "teacher": "teacher_8075c704d48b6e4e_train2017",
+  "spec": "gemma:google/embeddinggemma-2@f9972ac22e696a105c482202646979e33e4b5a1e",
+  "space_id": "8075c704d48b6e4ebcff5959a1fe240459c49f44f6841d91767f547a633299ff",
+  "backend": "gemma",
+  "basis": null,
+  "embed_dim": 512,
+  "wbits": 4,
+  "wsearch": true,
+  "ends8": true,
+  "bytes": 780720,
+  "crc32": "0xAFF86EF7"
+}

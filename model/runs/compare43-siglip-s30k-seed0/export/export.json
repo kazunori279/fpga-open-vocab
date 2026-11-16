@@ -1,0 +1,15 @@
+{
+  "run": "compare43-siglip-s30k-seed0",
+  "teacher": "teacher_347251f243f458a6_train2017",
+  "spec": "ViT-SO400M-14-SigLIP2:webli",
+  "space_id": "347251f243f458a609b55e8c2eb1886740dfb3916db0a53e06390105ace80fba",
+  "backend": "open_clip",
+  "basis": "teacher_347251f243f458a6_train2017.basis.npz",
+  "basis_sha256": "e665cbab6c0a67be3754d41a57db6c39da87caf6ed8391bc8a14a74c4e486a2b",
+  "embed_dim": 512,
+  "wbits": 4,
+  "wsearch": true,
+  "ends8": true,
+  "bytes": 780720,
+  "crc32": "0x384A95D4"
+}

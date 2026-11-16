@@ -1,0 +1,3688 @@
+{
+  "run": "compare43-gemma-s30k-seed0",
+  "space_id": "8075c704d48b6e4ebcff5959a1fe240459c49f44f6841d91767f547a633299ff",
+  "spec": "gemma:google/embeddinggemma-2@f9972ac22e696a105c482202646979e33e4b5a1e",
+  "seed": 0,
+  "checkpoint_sha256": "d34be17497456f261d029891a043871229f0d0cbb58c8e7fdbbbe336e58f9277",
+  "precision": "fp32-rgb888",
+  "suites": {
+    "cross-scene": {
+      "book": {
+        "prompts": [
+          "an opened book",
+          "a closed book"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000035279.png",
+            "sha256": "b1b005e99455ab83e5b7f1993fec282aaeb6d5e65ff4be4f5fe93e61998f8752"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000096001.png",
+            "sha256": "9dbe62e33477bf8028e498be6276d40275e00cab87fedd74f7d4460aa1416edb"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000099182.png",
+            "sha256": "9b3ef452eb4b42487bee0729d6531bbca802556cf2081986690fac766eed6aaf"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000147415.png",
+            "sha256": "4467f4d8a2f65a9f3eec58457af89df664aa998565207ee0d37b148de4663f66"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000179392.png",
+            "sha256": "95a82fa03a3c92bb720ae38629dbde01e60ba2fa77ed6ccd54739c1d4d2d4c88"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000183049.png",
+            "sha256": "7e3ce91a812a941092a90f06eb37492e40fd87ee02baac5fc5fb611aeba080b6"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000255483.png",
+            "sha256": "5c61f26ac51d18b22b12b843e4d9b4ea4a11e288db0ea40523aff0aa51a5d446"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000309938.png",
+            "sha256": "44b6b23ce89fdfb856b2490e9464bf9e817c68c8d8b24e47e219bd2bc1d21a71"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000317999.png",
+            "sha256": "35f1c93f58dd2b15a991652ff024bec5feb83ba5b790f2a67bf55774c3d739be"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000376264.png",
+            "sha256": "6384b216677771574ffcbacb7ecfdfe88419cb9efbd12d1c3438a8f2cea2565a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000389315.png",
+            "sha256": "807bd74b82c34359cbbff4cfeeb01a61b38f215240eaca6078bc6f0fefc209b2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000396729.png",
+            "sha256": "63716ef2c443884dcc8cd7362ba259a54a4d1802c142e6939ba7948ae0837280"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000400082.png",
+            "sha256": "6f7e820bb76b391331237d11e5af2228b870e41dd5243280dfb2e065323819cb"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000512403.png",
+            "sha256": "5fcf994c7894ad0f4cd150d82def1502aefa015cae1558133462b05614655059"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000520077.png",
+            "sha256": "2364968fb324e19c36bbbe4a7041b93d65bf0f18edcedb93a4fb912af5a6d00d"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000536038.png",
+            "sha256": "8cf2bbe96fed77e737dbb375ebc662a41637161e85f30438ed986b9a0b8bfe69"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000542776.png",
+            "sha256": "32a557c7e9a07a0f5ce9e0b2c1e4af8522dd0435e93db08a475e6ecba0c05223"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/pos/000000551439.png",
+            "sha256": "a60e1b59d210b9b72175706b2ef98d6e6339e3b429e517c578b818f24e3214ea"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000035279.png",
+            "sha256": "e0c3c9dc85cd7e043190350ce090e5ddc773e2e8b0083af1b39e7e4ab4bf5dd8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000096001.png",
+            "sha256": "eb788f12bcea58e7ee1cc2bddfb6ee856310ef93fd54567b454c092b4477801b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000099182.png",
+            "sha256": "34d89bdd0ea35d6ba09cd9e607d27d2422cb8eda7911ac8883f754a8f393cc8e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000147415.png",
+            "sha256": "e4596ad9f753f60d01fbc910a38ff8ff794b274d3c279bbb3eaed18b1f4a1c9f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000179392.png",
+            "sha256": "0d6f632f8e6e59aab9555f63a0f08080f39a35a90ce1e9660023410b430828ab"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000183049.png",
+            "sha256": "4e7fb72e6b6a604b70cbe425bbe681c91261ce552e5042e9ffd476ec7a78c992"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000255483.png",
+            "sha256": "1af0d48107aa229a024ff38b8bdf8c138b54519b6454cd3d088ca1202f89c829"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000309938.png",
+            "sha256": "2fa777e08072d7b921042a8308bd0271865b2ea6f26ea503ac77bc5e2888273f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000317999.png",
+            "sha256": "76f71513ff69095b4acf45a171ed10f65c56c84ce8272b1440b516d79fe74559"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000376264.png",
+            "sha256": "8a3755530f9b075aa922bb90bb159ddbc886c748e39a348923b7179bd122f506"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000389315.png",
+            "sha256": "6bd8ed4e74342a2ea13f4a8c2700d18d006b46bd909d113344edbfee5840ed74"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000396729.png",
+            "sha256": "b3eb9ae634b31c02bcf05871c2c0bcee1a9f1715bf3155c3d757b5709641dec5"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000400082.png",
+            "sha256": "2761cd9b330cdccebfdc0aea22c99c4e230b325d42873a4944505789a64e62e4"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000512403.png",
+            "sha256": "82898aba0b1d9c0fcde17f077bf7776fab27c8788dc6af193672fe377bb1b358"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000520077.png",
+            "sha256": "c23ca706cd1e0ed86543527ecc6d18c3971a30c6f6ab4e0d8012daac3db252ac"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000536038.png",
+            "sha256": "a32c8666ea52dbdefe0dc7d6238786edd86de95dfe5667dff5d0321af583c7bd"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000542776.png",
+            "sha256": "26156b2fcceef8d4db6c664654e185b042b0cbd424a25dd075323557bd8c45ec"
+          },
+          {
+            "path": "bench/stills/20260822-synth-book-crop/neg/000000551439.png",
+            "sha256": "3767f9e2a9f81c7bd5eff2ead9c3329283ce0e0c09aaf27fc43370c6d123abd1"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 0.5462962962962963,
+            "folded_auc": 0.5462962962962963,
+            "margins": [
+              0.011395692825317383,
+              -0.007768452167510986,
+              0.004988610744476318,
+              0.015638649463653564,
+              -0.003196507692337036,
+              0.0011696815490722656,
+              -0.01050373911857605,
+              -0.011170417070388794,
+              0.007421582937240601,
+              0.014318078756332397,
+              -0.010816574096679688,
+              -0.014074891805648804,
+              -0.00011467933654785156,
+              -0.02452722191810608,
+              -0.02174702286720276,
+              0.028556853532791138,
+              0.015473634004592896,
+              0.02135947346687317,
+              0.016454756259918213,
+              -0.012255162000656128,
+              0.002088010311126709,
+              0.012019544839859009,
+              0.0012818872928619385,
+              -0.001931309700012207,
+              -0.015571057796478271,
+              -0.0023140907287597656,
+              0.00623708963394165,
+              -0.015877485275268555,
+              0.0027458667755126953,
+              -0.023716092109680176,
+              0.009382486343383789,
+              -0.0045309364795684814,
+              -0.007532209157943726,
+              -0.005950719118118286,
+              0.022521376609802246,
+              -0.01299595832824707
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.5617283950617284,
+            "folded_auc": 0.5617283950617284,
+            "margins": [
+              0.2422947883605957,
+              -0.23770800232887268,
+              0.29310834407806396,
+              0.43778079748153687,
+              0.00426173210144043,
+              0.07245436310768127,
+              -0.22761011123657227,
+              -0.3417714238166809,
+              0.19465738534927368,
+              0.4672507047653198,
+              -0.5219860076904297,
+              -0.369995653629303,
+              -0.00353163480758667,
+              -0.7373453378677368,
+              -0.6325854659080505,
+              0.9296454191207886,
+              0.5424214005470276,
+              0.6877346634864807,
+              0.43091869354248047,
+              -0.34246307611465454,
+              0.0934317409992218,
+              0.39386144280433655,
+              0.09466826915740967,
+              -0.10601556301116943,
+              -0.436405748128891,
+              -0.06760282069444656,
+              0.21437445282936096,
+              -0.4458383321762085,
+              -0.01252734661102295,
+              -0.6655316948890686,
+              0.2490214705467224,
+              -0.16957831382751465,
+              -0.09707129001617432,
+              -0.14575433731079102,
+              0.697035551071167,
+              -0.4835761785507202
+            ]
+          }
+        }
+      },
+      "glass": {
+        "prompts": [
+          "a glass with tea",
+          "an empty glass"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000002431.png",
+            "sha256": "dda7a94d5c7c01e6fe23705339b4f410e378cb8b5152f1ed0f625edccbe5d4c2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000002592.png",
+            "sha256": "7f9e5842f9772983032c639097244341c6a5eb9c8320602ccb32485d3a232964"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000025394.png",
+            "sha256": "a68e42334cc356f0b0f2a2bd8bc32a527bfec7dd75cf057dd22fe183aae86753"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000035682.png",
+            "sha256": "d97283bb60e17ac1a0085401cb553f83a7b197bcaee0754ae59004e69e56675a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000054605.png",
+            "sha256": "c0c9353b605d469314b69480d72637d33410b1fbffa98face8825c7f9af8d566"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000066706.png",
+            "sha256": "66c92873aabd4baa894d71d4a6a0efe00c2527cde23740d43fbe0244386d0e3e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000074733.png",
+            "sha256": "3280f19ac08ffbaaf17bd380e247baca6d445caa4325f64d88c8763d6ac5db53"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000085089.png",
+            "sha256": "815d9ea0f74beb52f6aa2cead294becf080149bb38cee91729a486f96bcc8bdd"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000095786.png",
+            "sha256": "9aba03871a2137b2ea09ea9b1523b23dcd6b9237605aa4dcb674126821023536"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000099039.png",
+            "sha256": "53491569368ebbd77f3597ea3fe77c0baecb32fa5ec26914b56765550dab5f15"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000102707.png",
+            "sha256": "61cc852f459ecc6e67ac5f1ea241fda25f07d26026c427905b42e258f2bfae2e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000116208.png",
+            "sha256": "5bfc786999fb37c5d381a3fb8d5647f507e98e0ca6c66633bfdb6318cabd4e36"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000140987.png",
+            "sha256": "d90896fa68c946dc68ea54df495b91bc07cb1a7b708740e43fde99aac16e8c10"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000146489.png",
+            "sha256": "c50ad906239f56e8b520ffe8d11002610bd830d49b7c8d3e7199c30d92e8fae9"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000157601.png",
+            "sha256": "fd2cbf6b985d9a4caddae5da017151ad19a540300ca41782915865f7942bdd1c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000166277.png",
+            "sha256": "54c624b1e44a761a19c30adebe3a49799d64772bf87ffb4e0f8a39d0057edcca"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000172571.png",
+            "sha256": "16c36e6a2ce0a9b8c58c62cf855be0b4e5244d6c4bfcf8a9d35f4476bcf4bc6c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000181796.png",
+            "sha256": "18d6059dfb81b5c3cd573e16974c89a0c16c234a96d4aa69d6b2bcfb86d03cd3"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000184384.png",
+            "sha256": "f5f3a62b5f1ba5bc6935a6962596f57b3f74421470c868d40043dce98064f060"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000189752.png",
+            "sha256": "24684322c657ed4cf78a96284688107e9c86cd3a9ae23e4395fac4f37c3aa077"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000194940.png",
+            "sha256": "2e43ee30a29a4a6a7be8682ba4b56133270b6cce86dbca13ddb9f57f51985769"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000210520.png",
+            "sha256": "95b0f491f49448bd4bc1fa371625d852417c439bcc78d8cb5737210199d91ba6"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000253452.png",
+            "sha256": "f93b15fa44608044e017424fcbb5c6f683a32f2606ebbc7352e2856d7e067b53"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000256518.png",
+            "sha256": "a0c5ead5f7c3787e628f25cdd6b7bd7d0ef95c3cbbe9ef2787274258c55b0e0c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/pos/000000265518.png",
+            "sha256": "d12260a1c3a21fb634167cc7a02ecdcaa23a5f96bb8071871c023b701b78a8e4"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000002431.png",
+            "sha256": "f49805521c5bb865ec6345c84f2b13bcbc6c67a79d9e30739347b95c5c958233"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000002592.png",
+            "sha256": "0fa9011d716682223edb7449479794044f193c4c324df91055ea3ca4f9ef2238"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000025394.png",
+            "sha256": "5a934b1ac15f3e38866ee3d1348a1adde857e0c1ffe41c398b4d29339efc2319"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000035682.png",
+            "sha256": "d64fc681048d63eea96e43bac56f4d80cc8d1a5f4bec1375b0f614f3c0482c0f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000054605.png",
+            "sha256": "522b44e0c6a8e57432354875e54cb1adb84230b605ff286bd7ac4c910a3610ba"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000066706.png",
+            "sha256": "27384c618925911fa0abc6b0ee3ae5772f05a8489cfe9766cd54019066d700c2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000074733.png",
+            "sha256": "72e27bf68180cc242964fc6fbfc7056533303fba7cf7511497f5897ae479807d"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000085089.png",
+            "sha256": "10b784cd8e707d8b717a930df90b4da9439976da7d5928044997f324eb0ce978"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000095786.png",
+            "sha256": "3934b5e1cbe0216fc44a6bba9d00a9170de18c896647de81b8d59d7f24ed938c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000099039.png",
+            "sha256": "fe3cbe7970995ef9afcaafa08bface758716e33718da75e06a036864a0079109"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000102707.png",
+            "sha256": "f3c728492bc9e1702bbf05ad562836d51843629a2512b0576f0824248ddc3f56"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000116208.png",
+            "sha256": "d73ac76b87a22d2ab86d7ec17d7efcd7d15ffb6b90ee0c96b8872f2391ddf0ad"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000140987.png",
+            "sha256": "62100b940f2556192740c3434f95a047a8b09d3544ed2dc660ed8c8545e3bd4f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000146489.png",
+            "sha256": "50c4f7e923f9d77b8e3f240b88a6b862a9bc2286e3bfa230dd586e08d397957e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000157601.png",
+            "sha256": "cde6fbbd8ee12258230472393dede570e5c5f233e80ee4cbd38fe1386648bd0d"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000166277.png",
+            "sha256": "9295ed21f7feb769ee5fba44c9251f9b725f4515bfb555c2682a19505c284f7b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000172571.png",
+            "sha256": "f568ba89cdc9e5a4b9892847bb2ed244e2397c2fdb18c973d7f815b02464543e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000181796.png",
+            "sha256": "bb8ac27e910bf8f0314059a1136f8305e2ffe269e0784a8b84c2693fbb53fa9c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000184384.png",
+            "sha256": "17567834d5b108e4b81a26ecbaad2558c3f489849e4f92dd0e3352a4b58a7185"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000189752.png",
+            "sha256": "98dde334284c72d10537c76b2102a3380909d57c154c0929e00d38e4591c3d0a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000194940.png",
+            "sha256": "a48d59297388f7f35b66c13362c9c1bcf57e69e4b0c10b8a84e7411c4d612131"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000210520.png",
+            "sha256": "49af578edcd6fd878de55c2faa1fe12ff75d849f1c581a24e540b2a939f1118e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000253452.png",
+            "sha256": "39a874ec51f882758831bdb00f342027c5fc16a1bb40de29e4a954e528c8f75c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000256518.png",
+            "sha256": "4ff51f1694986626020f5bc9793cbac9e994090e6b3c7ed179337ced3c8a898e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-glass-crop/neg/000000265518.png",
+            "sha256": "a4337bb4fde6bc048a1e20c951d64230b4c0fbf7537d0ca08d7148310f8283a6"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 0.5744,
+            "folded_auc": 0.5744,
+            "margins": [
+              -0.00321042537689209,
+              -0.015931367874145508,
+              0.02376490831375122,
+              0.03397029638290405,
+              0.01022300124168396,
+              0.025353193283081055,
+              0.05105111002922058,
+              0.014708608388900757,
+              -0.01535022258758545,
+              0.009938925504684448,
+              -0.014126628637313843,
+              0.04541018605232239,
+              0.0045018792152404785,
+              0.05620765686035156,
+              -0.0028319358825683594,
+              0.035404741764068604,
+              0.03357622027397156,
+              0.0030348598957061768,
+              0.09279543161392212,
+              -0.0014531314373016357,
+              0.023323923349380493,
+              0.03039926290512085,
+              0.017499864101409912,
+              0.0013391077518463135,
+              -0.031360238790512085,
+              0.013048529624938965,
+              -0.03847020864486694,
+              0.018457114696502686,
+              0.0019413530826568604,
+              0.018821001052856445,
+              0.0017783939838409424,
+              0.05624070763587952,
+              0.0059951841831207275,
+              -0.017005115747451782,
+              0.010239928960800171,
+              -0.02064165472984314,
+              0.030504435300827026,
+              -0.009828239679336548,
+              0.05477204918861389,
+              0.003025949001312256,
+              0.021200627088546753,
+              0.03063046932220459,
+              -0.010737478733062744,
+              0.08980563282966614,
+              0.00836634635925293,
+              0.01865065097808838,
+              0.03141871094703674,
+              -0.010393530130386353,
+              -0.01449042558670044,
+              -0.04282835125923157
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.5952,
+            "folded_auc": 0.5952,
+            "margins": [
+              -0.8841376304626465,
+              -0.5191608667373657,
+              0.10669100284576416,
+              0.6752746105194092,
+              0.19147229194641113,
+              0.22153401374816895,
+              0.9286337494850159,
+              -0.06199046969413757,
+              -0.651370108127594,
+              -0.346998393535614,
+              -0.7823861241340637,
+              0.4272209405899048,
+              -0.18461638689041138,
+              1.7741410732269287,
+              0.11262321472167969,
+              0.7434564828872681,
+              0.5954532027244568,
+              -0.5350170135498047,
+              2.6583914756774902,
+              -0.6495989561080933,
+              0.2981259524822235,
+              0.22079616785049438,
+              0.18004605174064636,
+              -0.3729921877384186,
+              -1.2166779041290283,
+              -0.17580106854438782,
+              -1.5761322975158691,
+              0.1514548510313034,
+              -0.41338804364204407,
+              0.5166775584220886,
+              -0.37525519728660583,
+              1.4213380813598633,
+              -0.5495947599411011,
+              -0.8629445433616638,
+              -0.6595155000686646,
+              -1.2477095127105713,
+              0.16245293617248535,
+              -0.44242048263549805,
+              1.5299867391586304,
+              0.339282751083374,
+              0.30430856347084045,
+              0.30822277069091797,
+              -0.8168900012969971,
+              2.4283711910247803,
+              -0.046858519315719604,
+              -0.0421069860458374,
+              0.20918631553649902,
+              -0.7287148833274841,
+              -0.9018504619598389,
+              -1.4610610008239746
+            ]
+          }
+        }
+      },
+      "laptop": {
+        "prompts": [
+          "an opened laptop",
+          "a closed laptop"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000001503.png",
+            "sha256": "119a9b64e226536c5c8d16ec02d1104b2c07f84b334bbe4ae04791a48815b241"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000004795.png",
+            "sha256": "350232038f08b4ad5345c43df5bde8e2b6b676021b4df7db2eb4a884101a54a5"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000009400.png",
+            "sha256": "1c5a2bbe7689b221fd03a462147e55ea563dc9cfaa18083d765b31c1df10a78c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000014226.png",
+            "sha256": "1fc5a4ab594c392c80b8cbccd31f85bd4a597b8bf90929b084fbf8b78543bdd7"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000016439.png",
+            "sha256": "a95af16961059507f6aec037721fe2be0dc68418c83de5777b0fe8b02a44ad0e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000026465.png",
+            "sha256": "9496141a55fa85e73abdd67eb6bbc509c579789603dbff4008a2ad1d92a9304e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000027620.png",
+            "sha256": "7988b8e1a4944cb4b7b9ef05f063b1eb5a467f8041720c86268d35a7e970c1e2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000032610.png",
+            "sha256": "943bb14a50153239a1f4d4a29471a1972f13d3fed6fcd338cb9ba55e9dad907a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000046031.png",
+            "sha256": "98647597556a00141438c8dde0869a84e6d70a0d7eaaa69fe7250b0f996b7126"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000059598.png",
+            "sha256": "bb725b337bdc224291b29b92bdbb77c21828d2ae90836b80c748b4dd63d4f4e1"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000060449.png",
+            "sha256": "4ade83225a3b6a6982da565ff8abdb966524dceff3a2f2812a4e5343a56f43ce"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000063740.png",
+            "sha256": "a2ca80429bd06230ddbaf703b294593195a3f6f8eb6be661b896ffea80911a1f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000077595.png",
+            "sha256": "7b3a0df4817465ed3a021db174f51c8c4117c4ab3342f6833741576d5b174b5b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000078420.png",
+            "sha256": "5e7da8a8d024abfa0a1eebba4f598bb0ea7289ccbdb868666f20f712901b737c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000086582.png",
+            "sha256": "38fa101952e6706c29b06e9146ef6fa2fda535864d37feb11efc435b3245f572"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000097994.png",
+            "sha256": "66cdc070205d788264db1b86a385bd7b8975623dad3f706a448e7f786083dd96"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000115885.png",
+            "sha256": "277ad0a7f650c5343fe14b32138c5485c8567ae44534e53041b62a49810ab9a9"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000119233.png",
+            "sha256": "1d00dd9bd10028893cc525d4f6dc7ad14af16e8b938712999863051be73f9e9c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000119365.png",
+            "sha256": "4963fdd2cf7deb04aef48d455a2dfdac13301465e83f994d08094d8cea61dce2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000119828.png",
+            "sha256": "53c878d5f5873d89656c540378cfd3adae42355425f28d57a4a6819866175a70"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000134112.png",
+            "sha256": "6fd9a1985b2019c395a31a156529682fad9e5cec6284d45d9e0a0bdd7c569df3"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000136600.png",
+            "sha256": "6ccd5f0caeb7eaf557a1f78253f3f2753c76a1715f06cc711385b44072cc6414"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/pos/000000148620.png",
+            "sha256": "cac89826039621d86e6488469b3a89c655d7d35a8c94aaffeca1bc509a05392c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000001503.png",
+            "sha256": "09054f603d682b93541e339a72824b400022d7d9ea6b938c5a1e327ac789b39d"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000004795.png",
+            "sha256": "05a2275958c0aaa4a214b0967d2a25772553df5b166e97268928f8401f2fcc90"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000009400.png",
+            "sha256": "f862ba368dbb4958ba6d46c685148761db2e4a330bbe585d8d0264d0b417148b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000014226.png",
+            "sha256": "0b51510c37c9b9394b239fc085e1930a9c8595f49d29f770558249b6307f3fd8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000016439.png",
+            "sha256": "4076928e602ae110791dca10f86b0b7105b069a74f3749022c50bf70ea19ce00"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000026465.png",
+            "sha256": "30fa3c70afb255daf93829dd8d4700288d26c7c07de737d674f46244bf11e2c2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000027620.png",
+            "sha256": "8ea842dff868daa392b800986802b05380950bf35b3e3c17fa4f5daa2830b870"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000032610.png",
+            "sha256": "7291cef5900f4a36e535d0de8ea7e78f7fe311555e19d0fd2d12a6263e4d6ea1"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000046031.png",
+            "sha256": "593b96ed16357161e77c0def1969c471e368271bd323020ac14ad228d12d9f84"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000059598.png",
+            "sha256": "179f7765597992a8f2279abf15fe1c15572bdb8c3802608718fd42b5b92fbabf"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000060449.png",
+            "sha256": "166d9f98313ea76fc6e799d142872eb61feb28683f90ecdec3e653d61b7b58b8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000063740.png",
+            "sha256": "6683b59c2f92da9f913449bb8fb50fb0a8f39a4891ff07baf8b51c077714ee3c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000077595.png",
+            "sha256": "44f7560aa977605fe3f587bd72700a8b805d673f5b69ff33e1eb0ffd4884b4a5"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000078420.png",
+            "sha256": "79f0be1650cd964062ef4c8ea2929e6598498a81ca01da1f551cabe3b8532af8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000086582.png",
+            "sha256": "d38e6e84b7818f68c8acc95a320caab0cb4c453a79af062e95ee36954412fbbe"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000097994.png",
+            "sha256": "8954a2aa3c8cb594caf15da83eecaed018c7a12c2a78674d894f91f1d79d09a9"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000115885.png",
+            "sha256": "3f8cc40a4b6839cf5e5e7e95f71a23233db50c35827e938efd4f88e643cd2c6c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000119233.png",
+            "sha256": "3a20b41d8826c4983e74d38177c67883b5019140b9b172b3410f1dea3f08f9c0"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000119365.png",
+            "sha256": "6e2215d8ee2a71210aba9490300cadf3b60777b7cccbca6d2d152106cc5d407a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000119828.png",
+            "sha256": "3cc1962a3c72639e6f282bb0da618e68d950d343e6790f3ebfd8981b24c1bda2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000134112.png",
+            "sha256": "621a430c0477814ecb614e68c3f27106524ecd14f9c74436587c7a528f04b4ed"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000136600.png",
+            "sha256": "5ac555304d2abeb53bebf58056c060219ff0e7ad33e37b5dab5da4066b18e1a5"
+          },
+          {
+            "path": "bench/stills/20260822-synth-laptop-crop/neg/000000148620.png",
+            "sha256": "6660ed2a38034d6d48423b2aa09f26c65585bcd37c5598463ea989430d4b852e"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 0.5255198487712666,
+            "folded_auc": 0.5255198487712666,
+            "margins": [
+              0.03655943274497986,
+              -0.004112511873245239,
+              0.04822450876235962,
+              0.042139410972595215,
+              0.00759047269821167,
+              -0.01901477575302124,
+              0.0031436681747436523,
+              0.01615890860557556,
+              0.0019488036632537842,
+              0.028411805629730225,
+              0.012014389038085938,
+              -0.010250747203826904,
+              -0.0009331405162811279,
+              0.020095646381378174,
+              0.03875383734703064,
+              0.02235192060470581,
+              0.016859441995620728,
+              0.012300312519073486,
+              0.04392498731613159,
+              0.01014798879623413,
+              0.027102649211883545,
+              -0.0018297433853149414,
+              0.021099209785461426,
+              0.023851782083511353,
+              0.02018684148788452,
+              0.04341569542884827,
+              0.05089843273162842,
+              0.008279383182525635,
+              -0.001583099365234375,
+              -0.007037729024887085,
+              0.004504412412643433,
+              -0.005623877048492432,
+              0.031060099601745605,
+              0.02154088020324707,
+              -0.006759524345397949,
+              0.041745543479919434,
+              0.015903890132904053,
+              0.02369675040245056,
+              0.013282537460327148,
+              0.011922001838684082,
+              0.0078054070472717285,
+              0.04279482364654541,
+              0.004547297954559326,
+              0.012648999691009521,
+              -0.026897132396697998,
+              0.0019332170486450195
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.5463137996219282,
+            "folded_auc": 0.5463137996219282,
+            "margins": [
+              0.35038208961486816,
+              -0.4319232702255249,
+              0.5904018878936768,
+              0.5838875770568848,
+              -0.10349655151367188,
+              -0.6505544185638428,
+              -0.23589476943016052,
+              0.013224668800830841,
+              -0.2721906900405884,
+              0.26698628067970276,
+              -0.06140167638659477,
+              -0.47862735390663147,
+              -0.3438813090324402,
+              0.12652850151062012,
+              0.3828577995300293,
+              0.14873789250850677,
+              0.021197721362113953,
+              -0.03142523765563965,
+              0.5977195501327515,
+              -0.07508385181427002,
+              0.27576327323913574,
+              -0.3061811923980713,
+              0.14418667554855347,
+              0.12419319152832031,
+              0.05643284320831299,
+              0.47731590270996094,
+              0.7210903167724609,
+              -0.10891926288604736,
+              -0.31059038639068604,
+              -0.4408420920372009,
+              -0.26496565341949463,
+              -0.46185481548309326,
+              0.31500768661499023,
+              0.12680192291736603,
+              -0.40898528695106506,
+              0.46449506282806396,
+              0.03475797176361084,
+              0.11771726608276367,
+              -0.019879639148712158,
+              -0.13454389572143555,
+              -0.125223308801651,
+              0.5735965371131897,
+              -0.18133890628814697,
+              -0.012873291969299316,
+              -0.8068119883537292,
+              -0.2457791566848755
+            ]
+          }
+        }
+      },
+      "refrigerator": {
+        "prompts": [
+          "an open refrigerator",
+          "a closed refrigerator"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000000802.png",
+            "sha256": "299a1ef3b474e9eabc57bc6723563be8ca9c4bb60f8567c4eb8020da7b63b0b7"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000014007.png",
+            "sha256": "decda9ba7699a9f447d708a8c9a1d30431c05cc1261abf7c9ed7f80ee5e63ac8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000014038.png",
+            "sha256": "5811704ed1e2b76712f2dc17fb21fd7dd12de21fcac5b6cc7aa7592fd0638176"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000022705.png",
+            "sha256": "9fbfe781d3a715ec9b3198fc9eac0f0b2371bd7660e5575da00d7dd8ebc84110"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000024243.png",
+            "sha256": "9f7547e0c700d98e27a071d12829161c720a1438b1657b06fcf55955f139628b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000028452.png",
+            "sha256": "d77f8bc99448d38f78b3488dd949f0e6669050c376917e18da71200a961fd4c7"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000030213.png",
+            "sha256": "28d769b375b5306de410eddc9f357ba13ce1c5575f545c0ab64e3ea49e5a2dcb"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000052996.png",
+            "sha256": "e97f34c1645551e195dc85e6091ef9b04f6d740ace6636fc2fec3a3331129b74"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000066231.png",
+            "sha256": "76b84ce44ac159f0d1b08a82fb1de14f104ecd12bf89f1b3860ec276d88cf4ed"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000073326.png",
+            "sha256": "80bff8d73db49b2038e799cb9ca0769c9336a8b762aa705e7c22e0ba56c577d0"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000135561.png",
+            "sha256": "b7235f1ad3fef75595523198234c73a7dc8b1cc958a12ac5ca435500057108e8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000150417.png",
+            "sha256": "bf86ac361394cb94132fe737d732486cc79c42c444b1005de9ba6f2e14c1cf2c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000159791.png",
+            "sha256": "6c73035053038e4d14e52567c748063cdcb759063e04b85fa54b56c89ff7c59d"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000168593.png",
+            "sha256": "6fba0c3e858f45f07fbe529ebedbe7f610a4c7da40aecdd6a738a3cfc21ce753"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000186980.png",
+            "sha256": "c3f93e4998780ea44c5b5bc7a1209d5529adadac21c01b7cb9df0749f38d90bd"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000187271.png",
+            "sha256": "13d39149ba2b8990f96d6a15b1cf68a3618bb049247a367e485350ed68d77e47"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000213547.png",
+            "sha256": "29c4f27db3adf6b4682f3e43188f6bb09778d0211aed5f076eea5a4b11898e2f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000215114.png",
+            "sha256": "63698cac98056d533161b4e963beb189c7898485ccd05a7575bb303a76ee0e06"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000231339.png",
+            "sha256": "06cf8601bf4d7c3297909f3ddcfa968ce117da306df6fef0aa4bbef16bb51a78"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000237928.png",
+            "sha256": "48c9dd8b8ad6449d1da5e7425e606b977ca775f950759478a30f5dd79bcaef43"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000243344.png",
+            "sha256": "f765bbee61e0cc45426c4aa122a36feb60f6798e7532f856683e63cdea2ce2de"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000273712.png",
+            "sha256": "2b494d38b3c098438e89cb4d7d16b59e2288b9802f810e3adb4c2c9c2b364807"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000280930.png",
+            "sha256": "7d833fe3877c2e5fb9c34e0c09e8f81c061d0aa4e237cbfb08cf0bdffc779187"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/pos/000000282296.png",
+            "sha256": "15b725962c0ff929a16795ea697dd1ea80b5dc44b8b0df619f3926f458caa3a7"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000000802.png",
+            "sha256": "2866f6e8628dea8de2d2488d2083e06aaec2b61ae96c1065b40751164b0df2a3"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000014007.png",
+            "sha256": "30b93f00b951f6d7629f68f99c28822e1c811c20f8d19cc6bb0511aad4a6104d"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000014038.png",
+            "sha256": "1f7be4beab4ef82b310a72fef2281eb85dd5d673193878872cc06b3df57dc3c7"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000022705.png",
+            "sha256": "49dd0585220525b5d092b28402b9b9b33bce76c0202895609f3b596c543a0431"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000024243.png",
+            "sha256": "929ee55403425ff5ca6754d77565804737dcfd34856fbf09d83a26049be09abf"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000028452.png",
+            "sha256": "0819bc783c15d8f4138d62f79e7da91294b7094506c4a0888a490bf68b1ecc67"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000030213.png",
+            "sha256": "966c659397f1194323be92cc3693a1bb67bda77b6fff15a7cd16ad3c2bb78939"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000052996.png",
+            "sha256": "67bf21e357b04d991ee2413ae66695f3ed213d8cb71021d762075e91e087c144"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000066231.png",
+            "sha256": "439514944d68ef9dc98e2a7a86cdcd41b041032a3e41af119550c8a419e67b35"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000073326.png",
+            "sha256": "0fa5414d6bdba462ede5126d9236a4f7d0aba93f0844fb92896f359139d3e334"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000135561.png",
+            "sha256": "a306d48af41439aaf06a28529af90be6350529259865990b192dbe52783fcfb3"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000150417.png",
+            "sha256": "6c9e64c00cce0d3569f46e30a611f1071add530c718fc841fe170f2d5f1ab521"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000159791.png",
+            "sha256": "70216c1678bc35c2282ce19cd7954f6b17d72b453d7177d9726d12550b1258e0"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000168593.png",
+            "sha256": "a7ae243595bdacab42d6c9785987274a66e8ca697f16c690c1668fc588b73b35"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000186980.png",
+            "sha256": "52e13e8671b25868a0fccf5daf3c4af9ab060ff829020aed14b6250e52e04986"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000187271.png",
+            "sha256": "b0a88432e7ba62601dcb570235a6f5f1a3280d956099c299480b522d3cdbe9cc"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000213547.png",
+            "sha256": "b2117d9779dd8fa56fe831e1f6b83e6df27f02e569b450a5f6b5671e6f2c8888"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000215114.png",
+            "sha256": "68cff0d22c603bc8d57ad724fd1772d6303b00bdb3462f9fba58264e2c1054c2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000231339.png",
+            "sha256": "8671183ae8539aa095ac4ceaae9e9a3de646233c73de42b7dcec92b7a11699a4"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000237928.png",
+            "sha256": "555e9b173460720047284c60aea64bd18a05bd0f5ae858daefc371bb445e3751"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000243344.png",
+            "sha256": "48635bd482954365de5a3a372f1443c1385d88959947eb67902061ff703f05f8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000273712.png",
+            "sha256": "c25c5d06afcfaef161b5064aff1d342376d831cc3a3b17f567b38cd7f2bf076b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000280930.png",
+            "sha256": "32757d978f8f391c917d044d7e4286e2dce7028d65d42012b0078132da5edebb"
+          },
+          {
+            "path": "bench/stills/20260822-synth-refrigerator-crop/neg/000000282296.png",
+            "sha256": "38059240e4ca9282d31a46b30df4cec531db1432f7cd7e0172efc84ca3c443f7"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 0.7916666666666666,
+            "folded_auc": 0.7916666666666666,
+            "margins": [
+              -0.0028808116912841797,
+              0.02661871910095215,
+              0.055430829524993896,
+              0.041874706745147705,
+              0.021036922931671143,
+              0.024622678756713867,
+              0.05521953105926514,
+              0.05391612648963928,
+              0.05420413613319397,
+              0.057817280292510986,
+              0.04278689622879028,
+              0.0564139187335968,
+              0.059898972511291504,
+              -0.027421951293945312,
+              0.06528401374816895,
+              0.06053563952445984,
+              0.011959701776504517,
+              0.045804500579833984,
+              0.03685373067855835,
+              0.009279966354370117,
+              0.05799618363380432,
+              0.04214268922805786,
+              0.08149221539497375,
+              0.01135021448135376,
+              -0.020177185535430908,
+              -0.02755555510520935,
+              0.03262597322463989,
+              0.014571070671081543,
+              -0.015678584575653076,
+              -0.0004852414131164551,
+              0.044483482837677,
+              0.018377631902694702,
+              0.05625453591346741,
+              0.021501600742340088,
+              0.019869863986968994,
+              0.03260621428489685,
+              0.020619094371795654,
+              -0.029894769191741943,
+              0.003284931182861328,
+              -0.029877901077270508,
+              0.014428704977035522,
+              -0.02353799343109131,
+              0.04443168640136719,
+              -0.01954418420791626,
+              -0.014614522457122803,
+              -0.034346699714660645,
+              0.06382530927658081,
+              -0.01781487464904785
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.8107638888888888,
+            "folded_auc": 0.8107638888888888,
+            "margins": [
+              -0.2666006088256836,
+              -0.11009937524795532,
+              0.5666899681091309,
+              0.3205786943435669,
+              0.13537675142288208,
+              -0.28574782609939575,
+              0.8729070425033569,
+              0.5837397575378418,
+              0.5169553756713867,
+              0.04052102565765381,
+              0.17122453451156616,
+              0.31532520055770874,
+              0.5440354347229004,
+              -0.26354193687438965,
+              0.441009521484375,
+              0.6423875689506531,
+              -0.6848061084747314,
+              0.5454763174057007,
+              -0.03977620601654053,
+              0.1771000623703003,
+              0.6201527118682861,
+              0.7138657569885254,
+              0.456807017326355,
+              0.232993483543396,
+              -0.6601319313049316,
+              -1.246968388557434,
+              0.5139797925949097,
+              -0.07471725344657898,
+              -0.7513899803161621,
+              -0.5099930167198181,
+              0.45694106817245483,
+              -0.20194506645202637,
+              0.3909795880317688,
+              0.029669761657714844,
+              0.2569561004638672,
+              -0.11142092943191528,
+              -0.2001352608203888,
+              -0.4304162263870239,
+              -0.3481578230857849,
+              -0.6423919796943665,
+              -0.5641596913337708,
+              -0.19848322868347168,
+              0.32711061835289,
+              -0.44573503732681274,
+              -0.8221594095230103,
+              -0.7617483139038086,
+              0.13317632675170898,
+              -0.38541072607040405
+            ]
+          }
+        }
+      },
+      "oven": {
+        "prompts": [
+          "an open oven",
+          "a closed oven"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000033638.png",
+            "sha256": "a7c9560f4666bb98435d3a6ca3b6233432fd4e5b6d9f216471b8a66fd7ec6ae3"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000044279.png",
+            "sha256": "ce0c3d679deb99867b61504552abc735b22b68ba812de88c0a9ac677c6e41ef4"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000054654.png",
+            "sha256": "245e532d46943fa578a4a4a1e8fb557333f107af8ec81ed066f785e38ffb81a3"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000064868.png",
+            "sha256": "d65fa99f9eefe0a643eb9384835d2ef097882588350472532affaab22520f557"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000084241.png",
+            "sha256": "5bf20f027b8310f80397a8fb8c165c60896c4acac8050b040b2cf21975640665"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000091615.png",
+            "sha256": "4199a68a2700c136c61b597e70ab6c69afa0f93ee96eb18be867b7e8f3ee7dbc"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000109976.png",
+            "sha256": "4d24ab2333d41002a7431d4512335e01b17089ef6a03d4b2fe92634bc55d1a41"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000111036.png",
+            "sha256": "e3f59d7191bbdfe2adf2c225b8fb28937617fb7d16fb7065485faa0184b7f5d0"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000136466.png",
+            "sha256": "2dd34613548a3ffc0970694704e04893fb0cc95c69beaa3e7e50023a1cd25928"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000175364.png",
+            "sha256": "92345f1424ef64f4962af5a5af008ffa23667fb84477de853a5a3fada710ecee"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000177935.png",
+            "sha256": "59507aa51b1883d1f902ea974809e07de47aa4beae76cb38402ba88f59bd4af6"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000192191.png",
+            "sha256": "6fcbfc8e3db6bd006dcf028d31febd86fb41a39fc5771720eec840e32255fafa"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000211825.png",
+            "sha256": "1ea3f7ee31ff977899c644d881f8aac6e7618eaa3b5273565368e7803d616a52"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000222455.png",
+            "sha256": "c0f093839e0ed1ab3efa23a02b1c56b1328635fe2ec1c727cd94974b90bfb72b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000222825.png",
+            "sha256": "d31c4977cf8933fba3b980faf054ca2f497b24e81a6f576e47141f313098010e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000236592.png",
+            "sha256": "485abc4538a8bf9d2ca73933cdbcfd0c585544366a3ee3de17c7bc995cd559a9"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000280918.png",
+            "sha256": "84404c619f16fc6f5786214a2969fd4a31feb06afcf435fdd531f9f87e0b1d08"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000283717.png",
+            "sha256": "9b46152a356dcbb4f65c6a36782f8631d7dfe859a65f486d534d5eb87267966e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/pos/000000292060.png",
+            "sha256": "6e46d7a560ed838b8da6cbbcda9fca7d31312273d8965cbbb4b9a67672a93e2a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000033638.png",
+            "sha256": "c3bd628afbcadb7f365729d10d6592c0ad214b26e9eacc2cd22fd34098b2957a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000044279.png",
+            "sha256": "548f36f7171014f081d2365297c52df7ad0fa840a5c6b5547f7b68511174c19b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000054654.png",
+            "sha256": "3b1c6c2199a60a4162425b472790fcde83dc62efd13019c75f8f840f5ed4939a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000064868.png",
+            "sha256": "657eb83da6367326c6c913a218cebf5b2e11e7a615ba7d182cfc28d413349ec5"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000084241.png",
+            "sha256": "ec993255386e5b288accce3165b34d41691b0a98f4d2ca3a8f06e52fb7f2b1f2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000091615.png",
+            "sha256": "c0679b89e9c7433daf153fde327fdbad2a7497d6bc95c5b7844edd4da38bf2f7"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000109976.png",
+            "sha256": "bd24674c22037827b4d9bfe395ec680048979c7fc053bbaadb79c5d2eb610913"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000111036.png",
+            "sha256": "c1ebeb6d596c7349285a1df1e82d0a38591b5b5e6e15246c9b196886eb510786"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000136466.png",
+            "sha256": "d7206ccad660aab3b659dfd6e1cd6ac4527309696a7be3f9fc15cf172dc37f80"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000175364.png",
+            "sha256": "55bd4d9ca032ab543ba3fddad54ab736af41987a1f1b02a3f9273eae60823777"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000177935.png",
+            "sha256": "84012ea45c4357284eab48a893e43f996192d8717ef9b4de65a14ac7555058bc"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000192191.png",
+            "sha256": "c4c28997b44b9fb699a57c6a04661739fc5337d9c6077fb67cf02cacadedcf3d"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000211825.png",
+            "sha256": "0f65b20034e58ded5315a568892b479c7d4175dd1d5e8c9ae17669da17efa053"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000222455.png",
+            "sha256": "709cb72af822d807b11316b6d72006fc53cddeab7be2f3cef0fb1f5d1e894075"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000222825.png",
+            "sha256": "c9d277afb831cc39ead69c5afbae2f02b1d521d27632243a572fcbb4d7f8dd8e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000236592.png",
+            "sha256": "6bd6c22d2b0dcba5ed063100134b8c5f6f139a5fde15a28ac78da0b3c4160698"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000280918.png",
+            "sha256": "8555e9606751cbfdbb42fa3eed523db6d3c6304013637b2bd5efba50f9f36456"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000283717.png",
+            "sha256": "e0195384c713a5859eae67e03741058e361c3cbf19e64b290059b51c6935ea3c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-oven-crop/neg/000000292060.png",
+            "sha256": "1baeb3b5ad6ded9e34a7f04335489bad69d10df5a3308738c9869f6b1c2eaf82"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 0.5650969529085873,
+            "folded_auc": 0.5650969529085873,
+            "margins": [
+              0.02743619680404663,
+              0.04205507040023804,
+              -0.011487573385238647,
+              0.0435047447681427,
+              -0.006671488285064697,
+              -0.024947822093963623,
+              0.003193199634552002,
+              -0.011110246181488037,
+              -0.019759058952331543,
+              -0.016567707061767578,
+              0.0065572261810302734,
+              -0.018493592739105225,
+              0.010929882526397705,
+              -0.0011706650257110596,
+              -0.02420663833618164,
+              -0.02255171537399292,
+              0.03755810856819153,
+              -0.012232720851898193,
+              -0.0037388205528259277,
+              0.027574211359024048,
+              0.03523063659667969,
+              -0.0274086594581604,
+              0.04348212480545044,
+              -0.013671815395355225,
+              -0.031728386878967285,
+              -0.0073699951171875,
+              -0.033322691917419434,
+              -0.032692909240722656,
+              -0.021356821060180664,
+              0.005078136920928955,
+              -0.009314924478530884,
+              0.014123618602752686,
+              -0.013211429119110107,
+              -0.0327150821685791,
+              -0.0020291805267333984,
+              0.03669458627700806,
+              -0.0073740482330322266,
+              -0.004002571105957031
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.5817174515235457,
+            "folded_auc": 0.5817174515235457,
+            "margins": [
+              -0.1344451904296875,
+              0.5814021825790405,
+              -0.28125226497650146,
+              0.3576899766921997,
+              0.15105348825454712,
+              -0.06634140014648438,
+              0.12396234273910522,
+              0.037133753299713135,
+              -0.2453812062740326,
+              -0.12014847993850708,
+              0.21867910027503967,
+              -0.34960028529167175,
+              0.3246012032032013,
+              -0.18653184175491333,
+              -0.04581105709075928,
+              -0.3021147549152374,
+              0.47393569350242615,
+              0.013418793678283691,
+              0.15053433179855347,
+              -0.19071173667907715,
+              0.40048810839653015,
+              -0.581318199634552,
+              0.35932326316833496,
+              -0.02437978982925415,
+              -0.218228280544281,
+              -0.0740765854716301,
+              -0.3160538673400879,
+              -0.22260820865631104,
+              -0.158036470413208,
+              0.10927890241146088,
+              -0.19227537512779236,
+              0.32062163949012756,
+              -0.3318101167678833,
+              -0.25433462858200073,
+              0.027809418737888336,
+              0.45136314630508423,
+              0.08623284101486206,
+              0.10792756080627441
+            ]
+          }
+        }
+      },
+      "toilet": {
+        "prompts": [
+          "a toilet with the lid up",
+          "a toilet with the lid down"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000003156.png",
+            "sha256": "756cbe252cb9ab3a2d58cffc2b7fa38ef2f09845b0401750a36bf0d2b8463e03"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000005503.png",
+            "sha256": "d02f82097513b027e1097d4bdeb1b687c3d4a2335afb5bdfd2c864b777fa1d24"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000032817.png",
+            "sha256": "a5be3ffa508dccc98fa2ee45433d3f82c53f8ed3d5e86297c66f6fa2aff44998"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000035770.png",
+            "sha256": "89a996388bf6e34d438f435bc461a53a4b1a20edb026844494a69daa0ef5b18e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000037670.png",
+            "sha256": "f791631470efc76ebd56791c802b4bfdda5473e24a92836b77691981f41a185a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000038070.png",
+            "sha256": "881619a894831c78a7bf389c7ebb41919e89cf8c28fed2220b08bbdb12fa7980"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000055002.png",
+            "sha256": "4060aa9ee69b03f0745055ceaa2ea1b96ffbfd08f0a0c4219b363e12ebe30041"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000056350.png",
+            "sha256": "d8a3d7299d9778495066cfd75a4ad5e93597f27ee8786c59f4991d632b84b481"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000059920.png",
+            "sha256": "6eadd499ba58baf13885191a169330c1174614c9eaf4d6fd9aeef9cfff679167"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000061471.png",
+            "sha256": "a868e63a90130e7690113bfe0f613d93006a4552feb936b7af64c4d5a4749bd9"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000068078.png",
+            "sha256": "9680916289b8f5136f6ffd7910825ee9372fe714f5eeaa20f786d8913bd92eff"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000085576.png",
+            "sha256": "8893d51e3508095c827e09af8c399e581cab2fceeb356a21dde16474de9e93a1"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000089761.png",
+            "sha256": "321eba860c465ad4763043f4c94fcfeb4611185d5c1bcc7cf10c2182b35654dd"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000102644.png",
+            "sha256": "7cff2a2bf6de1e757c9cc5cea9c321b2efb09bb53617f3837169e0e9f02d4e14"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000110042.png",
+            "sha256": "bf84eec291be0466a0aa6891558ca13341883086215f9d4d3704ba05c5a6c367"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000110884.png",
+            "sha256": "ef93e9e4af075df655efa1b687aef4e4861aa55de6626596930b760816593967"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000111951.png",
+            "sha256": "8f214799113bee8b037e33af285e8dd978f7081f7bbedff727738cb7a3490e23"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000117914.png",
+            "sha256": "a8e1c560465e2519bf0da94fbf84d7a4f134e2c4f31f9185a300046a93cb7758"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000147518.png",
+            "sha256": "2da0a0f5d3c6ff64429852d18b704cca6b51c4b7f41dc04b8417da3e9d41c7f2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000154718.png",
+            "sha256": "a918a6d3a4e787f2ef5ba6f6720c4afabea593bad6e3db4326d5a7770fe026f8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000163258.png",
+            "sha256": "c1ef2332a02afee485ebb3497587deb87b17a936028b8406dfbf79f52ffcef18"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000167898.png",
+            "sha256": "528ca6c16b3943b3ba847750dc3352c4124af10103d2e6e1d62a4bc82ce8d40f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000170893.png",
+            "sha256": "cf378bde00405af19074d8ebdd02268e415c009eaf50cbbdffbde8eb3a0ee0dc"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000176778.png",
+            "sha256": "1674a6d89891670fbd9bc7235188ca8d11ce50aae3d0f33a6867e0069dbc3481"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/pos/000000187243.png",
+            "sha256": "c1370efdc6dd140c6720274ca64b8ad514293dd4a03874e9bd38ad0d12a450e7"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000003156.png",
+            "sha256": "de6c7e8428c46765e8e3dbd10c2a57d542a58b32229fccfa92cd50541234d3ab"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000005503.png",
+            "sha256": "a07c7aa2bdc0b679b50a5d0718cef0e9b27c74b224bd241f590f487d562d5e6c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000032817.png",
+            "sha256": "12c509fc112d4cf099b52a8ae29772e52963737b7ad3ec5f10fa12d602e7919f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000035770.png",
+            "sha256": "0b8a2443f18cdf4af907d8d56248cdd17ff2f73ea0fa0c14908709f2b66c96a3"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000037670.png",
+            "sha256": "a5fbd530dc879f9c5d092a2e56eeb1ef05da91d165f0bf6b54bfb5f3c39bdbce"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000038070.png",
+            "sha256": "e2dcc7be42e143e08ff4d50414f0629dea79486defb2b2676d400bd37fe75af8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000055002.png",
+            "sha256": "e16442105d4db87063de4bd992ec1c82c3e5d5c9fdcced8d3c2404bb719b4215"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000056350.png",
+            "sha256": "0cdec1101f1c87f90d0b5228a1ede2b71979a0649710efd1edbe49a5b7fe2be9"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000059920.png",
+            "sha256": "0f85f88663fd7ee0570b89b333b4b07ff395e3befa86d81e6a9d887a12ae6d30"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000061471.png",
+            "sha256": "aad8d06be5b9c5525d0e4a76b9096810feb2ecb5c581df5cea629c5f3434fc07"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000068078.png",
+            "sha256": "f3b10805ff8a2fe8b560f81278ad7221629dd3e1ce06511ffe0a6ac8381bbc70"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000085576.png",
+            "sha256": "230e8126e29dcfdaa351f3c9c8d6f9d988f3b6540403da1e4ddf26d1542e327d"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000089761.png",
+            "sha256": "06ae296ed578fbf836025abe275e6de4caa24ad8bebca716848776e9daa0f931"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000102644.png",
+            "sha256": "550063f0bb0f49146b10b823b32708d56f67d99667c22fef076b773e95f96729"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000110042.png",
+            "sha256": "707e28058c5d64d150c06519ac4e0d1164d1e58c8ade31cb6f3c8d2c7a9154a7"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000110884.png",
+            "sha256": "9012b4a36de2a77d835180862db8ca82058e549a4d47e0e6b54b018927af2212"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000111951.png",
+            "sha256": "833345a1ced8cf4400e25cc9ba278455f90d4c90349d775dcd476a71e120f6d7"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000117914.png",
+            "sha256": "1a5761d77033a0edc4799438629fa2a4d6bbc7537b8ff3cbed2459329935a41f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000147518.png",
+            "sha256": "b05a577f1fa1576fa916b6f46e0f978c5d5c2c31d045e7e2cc88cda720b61755"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000154718.png",
+            "sha256": "0b2cdc16464be8919c8662acca64a463eed9ff5cc97e6aac06fd79e3c9b019e8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000163258.png",
+            "sha256": "951392bd46d8dee46e4eb23131bc3919631cd3dc4b98ef5acdbf74ad01a9a3e2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000167898.png",
+            "sha256": "b168962e987ef91e68e432d9de6482a771477391cc89b5c28d6e23294f2e8e27"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000170893.png",
+            "sha256": "bc412a2abf0d8de04e0df848dc5c80f2ccafbeff762121e1ac6f97d68a06c7b8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000176778.png",
+            "sha256": "7752a4eece76ffe120867c4a53c1b129dc92295eabff7b835c2d4c500b76de0e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-toilet-crop/neg/000000187243.png",
+            "sha256": "78376e47895bb756cc43dcf0a424ade8ddc7de1a5a710c26ba392a944daa59b0"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 0.6432,
+            "folded_auc": 0.6432,
+            "margins": [
+              -0.006861180067062378,
+              -0.00730973482131958,
+              -0.005665898323059082,
+              -0.0021811723709106445,
+              -0.006842911243438721,
+              0.0014150738716125488,
+              0.00951385498046875,
+              -0.006249606609344482,
+              -0.003575265407562256,
+              -0.005769491195678711,
+              -0.0032578110694885254,
+              -0.010951399803161621,
+              -0.015722036361694336,
+              -0.0015563368797302246,
+              -0.0026921331882476807,
+              -0.002726614475250244,
+              -0.014274418354034424,
+              -0.006114602088928223,
+              -0.0035439133644104004,
+              0.012248992919921875,
+              -0.0035052895545959473,
+              -0.012721061706542969,
+              -0.007859289646148682,
+              -0.008725941181182861,
+              0.003046274185180664,
+              -0.008692324161529541,
+              -0.011491358280181885,
+              -0.006737172603607178,
+              -0.0061830878257751465,
+              -0.010517895221710205,
+              -0.0033350586891174316,
+              0.0034106969833374023,
+              -0.021340250968933105,
+              -0.00397038459777832,
+              -0.0043714046478271484,
+              -0.005320608615875244,
+              -0.011564880609512329,
+              -0.01336824893951416,
+              -0.00812000036239624,
+              -0.004786401987075806,
+              -0.005661606788635254,
+              -0.01515313982963562,
+              -0.008009374141693115,
+              -0.005723893642425537,
+              0.008813858032226562,
+              -0.00940173864364624,
+              -0.01352471113204956,
+              -0.008993685245513916,
+              -0.010747373104095459,
+              0.0032979846000671387
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.648,
+            "folded_auc": 0.648,
+            "margins": [
+              -0.0047560930252075195,
+              -0.026602469384670258,
+              -0.0030197501182556152,
+              0.06586572527885437,
+              -0.024935424327850342,
+              0.12459802627563477,
+              0.3017408847808838,
+              -0.009322375059127808,
+              0.05035567283630371,
+              -0.001273810863494873,
+              0.047965049743652344,
+              -0.09232190251350403,
+              -0.1785861849784851,
+              0.0731205940246582,
+              0.07992386817932129,
+              0.056825995445251465,
+              -0.15369021892547607,
+              -0.009950220584869385,
+              0.038636088371276855,
+              0.34760865569114685,
+              0.036496758460998535,
+              -0.13941729068756104,
+              -0.04011163115501404,
+              -0.04744464159011841,
+              0.16297096014022827,
+              -0.04074239730834961,
+              -0.10338956117630005,
+              -0.02395075559616089,
+              -0.00969049334526062,
+              -0.09248712658882141,
+              0.03497588634490967,
+              0.17544403672218323,
+              -0.2944430112838745,
+              0.042666494846343994,
+              0.028565725311636925,
+              0.009251967072486877,
+              -0.09411633014678955,
+              -0.13628125190734863,
+              -0.05150794982910156,
+              0.039133548736572266,
+              -0.0007297396659851074,
+              -0.1675659418106079,
+              -0.044809430837631226,
+              -0.0015364885330200195,
+              0.2854540944099426,
+              -0.07212138175964355,
+              -0.15495026111602783,
+              -0.06263977289199829,
+              -0.08803653717041016,
+              0.16894608736038208
+            ]
+          }
+        }
+      },
+      "umbrella": {
+        "prompts": [
+          "an open umbrella",
+          "a folded umbrella"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000032861.png",
+            "sha256": "5062fd9c6fc4a12233781b0fa9452ec68dda5c65ac4c46fd73be850ff6966e26"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000060052.png",
+            "sha256": "e2b14756a77ef00be983ffc76b5ea987605df7e7f5b769a8707c16ad4df1b535"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000066038.png",
+            "sha256": "f6640ede38f310a36fe54c97483639c64d33fb4551716c881dbe4bb15b49d2f8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000074058.png",
+            "sha256": "8d0609767a1d0c629b61c27c99326831d5f4e25823191c02a37de41423de515b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000081594.png",
+            "sha256": "a8b0a376624dce3944dbb661fbdecfe51d3d5ee830faacdbcfb23fe20f3d05b7"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000084477.png",
+            "sha256": "bc3f2508477015f6136da6c50d02c57224c8f1fcc6b29c67f3000767b655e37c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000121506.png",
+            "sha256": "c197b922cb87367b99d2c9440cb0228a6700c73ba2d6ef5630feafd35d202446"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000122046.png",
+            "sha256": "892569d968f6d35f77d0d12b7d378ee98aaf5e3c2682e7a7f14fd6ec6ea616f8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000127517.png",
+            "sha256": "08c94b810b4744885128f739a7f9ab97aafc3786d14d641b0b264315c375b86d"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000136633.png",
+            "sha256": "2e492e5fca8a3e0ef0e317a2ad0aec62bf1a5e1ab23590a67b2601751deeee1d"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000146363.png",
+            "sha256": "823e91cb668f547e50d0afdfdcb4aa8fb57812be5b68b2cbc37bbd61fc4d0a46"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000161032.png",
+            "sha256": "8660dae86a10bffb878c86a6b42d7323b677cc96654161653dfefd757cba8c72"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000180487.png",
+            "sha256": "c2daec5fe67215575a88cf65ea9759d36dde7b7e39cbb7ceac54cf88577bb838"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000198489.png",
+            "sha256": "05eb36ebb400b46ccb1132ce44ba7f8f8a3cbe06ac74b6e52fb40c4e8cf3920a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000207844.png",
+            "sha256": "7352cfcb0294a935a39e74b805f97d06c772c703bc483f191904248d4217263b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000213033.png",
+            "sha256": "f2e7970ee280d504e66a3ecfad9022bf66a9815c0def1b00ea6629a049697596"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000215072.png",
+            "sha256": "86174a3815e7648f089e11d1b3baf0ec4579dc258b7e9704287df545ea1340f6"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000230993.png",
+            "sha256": "fffdd8ada47aa56522e2988570405a6167e19d69f9615aaf9820cf7f03301d7f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000231088.png",
+            "sha256": "dcdcbd1d1901e0f9fbc290c7c9bc23d413bea70e5b91b4ea93c1a1b2305b971f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000232563.png",
+            "sha256": "3cddb0a22941afdba09539fd57434d2d7601b8c44cdb78f3f729b104cae69242"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000233033.png",
+            "sha256": "6f905e611a473a9a84b3c6506bb4238a948dafb2435add8c732052885385632a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000250127.png",
+            "sha256": "30eaa63aab840552bc03eaeeaf0a06ad7ab35bbd1b6d8fc42095012cd897b529"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000250137.png",
+            "sha256": "f9b3f94bdf9707be3991dfb9c187038a5803800d72d241282017b60fc21642ef"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000250619.png",
+            "sha256": "15ed931c63ce4c515a66117ba39f62ab1599ff7567586c06789ca31343f8b05d"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/pos/000000253742.png",
+            "sha256": "44bbaa6b293cdf4813912a90e7f225d3816289149c91760cedef47d00e6f6be7"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000032861.png",
+            "sha256": "49334ac3289b557d440cb791bcb5e9162ca4981302094ea6f65b1e48e4de1932"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000060052.png",
+            "sha256": "77316d887289b4694788228ec27f834bbc999a222b27273c3f58911e91357ca4"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000066038.png",
+            "sha256": "28c15a83e3386ab8cd110cfae407ea3518cf6062a462080dcf878f51b9bf19d9"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000074058.png",
+            "sha256": "1bad5d4a387f047ebae80a7f17f1504aea371bf8c80065991ac58005130a9ec2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000081594.png",
+            "sha256": "8316f8a05a99196672e835dd3a1a1818caa7f56de9838fcbbfb4d7bfb3892b65"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000084477.png",
+            "sha256": "8aaaf755078fa2e96435534430415ef65c8f31778ac557b21ed24452fe0730d9"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000121506.png",
+            "sha256": "35ebf05cd337b53ba999d6cafd6eab98fb175dbc76b7b834fa747563cec961de"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000122046.png",
+            "sha256": "e390975cd52af74eef0003d12d082a82890f8b76aa402efea7e8939161e731a2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000127517.png",
+            "sha256": "6a98ca12370265b9b2d83aab9c042c9cc4a5c4ace3a5457f894c71a6e9d27c4a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000136633.png",
+            "sha256": "200930175f93173050b7c20d386e5335fc4ca24690a3542c696f8d9aa017160c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000146363.png",
+            "sha256": "b3f791fdcbb2a5fab2c4ccea8c6a64dda4777b9564debfd60e8cbcd8ed5b10bc"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000161032.png",
+            "sha256": "fe7103899cdc00c797e03ffa3d1d1f59c140a0b5eb467453f4f00e1fbe59f9ba"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000180487.png",
+            "sha256": "0df119958952b611ecebbd220bff181014a13be967302f432e5e853ad3126abb"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000198489.png",
+            "sha256": "e54a3ccf15b0b21f03de64d965214cee6509d140c931352b61e9dbc65e63371d"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000207844.png",
+            "sha256": "d1e43d40acb0d40d3e4736d3a24a54586afdfc30f7d48fff004c723457cbf58f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000213033.png",
+            "sha256": "215773f444d5eafd481bb473ce82675844c04d5f12a3d6620c53e03f34c8387e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000215072.png",
+            "sha256": "b660aded1ef2c64bd11710b76e82cca8273c68767a3e900a583f38746fc38da4"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000230993.png",
+            "sha256": "a0c452b0b5bb943d53858b56a4aa1a59374248decbef20c6d597e5d8385a559f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000231088.png",
+            "sha256": "6017e72aca23f63061c0375917897ca4de8bc7929693c40470ea6756c7d24939"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000232563.png",
+            "sha256": "e43a94105d13b6141a12f5133b69733060dd6292c68fd1e99d2fc28923e6b853"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000233033.png",
+            "sha256": "bedebbcfe314afd6bac7e2a734ce269f26a2b5b86ac8dee41b3a1c798d4d8a58"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000250127.png",
+            "sha256": "f3f4b7ee7d82ca94a2d527f99b75b001d25ea7d5f8cb8f3c7ea6304b94a12953"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000250137.png",
+            "sha256": "0489d629a9ec3e0ea2253de08356443d7535b841f24793888e9972a332431d7b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000250619.png",
+            "sha256": "20e63f54537b067669f7a5e54a4b9af6bc18358f3bd8db674c02a6cfc636fb2c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-umbrella-crop/neg/000000253742.png",
+            "sha256": "2eb9642353596fa08ea2c45528e3598a6e87ccdf81fb1ff30581e98e9b7c4cfb"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 0.4112,
+            "folded_auc": 0.5888,
+            "margins": [
+              -0.03939056396484375,
+              0.0025194287300109863,
+              0.015993505716323853,
+              0.019293278455734253,
+              0.01626354455947876,
+              0.010449498891830444,
+              0.028986692428588867,
+              -0.019460976123809814,
+              -0.006663143634796143,
+              0.04227679967880249,
+              -0.006479501724243164,
+              0.0063765645027160645,
+              0.011840283870697021,
+              -0.0247175395488739,
+              0.043286681175231934,
+              -0.01953786611557007,
+              0.019581377506256104,
+              -0.0005726218223571777,
+              -0.01932978630065918,
+              0.03346773982048035,
+              0.02463284134864807,
+              0.03551784157752991,
+              0.02789992094039917,
+              -0.0008842349052429199,
+              0.02077624201774597,
+              -0.041106998920440674,
+              0.003961503505706787,
+              0.014576584100723267,
+              0.02149200439453125,
+              0.03572356700897217,
+              0.013531863689422607,
+              0.04143941402435303,
+              -0.01812976598739624,
+              -0.009922802448272705,
+              0.05177924036979675,
+              0.006220877170562744,
+              0.008890509605407715,
+              0.007272541522979736,
+              -0.015357345342636108,
+              0.04203003644943237,
+              -0.00556597113609314,
+              0.03367677330970764,
+              0.009946823120117188,
+              0.029427945613861084,
+              0.04025590419769287,
+              0.024154365062713623,
+              0.04078185558319092,
+              0.023884594440460205,
+              0.018320053815841675,
+              0.018834471702575684
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.4528,
+            "folded_auc": 0.5472,
+            "margins": [
+              -0.7266634702682495,
+              -0.28650033473968506,
+              -0.013246923685073853,
+              0.22036287188529968,
+              0.04350297152996063,
+              -0.08895957469940186,
+              0.26980462670326233,
+              -0.42722630500793457,
+              -0.03150057792663574,
+              0.4912382662296295,
+              -0.5995848178863525,
+              -0.10093846917152405,
+              0.18257564306259155,
+              -0.5420066714286804,
+              0.3675878047943115,
+              -0.884493887424469,
+              0.4186515808105469,
+              -0.16764476895332336,
+              -0.37699294090270996,
+              0.5239065885543823,
+              0.33396047353744507,
+              0.42014527320861816,
+              0.2596505582332611,
+              -0.2874959111213684,
+              0.16250447928905487,
+              -0.8991009593009949,
+              -0.11374072730541229,
+              -0.023466020822525024,
+              0.2370726317167282,
+              0.32902002334594727,
+              -0.1414794921875,
+              0.38708919286727905,
+              -0.4000588059425354,
+              -0.13348329067230225,
+              0.6979513168334961,
+              -0.5919086933135986,
+              0.054576218128204346,
+              0.15755236148834229,
+              -0.4592810273170471,
+              0.2866467237472534,
+              -0.6916102170944214,
+              0.4332271218299866,
+              -0.075475312769413,
+              0.4501015841960907,
+              0.5463927984237671,
+              0.3253107964992523,
+              0.43881452083587646,
+              0.1180770993232727,
+              -0.2214062213897705,
+              0.12842534482479095
+            ]
+          }
+        }
+      },
+      "suitcase": {
+        "prompts": [
+          "an open suitcase",
+          "a closed suitcase"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000009891.png",
+            "sha256": "a05f63dba23979d6ae4b7622f99c704340c0d599011c0950c865014e4276cd45"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000011699.png",
+            "sha256": "034b14444827950277898174ded1e7c72e341a70583816c64070f564b4d99875"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000023023.png",
+            "sha256": "b820ef38b7d96cf1a56be3633d34a4d432ba7e73f13681bc73c239ae1fef397e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000026941.png",
+            "sha256": "c5df390d6666675779ef4616a50ba0fd58b5e55f43f8b855bc5b6dfc518a7c99"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000034139.png",
+            "sha256": "6f791afd932e0a643b975c74554919f76fa9150b664f4e18d288b26d55a11549"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000084650.png",
+            "sha256": "fa86e1b517adbf85f785e7e0e0d96ab9e154e2aea9aa667d8c2003743b57ec4f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000112626.png",
+            "sha256": "17173f742a70cd4a0407e630862b71ccc36f9199005a3ceab104676304ecb102"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000114049.png",
+            "sha256": "d9775e2670eb88b5b1476921745aa299e624edca2a0ffeaf7642e6d2f008d517"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000115245.png",
+            "sha256": "5a437ea8b1458ced5361f5e665565cce464a61438e31e30510b9a6b7ad3f0507"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000125952.png",
+            "sha256": "6e76f05cbb66c8dfb25a6c029a8ad8db54403c35a7f2b774db577055eec45770"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000153529.png",
+            "sha256": "60759c08ee552d67e899520ee67fa64f42f9667e72bad1f97bd5146fc8a307c6"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000172617.png",
+            "sha256": "11bbb8b6563d53df5b16d6c5cb36f2de9b69df270e9d9ee38535f1fe081d86d3"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000179174.png",
+            "sha256": "dd065722923d333959445b75140102683b10abab30408c05ace0028efd3d1d80"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000180296.png",
+            "sha256": "ccd5032e4bf4c3b4e1b50d5c1bfda3920e5faf67426d8e0d80aa98c021ae44b6"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000233370.png",
+            "sha256": "26b110238fd34b436236da1b87236bbd1af4cfddfc1631f19b8d422a0d6720b9"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000294855.png",
+            "sha256": "2b846145abaf4f09738382417332f295847ceb6dd4cbd41c07bbcc53802309f6"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000304545.png",
+            "sha256": "387e2624559b94d5d4d4938afaf095999406a87e9aaf20f2e1cf5534089ab651"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000312278.png",
+            "sha256": "90ad6e35b42b103f58d8b431caf4826a76b320cdf2652c7c83dadba148fcb767"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000312421.png",
+            "sha256": "44b4c13600d99373f7c1f6a924e91d0bc0651e684b629ff1ab0b64c2d037a1ed"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000329041.png",
+            "sha256": "70a8097ca848a93c3902299e98993a171129e6530332ae2ef23ecc2fdd6d31be"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000337055.png",
+            "sha256": "558f78ea8dccdf0e877bd9112681c60aac1e27f7682ccbfcafc51c2052880e9a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000341469.png",
+            "sha256": "8389ec21fc209e770bdc6d6ca37916749b8476b3b00b7b7296d46169b9f6fbb0"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000350019.png",
+            "sha256": "a9a0553d8a9c96b56517107b1fa3682066792e9efd62fbf0c1d822c82996a055"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000351810.png",
+            "sha256": "b058743fe202fb8f1801dc28e1953cbae04b27bb242859b79f8a114a635530dd"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000358525.png",
+            "sha256": "24ea02ce23b7e67057f2a5759cb8317086629326aae43b06ed3132dde47746ed"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000359855.png",
+            "sha256": "b5aa7169c3f4c6121c883c4dcc4fed59fc6200d92922111793b1e5efb4eb1576"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/pos/000000370478.png",
+            "sha256": "759d6e1efc533bd7958468615a12a6954a204a55278a6cd1682f4251a1db74a2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000009891.png",
+            "sha256": "c1949991aeed9be75288312a73ffa41ae4671f1d266b3e304f22431ee7ad6447"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000011699.png",
+            "sha256": "1750d29728a79d9caa4e03a6ad418123524a9f1224fd3208709ff7a64585d2f4"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000023023.png",
+            "sha256": "a33164703c568639b08ff91f67e6ed2cf663485ac2a8ef5d423f41c2a6adb9c5"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000026941.png",
+            "sha256": "e2d1de0e9cf34544749873e5ab2bd002b8aafa7ba5067e9a56d20178429d383e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000034139.png",
+            "sha256": "fded30c57eaaabc0fb73392fb32f97ccc5209b7167e5fc5351fc6fd08a1a1b29"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000084650.png",
+            "sha256": "0e7fba45018ce38d14020addcfa2e0010cc72ad1940b5e20324e6e82ef54f7e7"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000112626.png",
+            "sha256": "86073b55d0e520991780512fb0a5ef9c09e091033aeaa2acf06c3a323250d80a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000114049.png",
+            "sha256": "f5c1fa045ae59b22e035ee0e69e7d3f3c433ac8b71a895fa1f2649b20a952fa4"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000115245.png",
+            "sha256": "233674ae5e199ae4f6c18126778cc832a9caa9b5593e4346fb74e7e23ada21d0"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000125952.png",
+            "sha256": "3491595d9503b8bf058f50d498e3fe7f40aca4924f44597d777c2e831d816a9e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000153529.png",
+            "sha256": "f1a9a310ea83bccda09e657df1fdb258b7ee6b969119b0a3e2bb344f861625ef"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000172617.png",
+            "sha256": "7de6a359dedaec7fb3e5ac28fb45913d55e0f2ff3569a28784a76d68c3ab33d6"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000179174.png",
+            "sha256": "6f7dfda19fc5db55fc5890c9ceeae951ba446d5aaa4b6a5a74f57c4e8326fa8a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000180296.png",
+            "sha256": "76a693570452d91f42c1648a62eaa5ab59992277f5ecdb64884c66b0a2a2e040"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000233370.png",
+            "sha256": "dd4de0f56afb5f5c8fdcd899e9d85e1afea9664bffc5d5d53d4838fac79493ec"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000294855.png",
+            "sha256": "1b2dd813c99f2c31e2f7cb4f1aae001af209a44ddbd3a618d3544d01575f21a1"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000304545.png",
+            "sha256": "5fcc0afe7dd03029bfa9d613004f768bcbcf800b796dc2227100a86cbd0b43d8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000312278.png",
+            "sha256": "dbd980632c2cc18a99727c63bdc34a716822cf76bf68a371cf57a870742821c3"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000312421.png",
+            "sha256": "4b485ca76216bdb5aff284718bbac4856d5313e11f920d0226eb568ab42ecc9b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000329041.png",
+            "sha256": "9ca2d74231210651b2e60ab13be7d2349691d8394629408d5b0975714f7842cb"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000337055.png",
+            "sha256": "e6dee79b7da892f43282343e31abf8a79335460da1fc8ec65f139ac9bceb5c8e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000341469.png",
+            "sha256": "052716140e1bfb7a5969a11d07f906c2ae057f6e66d887bf5008fd494dfe98a5"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000350019.png",
+            "sha256": "fe1b6ccadd690cf7b1df445679ff64f95501927c05b1286ea9f94262757ce1ea"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000351810.png",
+            "sha256": "05e404a81f6127700bc5bf76f1318cad472a60f0a98eb2f0a749b2cc893154d7"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000358525.png",
+            "sha256": "9a7db03fc8c0283e535b8a4aa1c9c98c43b1fe2875833c65741eefaa627501d3"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000359855.png",
+            "sha256": "775fbb5b4ee0b128fe3a9a9ff67fa4541faad56f5447a578d54b87f4d62d7d7f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-suitcase-crop/neg/000000370478.png",
+            "sha256": "ec2a409f68eec2fb798638a0c29790cf55c6e8c60462f7e066956741f8e3a01d"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 0.6584362139917695,
+            "folded_auc": 0.6584362139917695,
+            "margins": [
+              0.033884197473526,
+              -0.0010340213775634766,
+              0.017804831266403198,
+              0.015394508838653564,
+              -0.0066031813621521,
+              0.018336117267608643,
+              0.0130024254322052,
+              -0.0018067359924316406,
+              -0.02491050958633423,
+              -0.03866094350814819,
+              -0.022589147090911865,
+              0.05356523394584656,
+              -0.00660175085067749,
+              -0.0072141289710998535,
+              -0.0035213232040405273,
+              -0.012104570865631104,
+              -0.01087731122970581,
+              0.03027161955833435,
+              0.007445186376571655,
+              0.0128040611743927,
+              0.019186705350875854,
+              -0.004383176565170288,
+              -0.049458086490631104,
+              0.032204389572143555,
+              0.03952386975288391,
+              0.015979886054992676,
+              -0.010268330574035645,
+              0.0023717880249023438,
+              0.0011792778968811035,
+              0.0003711283206939697,
+              0.0014271736145019531,
+              -0.014274060726165771,
+              0.026009678840637207,
+              -0.010841310024261475,
+              -0.0018681883811950684,
+              -0.027136147022247314,
+              -0.034269899129867554,
+              -0.01994985342025757,
+              0.040333837270736694,
+              -0.045833975076675415,
+              0.01307418942451477,
+              -0.01060822606086731,
+              -0.015855520963668823,
+              -0.008918911218643188,
+              0.015681743621826172,
+              -0.006085872650146484,
+              -0.015798598527908325,
+              -0.03255036473274231,
+              -0.027809053659439087,
+              -0.04325073957443237,
+              -0.027633696794509888,
+              0.02982640266418457,
+              0.010089665651321411,
+              -0.014522314071655273
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.6625514403292181,
+            "folded_auc": 0.6625514403292181,
+            "margins": [
+              0.9060491323471069,
+              0.033340588212013245,
+              0.42635077238082886,
+              0.3733041286468506,
+              -0.17014732956886292,
+              0.43050509691238403,
+              0.31746092438697815,
+              0.225114107131958,
+              -0.32219600677490234,
+              -0.9334583282470703,
+              -0.1235189437866211,
+              1.1212838888168335,
+              0.0271567702293396,
+              0.003693521022796631,
+              -0.198225736618042,
+              -0.31920257210731506,
+              -0.2825469374656677,
+              0.7184101343154907,
+              0.263483464717865,
+              0.20910292863845825,
+              0.6036716103553772,
+              -0.157484233379364,
+              -1.0120748281478882,
+              0.8224371075630188,
+              0.9527764320373535,
+              0.3533247113227844,
+              -0.02729058265686035,
+              0.26277488470077515,
+              0.06767886132001877,
+              0.06226212531328201,
+              0.09247219562530518,
+              -0.24367183446884155,
+              0.4244595766067505,
+              -0.18317830562591553,
+              0.2929753065109253,
+              -0.21537423133850098,
+              -0.8378328084945679,
+              -0.061040401458740234,
+              0.8154606819152832,
+              -1.17684006690979,
+              0.12565100193023682,
+              -0.5076254606246948,
+              -0.44026488065719604,
+              -0.07404416799545288,
+              0.4282352328300476,
+              0.01288670301437378,
+              -0.5150178670883179,
+              -0.911044180393219,
+              -0.7471165657043457,
+              -0.8165526986122131,
+              -0.5605634450912476,
+              0.6289583444595337,
+              0.09214019775390625,
+              -0.25707611441612244
+            ]
+          }
+        }
+      },
+      "bowl": {
+        "prompts": [
+          "a bowl full of food",
+          "an empty bowl"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000001425.png",
+            "sha256": "dcb608a88ff04e106a94090552bba73f20d3d4c46c75a1dacf07e401fa2205a8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000005600.png",
+            "sha256": "0fcd6262e3902256acfab21385b32663f11ad1720bb7934f9546581df9587cda"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000008277.png",
+            "sha256": "2b21f0c64a067e7b2978a1c559ec3defba98f700193d944ee16012440bba3262"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000009914.png",
+            "sha256": "19ff2d14447b7f370b1656fecd8ef00fd0b8c3f6f3d1f549cf347d0b03d4724e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000015254.png",
+            "sha256": "bd57a9a22f00882f94756b1e748b9fd83b8b1ceaea8cac1e9326ca83fc95200e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000020333.png",
+            "sha256": "8cfde2c242c5be322de1ed002ee626d977c04163a7922807b270c82b24588b7e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000025986.png",
+            "sha256": "3675f06facc74613c126e185c84df73c81d9f628e6bf8dd66c10f30a15f5ac47"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000030785.png",
+            "sha256": "6c22e6fd0ad715bfe38d19c2694a2c834f146917cdd86c4d96b874d0653d327f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000050896.png",
+            "sha256": "3cf26ffe9fdd0b819e229540fee5842fb3652a4fd4c4966c3cfed7730c16ba85"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000062554.png",
+            "sha256": "6d7ad0a77737f11bd3493e02d2c71e43c205c258a7c7cb822e7eb1c7d556f496"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000064084.png",
+            "sha256": "9dfc715137fc48254492a375bc3632b2ad18f55a9b2b461e53e45588f1cc700f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000066817.png",
+            "sha256": "7413c483f404619981f9e501566ad14272718f208d83aa62e1e05b6395ac733c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000084664.png",
+            "sha256": "9bb7a7fd0c2b005a7d6ca0dcff66376af966d3f55f09b8d2130db412a07359ce"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000088269.png",
+            "sha256": "e8243a0521634498411acbe9ded1760b634df636178aed6b4e80e665dd210051"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000091654.png",
+            "sha256": "66cb4b939f4bb5ae2f1d6ccd3090460295eed33ea43c52a4902f631e4a445e3a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000092053.png",
+            "sha256": "5ca21d99f93a3e2a57f488383d030dd1a53f4a9dcc95c6544a4c4189821e3f09"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000095707.png",
+            "sha256": "835e5ed37fed36e6721d757f6e1e70a4d446e79ffa809953935c224c823d701d"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000099053.png",
+            "sha256": "73947178db33606e241aee3d10ff2251df6f2f78f9a39a431bd2ddae72edc0a2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000105014.png",
+            "sha256": "49f51b19a6b2a691401cbdef33e15973c27706c6adfc9ea6138859a93835a140"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000105335.png",
+            "sha256": "7dd1dbe019c530559dc570ed49b0f14654f9945249f48b70e6d010a0b17d0d63"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000113589.png",
+            "sha256": "546391e46ec7c749e5f486bab4c924a82e2e23086228293bb46e97eb89c42772"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000116362.png",
+            "sha256": "ecb17270b623d0a35522128f06fe2b3a247159b4a9a60dd719dcb6e36349b643"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000120853.png",
+            "sha256": "48017e472f9d6c113b16e8594786d47b4602ad1099a10e1a0cb7736f9464f14b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000125850.png",
+            "sha256": "5b0b0dc9d3fec2a855659f669a2a5d900ad5beb825d3b39a4c0806b4531e720c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/pos/000000127394.png",
+            "sha256": "0cad30544372389f21885751de09979ca1c5dbec6108400428489087102144b5"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000001425.png",
+            "sha256": "057731a8cc954d0b0897a20f003d5500ee67b083929ced67a24729af7b682a49"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000005600.png",
+            "sha256": "c9273009cb632ac0d678ae80b34cd1db4e6b4d03acc44012378394118b67a972"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000008277.png",
+            "sha256": "6f4986c5ee57e754d77b1dedcb35f16f49edd1f907d13807b1b6d2206e00d2fc"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000009914.png",
+            "sha256": "7d7d779e2ff926f066a40d26242c6b75c869d5e50c9ac660415834085458e51d"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000015254.png",
+            "sha256": "5f94956db77b49e0b324b41766cdc813be43f7751393b705423801d29efabd2b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000020333.png",
+            "sha256": "be0dc2bbae48f99545d799f0427f015a734a4d365fe2f7ce002dac0136d51037"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000025986.png",
+            "sha256": "6b847d523fd8bd7dccb8311283acb3d22a0d59d0d2828104ee99bf0b5ad81f0e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000030785.png",
+            "sha256": "412631b8a0533488cfe19a15246180d3b93ff1d4862a982c5ab927c25d118ab8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000050896.png",
+            "sha256": "db25db7a6f55410e50a710919f1b0b12c83764784d9f7743b65fa7fa25235b00"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000062554.png",
+            "sha256": "e252724e493e4a9bf25e42b88ea2a9ef51ea9edc14a6747410283b470a665b8a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000064084.png",
+            "sha256": "3694f90a094b5b8361bab997267c493f37141226ace3501669b073502e7512e7"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000066817.png",
+            "sha256": "7421b16bb006cc699345426fcc188bd74e3466352e167cdd822efca46d1eef57"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000084664.png",
+            "sha256": "267c13a48616502ef1193b3917147c5bb2551cc536cd58e9237d5404dae50301"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000088269.png",
+            "sha256": "3a83e87d87d2ec9de52f4d8ca49ab7d53849fb16652cf52bb16292297f36d302"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000091654.png",
+            "sha256": "67679e8a78a4aeb5bd92d281190c3c36c8755bb34723c99d70ec0a5dc30cb907"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000092053.png",
+            "sha256": "e1826837b17e55e4185db83d1b57500ff88d6e9b239e06af6c144a6db5746e36"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000095707.png",
+            "sha256": "18dfbef485e9d256c2960c02e1c7ca2e30782e5f26966b22d72c07eca2eefd29"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000099053.png",
+            "sha256": "3b078fc61710e5b5dbebc39983d265341ae37e8475a98a20d457b3043a91682d"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000105014.png",
+            "sha256": "7a6bc67da6e3031fff4ccb97acfee38bacd7a88398ed47333c6c4d74bec285e8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000105335.png",
+            "sha256": "84f839c0b0fa7f5fa304af4ea0f4ed84a6c0737ffc93e2f3391b61a0fec83871"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000113589.png",
+            "sha256": "d3765df2d3ae23adab22f5d635154504d115c3471b154cdbd912073a930b5e59"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000116362.png",
+            "sha256": "86cca3165251b6848051cddcae4acd533ca7c9ac49521b39ceee2fdaeb1cf741"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000120853.png",
+            "sha256": "97996d0f82bddfcef258b373cbfbd5a2ea9e38d09934113402f480db7045eecf"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000125850.png",
+            "sha256": "72904779a8284de7c8954f3f59eb6d97ebbc4ded1640cf2e56469cdc4072ba24"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bowl-crop/neg/000000127394.png",
+            "sha256": "5a7cfb7b5698e6af05f1a32a75e2dca107009643e280690887c05eb9a61c9448"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 0.7968,
+            "folded_auc": 0.7968,
+            "margins": [
+              -0.030877351760864258,
+              0.033105671405792236,
+              0.1148756742477417,
+              0.04041260480880737,
+              0.06579574942588806,
+              0.04023656249046326,
+              0.1005588173866272,
+              0.03973919153213501,
+              0.01792946457862854,
+              0.10624712705612183,
+              0.08509749174118042,
+              -0.052326351404190063,
+              0.027025967836380005,
+              0.05600440502166748,
+              0.10673543810844421,
+              0.03343877196311951,
+              0.0296841561794281,
+              0.13571235537528992,
+              0.10619187355041504,
+              0.110796719789505,
+              0.048807889223098755,
+              0.05448049306869507,
+              0.09661003947257996,
+              -0.0001322031021118164,
+              0.08479231595993042,
+              -0.051970452070236206,
+              -0.028351902961730957,
+              0.06630614399909973,
+              0.020895391702651978,
+              0.03372853994369507,
+              0.04633837938308716,
+              0.06340771913528442,
+              -0.04230237007141113,
+              -0.07358568906784058,
+              0.034883737564086914,
+              0.03777700662612915,
+              -0.012522280216217041,
+              -0.08283606171607971,
+              0.05620071291923523,
+              -0.054545462131500244,
+              -0.012914091348648071,
+              0.03942984342575073,
+              -0.007227063179016113,
+              0.015049517154693604,
+              0.0067955851554870605,
+              -0.05868116021156311,
+              -0.03473383188247681,
+              0.06642559170722961,
+              -0.04508554935455322,
+              0.02189856767654419
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.744,
+            "folded_auc": 0.744,
+            "margins": [
+              -1.1528759002685547,
+              -0.5632715225219727,
+              1.3750773668289185,
+              -0.2029772400856018,
+              0.5705195665359497,
+              -0.07592654228210449,
+              0.8943695425987244,
+              -0.5546969175338745,
+              -0.3522440195083618,
+              1.616576910018921,
+              1.0783988237380981,
+              -1.722875714302063,
+              0.04437440633773804,
+              0.08421778678894043,
+              1.5140397548675537,
+              0.5788379311561584,
+              1.0416983366012573,
+              2.173168659210205,
+              1.2236557006835938,
+              1.4493110179901123,
+              0.12045687437057495,
+              0.48677605390548706,
+              1.5431292057037354,
+              -0.7979409098625183,
+              1.0932135581970215,
+              -1.596397876739502,
+              -0.9151678085327148,
+              0.7082909941673279,
+              0.10933953523635864,
+              -0.5421858429908752,
+              0.6666854619979858,
+              0.5248948931694031,
+              -1.9478957653045654,
+              -1.2979562282562256,
+              -0.2397143840789795,
+              -0.20116299390792847,
+              -0.7120614647865295,
+              -2.4804253578186035,
+              0.18694275617599487,
+              -0.8789039850234985,
+              -0.1854628324508667,
+              1.4061352014541626,
+              -0.5784764289855957,
+              -0.5123310089111328,
+              -0.046137988567352295,
+              -1.5435889959335327,
+              -0.9174486398696899,
+              0.7648524045944214,
+              -1.4531188011169434,
+              0.21630704402923584
+            ]
+          }
+        }
+      },
+      "bed": {
+        "prompts": [
+          "an unmade bed",
+          "a neatly made bed"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000000632.png",
+            "sha256": "292d0f035f3714f7fc51c27536321bddd450cdb79057e6f16746867482fa40b3"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000001993.png",
+            "sha256": "1b3c07f18e6a4c72d48bfff0dd1f9b6f5c13f1dd119199895a8bc60fa93b9fe6"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000007795.png",
+            "sha256": "12a17f847880a55c6a84c02a3c207c810772d1e1d07ebd9ac848384be60b1635"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000010092.png",
+            "sha256": "4cd7aefd95415f0ef860772de31fc555738660030e57f56c675ecd126561371b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000010995.png",
+            "sha256": "082a55c6668d32ffe66dd3c384f0cddd5b566bd405020e924479acfabea70160"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000022192.png",
+            "sha256": "1ae8fff45072aa1814f1d4529070799dbd443f453b66b31de8b805b0ecee0969"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000035062.png",
+            "sha256": "62ab1cf85a9c739edf210255ed605a2323d26084958c49fbb20f741a52321859"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000039956.png",
+            "sha256": "4f5b70111c63ccc64a6f65f2fba00ee079480ff0a41af16249a71f87c718951c"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000040757.png",
+            "sha256": "337e66fc8ea1fea30ce7df879482aed8b40d022c5f83e5d29bf5c17a5b6da7a9"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000041872.png",
+            "sha256": "0c72e70483e1d0e1f22326e64f352f42bc24c45efdf66d179dd5927df8ceaded"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000046048.png",
+            "sha256": "765e1bbc550378cf14298652bbe7731d3b137067c11c7c35c619a6be2ecac436"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000050828.png",
+            "sha256": "cc7c5f99a77f34afbd0120318c3a73212ddb9e8db1cfaf600cdaf22905c53177"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000051738.png",
+            "sha256": "7206c9c0ea14c590090f7ac4b60617e2fab234cf9caabdd492eb6ac44810d2d2"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000065074.png",
+            "sha256": "227cb68e850088dab5e951aadb655c8a545147d70aa29e01a2018566a1e3e497"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000066523.png",
+            "sha256": "8055f9696cf1885da972c8a852af563df7edb3f7bdf4dc383a00fdf5b840be10"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000068286.png",
+            "sha256": "6ec69892b41ef97fbf1a449b17ad54eda83ed46fae79c4f0865368791e87ec71"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000071226.png",
+            "sha256": "51035383069cb8d870d0d8b6ebb2286af19cf3717854e54299fadf277e5ea7d1"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000071451.png",
+            "sha256": "95dcd8b136ab407e463c10b8a20f36a40036225c3219c1e6700a8a102fae5b74"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000072813.png",
+            "sha256": "8bc26dce69e5813e5c8bc4fa0c89740f8a990ade2e0bc02c9cab08b0f3c253b5"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000082765.png",
+            "sha256": "e878314790caa75a55fad41fe34804486f815259c5f2f7ab0dc40137b77cf97b"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000111609.png",
+            "sha256": "9a9aa2e18ac3bf7e39ecb1d2b9344e22adbf73a674627dbcb00486290b038a50"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/pos/000000113403.png",
+            "sha256": "b00ce6ebbb6e2e3b8c0fc8835fb5588b1cc9e17649d704d5fc6838df47884652"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000000632.png",
+            "sha256": "3c06a7c9d3737603633e5abc84d1142bd312211c18610204bdd7b9998d85dbdb"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000001993.png",
+            "sha256": "eb2fa230186f97856673dc54b32e15744d2cf74cc1d242b40ba09ccd44a28a10"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000007795.png",
+            "sha256": "8a287aaef4c6679406ba8eb59f4d4b9043d1b58ae1ddf6af0ac25363508dd27a"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000010092.png",
+            "sha256": "1ce9f9411f75e785ca1757b38b77fe0bec253c0df7def00c83f83384df4ffe01"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000010995.png",
+            "sha256": "209b4698709565521610b59f6d4cdac2044b6a0a1c6379b752d30b3393d81a89"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000022192.png",
+            "sha256": "71fadb2f25a8a8e93a22d6c2f326a3a85719395755f961f8f875cc81c05b77bb"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000035062.png",
+            "sha256": "14e8a8ffe51e760d344647250d63c74dfd79a6f0ceebf45a20879dab155e59de"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000039956.png",
+            "sha256": "d68fa6a9e868df0335bd967febcb4c5ffa7e3cbac4b42fd6c41012cdd4c8ae0f"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000040757.png",
+            "sha256": "0778b0320c4a92451c0579376d13c4c9812b8535ca9e9dfc2a7f4a99b030bcba"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000041872.png",
+            "sha256": "740030caf098758fff084bacdd0d6141a511fa86a5174fc9b6913a87838d37ac"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000046048.png",
+            "sha256": "12afc3993074ae4b351665c1589a78ce1792baad32bdf25ecb212cea77a0e984"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000050828.png",
+            "sha256": "4f62c0f7a07345b47fcf60b3b3339317a7f0194740184bd647a62a5ecdc63744"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000051738.png",
+            "sha256": "3ba039252b6dacdcfb712f4e8a80ced6d3293e295a30f7a822edf7f4f9e7b3b3"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000065074.png",
+            "sha256": "7f4ebce2943a7aa38d9134ea2ac9ab5a68a407c599867d6988eeede97080fcb8"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000066523.png",
+            "sha256": "75557c892b5874ef15ab8caf52281be41f86d861349525a32c907e478ea06c99"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000068286.png",
+            "sha256": "976c156662023461553fd90589016bccb9888c34e94aae3dcc747a4981d1fb16"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000071226.png",
+            "sha256": "b0e139298cfef5e2c10a0c9edb49410e9f6d25e96edf16478c9d6ab8d9ece432"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000071451.png",
+            "sha256": "cf91cef59ef741888a8fe31f75f3b0894d90333021dfb0ef09edbbd3e075a64e"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000072813.png",
+            "sha256": "fae4c091014534f565c42b09a7458fd42ee7de0bc2fe1566b56cce53d4f64677"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000082765.png",
+            "sha256": "9218e7f236e7100a9179bcd2060ad3d89e7376d67e7cb531c07b1355b269c374"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000111609.png",
+            "sha256": "aa83674529c3fd399adb42feb5ab2e2ff8bb610601000b36a8a4d4c545f5ab58"
+          },
+          {
+            "path": "bench/stills/20260822-synth-bed-crop/neg/000000113403.png",
+            "sha256": "b5705f5bb072648e5aba0c62d1b0d249b542c23cf62e5a614abfae2b7a629e75"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 0.518595041322314,
+            "folded_auc": 0.518595041322314,
+            "margins": [
+              0.057202816009521484,
+              0.021674752235412598,
+              -0.0023946762084960938,
+              0.02549859881401062,
+              0.019194722175598145,
+              0.026621520519256592,
+              0.03424498438835144,
+              0.013475537300109863,
+              0.054886460304260254,
+              0.01605367660522461,
+              0.005774259567260742,
+              0.0022780895233154297,
+              -0.017372310161590576,
+              -0.020823657512664795,
+              -0.008015215396881104,
+              -0.010727643966674805,
+              0.014081776142120361,
+              0.03253456950187683,
+              -0.0011564791202545166,
+              0.03617984056472778,
+              0.021597325801849365,
+              -0.012320935726165771,
+              0.03754091262817383,
+              0.022130906581878662,
+              -0.025084316730499268,
+              0.02077716588973999,
+              0.04529595375061035,
+              0.027407407760620117,
+              0.026563644409179688,
+              0.0024716854095458984,
+              0.05133539438247681,
+              -0.007138371467590332,
+              0.012705206871032715,
+              -0.006311476230621338,
+              -0.02258896827697754,
+              -0.006673038005828857,
+              -0.03359624743461609,
+              -0.008346915245056152,
+              0.028544843196868896,
+              0.0308702290058136,
+              0.002914220094680786,
+              0.0373634397983551,
+              0.0175112783908844,
+              -0.01670554280281067
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.5681818181818182,
+            "folded_auc": 0.5681818181818182,
+            "margins": [
+              0.5962061882019043,
+              0.43766891956329346,
+              -0.22229239344596863,
+              0.12717115879058838,
+              0.19967156648635864,
+              0.4359371066093445,
+              0.0057981014251708984,
+              0.1788806915283203,
+              0.39086949825286865,
+              0.12200003862380981,
+              0.022935569286346436,
+              0.07722687721252441,
+              -0.2864450216293335,
+              -0.5011013746261597,
+              -0.19069790840148926,
+              -0.22093188762664795,
+              0.10694172978401184,
+              0.32820451259613037,
+              -0.3060443699359894,
+              0.2094203233718872,
+              0.1239476352930069,
+              -0.5581758618354797,
+              0.2744039297103882,
+              0.42676079273223877,
+              -0.6468760371208191,
+              -0.026460707187652588,
+              0.6747817993164062,
+              0.27837589383125305,
+              -0.17969775199890137,
+              -0.025694072246551514,
+              0.36272358894348145,
+              -0.2761611044406891,
+              0.18421083688735962,
+              -0.1995975375175476,
+              -0.4763091206550598,
+              -0.26273709535598755,
+              -0.88707035779953,
+              -0.19724857807159424,
+              0.12133216857910156,
+              0.30736875534057617,
+              -0.2638826370239258,
+              0.25303947925567627,
+              0.07365752756595612,
+              -0.5921565294265747
+            ]
+          }
+        }
+      }
+    },
+    "home": {
+      "towel": {
+        "prompts": [
+          "a neatly folded towel",
+          "a crumpled towel"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/towel-r0-c0.png",
+            "sha256": "417ce854ee886b50e86283570a04976f863b4ecd2aae1166a8c843697ff9bb39"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/towel-r0-c3.png",
+            "sha256": "e01d2daa202e2ac95aae6d2f8e89960d291e7c4ee84b7e501fdaa4e16dfac483"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/towel-r1-c1.png",
+            "sha256": "b70f5649444f9c18b97cb02997744e733040efb3e375535db3962fdc35035c42"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/towel-r1-c2.png",
+            "sha256": "7b57aa157c95724c779bf57cd340fc64be94daf96a0a9f4578acf72354b31f3c"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/towel-r2-c0.png",
+            "sha256": "acaef976143bd609e83d4512ef5a51f56444d050fa4115b86dfd0ae9ea323098"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/towel-r2-c3.png",
+            "sha256": "27f6f9fa613a0d52485573397f1a3f551e66f1b8ce5c21fc66c9be1ecacb0d0b"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/towel-r0-c1.png",
+            "sha256": "07ee84ee3cd532990f21d333a89baa6a9901dddb2531aa4b2de04f82f7671974"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/towel-r0-c2.png",
+            "sha256": "3f22a607459a168063167242d28a8ebb394eff641f3e3388cb1dd560a99297ce"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/towel-r1-c0.png",
+            "sha256": "5798cd43df0faaadf2c294057279d3856134d4a44d89c406107e12681c4da2c2"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/towel-r1-c3.png",
+            "sha256": "01e76580fff8684b36456f6125297d67ff7949254f57c4fbc3fba954110a2ba4"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/towel-r2-c1.png",
+            "sha256": "71b5f95390b086285ca05481ce2b787bbdc580b32e579c3b817d0078e82b0fab"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/towel-r2-c2.png",
+            "sha256": "8190dd6b2da98ae26900ad5be5517f7e25222073c2c83567c62577944c3abc86"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              0.03950425982475281,
+              0.043640464544296265,
+              0.0392172634601593,
+              0.044628262519836426,
+              0.03855252265930176,
+              0.04001078009605408,
+              0.023907482624053955,
+              0.03260672092437744,
+              0.034791260957717896,
+              0.016436338424682617,
+              0.013928115367889404,
+              0.033383727073669434
+            ]
+          },
+          "standardized": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              0.8784312605857849,
+              1.2558982372283936,
+              0.3009060025215149,
+              0.742889404296875,
+              0.6016514301300049,
+              0.5163960456848145,
+              -0.9651402235031128,
+              -0.24697652459144592,
+              -0.3400137424468994,
+              -0.8787479400634766,
+              -1.669844627380371,
+              -0.1953772008419037
+            ]
+          }
+        }
+      },
+      "mug": {
+        "prompts": [
+          "an upright mug",
+          "a mug lying on its side"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/mug-r0-c0.png",
+            "sha256": "eff944f6830042f9e9c7ef31084257e5db124be12d5789d400d6164678c8ebe2"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/mug-r0-c3.png",
+            "sha256": "3b0f8946f6ef34bba0aaa2937443c4478a5bc78b4a53f0e72721a2fed32a9d6e"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/mug-r1-c1.png",
+            "sha256": "5d42e8a97aff9c23351e7150639774e5bf7f1d08c5a70abc6365d83bfb15f16b"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/mug-r1-c2.png",
+            "sha256": "a9baa533acdea0db88cab7b7457ee23854f3d63a760b055d547b06d4d3608fff"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/mug-r2-c0.png",
+            "sha256": "fe04be30cb5ff2c4c2f61a8da1d634a5cfa016240adcf750d204192e50e246aa"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/mug-r2-c3.png",
+            "sha256": "6326d2f01c326d2d15288768744a32353956a121d4a95f3d8255026d74791a9d"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/mug-r0-c1.png",
+            "sha256": "da4f6158def2ebca32ded6875c8a7540b6ed081de9109a056e6a4193cbf22e32"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/mug-r0-c2.png",
+            "sha256": "1ec6829a133f989ee8e87b2246dc41bcc89295a5cffc675cd01e631e2dfcfc42"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/mug-r1-c0.png",
+            "sha256": "620a87807401f59c19778e1034e3157dae180caeb5d62d36c4b0bfce187c6a89"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/mug-r1-c3.png",
+            "sha256": "8169cca6d947ec1bd4f06ef67dd2439d796421498e153f9257225d69ee7add67"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/mug-r2-c1.png",
+            "sha256": "28b810c0f821f492f1fd0d44442008e897ce48ddef092d36b5eaa7adaf4acbc8"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/mug-r2-c2.png",
+            "sha256": "c63bf820e2d6165fa183fa513b6df49f2e7ca1af021e6f26cfeb9eb1c78a1268"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              0.02237910032272339,
+              0.02065056562423706,
+              0.01621145009994507,
+              0.01943761110305786,
+              0.013525128364562988,
+              0.01680779457092285,
+              -0.007020115852355957,
+              -0.005677521228790283,
+              -0.00824594497680664,
+              -0.00353240966796875,
+              -0.011891067028045654,
+              -0.020044028759002686
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.7777777777777778,
+            "folded_auc": 0.7777777777777778,
+            "margins": [
+              0.7814586162567139,
+              0.2688513398170471,
+              -0.3006858825683594,
+              -0.3274577856063843,
+              0.37207910418510437,
+              0.46073949337005615,
+              0.0790410041809082,
+              -0.03832578659057617,
+              -0.46650034189224243,
+              -0.13077855110168457,
+              -0.06968951225280762,
+              -0.6287321448326111
+            ]
+          }
+        }
+      },
+      "banana": {
+        "prompts": [
+          "an unpeeled banana",
+          "a peeled banana"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/banana-r0-c0.png",
+            "sha256": "f42ff52bfc00e6d40b32b0d64c262a48843c40d77f8332f68fd2f7e8478e9d7d"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/banana-r0-c3.png",
+            "sha256": "28502b62e43b23b1ca8cfc4d6586c6b8e2ce09b1be759b4ab86c1fac80a3fcc5"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/banana-r1-c1.png",
+            "sha256": "7ed9da543b45da70cfff63e24752c623e594465da74da4c3e83ef0b0c474ce53"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/banana-r1-c2.png",
+            "sha256": "4c275e142b3761bd511a9da238f88d612be9f25cb080266cf1f08eaf3ddc98d9"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/banana-r2-c0.png",
+            "sha256": "c54753c1e54a9d1fc6c9997cce8212e8e7753d01ea45da3676b9ec454495d379"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/banana-r2-c3.png",
+            "sha256": "1ae92c9d74ce2f49b317806c784dd985f2bb07f76f4457e8eac1af8df18d6d05"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/banana-r0-c1.png",
+            "sha256": "70980e1eb8e9f406056680992c4c61e12b982049bc746b9de0ea2d658a118b31"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/banana-r0-c2.png",
+            "sha256": "0954fab478d0a7b943cdd73acc0139506fa07a55796be24a9e4f673a56d79386"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/banana-r1-c0.png",
+            "sha256": "05bdb56aa56686fe625aa0280a6daf3eda63769f36b4eb18c93f37d2dacdd92d"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/banana-r1-c3.png",
+            "sha256": "dedad0adc05444e62b720c629c046d0d69e2946b9632d3c7d050fa3ba6e8cba0"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/banana-r2-c1.png",
+            "sha256": "ea1932c515700e1497fdbc5db3d13ae0315b667c2f0d2f3e8495d129c0541cf1"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/banana-r2-c2.png",
+            "sha256": "01a4b498a79b2f178ae16d04d7cf9f875420e759237f6a0d166ca6d828f55c78"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 0.5277777777777778,
+            "folded_auc": 0.5277777777777778,
+            "margins": [
+              0.014712631702423096,
+              0.013323605060577393,
+              0.01117059588432312,
+              0.009603381156921387,
+              0.015293776988983154,
+              0.01271975040435791,
+              0.014074742794036865,
+              0.015471130609512329,
+              0.013031721115112305,
+              0.013059765100479126,
+              0.0097808837890625,
+              0.007376223802566528
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.4166666666666667,
+            "folded_auc": 0.5833333333333333,
+            "margins": [
+              0.05017048120498657,
+              -0.00607752799987793,
+              -0.03814557194709778,
+              -0.11078375577926636,
+              0.06423461437225342,
+              -0.019222378730773926,
+              0.08593988418579102,
+              0.1186068058013916,
+              0.037805140018463135,
+              0.03345978260040283,
+              -0.0697486400604248,
+              -0.1462288498878479
+            ]
+          }
+        }
+      },
+      "glasses": {
+        "prompts": [
+          "a pair of unfolded eyeglasses",
+          "a pair of folded eyeglasses"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/glasses-r0-c0.png",
+            "sha256": "f49f39532f39fcc3449f2fa8ac6a46161d74f99d8d665576bf15a3077dead8ba"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/glasses-r0-c3.png",
+            "sha256": "220d5bfbe914a0133fac96a62aff64ca898e704b6a78a64e3633bb7b06fc9a5d"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/glasses-r1-c1.png",
+            "sha256": "77504e9dbc23f00c48fdfb19baf8082da70f95ec7e63c42e786fa101535814b8"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/glasses-r1-c2.png",
+            "sha256": "83a68cd2dd213500bb240736866ca94d21ef1ece1b2b69c2dfc06e4f94a94637"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/glasses-r2-c0.png",
+            "sha256": "6adfd1fbe060958e1204e627c0f0e4ae48231c451ec57f8722f6f96a4c38bb9d"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/glasses-r2-c3.png",
+            "sha256": "d206fa9679c8f1a0eb731ed2666ab684bc11dbfddb5b3ca0a3e20bbaf3e8dd58"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/glasses-r0-c1.png",
+            "sha256": "69586252fcf0cd0b10053a08850b8ef4054c7c840dc068f30d9de4252f283415"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/glasses-r0-c2.png",
+            "sha256": "05c16093fa5778f7bf35a264acd065d60ef6b8464fa3cc5845fd2b0040932132"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/glasses-r1-c0.png",
+            "sha256": "a64c166488bf389cde2d95acee520935705a227b3005a9cd039fc8ec47dbe3a9"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/glasses-r1-c3.png",
+            "sha256": "7b42c077e85ad25ca104bd871f70ce096085eb736c97afc216117cc9833f1adc"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/glasses-r2-c1.png",
+            "sha256": "92d5d3a0e1bd0280e1f0d5993d8791a3df395b9f5690b3eea71dacf1e02fd84e"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/glasses-r2-c2.png",
+            "sha256": "ff8383a55d694a51988f20834eff94d3e574b02f007f28edf965a071482ef7be"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 0.5833333333333334,
+            "folded_auc": 0.5833333333333334,
+            "margins": [
+              0.006557643413543701,
+              0.0077387988567352295,
+              0.0060253143310546875,
+              0.007455676794052124,
+              0.005720674991607666,
+              0.008679896593093872,
+              0.005524665117263794,
+              0.008962452411651611,
+              -0.0008080899715423584,
+              -0.003263324499130249,
+              0.008247286081314087,
+              0.007623851299285889
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.4166666666666667,
+            "folded_auc": 0.5833333333333333,
+            "margins": [
+              -0.05906680226325989,
+              0.07592818140983582,
+              -0.040280357003211975,
+              -0.19216656684875488,
+              -0.13501206040382385,
+              0.24815699458122253,
+              0.04718680679798126,
+              0.1279081106185913,
+              -0.31959736347198486,
+              -0.07136321067810059,
+              0.3519865870475769,
+              -0.0337253212928772
+            ]
+          }
+        }
+      },
+      "tray": {
+        "prompts": [
+          "a tray with keys",
+          "a tray with a wallet"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/tray-r0-c0.png",
+            "sha256": "2752d41e2e19e36a32a3b1cf7205442a5ffc76d84f5f703f7d6118f81aecf9ea"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/tray-r0-c3.png",
+            "sha256": "5e50dd0bf930cce30d67d89bf0be9ab687f7f4fafb0183032bbf91a82fb95491"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/tray-r1-c1.png",
+            "sha256": "970b38fc4360df610ac59e728e36f41a4d7084707707889527c3a7c5c7c654ff"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/tray-r1-c2.png",
+            "sha256": "38c510c9ed24dd9b1d53ae759b32cce04cbfad12ece010dacb61e23739b23b77"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/tray-r2-c0.png",
+            "sha256": "f6383535ccca5d94eb3c184670562818d730caaafd679d870737d4a5ba767eef"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/tray-r2-c3.png",
+            "sha256": "2e0089d7ee80db143e4ba4592c26c064d320de7c650c491bb436af6f6b1c987c"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/tray-r0-c1.png",
+            "sha256": "4affc880ef25a516bd4da6ce5dfe64bb03f5b6a01dd71bbbb97fa7fa2145e639"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/tray-r0-c2.png",
+            "sha256": "937aebd854809fc2aaff44681ba4d5174ae4ac6aa83a265daa81e88d6ef85868"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/tray-r1-c0.png",
+            "sha256": "d017c4e8971cf39c1a839b24366a5512a4e2058044d1211afefd7edacf2db7bc"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/tray-r1-c3.png",
+            "sha256": "5c840536875028470c320258bfbdb7ac0ce221558397feae4943e8a8f0944875"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/tray-r2-c1.png",
+            "sha256": "ed42bfa76dc71a918b64186472804eef877ed5d83ffffd28dbac910a6f815da7"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/tray-r2-c2.png",
+            "sha256": "8e7da938a82cac0c6a45a34016d1c1fb8b7ea5390ff6207c358922353a35addd"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 0.7222222222222222,
+            "folded_auc": 0.7222222222222222,
+            "margins": [
+              -0.023431330919265747,
+              -0.01508834958076477,
+              -0.020188599824905396,
+              -0.019050270318984985,
+              -0.015700101852416992,
+              -0.005704671144485474,
+              -0.020868301391601562,
+              -0.021974295377731323,
+              -0.028171390295028687,
+              -0.029460757970809937,
+              -0.015009075403213501,
+              -0.016975760459899902
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.8055555555555556,
+            "folded_auc": 0.8055555555555556,
+            "margins": [
+              -0.5875341296195984,
+              0.21407973766326904,
+              0.06482851505279541,
+              0.430164098739624,
+              0.2330080270767212,
+              1.3026087284088135,
+              -0.20459666848182678,
+              -0.2816184461116791,
+              -0.6240797638893127,
+              -0.865027666091919,
+              0.3388441801071167,
+              -0.02077031135559082
+            ]
+          }
+        }
+      },
+      "plant": {
+        "prompts": [
+          "a healthy basil plant",
+          "a wilted basil plant"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/plant-r0-c0.png",
+            "sha256": "ec5e34e4a94b3c8a0739793044b8ecf1d17d24a547f9a7381e27a8f539a5fbd4"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/plant-r0-c3.png",
+            "sha256": "b6f1135b5678a20f25905dad2c43b582e07bf88456bdf7c4294434ac4678d75d"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/plant-r1-c1.png",
+            "sha256": "15de5b97759aeb2379634938a2ea40390d634b66a28bad17147464f95a0f4130"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/plant-r1-c2.png",
+            "sha256": "d49db73b3d04d1ef682413a0cb8f3977e2441034c4901ac115aa5bec4d18c904"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/plant-r2-c0.png",
+            "sha256": "30a652ca1dc7d7b0939ba88211051777223075a0e58d5ebeb4b7a92e73804e4e"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/plant-r2-c3.png",
+            "sha256": "9eccfc4647d35c5ff89f5d809b6fa88e1372492d2843c6e30fbd9f2e653877ff"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/plant-r0-c1.png",
+            "sha256": "16de15b0b80d83b1710f3b3a5ef3d636c18678c5a0f8100add61e2f3a219cdd5"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/plant-r0-c2.png",
+            "sha256": "afbec02dbc9f8cd1d3995e59587d87ed090c2cd5c998ca03530c148eab20915c"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/plant-r1-c0.png",
+            "sha256": "9667a0b037bb16dc37a3790cf52bb2efb886e9b13ae0192ffb5c372886aca7ad"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/plant-r1-c3.png",
+            "sha256": "8208c5ad75df982e22bc5e88c66494bd719bb6b9f294922616c6615da09f5452"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/plant-r2-c1.png",
+            "sha256": "3d34ffbb261fef852ce479348e2db1538834b78658670880230906ee29aa936f"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/plant-r2-c2.png",
+            "sha256": "a25b14378ebbdb9c5f0fecee65b47841ceb99580e22e4df39a311beecc50a2a7"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 0.6388888888888888,
+            "folded_auc": 0.6388888888888888,
+            "margins": [
+              0.029579997062683105,
+              0.033850789070129395,
+              0.023599326610565186,
+              0.028698265552520752,
+              0.040328532457351685,
+              0.0441209077835083,
+              0.026200681924819946,
+              0.030335992574691772,
+              0.01227635145187378,
+              0.01576387882232666,
+              0.037080734968185425,
+              0.044048577547073364
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.8611111111111112,
+            "folded_auc": 0.8611111111111112,
+            "margins": [
+              0.08705100417137146,
+              0.5722808241844177,
+              -0.08383262157440186,
+              0.24566549062728882,
+              0.3558279275894165,
+              0.8693641424179077,
+              -0.08973890542984009,
+              -0.07577863335609436,
+              -1.1648383140563965,
+              -0.9704158902168274,
+              -0.045020222663879395,
+              0.29940319061279297
+            ]
+          }
+        }
+      },
+      "hand_control": {
+        "prompts": [
+          "an open hand",
+          "a fist"
+        ],
+        "images": [
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/hand_control-r0-c0.png",
+            "sha256": "d07bb703b2ec1d8a4307b437135377c8c7886133b93220461538da6699783985"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/hand_control-r0-c3.png",
+            "sha256": "47ba792c588dd2cdd9ff6581f32815e236569cfce257d9aaf8d483ba18e3147a"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/hand_control-r1-c1.png",
+            "sha256": "6cbf3f939faf798c056e5798db0fd7c842cfb1527b31d914a481071e08a68728"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/hand_control-r1-c2.png",
+            "sha256": "a10906c387ce5f90df842cfad6879f038a96b09be784dfeefde4679f7530a37b"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/hand_control-r2-c0.png",
+            "sha256": "f78d1d5bf3dfa7d0210380c9802d00cac9de1eb2c05d6c663da33e56214b1eb2"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/hand_control-r2-c3.png",
+            "sha256": "204072e5a9f59ffb0f9fc60e0dc07306023b1d9be4e8f133528dddc777f9979d"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/hand_control-r0-c1.png",
+            "sha256": "f99c98a87af0010a42e2966442d639f43a92713969d88e4bd13bf3e6580f9541"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/hand_control-r0-c2.png",
+            "sha256": "6dd5af24362e6f8a3d7df50a5bbe695fc0d3eca3c6dce00e200867aa56155c16"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/hand_control-r1-c0.png",
+            "sha256": "3b26ebee9587ac4b45b53f9f5d3fc61b1b1c7c1ffa93620ed693f2c7506a70f7"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/hand_control-r1-c3.png",
+            "sha256": "2692f470e704e07067b9a33b61f5e60371ae21a2436faee9d61e7012906f9846"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/hand_control-r2-c1.png",
+            "sha256": "4415480a3ae06b2b44bcff234dbdd67e3b54b1ad9539a95bf75b468e07f0769d"
+          },
+          {
+            "path": "bench/stills/20260926-home-screen/inputs/hand_control-r2-c2.png",
+            "sha256": "bcd27706730cf368eb7a8b4771eb1dc8809b004b7712688bb4ed68ed65c3a53f"
+          }
+        ],
+        "metrics": {
+          "raw": {
+            "signed_auc": 1.0,
+            "folded_auc": 1.0,
+            "margins": [
+              -0.024571597576141357,
+              -0.024610579013824463,
+              -0.028363466262817383,
+              -0.029863476753234863,
+              -0.02424842119216919,
+              -0.028572112321853638,
+              -0.038720935583114624,
+              -0.030275195837020874,
+              -0.04429343342781067,
+              -0.03801828622817993,
+              -0.03338038921356201,
+              -0.03206735849380493
+            ]
+          },
+          "standardized": {
+            "signed_auc": 0.8888888888888888,
+            "folded_auc": 0.8888888888888888,
+            "margins": [
+              1.0582919120788574,
+              0.44387221336364746,
+              0.9646637439727783,
+              -0.15332818031311035,
+              0.7932456731796265,
+              -0.15515661239624023,
+              -0.7247744798660278,
+              0.07225517928600311,
+              -1.0500725507736206,
+              -0.9628762006759644,
+              -0.19617074728012085,
+              -0.08995793759822845
+            ]
+          }
+        }
+      }
+    }
+  }
+}

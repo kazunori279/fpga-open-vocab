@@ -62,3 +62,11 @@ screenlog.*
 #                            un-bricking path
 vendor/
 firmware/vendor/
+
+# Matched 30k-image comparison exports for the two selectable demos (#43).
+!model/runs/compare43-siglip-s30k-seed0/
+model/runs/compare43-siglip-s30k-seed0/*
+!model/runs/compare43-siglip-s30k-seed0/export/
+!model/runs/compare43-gemma-s30k-seed0/
+model/runs/compare43-gemma-s30k-seed0/*
+!model/runs/compare43-gemma-s30k-seed0/export/

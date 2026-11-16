@@ -416,6 +416,10 @@ the frictions, the rejected designs and what they taught are in
 ## Documentation
 
 For interchangeable SigLIP and Gemma teachers, see [Selecting a distillation teacher](docs/teachers.md).
+The optional Gemma demo distills EmbeddingGemma 2 into the same 1.40M-parameter
+CNN and int4 format. Choose matching firmware and host export bundles; the
+existing SigLIP default remains available. The [teacher guide](docs/teachers.md)
+explains the switch and the comparison limitations.
 
 | where | what |
 |---|---|

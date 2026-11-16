@@ -1,0 +1,29 @@
+{
+  "teacher_spec": "ViT-SO400M-14-SigLIP2:webli",
+  "teacher_license": "Apache-2.0",
+  "space_id": "347251f243f458a609b55e8c2eb1886740dfb3916db0a53e06390105ace80fba",
+  "checkpoint_sha256": "e1478a3d3cab82d469dbf3c77da3c3360511ada0f560b999f3ee4e58a7eca367",
+  "training_commit": "0985e12b61240273fbd4b2792b041ae6db43d465",
+  "int4_validation_commit": "def7b32",
+  "training": {
+    "split": "train2017",
+    "subset": 30000,
+    "holdout": 1000,
+    "epochs": 20,
+    "batch": 512,
+    "lr": 0.006,
+    "weight_decay": 0.0001,
+    "infonce": 0.3,
+    "seed": 0,
+    "select": "centered",
+    "initial_state_sha256": "1c35ecfa821430ad7765e408ca4e274dcfd74b42162e76b66540015676e71300"
+  },
+  "files_sha256": {
+    "export.json": "6591c30435ec87533efb1c0f211260e16f4320451ffecbcd2008a81c002749ce",
+    "testvec.bin": "171750193bae802fefc6bb765fd2b094b9afd818fb46dd1a737d2b0806fc4531",
+    "weights.bin": "7ab845428af770256e65e5fb57f6ab34ded60f689a5b5578e79109f01f55f271",
+    "teacher_347251f243f458a6_train2017.basis.npz": "e665cbab6c0a67be3754d41a57db6c39da87caf6ed8391bc8a14a74c4e486a2b"
+  },
+  "evaluation_directory": "bench/probe/20261117-switchable-int4",
+  "notes": "Additional 30k-image demo; not a replacement for the shipped full-data default. No on-board validation."
+}

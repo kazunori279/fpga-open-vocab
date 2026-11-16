@@ -75,7 +75,7 @@ def main():
         if result.returncode == 1 and script == "model/quantize.py":
             log_text = (JOB / f"{name}.log").read_text()
             artifact = ROOT / "model/runs" / args[1] / "quant.json"
-            if ("RESULT : FAIL - int8 moves the output embedding" in log_text
+            if (log_text.rstrip().endswith("RESULT : FAIL - int8 moves the output embedding")
                     and artifact.exists() and artifact.stat().st_mtime >= started):
                 state.setdefault("quality_warnings", {})[name] = (
                     "int8 cosine diagnostic failed; calibration exists; continue to measure int4 task quality")

@@ -90,10 +90,11 @@ finishing the cache. Completed caches remain immutable.
 
 Student comparison uses fixed signed margin AUC on the ten cross-scene
 selection contrasts and, separately, seven correlated synthetic home cases.
-The exploratory int4 gate is a mean paired cross-scene gain exceeding twice its
-contrast-level SE, with no negative mean home gain. Passing this gate triggers
-quantization/export and C integer-encoder evaluation for both students, **not
-firmware deployment or a claim of statistical confirmation**. Integer evaluation
+The default `--int4-policy both` quantizes, exports and evaluates both models
+regardless of which wins. `--int4-policy on-gain` can reproduce the historical
+replacement screen (cross-scene gain > twice its contrast-level SE, nonnegative
+home gain). Neither policy triggers firmware deployment or establishes
+statistical confirmation. Integer evaluation
 includes RGB565 input conversion; fp32 uses RGB888, so it measures the deployable
 path's total change rather than isolating weight quantization alone.
 
@@ -109,3 +110,53 @@ checkpoint hashes and records independent progress in
 each to its own fp32 result, including the RGB565 input difference. Both export
 bundles remain independently selectable with `--export`; flashing matching
 weights and on-board validation are separate steps.
+
+### Matching the firmware and host for the two demo models
+
+The comparison runs use these separate bundles:
+
+| Demo | Export directory |
+|---|---|
+| SigLIP-derived student | `model/runs/compare43-siglip-s30k-seed0/export` |
+| Gemma-derived student | `model/runs/compare43-gemma-s30k-seed0/export` |
+
+Configure a **separate build directory** for each with
+`-DFGX_EXPORT=/absolute/path/to/that/export`, retaining the toolchain, board,
+clock and link options used for your hardware (see [building](building.md)).
+Build and flash the corresponding firmware before choosing the same directory
+with `host/spot.py --export` or `host/watch.py --export`. The host validates the
+board's weight CRC against its bundle. This is a paired firmware/host switch,
+not hot-swapping only the text encoder on an unchanged board.
+
+The original `so400m-full-a05/export` remains the default. The two 30k-image
+comparison students are additional demos, not claims that either improves that
+full-data default. Their model comparison is separate from RTL-generation
+experiments; no RTL files or device state are changed by the int4 evaluator.
+
+A failed cosine diagnostic from `model/quantize.py` is retained as a quality
+warning when a valid fresh calibration artifact exists. The continuation then
+measures actual int4 task scores. Other failures, including integer/golden
+mismatches, stop the run; they are never treated as successful validation.
+
+### Completed int4 comparison (2026-11-17)
+
+Mean standardized signed margin AUC (higher is better):
+
+| Student | Cross-scene fp32 | Cross-scene int4 | Home fp32 | Home int4 |
+|---|---:|---:|---:|---:|
+| SigLIP | 0.6203 | 0.6053 | 0.6508 | 0.6587 |
+| Gemma | 0.6171 | 0.6123 | 0.7381 | 0.6548 |
+
+Both weight bundles are 780,720 bytes. Each C encoder matched all 2,048
+golden floats exactly, and both `forgix_m9` firmware variants built with
+`LINK_CFG=NARROW` and `FGX_SYS_KHZ=320000`. No device was flashed or measured.
+Both int8 calibration cosine diagnostics failed the minimum 0.98 threshold
+(SigLIP 0.95752; Gemma 0.94932); these remain quality warnings, despite the
+successful integer implementation checks. Gemma's home score drop warrants
+further calibration work before a hardware demo.
+
+These are one-seed comparisons; the home panels are correlated synthetic cases.
+The int4 path includes RGB565 input conversion, while fp32 uses RGB888.
+Neither result establishes general superiority. Reports and artifact hashes
+are in [the comparison summary](../bench/probe/20261117-switchable-int4/summary.json),
+with checkpoint and training provenance in each export's `provenance.json`.

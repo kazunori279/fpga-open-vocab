@@ -1,0 +1,28 @@
+{
+  "teacher_spec": "gemma:google/embeddinggemma-2@f9972ac22e696a105c482202646979e33e4b5a1e",
+  "teacher_license": "Apache-2.0",
+  "space_id": "8075c704d48b6e4ebcff5959a1fe240459c49f44f6841d91767f547a633299ff",
+  "checkpoint_sha256": "d34be17497456f261d029891a043871229f0d0cbb58c8e7fdbbbe336e58f9277",
+  "training_commit": "0985e12b61240273fbd4b2792b041ae6db43d465",
+  "int4_validation_commit": "def7b32",
+  "training": {
+    "split": "train2017",
+    "subset": 30000,
+    "holdout": 1000,
+    "epochs": 20,
+    "batch": 512,
+    "lr": 0.006,
+    "weight_decay": 0.0001,
+    "infonce": 0.3,
+    "seed": 0,
+    "select": "centered",
+    "initial_state_sha256": "1c35ecfa821430ad7765e408ca4e274dcfd74b42162e76b66540015676e71300"
+  },
+  "files_sha256": {
+    "export.json": "0bcc702a33ed4cdadafac088e790a1a8f354c729aefd8abe4c4e4b74abe017d1",
+    "testvec.bin": "969663515ec74b34534768e00e82cd3aae836998d63bcded2b03a56ac4127a2f",
+    "weights.bin": "8bd793add344b8bf83b56ec021e6787226fb8cb5776e520c647f663f26a8840f"
+  },
+  "evaluation_directory": "bench/probe/20261117-switchable-int4",
+  "notes": "Additional 30k-image demo; not a replacement for the shipped full-data default. No on-board validation."
+}

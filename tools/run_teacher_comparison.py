@@ -8,6 +8,7 @@ Run with a persistent process (e.g. nohup); rerunning resumes completed stages.
 Never deploys. Both teachers use fresh seed-0 30k/20-epoch students, identical
 splits and optimizer settings. Home panels remain exploratory, not confirmation.
 """
+import argparse
 import fcntl
 import json
 import os
@@ -42,6 +43,10 @@ def paired_summary(left, right):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--int4-policy", choices=["both", "on-gain"], default="both",
+                        help="support both demos (default), or reproduce the earlier replacement gate")
+    args = parser.parse_args()
     JOB.mkdir(exist_ok=True)
     lock = (JOB / "campaign.lock").open("w")
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -50,7 +55,10 @@ def main():
     state = json.loads(state_path.read_text()) if state_path.exists() else {
         "commit": sha, "completed": [], "seed": 0, "subset": 30000, "epochs": 20,
         "batch": 512, "lr": .006, "infonce": .3,
-        "gate": "cross-scene delta > 2*SE and home delta >= 0 before int4; exploratory gate, not deployment approval"}
+        "int4_policy": args.int4_policy,
+        "gate": "Both demo models by default; optional on-gain uses cross-scene delta > 2*SE and home delta >= 0"}
+    if state.get("int4_policy", "on-gain") != args.int4_policy:
+        raise SystemExit("Campaign policy changed; use the explicit int4 continuation for an older run")
     if state["commit"] != sha:
         raise SystemExit("Campaign source commit changed; inspect before resuming")
 
@@ -78,7 +86,15 @@ def main():
             config_file = checkpoint.parent / "config.json"
             training_complete = (config_file.exists() and config_file.stat().st_mtime >= started
                                  and json.loads(config_file.read_text()).get("completed_epochs") == 20)
-        if run.returncode and not (run.returncode == 1 and training_complete):
+        quantization_warning = False
+        if run.returncode == 1 and command[3] == "model/quantize.py":
+            artifact = ROOT / "model/runs" / command[5] / "quant.json"
+            quantization_warning = (
+                artifact.exists() and artifact.stat().st_mtime >= started
+                and (JOB / f"{name}.log").read_text().rstrip().endswith("RESULT : FAIL - int8 moves the output embedding"))
+            if quantization_warning:
+                state.setdefault("quality_warnings", {})[name] = "Int8 cosine diagnostic failed; measuring int4 task quality"
+        if run.returncode and not (run.returncode == 1 and (training_complete or quantization_warning)):
             raise RuntimeError(f"{name} exited {run.returncode}; see stage log")
         if checkpoint and not checkpoint.exists():
             raise RuntimeError(f"{name} did not produce its checkpoint")
@@ -110,8 +126,9 @@ def main():
         comparison = paired_summary(*reports)
         (JOB / "comparison-fp32.json").write_text(json.dumps(comparison, indent=2)+"\n")
         scene = comparison["cross-scene"]
-        go = scene["mean_delta"] > 2*scene["se"] and comparison["home"]["mean_delta"] >= 0
-        state["int4_gate_passed"] = go
+        gain = scene["mean_delta"] > 2*scene["se"] and comparison["home"]["mean_delta"] >= 0
+        state["int4_gain_gate_passed"] = gain
+        go = args.int4_policy == "both" or gain
         if go:
             for backend in BACKENDS:
                 name = f"compare43-{backend}-s30k-seed0"
