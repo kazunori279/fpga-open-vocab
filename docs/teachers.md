@@ -96,3 +96,16 @@ quantization/export and C integer-encoder evaluation for both students, **not
 firmware deployment or a claim of statistical confirmation**. Integer evaluation
 includes RGB565 input conversion; fp32 uses RGB888, so it measures the deployable
 path's total change rather than isolating weight quantization alone.
+
+### Support both demos, without a replacement gate
+
+The goal of the demonstration is to support **both** SigLIP- and Gemma-derived
+students, not require Gemma to outperform SigLIP. After the fp32 campaign,
+`uv run --script tools/run_int4_comparison.py` evaluates both int4 exports
+regardless of the earlier replacement-gain gate. It verifies the original
+checkpoint hashes and records independent progress in
+`model/runs/teacher-comparison-43/int4/`, preserving the historical decision.
+`comparison-int4.json` compares the backends; `precision-changes.json` compares
+each to its own fp32 result, including the RGB565 input difference. Both export
+bundles remain independently selectable with `--export`; flashing matching
+weights and on-board validation are separate steps.
