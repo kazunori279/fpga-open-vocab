@@ -403,9 +403,18 @@ def main() -> int:
     ap.add_argument("--name", default=None, help="run directory name (default: the split)")
     args = ap.parse_args()
 
+    target_meta = {}
     names = data.image_list(args.split)
     if args.targets:
-        targets = np.load(args.targets)
+        side_path = args.targets.with_suffix(".json")
+        target_meta = json.loads(side_path.read_text()) if side_path.exists() else {}
+        if target_meta.get("backend_cache"):
+            from teacher_backend import load_targets
+            if args.targets.resolve().parent != data.CACHE.resolve():
+                raise SystemExit("Backend caches must stay in model/cache with their sidecars")
+            targets, target_meta = load_targets(args.targets.stem, args.split)
+        else:
+            targets = np.load(args.targets)
         if targets.shape[0] != len(names):
             raise SystemExit(f"{args.targets}: {targets.shape[0]} rows, but "
                              f"{args.split} has {len(names)} images. Targets are "
@@ -421,6 +430,10 @@ def main() -> int:
     # the rest is auditable after the fact.
     bank = None
     if args.text:
+        if target_meta.get("backend_cache") and args.text_bank:
+            bank_meta = json.loads(args.text_bank.with_suffix(".json").read_text())
+            if bank_meta.get("teacher") != args.targets.stem:
+                raise SystemExit("Text bank and image targets belong to different teachers")
         if not args.text_bank:
             raise SystemExit("--text needs --text-bank; build one with "
                              "tools/text_bank.py --teacher <the run's teacher>")
@@ -557,8 +570,10 @@ def main() -> int:
                 # its outputs may be compared against, so it travels with the
                 # weights rather than only in the run directory.
                 "teacher": teacher_name,
+                "teacher_space": target_meta.get("space_id"),
                 "split": args.split,
                 "holdout": hold_idx.tolist(),
+                "train_indices": train_idx.tolist(),
                 "epoch": epoch,
                 "holdout_cosine": raw,
                 "holdout_centered": cen,

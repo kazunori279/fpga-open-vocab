@@ -1,8 +1,8 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["torch", "numpy", "open_clip_torch", "transformers",
-#                 "sentencepiece"]
+# dependencies = ["torch", "numpy", "open_clip_torch", "transformers>=5.18.0",
+#                 "sentencepiece", "sentence-transformers>=6.1.0"]
 # ///
 """A bank of text directions, in a student's own target space, for `--text`.
 
@@ -90,6 +90,9 @@ def captions(split: str, n: int) -> list[str]:
 
 @torch.no_grad()
 def encode(model, tokenizer, texts: list[str], device, batch: int) -> np.ndarray:
+    from teacher_backend import GemmaTeacher
+    if isinstance(model, GemmaTeacher):
+        return model.encode_text(texts)
     out = []
     for i in range(0, len(texts), batch):
         chunk = texts[i:i + batch]

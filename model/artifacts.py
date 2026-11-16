@@ -21,6 +21,11 @@ def load_export(path: Path) -> dict:
             f"of failing. Re-export:\n  uv run model/export.py --run <RUN> "
             f"--wbits 4 --wsearch --ends8")
     blob = json.loads(side.read_text())
+    if blob.get("spec", "").startswith("gemma:"):
+        from teacher_backend import gemma_revision
+        gemma_revision(blob["spec"])
+        if blob.get("basis") or blob.get("embed_dim") != 512 or not blob.get("space_id"):
+            raise SystemExit("Invalid Gemma export: requires 512d MRL identity without PCA")
     if blob.get("basis"):
         b = path / blob["basis"]
         if not b.exists():
@@ -34,6 +39,10 @@ def load_export(path: Path) -> dict:
         blob["basis_path"] = b
     else:
         blob["basis_path"] = None
+    if blob.get("space_id"):
+        from teacher_backend import identity
+        if identity(blob["spec"], blob["basis_path"])["space_id"] != blob["space_id"]:
+            raise SystemExit("Export teacher space identity mismatch")
     return blob
 
 

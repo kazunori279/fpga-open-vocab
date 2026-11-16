@@ -19,6 +19,7 @@ import demo
 import spot
 import watch
 from artifacts import bundle_basis, load_export
+from teacher_backend import GEMMA_SPEC, identity
 
 
 class ExportTests(unittest.TestCase):
@@ -47,6 +48,20 @@ class ExportTests(unittest.TestCase):
             (bundle / meta["basis"]).unlink()
             with self.assertRaisesRegex(SystemExit, "not found"):
                 load_export(bundle)
+
+    def test_gemma_export_is_portable_and_rejects_wrong_space(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            meta = {"run": "gemma-test", "spec": GEMMA_SPEC, "basis": None,
+                    "embed_dim": 512, "space_id": identity(GEMMA_SPEC)["space_id"]}
+            side = root / "export.json"
+            side.write_text(json.dumps(meta))
+            self.assertIsNone(load_export(root)["basis_path"])
+            for change in ({"space_id": "wrong"}, {"embed_dim": 768},
+                           {"space_id": None}, {"basis": "siglip.npz"}):
+                side.write_text(json.dumps(meta | change))
+                with self.assertRaises(SystemExit):
+                    load_export(root)
 
     def test_unprojected_export(self):
         with tempfile.TemporaryDirectory() as tmp:

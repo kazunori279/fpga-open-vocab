@@ -163,7 +163,7 @@ def main():
         model_name, pretrained = SPEC.split(":", 1)
         model, _, preprocess = open_clip.create_model_and_transforms(
             model_name, pretrained=pretrained, device=args.device)
-        tok = open_clip.get_tokenizer(SPEC.split(":")[0])
+        tok = open_clip.get_tokenizer(model_name)
         model.eval()
         meta = json.loads((EXPORT / "export.json").read_text())
         basis_path = EXPORT / meta["basis"]

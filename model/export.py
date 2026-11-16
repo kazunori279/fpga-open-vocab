@@ -420,7 +420,6 @@ def main() -> int:
     args = ap.parse_args()
 
     import data
-    import teacher as teacher_mod
     from torch.utils.data import DataLoader
 
     run = Path(distill.RUNS) / args.run
@@ -449,9 +448,11 @@ def main() -> int:
 
     split = ckpt["split"]
     names = data.image_list(split)
-    targets = teacher_mod.load_cache(split)
+    from teacher_backend import checkpoint_targets
+    targets = checkpoint_targets(ckpt)
     hold = set(ckpt["holdout"])
-    calib_idx = np.array([i for i in range(len(names)) if i not in hold])
+    calib_idx = np.array(ckpt.get("train_indices",
+                                  [i for i in range(len(names)) if i not in hold]))
     loader = DataLoader(
         distill.DistillSet(split, names, calib_idx, targets,
                            distill.student_transform(False, False)),
@@ -540,6 +541,8 @@ def main() -> int:
         "run": args.run,
         "teacher": ckpt.get("teacher", ""),
         "spec": spec,
+        "space_id": ckpt.get("teacher_space"),
+        "backend": "gemma" if spec.startswith("gemma:") else "open_clip",
         **bundle_basis(basis, out_dir),
         "embed_dim": int(layers[-1].w_q.shape[0]),
         "wbits": args.wbits,

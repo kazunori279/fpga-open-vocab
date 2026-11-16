@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.10"
 # dependencies = ["torch", "torchvision", "numpy", "pillow", "open_clip_torch",
-#                 "transformers", "sentencepiece"]
+#                 "sentencepiece", "sentence-transformers>=6.1.0", "transformers>=5.18.0"]
 # ///
 """M4's gate: can a 1.4M-param student still separate the queries?
 
@@ -139,6 +139,24 @@ def teacher_bundle(tag: str, split: str, trained_on: str, device):
     a measurement: the student was trained to emit vectors in one specific space,
     and that is the space its ceiling has to be measured in.
     """
+    side_path = data.CACHE / f"{tag}.json"
+    meta = json.loads(side_path.read_text()) if side_path.exists() else {}
+    if meta.get("backend_cache"):
+        from teacher_backend import TeacherBackend, load_targets
+        train_targets, meta = load_targets(tag, trained_on)
+        eval_tag = f"teacher_{meta['space_id'][:16]}_{split}"
+        eval_targets, eval_meta = load_targets(eval_tag, split, require_complete=split != trained_on)
+        if eval_meta["space_id"] != meta["space_id"]:
+            raise ValueError("Training and evaluation teacher spaces differ")
+        backend = None
+        def encode_text(qnames):
+            nonlocal backend
+            if backend is None:
+                basis = data.CACHE / meta["basis"] if meta.get("basis") else None
+                backend = TeacherBackend(meta["teacher"], device, basis)
+            return backend.encode_text(qnames)
+        return eval_targets.astype(np.float32), encode_text, train_targets, meta["teacher"]
+
     basis_path = data.CACHE / f"{tag}.basis.npz"
     if not basis_path.exists():
         # The incumbent, unchanged: cached ViT-B/16 images, ViT-B/16 text.
@@ -261,6 +279,9 @@ def main() -> int:
 
     run = Path(distill.RUNS) / (args.run or args.split)
     ckpt = torch.load(run / "student.pt", map_location="cpu", weights_only=False)
+    if ckpt.get("teacher_space") or ckpt["teacher"].startswith("teacher_"):
+        from teacher_backend import checkpoint_targets
+        checkpoint_targets(ckpt)
     device = teacher_mod.pick_device()
 
     names = data.image_list(args.split)
@@ -285,8 +306,9 @@ def main() -> int:
     qmodel = quant_mod.quantize(folded).to(device)
 
     # Calibrate int8 on training images, never on the eval set.
-    hold = set(ckpt["holdout"]) if trained_on == args.split else set()
-    calib_idx = np.array([i for i in range(len(data.image_list(trained_on))) if i not in hold])
+    hold = set(ckpt["holdout"])
+    calib_idx = np.array(ckpt.get("train_indices",
+                                  [i for i in range(len(data.image_list(trained_on))) if i not in hold]))
     calib_loader = DataLoader(
         distill.DistillSet(trained_on, data.image_list(trained_on), calib_idx,
                            calib_targets,
@@ -450,7 +472,8 @@ def main() -> int:
             "geometry": args.geometry,
             "fpr": args.fpr,
             "scored_on": "student int8 (simulated), " + basis,
-            "templates": teacher_mod.TEMPLATES,
+            "templates": (["{}"] if teacher_label.startswith("gemma:")
+                          else teacher_mod.TEMPLATES),
             "queries": {r["name"]: {"threshold": round(r["threshold"], 6),
                                     "mean_neg": round(r["mean_neg"], 6),
                                     "std_neg": round(r["std_neg"], 6),
