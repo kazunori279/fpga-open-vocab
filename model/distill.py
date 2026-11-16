@@ -67,7 +67,9 @@ which doubles the cache and is only worth it if the gate comes in marginal.
 """
 
 import argparse
+import hashlib
 import json
+import random
 import sys
 import time
 from pathlib import Path
@@ -353,6 +355,7 @@ def holdout_metrics(model, loader, device, mean: torch.Tensor) -> tuple[float, f
 
 def main() -> int:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--seed", type=int, default=0, help="initialization, shuffle and augmentation seed")
     ap.add_argument("--split", default="val2017")
     ap.add_argument("--epochs", type=int, default=10)
     ap.add_argument("--batch", type=int, default=128)
@@ -402,6 +405,9 @@ def main() -> int:
                          "image order (default: this split's ViT-B/16 cache)")
     ap.add_argument("--name", default=None, help="run directory name (default: the split)")
     args = ap.parse_args()
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
 
     target_meta = {}
     names = data.image_list(args.split)
@@ -465,6 +471,8 @@ def main() -> int:
                 f"rebuild it with the same values.")
 
     model = student_mod.Student().to(device)
+    initial_state_sha256 = hashlib.sha256(b"".join(
+        v.detach().cpu().numpy().tobytes() for v in model.state_dict().values())).hexdigest()
     ok = student_mod.report(model)
     if not ok:
         print("\nRESULT : FAIL - student is over budget")
@@ -515,7 +523,9 @@ def main() -> int:
 
     run = RUNS / (args.name or args.split)
     run.mkdir(parents=True, exist_ok=True)
-    best, best_raw, best_top, best_cone = cen0, raw0, top0, cone0
+    # Select among trained epochs; an untrained baseline must not prevent
+    # every checkpoint from being written while the log claims one exists.
+    best, best_raw, best_top, best_cone = -float("inf"), raw0, -float("inf"), cone0
     # The peak of each metric over the whole run, regardless of which one
     # selects the checkpoint. Without this a candidate whose top-1 peaks on a
     # different epoch than its centered cosine reports someone else's number,
@@ -571,6 +581,8 @@ def main() -> int:
                 # weights rather than only in the run directory.
                 "teacher": teacher_name,
                 "teacher_space": target_meta.get("space_id"),
+                "seed": args.seed,
+                "initial_state_sha256": initial_state_sha256,
                 "split": args.split,
                 "holdout": hold_idx.tolist(),
                 "train_indices": train_idx.tolist(),
@@ -587,6 +599,8 @@ def main() -> int:
               flush=True)
 
     (run / "config.json").write_text(json.dumps(vars(args) | {
+        "initial_state_sha256": initial_state_sha256,
+        "completed_epochs": args.epochs,
         "constant_cosine": constant,
         "baseline_cosine": raw0,
         "best_cosine": best_raw,

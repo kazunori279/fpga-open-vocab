@@ -74,3 +74,25 @@ export smoke artifacts are not deployment candidates.
 uv run --script tools/test_teacher_backend.py
 uv run make test-host
 ```
+
+## Controlled comparison campaign
+
+`uv run --script tools/run_teacher_comparison.py` runs both 30k-image,
+20-epoch, seed-0 experiments serially. It records stage logs and resumable state
+under `model/runs/teacher-comparison-43/`. Both students must have identical
+initial-state hashes and training settings. A changed source commit stops a
+resumed campaign rather than silently changing the experiment.
+
+Target generation now maintains a `.partial.npy` and `.progress.json`; rerun
+the identical cache command after interruption to resume. A per-cache lock
+prevents concurrent writers. `--max-batches 1` exercises restart without
+finishing the cache. Completed caches remain immutable.
+
+Student comparison uses fixed signed margin AUC on the ten cross-scene
+selection contrasts and, separately, seven correlated synthetic home cases.
+The exploratory int4 gate is a mean paired cross-scene gain exceeding twice its
+contrast-level SE, with no negative mean home gain. Passing this gate triggers
+quantization/export and C integer-encoder evaluation for both students, **not
+firmware deployment or a claim of statistical confirmation**. Integer evaluation
+includes RGB565 input conversion; fp32 uses RGB888, so it measures the deployable
+path's total change rather than isolating weight quantization alone.
