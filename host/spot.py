@@ -345,6 +345,8 @@ def main() -> int:
     ap.add_argument("--out", type=Path, default=Path("/tmp/spot.log"),
                     help="where demo.py's full output is kept (default "
                          "/tmp/spot.log)")
+    ap.add_argument("--export", type=Path, default=None,
+                    help="student export bundle; its metadata selects the matching teacher")
     ap.add_argument("--port", default=None)
     ap.add_argument("--enrol-timeout", type=float, default=90.0, metavar="S",
                     help="how long to wait for the board to confirm a press")
@@ -387,6 +389,8 @@ def main() -> int:
     cmd = ["uv", "run", str(ROOT / "host/demo.py"),
            "--ask", "--leave-running", "--frames", "0",
            "--out", str(args.out), *args.phrases]
+    if args.export:
+        cmd += ["--export", str(args.export.resolve())]
     if args.port:
         cmd += ["--port", args.port]
 

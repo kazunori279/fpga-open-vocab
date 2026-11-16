@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.10"
 # dependencies = ["torch", "numpy", "pillow", "open_clip_torch", "pyserial",
-#                 "transformers", "sentencepiece"]
+#                 "sentencepiece", "sentence-transformers>=6.1.0", "transformers>=5.18.0"]
 # ///
 """fpga-open-vocab: describe it, the board spots it.
 
@@ -380,7 +380,8 @@ class Encoder:
         if self.model is None:
             import teacher
             self.device = teacher.pick_device()
-            print(f"teacher   : {self.spec}, {len(teacher.TEMPLATES)} templates,"
+            print(f"teacher   : {self.spec}, "
+                  f"{1 if self.spec.startswith('gemma:') else len(teacher.TEMPLATES)} templates,"
                   f" on {self.device}", file=sys.stderr)
             print("space     : "
                   + (f"projected by {self.export['basis']}"

@@ -415,6 +415,8 @@ the frictions, the rejected designs and what they taught are in
 
 ## Documentation
 
+For interchangeable SigLIP and Gemma teachers, see [Selecting a distillation teacher](docs/teachers.md).
+
 | where | what |
 |---|---|
 | **this file** | what the thing is and where it stands |

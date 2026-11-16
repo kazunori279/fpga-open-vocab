@@ -43,15 +43,7 @@ EMBED_DIM = 512
 #
 # M9's demo.py MUST use this same list. The device stores the averaged vector,
 # so a different ensemble at query time is a different query.
-TEMPLATES = [
-    "a photo of a {}.",
-    "a photo of the {}.",
-    "a close-up photo of a {}.",
-    "a cropped photo of a {}.",
-    "a bright photo of a {}.",
-    "a photo of a small {}.",
-    "a photo of a large {}.",
-]
+from teacher_backend import TEMPLATES
 
 
 def tag() -> str:
@@ -114,7 +106,9 @@ def embed_images(model, preprocess, split: str, names: list[str], device, batch:
 
 
 def load_spec(spec: str, device):
-    """(model, tokenizer) for an open_clip "NAME:PRETRAINED" spec.
+    """(model, tokenizer) for OpenCLIP or a pinned ``gemma:MODEL@REVISION``.
+
+    Gemma returns its shared image/text adapter and a None tokenizer.
 
     The spec comes out of model/spaces.py, which reads it off the cached
     teacher's sidecar - so a student distilled from a swapped teacher gets that
@@ -122,6 +116,9 @@ def load_spec(spec: str, device):
     `transformers` and `sentencepiece` for its tokenizer; a caller that might
     resolve to one has to list them.
     """
+    if spec.startswith("gemma:"):
+        from teacher_backend import GemmaTeacher
+        return GemmaTeacher(spec, device), None
     name, pretrained = spec.split(":")
     model, _, _ = open_clip.create_model_and_transforms(name, pretrained=pretrained)
     return model.to(device).eval(), open_clip.get_tokenizer(name)
@@ -142,6 +139,11 @@ def encode_queries_spec(model, tokenizer, names: list[str], device,
     into `mu`, so there is one formula here and no centring dial to get wrong.
     None means the model already emits the board's 512 and the map is identity.
     """
+    from teacher_backend import GemmaTeacher
+    if isinstance(model, GemmaTeacher):
+        if basis is not None:
+            raise ValueError("Gemma MRL cannot be combined with a PCA basis")
+        return model.encode_text(names)
     out = []
     for name in names:
         tokens = tokenizer([t.format(name) for t in TEMPLATES]).to(device)

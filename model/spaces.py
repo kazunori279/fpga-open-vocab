@@ -32,7 +32,9 @@ DEFAULT_SPEC = "ViT-B-16-quickgelu:openai"
 
 
 def resolve(teacher: str, spec: str | None = None, basis: Path | None = None):
-    """Turn a checkpoint's teacher string into (open_clip spec, basis or None).
+    """Turn a checkpoint's teacher tag into (backend spec, basis or None).
+
+    A gemma: spec identifies 512d MRL and deliberately has no PCA basis.
 
     `basis` is None for a teacher that already emits 512-d, which is the
     incumbent and is not an error - it means the projection step is the
@@ -40,6 +42,8 @@ def resolve(teacher: str, spec: str | None = None, basis: Path | None = None):
     """
     if spec is None:
         side = CACHE / f"{teacher}.json"
+        if teacher.startswith("teacher_") and not side.exists():
+            raise ValueError(f"Missing teacher identity: {side}")
         spec = (json.loads(side.read_text())["teacher"] if side.exists()
                 else DEFAULT_SPEC)
     if basis is None:

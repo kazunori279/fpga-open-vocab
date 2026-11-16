@@ -256,9 +256,11 @@ def main() -> int:
 
     split = ckpt["split"]
     names = data.image_list(split)
-    targets = teacher_mod.load_cache(split)
+    from teacher_backend import checkpoint_targets
+    targets = checkpoint_targets(ckpt)
     hold = set(ckpt["holdout"])
-    calib_idx = np.array([i for i in range(len(names)) if i not in hold])
+    calib_idx = np.array(ckpt.get("train_indices",
+                                  [i for i in range(len(names)) if i not in hold]))
 
     loader = DataLoader(
         distill.DistillSet(split, names, calib_idx, targets,
