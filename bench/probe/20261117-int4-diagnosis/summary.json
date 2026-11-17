@@ -1,0 +1,231 @@
+{
+  "purpose": "Separate camera precision and PTQ effects; preserve both selectable demo exports",
+  "script_sha256": "aa42c54bfede545ae0b3860ca912895fca772d1eb31b27313413ed7fc4063610",
+  "reference_reports": "bench/probe/20261117-switchable-int4",
+  "limitations": [
+    "One seed",
+    "Correlated synthetic home panels",
+    "Exploratory diagnostic; no candidate promoted",
+    "No hardware measurements"
+  ],
+  "findings": [
+    "Both RGB565 and PTQ affect Gemma home ranking, with interaction.",
+    "Int8 restores Gemma home AUC; wider calibration ranges improve cosine but do not restore int4 task ranking.",
+    "Calibration layer cosines are cumulative, not isolated layer ablations."
+  ],
+  "next_experiment": "Selective higher precision or quantization-aware fine-tuning with camera-equivalent inputs; validate on independent scenes.",
+  "models": {
+    "siglip": {
+      "variants": {
+        "fp32-rgb888": {
+          "auc": {
+            "cross-scene": 0.6203098557927215,
+            "home": 0.6507936507936508
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 1.0,
+            "min": 0.9999997019767761
+          }
+        },
+        "published-int4-rgb888": {
+          "auc": {
+            "cross-scene": 0.6041197036517956,
+            "home": 0.6785714285714286
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 0.9578249454498291,
+            "min": 0.796241819858551
+          }
+        },
+        "fp32-rgb565": {
+          "auc": {
+            "cross-scene": 0.6225169278539067,
+            "home": 0.6587301587301588
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 1.0,
+            "min": 0.9999997019767761
+          }
+        },
+        "published-int4-rgb565": {
+          "auc": {
+            "cross-scene": 0.60525270890874,
+            "home": 0.6587301587301588
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 0.9564763903617859,
+            "min": 0.7980332374572754
+          }
+        },
+        "int4-p0.999-rgb565": {
+          "auc": {
+            "cross-scene": 0.60525270890874,
+            "home": 0.6587301587301588
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 0.9564763903617859,
+            "min": 0.7980332374572754
+          }
+        },
+        "int8-p0.999-rgb565": {
+          "auc": {
+            "cross-scene": 0.6146030442889845,
+            "home": 0.6706349206349207
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 0.9952099323272705,
+            "min": 0.9202583432197571
+          }
+        },
+        "int4-p0.9999-rgb565": {
+          "auc": {
+            "cross-scene": 0.6067020289732253,
+            "home": 0.6507936507936509
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 0.9594410061836243,
+            "min": 0.8014834523200989
+          }
+        },
+        "int4-p1.0-rgb565": {
+          "auc": {
+            "cross-scene": 0.6091088563649241,
+            "home": 0.6626984126984128
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 0.9600059986114502,
+            "min": 0.7993819117546082
+          }
+        }
+      },
+      "diagnostic_blobs": {
+        "int4-p0.999.bin": {
+          "bytes": 780720,
+          "sha256": "7ab845428af770256e65e5fb57f6ab34ded60f689a5b5578e79109f01f55f271"
+        },
+        "int4-p1.0.bin": {
+          "bytes": 780720,
+          "sha256": "c679848971140841b58c073ee53a3d9e15a0bdb9742e9e1418e1a6483c2a59fa"
+        },
+        "int4-p0.9999.bin": {
+          "bytes": 780720,
+          "sha256": "381d966a0f1c20f175ffb0c4c2985dd4064e6aa287be1f84745e411e6f9fc09b"
+        },
+        "int8-p0.999.bin": {
+          "bytes": 1416624,
+          "sha256": "dd8e3efb2a55639625eece028bb5048858cc1da38dd8c61246c54d47cdc6fe05"
+        }
+      },
+      "checkpoint_sha256": "e1478a3d3cab82d469dbf3c77da3c3360511ada0f560b999f3ee4e58a7eca367",
+      "published_weights_sha256": "7ab845428af770256e65e5fb57f6ab34ded60f689a5b5578e79109f01f55f271",
+      "camera_preprocessing_exact": true,
+      "baseline_reconstruction_exact": true
+    },
+    "gemma": {
+      "variants": {
+        "fp32-rgb888": {
+          "auc": {
+            "cross-scene": 0.6171256793607127,
+            "home": 0.738095238095238
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 1.0,
+            "min": 0.9999998211860657
+          }
+        },
+        "published-int4-rgb888": {
+          "auc": {
+            "cross-scene": 0.6150957681026616,
+            "home": 0.6666666666666667
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 0.9660664796829224,
+            "min": 0.8630677461624146
+          }
+        },
+        "fp32-rgb565": {
+          "auc": {
+            "cross-scene": 0.6148316728097308,
+            "home": 0.7023809523809523
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 1.0,
+            "min": 0.9999997615814209
+          }
+        },
+        "published-int4-rgb565": {
+          "auc": {
+            "cross-scene": 0.6122755411889673,
+            "home": 0.6547619047619048
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 0.964826762676239,
+            "min": 0.8615254163742065
+          }
+        },
+        "int4-p0.999-rgb565": {
+          "auc": {
+            "cross-scene": 0.6122755411889673,
+            "home": 0.6547619047619048
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 0.964826762676239,
+            "min": 0.8615254163742065
+          }
+        },
+        "int8-p0.999-rgb565": {
+          "auc": {
+            "cross-scene": 0.6152488213153189,
+            "home": 0.7341269841269842
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 0.9957402944564819,
+            "min": 0.9378033876419067
+          }
+        },
+        "int4-p0.9999-rgb565": {
+          "auc": {
+            "cross-scene": 0.6105338318483244,
+            "home": 0.6428571428571429
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 0.9697344303131104,
+            "min": 0.8941140174865723
+          }
+        },
+        "int4-p1.0-rgb565": {
+          "auc": {
+            "cross-scene": 0.6106274356896024,
+            "home": 0.6626984126984128
+          },
+          "cosine_to_fp32_same_input": {
+            "mean": 0.9701253771781921,
+            "min": 0.8952162265777588
+          }
+        }
+      },
+      "diagnostic_blobs": {
+        "int4-p0.999.bin": {
+          "bytes": 780720,
+          "sha256": "8bd793add344b8bf83b56ec021e6787226fb8cb5776e520c647f663f26a8840f"
+        },
+        "int4-p1.0.bin": {
+          "bytes": 780720,
+          "sha256": "92c15643e07614a1065a8ed69f63424f9a111c38a2531e1fa43e35ec13c4535d"
+        },
+        "int4-p0.9999.bin": {
+          "bytes": 780720,
+          "sha256": "0fac5e2cce67e15ae259cdeb85e6c911771ed3857964b1d333491b07723fb6eb"
+        },
+        "int8-p0.999.bin": {
+          "bytes": 1416624,
+          "sha256": "ecb248f23f2927772376e2623e45e6be0efa3e75c9db6186f43e97155378447e"
+        }
+      },
+      "checkpoint_sha256": "d34be17497456f261d029891a043871229f0d0cbb58c8e7fdbbbe336e58f9277",
+      "published_weights_sha256": "8bd793add344b8bf83b56ec021e6787226fb8cb5776e520c647f663f26a8840f",
+      "camera_preprocessing_exact": true,
+      "baseline_reconstruction_exact": true
+    }
+  }
+}

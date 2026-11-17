@@ -160,3 +160,37 @@ The int4 path includes RGB565 input conversion, while fp32 uses RGB888.
 Neither result establishes general superiority. Reports and artifact hashes
 are in [the comparison summary](../bench/probe/20261117-switchable-int4/summary.json),
 with checkpoint and training provenance in each export's `provenance.json`.
+
+### Input precision and calibration diagnosis
+
+`tools/diagnose_teacher_int4.py` separates RGB888/RGB565 input precision from
+weight/activation quantization using the same C encoder and frozen prompts:
+
+```sh
+uv run --script tools/diagnose_teacher_int4.py \
+  --run compare43-gemma-s30k-seed0 \
+  --out model/runs/teacher-comparison-43/diagnosis/gemma
+# Repeat with compare43-siglip-s30k-seed0 and a separate output directory.
+```
+
+It verifies the Python RGB565 bit expansion/input quantization against the
+actual C camera path, reconstructs the published int4 weights byte for byte,
+and compares fixed calibration percentiles (99.9%, 99.99%, maximum) plus int8.
+All candidates use the same first 512 training images, batch order and seed.
+Generated candidate blobs are diagnostics, not deployment bundles; the
+published exports remain unchanged.
+
+For Gemma, home AUC is 0.7381 (fp32/RGB888), 0.7024 (fp32/RGB565),
+0.6667 (int4/RGB888), and 0.6548 (int4/RGB565). Both input precision and
+quantization contribute; the effects interact, so they are not independent
+additive penalties. The int8/RGB565 diagnostic reaches 0.7341. Int4 calibration
+at 99.99% and maximum reaches only 0.6429 and 0.6627 respectively: improved
+embedding cosine does not imply improved task ranking. No calibration candidate
+is promoted from this exploratory suite.
+
+The next model-quality experiment should test selective higher precision or
+quantization-aware fine-tuning with camera-equivalent input augmentation, using
+separate validation scenes before choosing a demo bundle. Calibration-only
+changes have not resolved the regression. Full results, per-case margins and
+cumulative per-layer cosines are in
+[the diagnosis summary](../bench/probe/20261117-int4-diagnosis/summary.json).
