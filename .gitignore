@@ -70,3 +70,6 @@ model/runs/compare43-siglip-s30k-seed0/*
 !model/runs/compare43-gemma-s30k-seed0/
 model/runs/compare43-gemma-s30k-seed0/*
 !model/runs/compare43-gemma-s30k-seed0/export/
+
+# Local matched firmware/model demo packages.
+artifacts/demo-*/

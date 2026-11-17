@@ -13,6 +13,54 @@ Gemma inference uses fp32 and disables the audio encoder. Its pinned revision is
 in `model/teacher_backend.py`; changing it creates a different space identity.
 Neither a SigLIP PCA nor SigLIP text vectors can be used with a Gemma student.
 
+
+## Run the Gemma model on the device
+
+The local ready-to-flash package is `artifacts/demo-gemma/`. It contains
+`forgix_m9.uf2`, the matching `export/`, the M16 NARROW `gemm_top.hex`,
+`run.sh`, and a checksum manifest. The UF2 includes the Gemma student weights
+(CRC `0xAFF86EF7`); the full teacher runs on the host only to encode text.
+The equivalent SigLIP package is `artifacts/demo-siglip/` (CRC `0x384A95D4`).
+These generated local packages are ignored by Git; the model exports are tracked.
+
+From the repository root, with the board connected:
+
+```sh
+picotool reboot -f -u
+picotool load artifacts/demo-gemma/forgix_m9.uf2
+picotool verify artifacts/demo-gemma/forgix_m9.uf2
+diskutil unmount /Volumes/RP2350
+picotool reboot
+artifacts/demo-gemma/run.sh 'an open hand' 'a fist'
+```
+
+If already in BOOTSEL, start at `picotool load`. The launcher uses the package's
+matching model and NARROW bitstream and guides enrolment of the two scenes.
+To switch back, flash the SigLIP package and use its `run.sh`.
+The direct host command, without the launcher, is:
+
+```sh
+uv run --script host/spot.py \
+  --export model/runs/compare43-gemma-s30k-seed0/export \
+  --bitstream rtl/bitstreams/m16/gemm_top.hex \
+  'an open hand' 'a fist'
+```
+
+To rebuild the Gemma UF2 from the tracked export:
+
+```sh
+cmake -S firmware -B firmware/build-demo-gemma -G Ninja \
+  -DFGX_EXPORT="$PWD/model/runs/compare43-gemma-s30k-seed0/export" \
+  -DLINK_CFG=NARROW -DGP_KPACK=1 -DFGX_SYS_KHZ=320000 \
+  -DPICO_TOOLCHAIN_PATH="$HOME/toolchains/arm-gnu-toolchain-14.2.rel1-darwin-arm64-arm-none-eabi"
+cmake --build firmware/build-demo-gemma --target forgix_m9
+```
+
+The generated image is `firmware/build-demo-gemma/forgix_m9.uf2`.
+See [building and flashing](building.md) for toolchain setup. No RP2350 was
+connected when this package was prepared, so flashing and the first live run
+remain to be performed; the binary and matching host assets are ready.
+
 ## Cache, train, evaluate, export
 
 ```sh
