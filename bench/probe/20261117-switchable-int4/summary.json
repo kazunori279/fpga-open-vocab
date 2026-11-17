@@ -1,0 +1,71 @@
+{
+  "purpose": "Independent selectable SigLIP and Gemma demos; no replacement-gain gate",
+  "metric": "mean standardized signed margin AUC across contrasts",
+  "limitations": [
+    "One training seed",
+    "Home cases are correlated synthetic panels",
+    "fp32 uses RGB888 while int4 includes RGB565 input conversion",
+    "No hardware flash, on-device accuracy or timing validation"
+  ],
+  "models": {
+    "siglip": {
+      "means": {
+        "fp32": {
+          "cross-scene": 0.6203098557927214,
+          "home": 0.6507936507936508
+        },
+        "int4": {
+          "cross-scene": 0.60525270890874,
+          "home": 0.6587301587301588
+        }
+      },
+      "export_directory": "model/runs/compare43-siglip-s30k-seed0/export",
+      "bytes": 780720,
+      "crc32": "0x384A95D4",
+      "quantization_diagnostic": "embedding int8 vs fp32 : mean 0.99511  min 0.95752  (1024 images)",
+      "quantization_diagnostic_passed": false,
+      "golden_floats_exact": 2048,
+      "firmware_build": {
+        "target": "forgix_m9",
+        "link": "NARROW",
+        "sys_khz": 320000,
+        "result": "PASS"
+      },
+      "artifact_sha256": {
+        "export.json": "6591c30435ec87533efb1c0f211260e16f4320451ffecbcd2008a81c002749ce",
+        "testvec.bin": "171750193bae802fefc6bb765fd2b094b9afd818fb46dd1a737d2b0806fc4531",
+        "weights.bin": "7ab845428af770256e65e5fb57f6ab34ded60f689a5b5578e79109f01f55f271",
+        "teacher_347251f243f458a6_train2017.basis.npz": "e665cbab6c0a67be3754d41a57db6c39da87caf6ed8391bc8a14a74c4e486a2b"
+      }
+    },
+    "gemma": {
+      "means": {
+        "fp32": {
+          "cross-scene": 0.6171256793607127,
+          "home": 0.7380952380952381
+        },
+        "int4": {
+          "cross-scene": 0.6122755411889673,
+          "home": 0.6547619047619048
+        }
+      },
+      "export_directory": "model/runs/compare43-gemma-s30k-seed0/export",
+      "bytes": 780720,
+      "crc32": "0xAFF86EF7",
+      "quantization_diagnostic": "embedding int8 vs fp32 : mean 0.99519  min 0.94932  (1024 images)",
+      "quantization_diagnostic_passed": false,
+      "golden_floats_exact": 2048,
+      "firmware_build": {
+        "target": "forgix_m9",
+        "link": "NARROW",
+        "sys_khz": 320000,
+        "result": "PASS"
+      },
+      "artifact_sha256": {
+        "export.json": "0bcc702a33ed4cdadafac088e790a1a8f354c729aefd8abe4c4e4b74abe017d1",
+        "testvec.bin": "969663515ec74b34534768e00e82cd3aae836998d63bcded2b03a56ac4127a2f",
+        "weights.bin": "8bd793add344b8bf83b56ec021e6787226fb8cb5776e520c647f663f26a8840f"
+      }
+    }
+  }
+}

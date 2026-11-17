@@ -347,6 +347,8 @@ def main() -> int:
                          "/tmp/spot.log)")
     ap.add_argument("--export", type=Path, default=None,
                     help="student export bundle; its metadata selects the matching teacher")
+    ap.add_argument("--bitstream", type=Path, default=None,
+                    help="FPGA image to send; forwarded to host/demo.py")
     ap.add_argument("--port", default=None)
     ap.add_argument("--enrol-timeout", type=float, default=90.0, metavar="S",
                     help="how long to wait for the board to confirm a press")
@@ -391,6 +393,8 @@ def main() -> int:
            "--out", str(args.out), *args.phrases]
     if args.export:
         cmd += ["--export", str(args.export.resolve())]
+    if args.bitstream:
+        cmd += ["--bitstream", str(args.bitstream.resolve())]
     if args.port:
         cmd += ["--port", args.port]
 

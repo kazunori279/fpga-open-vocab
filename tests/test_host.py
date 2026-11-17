@@ -7,6 +7,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+import zlib
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -62,6 +63,17 @@ class ExportTests(unittest.TestCase):
                 side.write_text(json.dumps(meta | change))
                 with self.assertRaises(SystemExit):
                     load_export(root)
+
+    def test_optional_demo_exports_match_their_crc_and_space(self):
+        for backend in ("siglip", "gemma"):
+            with self.subTest(backend=backend):
+                directory = ROOT / f"model/runs/compare43-{backend}-s30k-seed0/export"
+                meta = load_export(directory)
+                weights = (directory / "weights.bin").read_bytes()
+                self.assertEqual(len(weights), meta["bytes"])
+                self.assertEqual(f"0x{zlib.crc32(weights):08X}", meta["crc32"])
+                self.assertEqual(meta["wbits"], 4)
+                self.assertEqual(meta["embed_dim"], 512)
 
     def test_unprojected_export(self):
         with tempfile.TemporaryDirectory() as tmp:

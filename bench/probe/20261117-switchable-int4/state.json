@@ -1,0 +1,50 @@
+{
+  "commit": "def7b3210283f0c279c6dbfe5895e59f2fc78f46",
+  "checkpoints": {
+    "siglip": "e1478a3d3cab82d469dbf3c77da3c3360511ada0f560b999f3ee4e58a7eca367",
+    "gemma": "d34be17497456f261d029891a043871229f0d0cbb58c8e7fdbbbe336e58f9277"
+  },
+  "completed": [
+    "quantize-siglip",
+    "export-siglip",
+    "eval-siglip",
+    "quantize-gemma",
+    "export-gemma",
+    "eval-gemma"
+  ],
+  "objective": "Support selectable SigLIP and Gemma int4 demos; no relative-gain gate",
+  "input_difference": "fp32 uses RGB888; C int4 includes RGB565 conversion",
+  "parent": "../state.json",
+  "status": "complete",
+  "stage": "eval-gemma",
+  "command": [
+    "uv",
+    "run",
+    "--script",
+    "tools/eval_student_teacher.py",
+    "--run",
+    "compare43-gemma-s30k-seed0",
+    "--int4"
+  ],
+  "pid": 60442,
+  "updated": 1794863970.44127,
+  "returncodes": {
+    "quantize-siglip": 1,
+    "export-siglip": 0,
+    "eval-siglip": 0,
+    "quantize-gemma": 1,
+    "export-gemma": 0,
+    "eval-gemma": 0
+  },
+  "history": [
+    {
+      "commit": "217638288497b31c9cf8e3315cf317efbdcb594a",
+      "status": "failed",
+      "error": "quantize-siglip failed with exit 1; inspect its log"
+    }
+  ],
+  "quality_warnings": {
+    "quantize-siglip": "int8 cosine diagnostic failed; calibration exists; continue to measure int4 task quality",
+    "quantize-gemma": "int8 cosine diagnostic failed; calibration exists; continue to measure int4 task quality"
+  }
+}
